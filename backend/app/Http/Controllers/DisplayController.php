@@ -64,7 +64,7 @@ class DisplayController extends Controller
                 'email_address' => $roomData[0],
             ], [
                 'user_id' => auth()->id(),
-                'calendar_id' => $outlookCalendar['id'],
+                'calendar_id' => $calendar->id,
                 'email_address' => $roomData[0],
                 'name' => $roomData[1],
             ]);
