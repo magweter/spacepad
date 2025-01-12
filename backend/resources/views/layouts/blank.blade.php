@@ -52,7 +52,6 @@
     @yield('page')
 </div>
 @stack('scripts')
-@lemonJS
 <script>
     setTimeout(() => {
         const alert = document.getElementById('alert');
