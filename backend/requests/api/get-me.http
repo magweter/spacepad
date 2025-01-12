@@ -1,0 +1,4 @@
+GET {{baseUrl}}/api/devices/me
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+Accept: application/json

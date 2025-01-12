@@ -1,0 +1,3 @@
+GET https://graph.microsoft.com/v1.0/me/calendars/AQMkAGFiNTUBMGY0LTNkNDktNDhiZS04YmFlLWU3ZWY2ZTE3OTFlZQAALgAAA_R3tpJM44RMu3YluMCeC2EBAMoYkxIk1z5LkEEIaTxRKhAAAAIBDQAAAA==/events
+Authorization: Bearer {{outlookToken}}
+Content-Type: application/json

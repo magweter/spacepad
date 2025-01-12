@@ -1,0 +1,4 @@
+### Get Outlook Calendars
+GET http://localhost:8000/api/outlook/calendars
+Authorization: Bearer YOUR_ACCESS_TOKEN
+Content-Type: application/json

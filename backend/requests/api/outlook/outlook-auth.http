@@ -1,0 +1,2 @@
+### Redirect to Outlook OAuth URL
+GET http://localhost:8000/outlook/auth

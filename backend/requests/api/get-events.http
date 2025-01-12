@@ -1,0 +1,4 @@
+GET {{baseUrl}}/api/events
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+Accept: application/json

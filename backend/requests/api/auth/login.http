@@ -1,0 +1,9 @@
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+Accept: application/json
+
+{
+  "code": "397624",
+  "uid": "uniqueid1",
+  "name": "Tablet 1"
+}
