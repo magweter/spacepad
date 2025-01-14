@@ -13,7 +13,7 @@ Route::prefix('auth')->group(function () {
 
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('devices/me', [DeviceController::class, 'getMe']);
-    Route::put('devices', [DeviceController::class, 'changeDisplay']);
+    Route::put('devices/display', [DeviceController::class, 'changeDisplay']);
     Route::get('displays', [DisplayController::class, 'getDisplays']);
     Route::get('events', [EventController::class, 'getAll']);
 });

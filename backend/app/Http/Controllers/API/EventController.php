@@ -31,7 +31,7 @@ class EventController extends Controller
                     endDateTime: now()->addDay()
                 );
                 return collect($outlookEvents)->map(fn ($e) => $this->eventService->sanitizeEvent($e))->toArray();
-            }) : null;
+            }) : [];
 
         return EventResource::collection($events);
     }
