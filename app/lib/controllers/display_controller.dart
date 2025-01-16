@@ -1,9 +1,9 @@
 import 'package:get/get.dart';
 import 'package:spacepad/models/display_model.dart';
 import 'package:spacepad/components/toast.dart';
-import 'package:spacepad/pages/dashboard_page.dart';
 import 'package:spacepad/services/device_service.dart';
 import 'package:spacepad/services/display_service.dart';
+import 'package:spacepad/services/auth_service.dart';
 
 class DisplayController extends GetxController {
   final RxBool loading = RxBool(false);
@@ -47,7 +47,7 @@ class DisplayController extends GetxController {
     try {
       await DeviceService.instance.changeDisplay(selectedDisplay.value!.id);
 
-      await Get.offAll(() => const DashboardPage());
+      await AuthService.instance.verify();
     } catch (e) {
       Toast.showError('An unexpected error arisen. Please check if you have an internet connection');
     }

@@ -3,9 +3,9 @@
 namespace App\Services;
 
 use App\Enums\Provider;
+use App\Models\Display;
 use App\Models\EventSubscription;
 use App\Models\OutlookAccount;
-use App\Models\Synchronization;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -313,21 +313,21 @@ class OutlookService
      * Create an event subscription for Outlook calendar events.
      *
      * @param OutlookAccount $outlookAccount
-     * @param Synchronization $synchronization
-     * @param string $calendarId
+     * @param Display $display
+     * @param string $emailAddress
      * @return EventSubscription|null
      * @throws \Exception
      */
     public function createEventSubscription(
         OutlookAccount $outlookAccount,
-        Synchronization $synchronization,
-        string $calendarId
+        Display $display,
+        string $emailAddress
     ): ?EventSubscription
     {
         $this->ensureAuthenticated($outlookAccount);
 
         $data = [
-            'resource' => "/me/calendars/{$calendarId}/events",
+            'resource' => "/users/$emailAddress/events",
             'changeType' => 'created,updated,deleted',
             'notificationUrl' => config('services.azure_ad.webhook_url'),
             'expirationDateTime' => now()->addHours(3)->toISOString(),
@@ -360,9 +360,8 @@ class OutlookService
             'resource' => $responseBody['resource'],
             'expiration' => $responseBody['expirationDateTime'],
             'notification_url' => $data['notificationUrl'],
-            'synchronization_id' => $synchronization->id,
+            'display_id' => $display->id,
             'outlook_account_id' => $outlookAccount->id,
-            'provider' => Provider::OUTLOOK,
         ]);
 
         // Log the creation for debugging

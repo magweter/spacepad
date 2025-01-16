@@ -17,7 +17,8 @@ class DeviceResource extends JsonResource
         return [
             'id' => $this->id,
             'name' => $this->name,
-            'user' => UserResource::make($this->user)
+            'user' => UserResource::make($this->user),
+            'display' => DisplayResource::make($this->display)
         ];
     }
 }

@@ -1,4 +1,4 @@
-package com.magweter.spacepad.spacepad
+package com.magweter.spacepad
 
 import io.flutter.embedding.android.FlutterActivity
 

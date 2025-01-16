@@ -13,7 +13,7 @@ class AppTheme {
 
   static ThemeData get data {
     return ThemeData(
-        textTheme: GoogleFonts.latoTextTheme(),
+        textTheme: GoogleFonts.interTextTheme(),
         scaffoldBackgroundColor: Colors.white,
         colorScheme: ColorScheme.fromSeed(seedColor: oxford),
         inputDecorationTheme: InputDecorationTheme(

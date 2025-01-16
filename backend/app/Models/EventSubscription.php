@@ -20,10 +20,8 @@ class EventSubscription extends Model
         'expiration',
         'notification_url',
         'user_id',
-        'synchronization_id',
+        'display_id',
         'outlook_account_id',
-        'google_account_id',
-        'provider',
     ];
 
     public function scopeExpired(Builder $query)

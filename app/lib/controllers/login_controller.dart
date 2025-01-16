@@ -61,8 +61,6 @@ class LoginController extends GetxController {
           deviceUid ?? 'Unknown device',
           deviceName ?? 'Unknown model'
       );
-      
-      Get.back();
     } on ApiException catch (apiException) {
       if (apiException.code == 422) {
         Toast.showError('Your code is incorrect. Please refresh your dashboard to acquire the most recent code');

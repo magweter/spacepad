@@ -32,7 +32,6 @@ class AuthController extends Controller
 
         // Check if the code is a valid connect code
         if ($connectedUserId !== null) {
-            $user = User::findOrFail($connectedUserId);
             $device = Device::firstOrCreate([
                 'uid' => $request->validated()['uid']
             ],[
@@ -44,7 +43,6 @@ class AuthController extends Controller
             return response()->json([
                 'data' => [
                     'token' => $device->createToken('device-token')->plainTextToken,
-                    'user' => UserResource::make($user),
                     'device' => DeviceResource::make($device),
                 ],
             ]);

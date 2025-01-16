@@ -28,9 +28,13 @@ class AuthService {
     Map data = result['data'];
 
     await setAuthToken(data['token']);
-    currentDevice.value = DeviceModel.fromJson(data['user']);
+    currentDevice.value = DeviceModel.fromJson(data['device']);
 
-    await Get.offAll(() => const DashboardPage());
+    await Get.offAll(
+            () => currentDevice.value?.display != null ?
+        const DashboardPage() :
+        const DisplayPage()
+    );
   }
 
   Future<void> verify() async {

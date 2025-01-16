@@ -47,6 +47,8 @@ dependencies:
   wakelock_plus: ^1.2.10
   google_fonts: ^6.2.1
   dropdown_button2: ^2.3.9
+  marquee: ^2.3.0
+  flutter_launcher_icons: ^0.14.2
 
 dev_dependencies:
   flutter_test:
@@ -74,3 +76,9 @@ flutter:
   assets:
     - .env
     - assets/
+    - assets/fonts/
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/logo.png"
