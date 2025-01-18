@@ -2,9 +2,8 @@
 
 namespace App\Models;
 
-use App\Enums\Plan;
 use App\Traits\HasUlid;
-use Carbon\Carbon;
+use Illuminate\Support\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -52,11 +51,16 @@ class Display extends Model
 
     public function getStartTime(): Carbon
     {
-        return now()->startOfDay();
+        return now()->subDay();
     }
 
     public function getEndTime(): Carbon
     {
-        return now()->endOfDay();
+        return now()->addDay();
+    }
+
+    public function getEventsCacheKey(): string
+    {
+        return "display:$this->id:events";
     }
 }

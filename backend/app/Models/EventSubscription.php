@@ -29,8 +29,13 @@ class EventSubscription extends Model
         return $query->where('expiration', '<=', now()->toAtomString());
     }
 
-    public function connectedAccount(): ?BelongsTo
+    public function outlookAccount(): BelongsTo
     {
         return $this->belongsTo(OutlookAccount::class, 'outlook_account_id');
+    }
+
+    public function display(): BelongsTo
+    {
+        return $this->belongsTo(Display::class, 'display_id');
     }
 }

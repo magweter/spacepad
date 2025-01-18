@@ -48,7 +48,8 @@ dependencies:
   google_fonts: ^6.2.1
   dropdown_button2: ^2.3.9
   marquee: ^2.3.0
-  flutter_launcher_icons: ^0.14.2
+  timezone: ^0.10.0
+  flutter_udid: ^4.0.0
 
 dev_dependencies:
   flutter_test:
@@ -60,6 +61,7 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.14.2
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

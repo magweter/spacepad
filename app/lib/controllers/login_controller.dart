@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:flutter_udid/flutter_udid.dart';
 import 'package:get/get.dart';
 import 'package:spacepad/exceptions/api_exception.dart';
 import 'package:spacepad/services/auth_service.dart';
@@ -20,17 +21,7 @@ class LoginController extends GetxController {
   }
 
   Future<String?> getDeviceId() async {
-    if (Platform.isAndroid) {
-      AndroidDeviceInfo androidInfo = await deviceInfoPlugin.androidInfo;
-      return androidInfo.id;
-    }
-
-    if (Platform.isIOS) {
-      IosDeviceInfo iosInfo = await deviceInfoPlugin.iosInfo;
-      return iosInfo.identifierForVendor;
-    }
-
-    return null;
+    return await FlutterUdid.udid;
   }
 
   Future<String?> getDeviceName() async {

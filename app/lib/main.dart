@@ -8,6 +8,7 @@ import 'package:spacepad/pages/splash_page.dart';
 import 'package:spacepad/theme.dart';
 import 'package:spacepad/services/auth_service.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
+import 'package:timezone/data/latest.dart' as tz;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,6 +16,8 @@ Future<void> main() async {
   await dotenv.load(fileName: ".env");
 
   await AuthService.instance.initialise();
+
+  tz.initializeTimeZones();
 
   WakelockPlus.enable();
 

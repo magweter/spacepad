@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\API;
 
+use App\Enums\DisplayStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\API\ChangeDisplayRequest;
 use App\Http\Resources\API\DeviceResource;
@@ -17,8 +18,14 @@ class DeviceController extends Controller
     public function changeDisplay(ChangeDisplayRequest $request): JsonResponse
     {
         $data = $request->validated();
-        auth()->user()->update([
+        $device = auth()->user;
+
+        $device->update([
             'display_id' => $data['display_id'],
+        ]);
+
+        $device->display->update([
+            'status' => DisplayStatus::ACTIVE
         ]);
 
         return response()->json();

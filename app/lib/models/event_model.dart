@@ -25,8 +25,8 @@ class EventModel {
       summary: data['summary'],
       location: data['location'],
       description: data['description'],
-      start: DateTime.parse(data['start']),
-      end: DateTime.parse(data['end']),
+      start: DateTime.parse(data['start']).toLocal(),
+      end: DateTime.parse(data['end']).toLocal(),
       timezone: data['timezone'],
       isAllDay: data['isAllDay'],
     );

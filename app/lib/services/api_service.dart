@@ -13,7 +13,7 @@ class ApiService {
   ApiService._();
 
   static Future get(String endpoint) async {
-    if (kDebugMode) print('GET: $endpoint');
+    if (kDebugMode) print('GET: ${dotenv.env['APP_URL']!}$endpoint');
 
     try {
       Response response = await http.get(Uri.parse('${dotenv.env['APP_URL']!}$endpoint'), headers: _getHeaders());
@@ -37,7 +37,7 @@ class ApiService {
   }
 
   static Future post(String endpoint, Map body) async {
-    if (kDebugMode) print('POST: $endpoint');
+    if (kDebugMode) print('POST: ${dotenv.env['APP_URL']!}$endpoint');
 
     try {
       Response response = await http.post(
@@ -58,7 +58,7 @@ class ApiService {
   }
 
   static Future put(String endpoint, Map body) async {
-    if (kDebugMode) print('PUT: $endpoint');
+    if (kDebugMode) print('PUT: ${dotenv.env['APP_URL']!}$endpoint');
 
     try {
       Response response = await http.put(
@@ -79,7 +79,7 @@ class ApiService {
   }
 
   static Future delete(String endpoint, [Map? body]) async {
-    if (kDebugMode) print('DELETE: $endpoint');
+    if (kDebugMode) print('DELETE: ${dotenv.env['APP_URL']!}$endpoint');
 
     try {
       Response response = await http.delete(

@@ -2,9 +2,9 @@
 
 namespace App\Console\Commands;
 
-use App\Enums\SynchronizationStatus;
+use App\Enums\DisplayStatus;
+use App\Models\Display;
 use App\Models\EventSubscription;
-use App\Models\Synchronization;
 use App\Services\OutlookService;
 use Illuminate\Console\Command;
 
@@ -30,25 +30,25 @@ class RenewEventSubscriptions extends Command
      */
     public function handle(OutlookService $outlookService): void
     {
-        $expiredSubscriptions = EventSubscription::with(['synchronization'])->expired()->get();
+        $expiredSubscriptions = EventSubscription::with(['display'])->expired()->get();
         foreach ($expiredSubscriptions as $expiredSubscription) {
-            $outlookAccount = $expiredSubscription->connectedAccount;
-            $synchronization = $expiredSubscription->synchronization;
-            $sourceCalendarId = $synchronization->sourceCalendar->calendar_id;
+            $outlookAccount = $expiredSubscription->outlookAccount;
+            $display = $expiredSubscription->display;
+            $emailAddress = $display->calendar->room->email_address;
 
             $outlookService->deleteEventSubscription($outlookAccount, $expiredSubscription, false);
-            $outlookService->createEventSubscription($outlookAccount, $synchronization, $sourceCalendarId);
+            $outlookService->createEventSubscription($outlookAccount, $display, $emailAddress);
         }
 
-        $nonExistingSubsSyncs = Synchronization::with(['sourceCalendar'])
-            ->where('status', SynchronizationStatus::ACTIVE)
+        $nonExistingSyncs = Display::with(['calendar.room'])
+            ->whereIn('status', [DisplayStatus::READY, DisplayStatus::ACTIVE])
             ->doesntHave('eventSubscriptions')
             ->get();
-        foreach ($nonExistingSubsSyncs as $nonExistingSubsSync) {
-            $outlookAccount = $nonExistingSubsSync->sourceCalendar->connectedAccount;
-            $sourceCalendarId = $nonExistingSubsSync->sourceCalendar->calendar_id;
+        foreach ($nonExistingSyncs as $nonExistingSync) {
+            $outlookAccount = $nonExistingSync->calendar->outlookAccount;
+            $emailAddress = $nonExistingSync->calendar->room->email_address;
 
-            $outlookService->createEventSubscription($outlookAccount, $nonExistingSubsSync, $sourceCalendarId);
+            $outlookService->createEventSubscription($outlookAccount, $nonExistingSync, $emailAddress);
         }
     }
 }
