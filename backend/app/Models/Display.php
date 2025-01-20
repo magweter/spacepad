@@ -51,12 +51,12 @@ class Display extends Model
 
     public function getStartTime(): Carbon
     {
-        return now()->subDay();
+        return now()->startOfDay();
     }
 
     public function getEndTime(): Carbon
     {
-        return now()->addDay();
+        return now()->endOfDay();
     }
 
     public function getEventsCacheKey(): string

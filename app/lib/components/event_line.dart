@@ -11,7 +11,7 @@ class EventLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 650,
+      width: 800,
       child: SpaceRow(
         spaceBetween: 15,
         mainAxisSize: MainAxisSize.max,
