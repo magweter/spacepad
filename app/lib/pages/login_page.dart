@@ -58,7 +58,7 @@ class LoginPage extends StatelessWidget {
 
                         SizedBox(
                           width: 350,
-                          child: Text('Please enter the connect code in your account dashboard found at spacepad.magweter.com.', textAlign: TextAlign.center),
+                          child: Text('enter_connect_code'.tr, textAlign: TextAlign.center),
                         ),
                       ],
                     ),
@@ -86,7 +86,7 @@ class LoginPage extends StatelessWidget {
                       width: 400,
                       child: Obx(() => ElevatedButton(
                         onPressed: controller.submitActive ? controller.submit : null,
-                        child: controller.loading.value ? const Spinner(size: 20) : Text('Connect to your account'),
+                        child: controller.loading.value ? const Spinner(size: 20) : Text('connect_to_account'.tr),
                       )),
                     ),
                   ]

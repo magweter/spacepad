@@ -39,37 +39,85 @@ class DashboardController extends GetxController {
   }
 
   void updateTime() {
-    time.value = DateFormat('HH:mm').format(DateTime.now());
+    time.value = DateFormat.Hm().format(DateTime.now());
+  }
+
+  String get roomName {
+    return AuthService.instance.currentDevice.value?.display?.name ?? 'meeting_room'.tr;
   }
 
   String get title {
-    return AuthService.instance.currentDevice.value?.display?.name ?? 'Meetingruimte';
+    if (isTransitioning && !isReserved) {
+      return 'to_be_reserved'.tr;
+    }
+
+    if (isReserved) {
+      return currentEvent!.summary;
+    }
+
+    return 'available'.tr;
+  }
+
+  String? get meetingInfo {
+    if (!isReserved) {
+      return null;
+    }
+
+    final currentEventStart = currentEvent!.start;
+    final currentEventEnd = currentEvent!.end;
+
+    return 'meeting_info_title'.trParams({
+      'start': DateFormat('HH:mm').format(currentEventStart),
+      'end': DateFormat('HH:mm').format(currentEventEnd)
+    });
   }
 
   String get subtitle {
     if (isReserved) {
       final currentEventEnd = currentEvent!.end;
+      final totalMinutesLeft = currentEventEnd.difference(DateTime.now()).inMinutes;
+      final hoursLeft = (totalMinutesLeft / 60).floor();
+      final minutesLeft = (totalMinutesLeft - (hoursLeft * 60)).floor() + 1;
+
+      return totalMinutesLeft < 60 ?
+        'x_minutes_left'.trParams({'minutes': minutesLeft.toString()}) :
+        'x_hours_x_minutes_left'.trParams({'hours': hoursLeft.toString(), 'minutes': minutesLeft.toString()});
+    }
+
+    if (upcomingEvents.isNotEmpty) {
+      final upcomingStart = upcomingEvents.first.start;
+      final totalMinutesLeft = upcomingStart.difference(DateTime.now()).inMinutes;
+      final hoursLeft = (totalMinutesLeft / 60).floor();
+      final minutesLeft = (totalMinutesLeft - (hoursLeft * 60)).floor() + 1;
+
+      return totalMinutesLeft < 60 ?
+        'for_x_minutes'.trParams({'minutes': minutesLeft.toString()}) :
+        'for_x_hours_x_minutes'.trParams({'hours': hoursLeft.toString(), 'minutes': minutesLeft.toString()});
+    }
+
+    return 'till_end_of_day'.tr;
+  }
+
+  bool get isReserved {
+    return currentEvent != null;
+  }
+
+  bool get isTransitioning {
+    if (isReserved) {
+      final currentEventEnd = currentEvent!.end;
       final minutesLeft = currentEventEnd.difference(DateTime.now()).inMinutes;
 
-      return minutesLeft <= 60 ?
-        'Gereserveerd voor $minutesLeft minuten tot ${DateFormat('HH:mm').format(currentEventEnd)} uur' :
-        'Gereserveerd tot ${DateFormat('HH:mm').format(currentEventEnd)} uur';
+      return minutesLeft < 10;
     }
 
     if (upcomingEvents.isNotEmpty) {
       final upcomingStart = upcomingEvents.first.start;
       final minutesLeft = upcomingStart.difference(DateTime.now()).inMinutes;
 
-      return minutesLeft <= 60 ?
-        'Beschikbaar voor $minutesLeft minuten tot ${DateFormat('HH:mm').format(upcomingStart)} uur' :
-        'Beschikbaar tot ${DateFormat('HH:mm').format(upcomingStart)} uur';
+      return minutesLeft < 10;
     }
 
-    return 'Beschikbaar de hele dag';
-  }
-
-  bool get isReserved {
-    return currentEvent != null;
+    return false;
   }
 
   EventModel? get currentEvent {
@@ -89,7 +137,7 @@ class DashboardController extends GetxController {
     try {
       events.value = await EventService.instance.getEvents();
     } catch (e) {
-      Toast.showError('Could not load events');
+      Toast.showError('could_not_load_events'.tr);
     }
   }
 

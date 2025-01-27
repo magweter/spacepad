@@ -1,3 +1,4 @@
+import 'package:get/get.dart';
 import 'package:spacepad/models/event_model.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -11,14 +12,18 @@ class EventLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 800,
+      width: double.infinity,
       child: SpaceRow(
-        spaceBetween: 15,
+        spaceBetween: 10,
         mainAxisSize: MainAxisSize.max,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Text('${DateFormat('HH:mm').format(event.start)} - ${DateFormat('HH:mm').format(event.end)}', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w400, color: Colors.white)),
-          Text(event.summary, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
+          Text('${'next'.tr}:', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
+          Text('next_event_title'.trParams({
+            'start': DateFormat.Hm().format(event.start),
+            'end': DateFormat.Hm().format(event.end),
+            'summary': event.summary,
+          }), style: TextStyle(fontSize: 24, fontWeight: FontWeight.w400, color: Colors.white)),
         ],
       ),
     );

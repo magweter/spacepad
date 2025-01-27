@@ -18,7 +18,7 @@ class DeviceController extends Controller
     public function changeDisplay(ChangeDisplayRequest $request): JsonResponse
     {
         $data = $request->validated();
-        $device = auth()->user;
+        $device = auth()->user();
 
         $device->update([
             'display_id' => $data['display_id'],

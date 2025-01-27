@@ -23,7 +23,9 @@ class DashboardPage extends StatelessWidget {
           Container(
             height: double.infinity,
             width: double.infinity,
-            color: controller.isReserved ? TWColors.rose_600 : TWColors.green_600,
+            color: controller.isTransitioning ?
+              TWColors.amber_500 :
+              (controller.isReserved ? TWColors.rose_600 : TWColors.green_600),
             padding: const EdgeInsets.all(16),
             child: Container(
                 height: double.infinity,
@@ -39,7 +41,11 @@ class DashboardPage extends StatelessWidget {
 
                       Align(
                         alignment: Alignment.topLeft,
-                        child: Text(controller.time.value, style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900))
+                        child: Text(controller.time.value, style: TextStyle(color: TWColors.gray_300, fontSize: 28, fontWeight: FontWeight.w900))
+                      ),
+                      Align(
+                        alignment: Alignment.topRight,
+                        child: Text(controller.roomName, style: TextStyle(color: TWColors.gray_300, fontSize: 28, fontWeight: FontWeight.w700))
                       ),
 
                       SpaceCol(
@@ -49,38 +55,49 @@ class DashboardPage extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
 
-                          if (!controller.isReserved) SpaceCol(
+                          SpaceCol(
                             children: [
-                              Text(controller.title, style: TextStyle(color: Colors.white, fontSize: 56, fontWeight: FontWeight.w900)),
-                              Text(controller.subtitle, style: TextStyle(color: TWColors.gray_400, fontSize: 36, fontWeight: FontWeight.w400)),
+                              Text(controller.title, style: TextStyle(color: Colors.white, fontSize: 60, fontWeight: FontWeight.w900)),
+                              SpaceRow(
+                                spaceBetween: 20,
+                                children: [
+                                  if (controller.meetingInfo != null) Container(
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(10),
+                                      color: TWColors.gray_600.withValues(alpha: 0.3),
+                                    ),
+                                    child: Padding(
+                                      padding: const EdgeInsets.fromLTRB(20,10,20,10),
+                                      child: Text(controller.meetingInfo!, style: TextStyle(color: TWColors.white, fontSize: 36, fontWeight: FontWeight.w400)),
+                                    ),
+                                  ),
+                                  Text(controller.subtitle, style: TextStyle(color: TWColors.gray_400, fontSize: 40, fontWeight: FontWeight.w400)),
+                                ]
+                              ),
+                              SizedBox(height: 20)
                             ],
                           ),
 
-                          if (controller.isReserved) SpaceCol(
-                            children: [
-                              Text(controller.title, style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w400, decoration: TextDecoration.underline, decorationColor: Colors.white)),
-                              Text(controller.currentEvent!.summary, style: TextStyle(color: Colors.white, fontSize: 56, fontWeight: FontWeight.w900)),
-                              Text(controller.subtitle, style: TextStyle(color: TWColors.gray_400, fontSize: 36, fontWeight: FontWeight.w400)),
-                            ],
-                          ),
+                        ],
+                      ),
 
-                          if (controller.upcomingEvents.isNotEmpty) Container(
+                      if (controller.upcomingEvents.isNotEmpty) Align(
+                          alignment: Alignment.bottomLeft,
+                          child: Container(
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(10),
-                              color: TWColors.gray_600.withValues(alpha: 0.6),
+                              color: TWColors.gray_600.withValues(alpha: 0.3),
                             ),
                             child: Padding(
                               padding: const EdgeInsets.all(20),
                               child: SpaceCol(
                                 spaceBetween: 15,
                                 children: [
-                                  for (EventModel event in controller.upcomingEvents.take(5)) EventLine(event: event),
+                                  for (EventModel event in controller.upcomingEvents.take(1)) EventLine(event: event),
                                 ],
                               ),
                             ),
                           ),
-
-                        ],
                       ),
 
                     ],

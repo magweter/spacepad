@@ -54,10 +54,10 @@ class LoginController extends GetxController {
       );
     } on ApiException catch (apiException) {
       if (apiException.code == 422) {
-        Toast.showError('Your code is incorrect. Please refresh your dashboard to acquire the most recent code');
+        Toast.showError('code_incorrect'.tr);
       }
     } catch (e) {
-      Toast.showError('An unexpected error arisen. Please check if you have an internet connection');
+      Toast.showError('check_connection'.tr);
     }
 
     loading.value = false;

@@ -1,12 +1,14 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:get/get.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:spacepad/pages/login_page.dart';
 import 'package:spacepad/pages/splash_page.dart';
 import 'package:spacepad/theme.dart';
 import 'package:spacepad/services/auth_service.dart';
+import 'package:spacepad/translations/translations.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:timezone/data/latest.dart' as tz;
 
@@ -36,8 +38,18 @@ class App extends StatelessWidget {
       theme: AppTheme.data,
       initialRoute: '/',
       transitionDuration: Duration.zero,
+      translations: AppTranslations(),
       locale: Get.deviceLocale,
       fallbackLocale: const Locale('en'),
+      supportedLocales: const [
+        Locale('en'),
+        Locale('nl'),
+      ],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       debugShowCheckedModeBanner: false,
       getPages: [
         GetPage(name: '/', page: () {

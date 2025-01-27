@@ -33,7 +33,7 @@ class DisplayController extends GetxController {
     try {
       displays.value = await DisplayService.instance.getDisplays();
     } catch (e) {
-      Toast.showError('Could not load displays');
+      Toast.showError('could_not_load_displays'.tr);
     }
 
     loading.value = false;
@@ -49,7 +49,7 @@ class DisplayController extends GetxController {
 
       await AuthService.instance.verify();
     } catch (e) {
-      Toast.showError('An unexpected error arisen. Please check if you have an internet connection');
+      Toast.showError('check_connection'.tr);
     }
 
     loading.value = false;

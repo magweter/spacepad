@@ -27,7 +27,7 @@ class DisplayPage extends StatelessWidget {
                       children: [
                         Padding(
                           padding: const EdgeInsets.only(right: 10),
-                          child: Text('Choose display', style: const TextStyle(
+                          child: Text('choose_display'.tr, style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.w600,
                               height: 1.2
@@ -38,7 +38,7 @@ class DisplayPage extends StatelessWidget {
 
                         SizedBox(
                           width: 350,
-                          child: Text('What room would you like to display on this device?', textAlign: TextAlign.center),
+                          child: Text('choose_room_display'.tr, textAlign: TextAlign.center),
                         ),
                       ],
                     ),
@@ -59,8 +59,8 @@ class DisplayPage extends StatelessWidget {
                             ),
                             // Add more decoration..
                           ),
-                          hint: const Text(
-                            'Select a display',
+                          hint: Text(
+                            'select_display'.tr,
                             style: TextStyle(fontSize: 14),
                           ),
                           items: controller.displays
@@ -76,7 +76,7 @@ class DisplayPage extends StatelessWidget {
                               .toList(),
                           validator: (value) {
                             if (value == null) {
-                              return 'Please select a display.';
+                              return 'please_select_display'.tr;
                             }
                             return null;
                           },
@@ -111,7 +111,7 @@ class DisplayPage extends StatelessWidget {
                       width: 400,
                       child: Obx(() => ElevatedButton(
                         onPressed: controller.submitActive ? controller.submit : null,
-                        child: controller.loading.value ? const Spinner(size: 20) : Text('Continue'),
+                        child: controller.loading.value ? const Spinner(size: 20) : Text('continue'.tr),
                       )),
                     ),
                   ]
