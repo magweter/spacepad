@@ -35,7 +35,7 @@ class DashboardPage extends StatelessWidget {
                     color: Colors.black
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(50, 40, 50, 40),
+                  padding: const EdgeInsets.fromLTRB(40, 30, 40, 30),
                   child: Stack(
                     children: [
 
@@ -56,6 +56,7 @@ class DashboardPage extends StatelessWidget {
                         children: [
 
                           SpaceCol(
+                            spaceBetween: controller.meetingInfo != null ? 10 : 0,
                             children: [
                               Text(controller.title, style: TextStyle(color: Colors.white, fontSize: 60, fontWeight: FontWeight.w900)),
                               SpaceRow(
@@ -71,7 +72,7 @@ class DashboardPage extends StatelessWidget {
                                       child: Text(controller.meetingInfo!, style: TextStyle(color: TWColors.white, fontSize: 36, fontWeight: FontWeight.w400)),
                                     ),
                                   ),
-                                  Text(controller.subtitle, style: TextStyle(color: TWColors.gray_400, fontSize: 40, fontWeight: FontWeight.w400)),
+                                  Text(controller.subtitle, style: TextStyle(color: TWColors.gray_300, fontSize: 40, fontWeight: FontWeight.w400)),
                                 ]
                               ),
                               SizedBox(height: 20)
