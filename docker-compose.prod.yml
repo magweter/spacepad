@@ -1,0 +1,45 @@
+name: spacepad
+services:
+  app:
+    image: ghcr.io/magweter/spacepad:latest
+    restart: unless-stopped
+    networks:
+      - traefik
+    volumes:
+      - storage_data:/var/www/html/storage
+      - ./database.sqlite:/var/www/html/database/database.sqlite
+      - .env:/var/www/html/.env:ro
+    environment:
+      PHP_OPCACHE_ENABLE: 1
+      AUTORUN_ENABLED: 'true'
+      AUTORUN_LARAVEL_MIGRATION: 'true'
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.spacepad.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.spacepad.entrypoints=websecure"
+      - "traefik.http.routers.spacepad.tls.certresolver=mytlsresolver"
+      - "traefik.http.services.spacepad.loadbalancer.server.port=8080"
+
+  scheduler:
+    image: ghcr.io/magweter/spacepad:latest
+    restart: unless-stopped
+    command: ["php", "/var/www/html/artisan", "schedule:work"]
+    volumes:
+      - storage_data:/var/www/html/storage
+      - ./database.sqlite:/var/www/html/database/database.sqlite
+      - .env:/var/www/html/.env:ro
+    environment:
+      PHP_OPCACHE_ENABLE: 1
+    healthcheck:
+      # This is our native healthcheck script for the scheduler
+      test: ["CMD", "healthcheck-schedule"]
+      start_period: 10s
+
+networks:
+  traefik:
+    name: traefik
+    external: true
+    driver: bridge
+
+volumes:
+  storage_data:
