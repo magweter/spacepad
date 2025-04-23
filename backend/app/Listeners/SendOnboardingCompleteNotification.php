@@ -13,7 +13,7 @@ class SendOnboardingCompleteNotification
      */
     public function handle(UserOnboarded $event): void
     {
-        Notification::route('mail', 'support@outlooktogcal.com')
+        Notification::route('mail', 'martijn@magweter.com')
             ->notify(new OnboardingCompleteNotification($event->user, $event->display));
     }
 }

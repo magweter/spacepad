@@ -13,7 +13,7 @@ class SendRegistrationNotification
      */
     public function handle(UserRegistered $event): void
     {
-        Notification::route('mail', 'support@outlooktogcal.com')
+        Notification::route('mail', 'martijn@magweter.com')
             ->notify(new RegistrationNotification($event->user));
     }
 }

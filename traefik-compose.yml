@@ -1,0 +1,33 @@
+services:
+  traefik:
+    image: traefik:latest
+    restart: always
+    command:
+      - "--api.insecure=false"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.mytlsresolver.acme.tlschallenge=true"
+      - "--certificatesresolvers.mytlsresolver.acme.email=${ACME_EMAIL}"
+      - "--certificatesresolvers.mytlsresolver.acme.storage=/letsencrypt/acme.json"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - traefik_data:/letsencrypt
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - traefik
+    labels:
+      - "traefik.enable=true"
+
+networks:
+  traefik:
+    name: traefik
+    driver: bridge
+
+volumes:
+  traefik_data:
