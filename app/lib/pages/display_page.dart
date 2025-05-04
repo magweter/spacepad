@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:spacepad/components/spinner.dart';
 import 'package:spacepad/controllers/display_controller.dart';
 import 'package:spacepad/models/display_model.dart';
+import 'package:spacepad/theme.dart';
 
 class DisplayPage extends StatelessWidget {
   const DisplayPage({super.key});
@@ -43,7 +44,7 @@ class DisplayPage extends StatelessWidget {
                       ],
                     ),
 
-                    const SizedBox(height: 60),
+                    const SizedBox(height: 40),
 
                     SizedBox(
                       width: 400,
@@ -51,17 +52,23 @@ class DisplayPage extends StatelessWidget {
                         DropdownButtonFormField2<DisplayModel>(
                           isExpanded: true,
                           decoration: InputDecoration(
-                            // Add Horizontal padding using menuItemStyleData.padding so it matches
-                            // the menu padding when button's width is not specified.
                             contentPadding: const EdgeInsets.symmetric(vertical: 16),
                             border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: const BorderSide(color: AppTheme.oxford),
                             ),
-                            // Add more decoration..
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: const BorderSide(color: AppTheme.oxford),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: const BorderSide(color: AppTheme.oxford),
+                            ),
                           ),
                           hint: Text(
                             'select_display'.tr,
-                            style: TextStyle(fontSize: 14),
+                            style: const TextStyle(fontSize: 14),
                           ),
                           items: controller.displays
                               .map((item) => DropdownMenuItem<DisplayModel>(
@@ -83,8 +90,11 @@ class DisplayPage extends StatelessWidget {
                           onChanged: (value) {
                             controller.onSelect(value);
                           },
-                          buttonStyleData: const ButtonStyleData(
+                          buttonStyleData: ButtonStyleData(
                             padding: EdgeInsets.only(right: 8),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
                           ),
                           iconStyleData: const IconStyleData(
                             icon: Icon(
@@ -95,7 +105,7 @@ class DisplayPage extends StatelessWidget {
                           ),
                           dropdownStyleData: DropdownStyleData(
                             decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: BorderRadius.circular(10),
                             ),
                           ),
                           menuItemStyleData: const MenuItemStyleData(

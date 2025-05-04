@@ -6,7 +6,7 @@ Spacepad is a simple and fun meeting room occupancy display that helps you manag
 
 ## Our Mission
 
-Make meeting room management simple, intuitive, and enjoyable. No more double bookings or confusion about room availability - just clear, real-time information when and where you need it.
+Creating modern no-nonsense solutions for every office. Easy and affordable to use.
 
 ## Key Features
 
@@ -18,16 +18,18 @@ Make meeting room management simple, intuitive, and enjoyable. No more double bo
 ## Why Spacepad?
 
 - 🔌 **Simple Integration**: Works with your existing calendar infrastructure
-- 📱 **Cross-Platform**: Access from any device
+- 📱 **Cross-Platform**: Access from any mobile device
 - 🌍 **Flexible Display**: Perfect for tablets and displays outside meeting rooms
 - ⚡ **Quick Status**: See room availability at a glance
 
 ## Quick Start
 
 ### Cloud Hosted Solution
-Visit [spacepad.com](https://spacepad.com) to get started with our cloud-hosted solution. We offer a free tier for personal use and affordable plans for multiple rooms.
+Looking to get started for free with zero effort? Visit [spacepad.it](https://spacepad.it) to try out our cloud-hosted solution. We offer a free 7 day trail.
+Cloud hosting is a great way to support the creator with further development of this project.
 
 ### Self-Hosted Option
+We value the open source community
 Deploy your own instance using Docker:
 
 ```bash
@@ -55,20 +57,20 @@ Access the application at http://localhost:8080
 ### Enterprise Solutions
 We offer specialized support and modifications for enterprise deployments.
 
-Contact us at support@spacepad.com for enterprise licensing and support options.
+Contact us at support@spacepad.it for enterprise licensing and support options.
 
 ## Support
 
 Need help? We offer multiple support channels:
 - [Post an issue](https://github.com/magweter/spacepad/issues)
-- [Email Support](mailto:support@spacepad.com) (for paid plans)
+- [Email Support](mailto:support@spacepad.it) (for paid plans)
 
 ## License
 
 Spacepad is distributed under a dual-license model:
 
 - **Community Edition**: Available under the [Sustainable Use License](LICENSE) for non-commercial use
-- **Enterprise Edition**: Commercial license with additional features and support. See [LICENSE_EE.md](LICENSE_EE.md) for details.
+- **Enterprise Edition**: Commercial license with additional features and support. See [Enterprise License](LICENSE_EE.md) for details.
 
 ## Contributing
 
@@ -76,6 +78,6 @@ We welcome contributions! Please check our [Contributing Guide](CONTRIBUTING.md)
 
 ## Roadmap
 
+- [ ] Custom display themes (colors & backgrounds)
 - [ ] Multi-room dashboard view
-- [ ] Custom display themes
-- [ ] Mobile app for room booking
+- [ ] Bookings rooms via the app
