@@ -1,12 +1,12 @@
 # Spacepad
 
-Spacepad is a simple and fun meeting room occupancy display that helps you manage and visualize your meeting spaces effectively.
+Spacepad is a simple and fun meeting room occupancy display that helps you manage and visualize your meeting spaces effectively. Suitable for both small offices and larger deployments.
 
 ![Spacepad - Screenshot](assets/screenshot.png)
 
 ## Our Mission
 
-Creating modern no-nonsense solutions for every office. Easy and affordable to use.
+Creating modern no-nonsense solutions for every office. Easy to use and affordable. While making meeting room management simple, intuitive, and enjoyable. 
 
 ## Key Features
 
@@ -26,33 +26,60 @@ Creating modern no-nonsense solutions for every office. Easy and affordable to u
 
 ### Cloud Hosted Solution
 Looking to get started for free with zero effort? Visit [spacepad.it](https://spacepad.it) to try out our cloud-hosted solution. We offer a free 7 day trail.
-Cloud hosting is a great way to support the creator with further development of this project.
+Cloud hosting is a great way to support this project for future development.
 
 ### Self-Hosted Option
-We value the open source community
-Deploy your own instance using Docker:
+We value the open source and self hosted communities. After all, your privacy and data should be protected at all costs.
+
+To self host this application, you can deploy your own instance using Docker and Traefik out of the box.
+Using other reverse proxies will also work, but might require a bit more configuration.
+
+Get started setting up your own self hosted (production) instance:
 
 ```bash
 # Clone the repository
 git clone https://github.com/magweter/spacepad.git
 cd spacepad
 
-# Start the application
-docker-compose up -d
+# Create the environment config
+cp .env.example .env
 ```
 
-Access the application at http://localhost:8080
+Set the app key for the application:
 
-## Deployment Options
+```bash
+# Linux
+sed -i "s/^APP_KEY=.*/APP_KEY=$(php -r 'echo "base64:".base64_encode(random_bytes(32));')/" .env
 
-### Cloud Hosted
-- 🆓 **Free Tier**: Perfect for small offices
-- 💰 **Business Plan**: Custom pricing based on number of rooms
-- 🌟 **Enterprise Plan**: Custom solutions for large organizations
+# macOS
+sed -i '' "s/^APP_KEY=.*/APP_KEY=$(php -r 'echo "base64:".base64_encode(random_bytes(32));')/" .env
 
-### Self-Hosted
-- **Community Edition**: Free for non-commercial use
-- **Enterprise Edition**: Custom deployments and support for specialized environments
+# Windows (PowerShell)
+(Get-Content .env) -replace '^APP_KEY=.*', "APP_KEY=$(php -r 'echo "base64:".base64_encode(random_bytes(32));')" | Set-Content .env
+```
+
+Now on to configuring the application:
+1. Open the .env file and configure your domain and email.
+1. Go to https://entra.microsoft.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade/quickStartType~/null/sourceType/Microsoft_AAD_IAM
+1. Create a new app registration, only fill in a name and click 'create'
+1. Open the 'verification' tab and create two new 'web' platforms:
+    - https://your-domain.com/outlook-accounts/callback
+    - https://your-domain.com/auth/microsoft/callback
+1. Save, and click on 'API-permissions'
+1. Click 'Microsoft Graph', delegated permissions and add `Calendars.Read.Shared`, `Place.Read.All` and `User.Read`.
+1. Save, and click on 'certificates and secrets'
+1. Create a new secret (not certificate) and copy the value
+1. Click on 'overview' and copy the 'client id'. Beware: this is the client ID value you need, not the ID of the secret you just created.
+1. Paste the values in the .env 'AZURE_AD...' variables
+
+Now run the application using Docker Compose:
+```bash
+docker compose -f docker-compose.prod.yml up -d
+```
+
+Great! You should now be able to access the application at http://localhost.
+
+Download the mobile app from the App Store or Play Store and follow the instructions 🚀
 
 ### Enterprise Solutions
 We offer specialized support and modifications for enterprise deployments.
@@ -63,13 +90,13 @@ Contact us at support@spacepad.it for enterprise licensing and support options.
 
 Need help? We offer multiple support channels:
 - [Post an issue](https://github.com/magweter/spacepad/issues)
-- [Email Support](mailto:support@spacepad.it) (for paid plans)
+- [Email Support](mailto:support@spacepad.it) (for cloud hosted plans)
 
 ## License
 
 Spacepad is distributed under a dual-license model:
 
-- **Community Edition**: Available under the [Sustainable Use License](LICENSE) for non-commercial use
+- **Community Edition**: Available under the [Sustainable Use License](LICENSE.md) for non-commercial use
 - **Enterprise Edition**: Commercial license with additional features and support. See [Enterprise License](LICENSE_EE.md) for details.
 
 ## Contributing

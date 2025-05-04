@@ -13,7 +13,11 @@ class SendRegistrationNotification
      */
     public function handle(UserRegistered $event): void
     {
-        Notification::route('mail', 'martijn@magweter.com')
+        if (config('settings.is_self_hosted')) {
+            return;
+        }
+
+        Notification::route('mail', 'support@spacepad.it')
             ->notify(new RegistrationNotification($event->user));
     }
 }

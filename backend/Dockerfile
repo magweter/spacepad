@@ -18,3 +18,7 @@ COPY --chown=www-data:www-data . /var/www/html
 COPY --chown=www-data:www-data --from=php_builder /app/vendor /var/www/html/vendor
 
 USER www-data
+
+RUN touch database/database.sqlite
+RUN chown www-data:www-data database/database.sqlite
+RUN chmod 664 database/database.sqlite

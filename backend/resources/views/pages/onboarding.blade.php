@@ -1,69 +1,70 @@
-@extends('layouts.base')
+@extends('layouts.blank')
 @section('title', 'Welcome, '.auth()->user()->name.'!')
-@section('content')
-    <!-- Session Status Alert -->
-    @if(session('status'))
-        <div id="alert" class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4">
-            {{ session('status') }}
+@section('page')
+<div class="flex min-h-full flex-col justify-center py-24 sm:px-6 lg:px-8">
+    <div class="sm:mx-auto sm:w-full sm:max-w-md">
+        <div class="flex justify-center">
+            <img class="h-12 w-auto mb-4" src="/images/logo-black.svg" alt="Logo">
         </div>
-    @endif
-
-    <div class="mb-4">
-        <div class="sm:flex sm:items-center">
-            <div class="sm:flex-auto">
-                <h1 class="text-xl font-semibold leading-6 text-gray-900">Let's get your rooms connected 🥳</h1>
-                <p class="mt-2 text-md text-gray-500">We'll walk you through setting up a device in just a few minutes.</p>
-            </div>
-        </div>
+        <h2 class="mt-6 text-center text-2xl/9 font-bold tracking-tight text-gray-900">Let's get your rooms connected 🥳</h2>
+        <p class="mt-2 text-center text-lg text-gray-500">We'll walk you through setting up a device in just a few minutes</p>
     </div>
-    <ul role="list" class="divide-y divide-gray-100">
-        <li class="flex items-center gap-x-4 py-5">
-            <div class="min-w-0 flex items-center justify-center text-xl w-10">
-                1.
-            </div>
-            <div class="min-w-0">
-                <div class="flex items-start gap-x-3">
-                    <p class="text-md font-semibold leading-6 text-gray-900">Connect an Outlook or Microsoft 365 account</p>
+
+    <div class="mt-10 sm:mx-auto sm:w-full sm:max-w-[480px]">
+        <div class="bg-white px-6 py-12 border sm:rounded-lg sm:px-12 shadow">
+            {{-- Stepper --}}
+            <div class="flex items-center justify-center mb-8">
+                <div class="flex items-center space-x-6">
+                    <div class="flex flex-col items-center">
+                        <div class="w-10 h-10 rounded-full {{ $outlookAccounts->count() > 0 ? 'bg-gray-100 text-gray-400' : 'bg-oxford text-white' }} flex items-center justify-center font-semibold text-lg">1</div>
+                        <span class="mt-2 text-sm font-medium {{ $outlookAccounts->count() > 0 ? 'text-gray-500' : 'text-gray-900' }}">Account</span>
+                    </div>
+                    <div class="w-16 h-0.5 bg-gray-300"></div>
+                    <div class="flex flex-col items-center">
+                        <div class="w-10 h-10 rounded-full {{ $outlookAccounts->count() > 0 ? 'bg-oxford text-white' : 'bg-gray-100 text-gray-400' }} flex items-center justify-center font-semibold text-lg">2</div>
+                        <span class="mt-2 text-sm font-medium {{ $outlookAccounts->count() > 0 ? 'text-gray-900' : 'text-gray-500' }}">Display</span>
+                    </div>
                 </div>
-                <div class="mt-1 flex items-center gap-x-2 text-md leading-5 text-gray-500">
-                    <p class="whitespace-nowrap">You'll be able to use this account as a source</p>
-                </div>
             </div>
-            <div class="flex flex-none items-center gap-x-4 ml-auto">
-                @if($outlookAccounts->count() <= 0)
-                    <a href="{{ route('outlook-accounts.auth') }}" class="hidden rounded-md bg-white px-2.5 py-1.5 text-md font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:block">
+
+            @if(session('status'))
+                <div id="alert" class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4">
+                    {{ session('status') }}
+                </div>
+            @endif
+
+            @if($outlookAccounts->count() <= 0)
+                <div class="min-w-0 text-center">
+                    <div class="flex items-center justify-center gap-x-3">
+                        <p class="text-md font-semibold leading-6 text-gray-900">Connect an Outlook or Microsoft 365 account</p>
+                    </div>
+                    <div class="mt-4 flex items-center justify-center gap-x-2 text-md leading-5 text-gray-500">
+                        <p class="break-words">You'll be able to show rooms from this account on a display.</p>
+                    </div>
+                </div>
+                <div class="flex items-center justify-center gap-x-4 mt-6">
+                    <a href="{{ route('outlook-accounts.auth') }}" class="block rounded-md bg-white px-2.5 py-1.5 text-md font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
                         Connect an Outlook account
                     </a>
-                @else
-                    <button disabled class="hidden rounded-md bg-green-50 px-2.5 py-1.5 text-md font-semibold text-green-700 shadow-sm ring-1 ring-inset ring-green-600/20 sm:block">
-                        Completed
-                    </button>
-                @endif
-            </div>
-        </li>
-        <li class="flex items-center gap-x-4 py-5">
-            <div class="min-w-0 flex items-center justify-center text-xl w-10">
-                2.
-            </div>
-            <div class="min-w-0">
-                <div class="flex items-start gap-x-3">
-                    <p class="text-md font-semibold leading-6 text-gray-900">Set up your first display</p>
                 </div>
-                <div class="mt-1 flex items-center gap-x-2 text-md leading-5 text-gray-500">
-                    <p class="whitespace-nowrap">Create a displays and pick the calendars you would like to synchronize!</p>
+            @endif
+                
+            @if($outlookAccounts->count() > 0)
+                <div class="min-w-0 text-center">
+                    <div class="flex items-center justify-center gap-x-3">
+                        <p class="text-md font-semibold leading-6 text-gray-900">Set up your first display</p>
+                    </div>
+                    <div class="mt-4 flex items-center justify-center gap-x-2 text-md leading-5 text-gray-500">
+                        <p class="break-words">Create a display and pick the calendar you would like to synchronize. You are able to connect multiple tablets to one display.</p>
+                    </div>
                 </div>
-            </div>
-            <div class="flex flex-none items-center gap-x-4 ml-auto">
-                @if($outlookAccounts->count() > 0)
-                    <a href="{{ route('displays.create') }}" class="hidden rounded-md bg-white px-2.5 py-1.5 text-md font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:block">
-                        Set up a display
+                <div class="flex items-center justify-center gap-x-4 mt-6">
+                    <a href="{{ route('displays.create') }}" class="block rounded-md bg-white px-2.5 py-1.5 text-md font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
+                        Create a new display
                     </a>
-                @else
-                    <button disabled class="hidden rounded-md bg-white px-2.5 py-1.5 text-md font-semibold text-gray-500 shadow-sm ring-1 ring-inset ring-gray-100 sm:block">
-                        Set up a display
-                    </button>
-                @endif
-            </div>
-        </li>
-    </ul>
+                </div>
+            @endif
+        </div>
+    </div>
+</div>
 @endsection

@@ -16,10 +16,10 @@
         "microsoft/microsoft-graph": "^2.23",
         "predis/predis": "^2.3",
         "qruto/laravel-wave": "^0.9.1",
-        "socialiteproviders/microsoft": "^4.6"
+        "socialiteproviders/microsoft": "^4.6",
+        "fakerphp/faker": "^1.23"
     },
     "require-dev": {
-        "fakerphp/faker": "^1.23",
         "laravel/pail": "^1.1",
         "laravel/pint": "^1.13",
         "laravel/sail": "^1.26",

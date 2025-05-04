@@ -34,7 +34,7 @@ Thank you for your interest in contributing to Spacepad! This document provides 
 2. Install dependencies:
    ```bash
    composer install
-   npm install
+   pnpm install
    ```
 3. Set up your environment:
    ```bash

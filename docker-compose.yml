@@ -1,4 +1,4 @@
-name: spacepad
+name: spacepad-dev
 services:
   app:
     image: spacepad/app:latest
@@ -14,9 +14,6 @@ services:
       - "8080:8080"
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    environment:
-      PHP_POOL_NAME: "spacepad"
-      AUTORUN_LARAVEL_MIGRATION: 'true'
 
   scheduler:
     image: spacepad/app:latest

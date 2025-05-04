@@ -1,5 +1,5 @@
 @extends('layouts.base')
-@section('title', 'Your overview, '.auth()->user()->name)
+@section('title', 'Management dashboard')
 @section('content')
     <!-- Session Status Alert -->
     @if(session('status'))
@@ -61,7 +61,7 @@
     <div class="mb-6 rounded-md bg-gray-50 p-4">
         <div class="flex">
             <div class="flex-1 md:flex md:justify-between">
-                <p class="text-base text-gray-700">Connect a new device by downloading the app from the Play Store or App Store and using the connect code displayed in the top right corner.</p>
+                <p class="text-base text-gray-700">Connect a new tablet by downloading the app from the Play Store or App Store and using the connect code displayed in the top right corner.</p>
             </div>
         </div>
     </div>
@@ -70,7 +70,7 @@
         <div class="sm:flex sm:items-center">
             <div class="sm:flex-auto">
                 <h1 class="text-xl font-semibold leading-6 text-gray-900">Displays</h1>
-                <p class="mt-2 text-md text-gray-500">Your calendars being synchronized.</p>
+                <p class="mt-2 text-md text-gray-500">Your displays and their status.</p>
             </div>
             <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
                 @if(auth()->user()->canCreateDisplays())

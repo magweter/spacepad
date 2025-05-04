@@ -13,7 +13,11 @@ class SendOnboardingCompleteNotification
      */
     public function handle(UserOnboarded $event): void
     {
-        Notification::route('mail', 'martijn@magweter.com')
+        if (config('settings.is_self_hosted')) {
+            return;
+        }
+
+        Notification::route('mail', 'support@spacepad.it')
             ->notify(new OnboardingCompleteNotification($event->user, $event->display));
     }
 }
