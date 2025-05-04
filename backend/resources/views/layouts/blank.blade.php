@@ -27,19 +27,17 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Urbanist:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
 
     @stack('styles')
     <style>
-        * {
-            font-family: "Urbanist", sans-serif;
-            font-optical-sizing: auto;
-        }
         .bg-oxford {
             background: #14213D;
         }
         .bg-orange {
             background: #FCA311;
+        }
+        .text-orange {
+            color: #FCA311;
         }
         .bg-platinum {
             background: #E5E5E5;

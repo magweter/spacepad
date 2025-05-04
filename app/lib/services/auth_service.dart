@@ -18,6 +18,10 @@ class AuthService {
     _sharedPrefs = await SharedPreferences.getInstance();
   }
 
+  Future<void> setBaseUrl(String url) async {
+    await ApiService.setBaseUrl(url);
+  }
+
   Future<void> login(String code, String uid, String name) async {
     Map result = await ApiService.post('auth/login', {
       "code" : code,

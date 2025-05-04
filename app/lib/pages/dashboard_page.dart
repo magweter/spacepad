@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:spacepad/components/event_line.dart';
 import 'package:spacepad/components/spinner.dart';
 import 'package:spacepad/controllers/dashboard_controller.dart';
@@ -6,13 +7,58 @@ import 'package:spacepad/models/event_model.dart';
 import 'package:get/get.dart';
 import 'package:spacepad/theme.dart';
 import 'package:tailwind_components/tailwind_components.dart';
+import 'dart:io' show Platform;
+import 'dart:math' show max;
+import 'package:spacepad/services/auth_service.dart';
 
-class DashboardPage extends StatelessWidget {
+class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
+
+  @override
+  State<DashboardPage> createState() => _DashboardPageState();
+}
+
+class _DashboardPageState extends State<DashboardPage> {
+  @override
+  void initState() {
+    super.initState();
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
+  }
+
+  @override
+  void dispose() {
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
+    super.dispose();
+  }
+
+  bool _isPhone(BuildContext context) {
+    final shortestSide = MediaQuery.of(context).size.shortestSide;
+    // Consider devices with shortestSide < 600 as phones only
+    return shortestSide < 600;
+  }
+
+  double _getCornerRadius(BuildContext context) {
+    // Get the top padding which includes the notch area
+    final topPadding = MediaQuery.of(context).padding.top;
+    // The corner radius is typically around 40-50% of the top padding
+    // We'll use 45% as a good middle ground
+    final cornerRadius = max(topPadding * 0.45, 10.0);
+    return cornerRadius;
+  }
 
   @override
   Widget build(BuildContext context) {
     DashboardController controller = Get.put(DashboardController());
+    final isPhone = _isPhone(context);
+    final cornerRadius = _getCornerRadius(context);
 
     return Scaffold(
       backgroundColor: AppTheme.black,
@@ -26,59 +72,116 @@ class DashboardPage extends StatelessWidget {
             color: controller.isTransitioning ?
               TWColors.amber_500 :
               (controller.isReserved ? TWColors.rose_600 : TWColors.green_600),
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(isPhone ? 8 : 16),
             child: Container(
                 height: double.infinity,
                 width: double.infinity,
                 decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(cornerRadius),
                     color: Colors.black
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(40, 30, 40, 30),
+                  padding: EdgeInsets.fromLTRB(
+                    isPhone ? 20 : 40,
+                    isPhone ? 15 : 30,
+                    isPhone ? 20 : 40,
+                    isPhone ? 15 : 30,
+                  ),
                   child: Stack(
                     children: [
-
                       Align(
                         alignment: Alignment.topLeft,
-                        child: Text(controller.time.value, style: TextStyle(color: TWColors.gray_300, fontSize: 28, fontWeight: FontWeight.w900))
+                        child: Text(
+                          controller.time.value,
+                          style: TextStyle(
+                            color: TWColors.gray_300,
+                            fontSize: isPhone ? 20 : 28,
+                            fontWeight: FontWeight.w900
+                          )
+                        )
                       ),
                       Align(
                         alignment: Alignment.topRight,
-                        child: Text(controller.roomName, style: TextStyle(color: TWColors.gray_300, fontSize: 28, fontWeight: FontWeight.w700))
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Opacity(
+                              opacity: 0.4,
+                              child: IconButton(
+                                icon: const Icon(Icons.logout, size: 24, color: Colors.white),
+                                onPressed: () {
+                                  AuthService.instance.signOut();
+                                },
+                                tooltip: 'Logout',
+                              ),
+                            ),
+                            Text(
+                              controller.roomName,
+                              style: TextStyle(
+                                color: TWColors.gray_300,
+                                fontSize: isPhone ? 20 : 28,
+                                fontWeight: FontWeight.w700
+                              )
+                            ),
+                          ],
+                        ),
                       ),
 
                       SpaceCol(
-                        spaceBetween: 40,
+                        spaceBetween: isPhone ? 20 : 40,
                         mainAxisSize: MainAxisSize.max,
                         mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-
                           SpaceCol(
-                            spaceBetween: controller.meetingInfo != null ? 10 : 0,
+                            spaceBetween: controller.meetingInfo != null ? (isPhone ? 5 : 10) : 0,
                             children: [
-                              Text(controller.title, style: TextStyle(color: Colors.white, fontSize: 60, fontWeight: FontWeight.w900)),
+                              Text(
+                                controller.title,
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: isPhone ? 30 : 56,
+                                  fontWeight: FontWeight.w900
+                                )
+                              ),
                               SpaceRow(
-                                spaceBetween: 20,
+                                spaceBetween: isPhone ? 10 : 20,
                                 children: [
                                   if (controller.meetingInfo != null) Container(
                                     decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(10),
+                                      borderRadius: BorderRadius.circular(cornerRadius * 0.5),
                                       color: TWColors.gray_600.withValues(alpha: 0.3),
                                     ),
                                     child: Padding(
-                                      padding: const EdgeInsets.fromLTRB(20,10,20,10),
-                                      child: Text(controller.meetingInfo!, style: TextStyle(color: TWColors.white, fontSize: 36, fontWeight: FontWeight.w400)),
+                                      padding: EdgeInsets.fromLTRB(
+                                        isPhone ? 10 : 20,
+                                        isPhone ? 5 : 10,
+                                        isPhone ? 10 : 20,
+                                        isPhone ? 5 : 10,
+                                      ),
+                                      child: Text(
+                                        controller.meetingInfo!,
+                                        style: TextStyle(
+                                          color: TWColors.white,
+                                          fontSize: isPhone ? 24 : 32,
+                                          fontWeight: FontWeight.w400
+                                        )
+                                      ),
                                     ),
                                   ),
-                                  Text(controller.subtitle, style: TextStyle(color: TWColors.gray_300, fontSize: 40, fontWeight: FontWeight.w400)),
+                                  Text(
+                                    controller.subtitle,
+                                    style: TextStyle(
+                                      color: TWColors.gray_300,
+                                      fontSize: isPhone ? 28 : 36,
+                                      fontWeight: FontWeight.w400
+                                    )
+                                  ),
                                 ]
                               ),
-                              SizedBox(height: 20)
+                              SizedBox(height: isPhone ? 10 : 20)
                             ],
                           ),
-
                         ],
                       ),
 
@@ -86,13 +189,13 @@ class DashboardPage extends StatelessWidget {
                           alignment: Alignment.bottomLeft,
                           child: Container(
                             decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(10),
+                              borderRadius: BorderRadius.circular(cornerRadius * 0.5),
                               color: TWColors.gray_600.withValues(alpha: 0.3),
                             ),
                             child: Padding(
-                              padding: const EdgeInsets.all(20),
+                              padding: EdgeInsets.all(isPhone ? 10 : 20),
                               child: SpaceCol(
-                                spaceBetween: 15,
+                                spaceBetween: isPhone ? 10 : 15,
                                 children: [
                                   for (EventModel event in controller.upcomingEvents.take(1)) EventLine(event: event),
                                 ],
@@ -100,7 +203,6 @@ class DashboardPage extends StatelessWidget {
                             ),
                           ),
                       ),
-
                     ],
                   )
                 ),

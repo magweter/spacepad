@@ -45,15 +45,15 @@ return [
     'azure_ad' => [
         'client_id' => env('AZURE_AD_CLIENT_ID'),
         'client_secret' => env('AZURE_AD_CLIENT_SECRET'),
-        'redirect' => env('AZURE_AD_REDIRECT_URI'),
+        'redirect' => env('AZURE_AD_REDIRECT_URI', 'https://'.env('DOMAIN').'/outlook-accounts/callback'),
         'tenant_id' => env('AZURE_AD_TENANT_ID', 'common'),
-        'webhook_url' => env('OUTLOOK_WEBHOOK_URL')
+        'webhook_url' => env('OUTLOOK_WEBHOOK_URL', 'https://'.env('DOMAIN').'/api/webhook/outlook')
     ],
 
     'microsoft' => [
-        'client_id' => env('MICROSOFT_CLIENT_ID'),
-        'client_secret' => env('MICROSOFT_CLIENT_SECRET'),
-        'redirect' => env('MICROSOFT_REDIRECT_URI'),
+        'client_id' => env('MICROSOFT_CLIENT_ID', env('AZURE_AD_CLIENT_ID')),
+        'client_secret' => env('MICROSOFT_CLIENT_SECRET', env('AZURE_AD_CLIENT_SECRET')),
+        'redirect' => env('MICROSOFT_REDIRECT_URI', 'https://'.env('DOMAIN').'/auth/microsoft/callback'),
         'proxy' => env('PROXY')  // Optional, will be used for all requests
     ],
 

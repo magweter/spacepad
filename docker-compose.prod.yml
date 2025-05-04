@@ -1,13 +1,42 @@
 name: spacepad
 services:
+  traefik:
+    image: traefik:latest
+    restart: always
+    command:
+      - "--api.insecure=false"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.mytlsresolver.acme.tlschallenge=true"
+      - "--certificatesresolvers.mytlsresolver.acme.email=${ACME_EMAIL}"
+      - "--certificatesresolvers.mytlsresolver.acme.storage=/letsencrypt/acme.json"
+    ports:
+      - "80:80"
+      - "443:443"
+    platform: linux/amd64
+    volumes:
+      - ./traefik/letsencrypt:/letsencrypt
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - traefik
+    labels:
+      - "traefik.enable=true"
+  
   app:
     image: ghcr.io/magweter/spacepad:latest
     restart: unless-stopped
+    platform: linux/amd64
+    ports:
+      - "8080:8080"
     networks:
       - traefik
     volumes:
-      - storage_data:/var/www/html/storage
-      - ./database.sqlite:/var/www/html/database/database.sqlite
+      - ./data/storage:/var/www/html/storage
+      - ./data/database.sqlite:/var/www/html/database/database.sqlite
       - .env:/var/www/html/.env:ro
     environment:
       PHP_OPCACHE_ENABLE: 1
@@ -24,9 +53,10 @@ services:
     image: ghcr.io/magweter/spacepad:latest
     restart: unless-stopped
     command: ["php", "/var/www/html/artisan", "schedule:work"]
+    platform: linux/amd64
     volumes:
-      - storage_data:/var/www/html/storage
-      - ./database.sqlite:/var/www/html/database/database.sqlite
+      - ./data/storage:/var/www/html/storage
+      - ./data/database.sqlite:/var/www/html/database/database.sqlite
       - .env:/var/www/html/.env:ro
     environment:
       PHP_OPCACHE_ENABLE: 1
@@ -38,8 +68,4 @@ services:
 networks:
   traefik:
     name: traefik
-    external: true
     driver: bridge
-
-volumes:
-  storage_data:

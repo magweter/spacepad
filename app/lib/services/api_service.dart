@@ -8,15 +8,28 @@ import 'package:http/http.dart' as http;
 import 'package:spacepad/exceptions/api_exception.dart';
 import 'package:spacepad/services/auth_service.dart';
 
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
   ApiService._();
 
+  static Future<bool> setBaseUrl(String apiUrl) async {
+    var sharedPrefs = await SharedPreferences.getInstance();
+    return sharedPrefs.setString('api_url', apiUrl);
+  }
+
+  static Future<String> getBaseUrl() async {
+    var sharedPrefs = await SharedPreferences.getInstance();
+    var apiUrl = sharedPrefs.getString('api_url') ?? dotenv.env['API_URL']!;
+    return '$apiUrl/api/';
+  }
+
   static Future get(String endpoint) async {
-    if (kDebugMode) print('GET: ${dotenv.env['APP_URL']!}$endpoint');
+    var baseUrl = await getBaseUrl();
+    if (kDebugMode) print('GET: $baseUrl$endpoint');
 
     try {
-      Response response = await http.get(Uri.parse('${dotenv.env['APP_URL']!}$endpoint'), headers: _getHeaders());
+      Response response = await http.get(Uri.parse('$baseUrl$endpoint'), headers: _getHeaders());
 
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
@@ -37,11 +50,12 @@ class ApiService {
   }
 
   static Future post(String endpoint, Map body) async {
-    if (kDebugMode) print('POST: ${dotenv.env['APP_URL']!}$endpoint');
+    var baseUrl = await getBaseUrl();
+    if (kDebugMode) print('POST: $baseUrl$endpoint');
 
     try {
       Response response = await http.post(
-          Uri.parse('${dotenv.env['APP_URL']!}$endpoint'),
+          Uri.parse('$baseUrl$endpoint'),
           headers: _getHeaders(),
           body: jsonEncode(body)
       );
@@ -58,11 +72,12 @@ class ApiService {
   }
 
   static Future put(String endpoint, Map body) async {
-    if (kDebugMode) print('PUT: ${dotenv.env['APP_URL']!}$endpoint');
+    var baseUrl = await getBaseUrl();
+    if (kDebugMode) print('PUT: $baseUrl$endpoint');
 
     try {
       Response response = await http.put(
-          Uri.parse('${dotenv.env['APP_URL']!}$endpoint'),
+          Uri.parse('$baseUrl$endpoint'),
           headers: _getHeaders(),
           body: jsonEncode(body)
       );
@@ -79,11 +94,12 @@ class ApiService {
   }
 
   static Future delete(String endpoint, [Map? body]) async {
-    if (kDebugMode) print('DELETE: ${dotenv.env['APP_URL']!}$endpoint');
+    var baseUrl = await getBaseUrl();
+    if (kDebugMode) print('DELETE: $baseUrl$endpoint');
 
     try {
       Response response = await http.delete(
-          Uri.parse('${dotenv.env['APP_URL']!}$endpoint'),
+          Uri.parse('$baseUrl$endpoint'),
           headers: _getHeaders(),
           body: jsonEncode(body)
       );

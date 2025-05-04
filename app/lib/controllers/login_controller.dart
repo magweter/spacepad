@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:core';
 
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter_udid/flutter_udid.dart';
@@ -6,18 +7,51 @@ import 'package:get/get.dart';
 import 'package:spacepad/exceptions/api_exception.dart';
 import 'package:spacepad/services/auth_service.dart';
 import 'package:spacepad/components/toast.dart';
+import 'package:http/http.dart' as http;
+import 'package:flutter/material.dart';
+import 'package:spacepad/services/server_service.dart';
+import 'package:spacepad/services/api_service.dart';
 
 class LoginController extends GetxController {
-  final RxString code = RxString('');
-  final RxBool loading = RxBool(false);
+  final AuthService _authService = AuthService.instance;
+  final ServerService _serverService = ServerService();
+  final RxBool loading = false.obs;
+  final RxBool isSelfHosted = false.obs;
+  final RxString url = ''.obs;
+  final RxString code = ''.obs;
+  final RxBool submitActive = false.obs;
   final DeviceInfoPlugin deviceInfoPlugin = DeviceInfoPlugin();
 
-  void codeChanged(val) {
-    code.value = val;
+  void toggleSelfHosted(bool value) {
+    isSelfHosted.value = value;
+    _updateSubmitActive();
   }
 
-  bool get submitActive {
-    return code.value.length == 6;
+  void urlChanged(String value) {
+    url.value = value;
+    _updateSubmitActive();
+  }
+
+  void codeChanged(String value) {
+    code.value = value;
+    _updateSubmitActive();
+  }
+
+  void _updateSubmitActive() {
+    if (isSelfHosted.value) {
+      submitActive.value = url.value.isNotEmpty && code.value.length == 6;
+    } else {
+      submitActive.value = code.value.length == 6;
+    }
+  }
+
+  bool _isValidUrl(String url) {
+    try {
+      final uri = Uri.parse(url);
+      return uri.isAbsolute && (uri.scheme == 'http' || uri.scheme == 'https');
+    } catch (e) {
+      return false;
+    }
   }
 
   Future<String?> getDeviceId() async {
@@ -42,24 +76,30 @@ class LoginController extends GetxController {
     if (loading.value) return;
 
     loading.value = true;
-
-    final deviceUid = await getDeviceId();
-    final deviceName = await getDeviceName();
-
     try {
-      await AuthService.instance.login(
-          code.value,
-          deviceUid ?? 'Unknown device',
-          deviceName ?? 'Unknown model'
-      );
-    } on ApiException catch (apiException) {
-      if (apiException.code == 422) {
-        Toast.showError('code_incorrect'.tr);
-      }
-    } catch (e) {
-      Toast.showError('check_connection'.tr);
-    }
+      if (isSelfHosted.value) {
+        if (!_isValidUrl(url.value)) {
+          Toast.showError('invalid_url'.tr);
+          return;
+        }
 
-    loading.value = false;
+        var trimmedUrl = url.value.endsWith('/') ? url.value.substring(0, url.value.length - 1) : url.value;
+        if (!await _serverService.isServerReachable(trimmedUrl)) {
+          Toast.showError('server_unreachable'.tr);
+          return;
+        }
+
+        // Set the custom base URL for the API service
+        await ApiService.setBaseUrl(trimmedUrl);
+      }
+
+      final deviceId = await getDeviceId() ?? 'Unknown device';
+      final deviceName = await getDeviceName() ?? 'Unknown model';
+      await _authService.login(code.value, deviceId, deviceName);
+    } catch (e) {
+      Toast.showError('login_failed'.tr);
+    } finally {
+      loading.value = false;
+    }
   }
 }
