@@ -10,6 +10,10 @@ services:
       - app
     volumes:
       - ./backend:/var/www/html
+    environment:
+      PHP_OPCACHE_ENABLE: 1
+      AUTORUN_ENABLED: 'true'
+      AUTORUN_LARAVEL_MIGRATION: 'true'
     ports:
       - "8080:8080"
     extra_hosts:

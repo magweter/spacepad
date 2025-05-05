@@ -35,8 +35,8 @@ services:
     networks:
       - traefik
     volumes:
-      - ./data/storage:/var/www/html/storage
-      - ./data/database.sqlite:/var/www/html/database/database.sqlite
+      - storage_data:/var/www/html/storage
+      - database_data:/var/www/html/database
       - .env:/var/www/html/.env:ro
     environment:
       PHP_OPCACHE_ENABLE: 1
@@ -55,8 +55,8 @@ services:
     command: ["php", "/var/www/html/artisan", "schedule:work"]
     platform: linux/amd64
     volumes:
-      - ./data/storage:/var/www/html/storage
-      - ./data/database.sqlite:/var/www/html/database/database.sqlite
+      - storage_data:/var/www/html/storage
+      - database_data:/var/www/html/database
       - .env:/var/www/html/.env:ro
     environment:
       PHP_OPCACHE_ENABLE: 1
@@ -69,3 +69,7 @@ networks:
   traefik:
     name: traefik
     driver: bridge
+
+volumes:
+  storage_data:
+  database_data:

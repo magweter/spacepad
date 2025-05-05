@@ -64,4 +64,4 @@ This Agreement shall be governed by the laws of [Your Jurisdiction].
 ## 9. Contact
 
 For enterprise licensing inquiries, please contact:
-Email: support@spacepad.it 
+Email: support@spacepad.io 

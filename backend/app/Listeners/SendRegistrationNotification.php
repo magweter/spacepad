@@ -5,6 +5,7 @@ namespace App\Listeners;
 use App\Events\UserRegistered;
 use App\Notifications\RegistrationNotification;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Http;
 
 class SendRegistrationNotification
 {
@@ -17,7 +18,16 @@ class SendRegistrationNotification
             return;
         }
 
-        Notification::route('mail', 'support@spacepad.it')
-            ->notify(new RegistrationNotification($event->user));
+        $webhookUrl = config('settings.registration_webhook_url');
+        if (!$webhookUrl) {
+            return;
+        }
+
+        Http::post($webhookUrl, [
+            'user_id' => $event->user->id,
+            'email' => $event->user->email,
+            'name' => $event->user->name,
+            'event' => 'registration',
+        ]);
     }
 }

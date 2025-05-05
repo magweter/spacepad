@@ -35,11 +35,11 @@ class MagicLoginNotification extends Notification
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject('Your login link - Spacepad')
+            ->subject('Your login link - '.config('app.name'))
             ->greeting('Hi,')
             ->line('Here you\'ll find the link you need to log in.')
-            ->action('Log in to Spacepad', $this->loginUrl)
-            ->line('Thank you for choosing our service!');
+            ->action('Log in to '.config('app.name'), $this->loginUrl)
+            ->line('Thank you!');
     }
 
     /**
