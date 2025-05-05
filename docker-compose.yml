@@ -9,9 +9,7 @@ services:
     networks:
       - app
     volumes:
-      - storage_data:/var/www/html/storage
-      - database_data:/var/www/html/database
-      - .env:/var/www/html/.env:ro
+      - ./backend:/var/www/html
     environment:
       PHP_OPCACHE_ENABLE: 1
       AUTORUN_ENABLED: 'true'
@@ -34,7 +32,3 @@ services:
 
 networks:
   app:
-
-volumes:
-  storage_data:
-  database_data:
