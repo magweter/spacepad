@@ -9,7 +9,13 @@ services:
     networks:
       - app
     volumes:
-      - ./backend:/var/www/html
+      - storage_data:/var/www/html/storage
+      - database_data:/var/www/html/database
+      - .env:/var/www/html/.env:ro
+    environment:
+      PHP_OPCACHE_ENABLE: 1
+      AUTORUN_ENABLED: 'true'
+      AUTORUN_LARAVEL_MIGRATION: 'true'
     ports:
       - "8080:8080"
     extra_hosts:
@@ -28,3 +34,7 @@ services:
 
 networks:
   app:
+
+volumes:
+  storage_data:
+  database_data:

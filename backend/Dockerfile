@@ -6,7 +6,7 @@ COPY composer.json composer.lock ./
 
 COPY ./ /app
 
-RUN composer install --no-cache --no-dev --no-scripts --no-autoloader --ansi --no-interaction --ignore-platform-reqs \
+RUN composer install --no-cache --no-scripts --no-autoloader --ansi --no-interaction --ignore-platform-reqs \
     && composer dump-autoload -o
 
 # Set our base image
@@ -19,6 +19,4 @@ COPY --chown=www-data:www-data --from=php_builder /app/vendor /var/www/html/vend
 
 USER www-data
 
-RUN touch database/database.sqlite
-RUN chown www-data:www-data database/database.sqlite
-RUN chmod 664 database/database.sqlite
+RUN mkdir -p database && touch database/database.sqlite

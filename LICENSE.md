@@ -27,4 +27,4 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-For commercial licensing options, please contact support@spacepad.it. 
+For commercial licensing options, please contact support@spacepad.io. 

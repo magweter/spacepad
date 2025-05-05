@@ -31,7 +31,7 @@ class AppTranslations extends Translations {
       'self_hosted': 'Self-hosted',
       'cloud_hosted': 'Cloud-hosted',
       'self_hosted_url': 'Self-hosted instance URL',
-      'connect_code_explanation': 'To get a connect code, you need to:\n1. Sign up at app.spacepad.it/register, or\n2. Set up your own cloud-hosted environment, read: spacepad.it\nThen go to your dashboard to get the connect code.',
+      'connect_code_explanation': 'To get a connect code, you need to:\n1. Sign up at app.spacepad.io/register, or\n2. Set up your own cloud-hosted environment, read: spacepad.io\nThen go to your dashboard to get the connect code.',
       'invalid_url': 'Please enter a valid URL (e.g., https://your-instance.com)',
       'server_unreachable': 'Could not connect to the server. Please check if the URL is correct and the server is running.',
       'login_failed': 'Your connect code is incorrect. Please try again.'
@@ -64,7 +64,7 @@ class AppTranslations extends Translations {
       'self_hosted': 'Eigen hosting',
       'cloud_hosted': 'Cloud hosting',
       'self_hosted_url': 'URL van eigen instance',
-      'connect_code_explanation': 'Om een connect code te krijgen moet je:\n1. Je registreren op app.spacepad.it/register, of\n2. Je eigen cloud-hosted omgeving opzetten, zie: spacepad.it\nGa daarna naar je dashboard om de connect code te krijgen.',
+      'connect_code_explanation': 'Om een connect code te krijgen moet je:\n1. Je registreren op app.spacepad.io/register, of\n2. Je eigen cloud-hosted omgeving opzetten, zie: spacepad.io\nGa daarna naar je dashboard om de connect code te krijgen.',
       'invalid_url': 'Voer een geldige URL in (bijvoorbeeld https://jouw-instance.nl)',
       'server_unreachable': 'Kon geen verbinding maken met de server. Controleer of de URL correct is en de server draait.',
       'login_failed': 'Je connect code is incorrect. Probeer het opnieuw.'
@@ -97,7 +97,7 @@ class AppTranslations extends Translations {
       'self_hosted': 'Autoalojado',
       'cloud_hosted': 'Alojado en la nube',
       'self_hosted_url': 'URL de la instancia autoalojada',
-      'connect_code_explanation': 'Para obtener un código de conexión, necesitas:\n1. Registrarte en app.spacepad.it/register, o\n2. Configurar tu propio entorno en la nube, lee: spacepad.it\nLuego ve a tu panel para obtener el código de conexión.',
+      'connect_code_explanation': 'Para obtener un código de conexión, necesitas:\n1. Registrarte en app.spacepad.io/register, o\n2. Configurar tu propio entorno en la nube, lee: spacepad.io\nLuego ve a tu panel para obtener el código de conexión.',
       'invalid_url': 'Por favor, introduce una URL válida (por ejemplo, https://tu-instancia.com)',
       'server_unreachable': 'No se pudo conectar con el servidor. Por favor, verifica que la URL sea correcta y que el servidor esté en funcionamiento.',
       'login_failed': 'Tu código de conexión es incorrecto. Por favor, inténtalo de nuevo.'
@@ -130,7 +130,7 @@ class AppTranslations extends Translations {
       'self_hosted': 'Auto-hébergé',
       'cloud_hosted': 'Hébergé sur le cloud',
       'self_hosted_url': 'URL de l\'instance auto-hébergée',
-      'connect_code_explanation': 'Pour obtenir un code de connexion, vous devez :\n1. Vous inscrire sur app.spacepad.it/register, ou\n2. Configurer votre propre environnement cloud, voir : spacepad.it\nEnsuite, allez sur votre tableau de bord pour obtenir le code de connexion.',
+      'connect_code_explanation': 'Pour obtenir un code de connexion, vous devez :\n1. Vous inscrire sur app.spacepad.io/register, ou\n2. Configurer votre propre environnement cloud, voir : spacepad.io\nEnsuite, allez sur votre tableau de bord pour obtenir le code de connexion.',
       'invalid_url': 'Veuillez entrer une URL valide (par exemple, https://votre-instance.com)',
       'server_unreachable': 'Impossible de se connecter au serveur. Veuillez vérifier que l\'URL est correcte et que le serveur fonctionne.',
       'login_failed': 'Votre code de connexion est incorrect. Veuillez réessayer.'
@@ -163,7 +163,7 @@ class AppTranslations extends Translations {
       'self_hosted': 'Selbst gehostet',
       'cloud_hosted': 'Cloud-gehostet',
       'self_hosted_url': 'URL der selbst gehosteten Instanz',
-      'connect_code_explanation': 'Um einen Verbindungscode zu erhalten, müssen Sie:\n1. Sich registrieren unter app.spacepad.it/register, oder\n2. Ihre eigene Cloud-Umgebung einrichten, siehe: spacepad.it\nGehen Sie dann zu Ihrem Dashboard, um den Verbindungscode zu erhalten.',
+      'connect_code_explanation': 'Um einen Verbindungscode zu erhalten, müssen Sie:\n1. Sich registrieren unter app.spacepad.io/register, oder\n2. Ihre eigene Cloud-Umgebung einrichten, siehe: spacepad.io\nGehen Sie dann zu Ihrem Dashboard, um den Verbindungscode zu erhalten.',
       'invalid_url': 'Bitte geben Sie eine gültige URL ein (z.B. https://ihre-instanz.com)',
       'server_unreachable': 'Verbindung zum Server konnte nicht hergestellt werden. Bitte überprüfen Sie, ob die URL korrekt ist und der Server läuft.',
       'login_failed': 'Ihr Verbindungscode ist falsch. Bitte versuchen Sie es erneut.'
