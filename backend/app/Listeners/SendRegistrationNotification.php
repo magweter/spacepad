@@ -23,6 +23,13 @@ class SendRegistrationNotification
             return;
         }
 
+        // Example JSON payload:
+        // {
+        //     "user_id": 123,
+        //     "email": "john.doe@example.com", 
+        //     "name": "John Doe",
+        //     "event": "registration"
+        // }
         Http::post($webhookUrl, [
             'user_id' => $event->user->id,
             'email' => $event->user->email,

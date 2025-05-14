@@ -73,7 +73,7 @@
                     <div id="room" class="mt-4">
                         @include('components.rooms.outlook', ['rooms' => $outlookAccounts->first()->getRooms()])
                     </div>
-                    <p class="mt-4 text-sm text-gray-600">
+                    <p class="mt-2 text-sm text-gray-600">
                         Don't have a room yet? Create one in the 
                         <a href="https://admin.microsoft.com/?source=applauncher#/ResourceMailbox" 
                         target="_blank" 
@@ -83,7 +83,7 @@
             </div>
 
             <button type="submit" id="submitButton"
-                    class="relative ms-auto mt-6 block rounded-md bg-green-600 disabled:bg-green-700 px-3 py-2 text-center text-sm font-semibold text-white shadow-sm hover:bg-green-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600">
+                    class="relative ms-auto mt-6 block rounded-md bg-green-600 disabled:bg-green-700 px-3 py-2 text-center text-sm font-semibold text-white hover:bg-green-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600">
                 <span id="buttonText">Continue and create display</span>
             </button>
         </div>

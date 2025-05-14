@@ -59,11 +59,6 @@ class User extends Authenticatable
         return $this->hasMany(Display::class);
     }
 
-    public function canCreateDisplays(): bool
-    {
-        return $this->displays()->count() < 1;
-    }
-
     public function getConnectCode(): string
     {
         $connectCode = cache()->get("user:$this->id:connect-code");
