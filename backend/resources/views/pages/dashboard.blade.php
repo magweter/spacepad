@@ -12,7 +12,7 @@
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-4">
             <div class="sm:flex sm:items-center sm:col-span-2 md:col-span-3">
                 <div class="sm:flex-auto">
-                    <h1 class="text-xl font-semibold leading-6 text-gray-900">Accounts</h1>
+                    <h1 class="text-lg font-semibold leading-6 text-gray-900">Accounts</h1>
                     <p class="mt-2 text-md text-gray-500">Your connected outlook accounts.</p>
                 </div>
             </div>
@@ -61,7 +61,7 @@
     <div class="mb-6 rounded-md bg-gray-50 p-4">
         <div class="flex">
             <div class="flex-1 md:flex md:justify-between">
-                <p class="text-base text-gray-700">Connect a new tablet by downloading the app from the Play Store or App Store and using the connect code displayed in the top right corner.</p>
+                <p class="text-base text-gray-700">Connect a new tablet by downloading the app from the <a target="_blank" href="https://play.google.com/store/apps/details?id=com.magweter.spacepad" class="text-blue-600 hover:text-blue-500">Play Store</a> or <a target="_blank" href="https://apps.apple.com/nl/app/spacepad/id6745528995" class="text-blue-600 hover:text-blue-500">App Store</a> and using the connect code displayed in the top right corner.</p>
             </div>
         </div>
     </div>
@@ -69,13 +69,11 @@
     <div>
         <div class="sm:flex sm:items-center">
             <div class="sm:flex-auto">
-                <h1 class="text-xl font-semibold leading-6 text-gray-900">Displays</h1>
+                <h1 class="text-lg font-semibold leading-6 text-gray-900">Displays</h1>
                 <p class="mt-2 text-md text-gray-500">Your displays and their status.</p>
             </div>
             <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
-                @if(auth()->user()->canCreateDisplays())
-                    <a href="{{ route('displays.create') }}" class="block rounded-md bg-oxford px-3 py-2 text-center text-md font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">Create new display</a>
-                @endif
+                <a href="{{ route('displays.create') }}" class="block rounded-md bg-oxford px-3 py-2 text-center text-md font-semibold text-white">Create new display</a>
             </div>
         </div>
         <div class="mt-4 flow-root">

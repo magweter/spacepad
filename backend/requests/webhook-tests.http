@@ -1,0 +1,23 @@
+### Test Onboarding Complete Webhook
+POST {{onboarding_webhook_url}}
+Content-Type: application/json
+
+{
+    "user_id": 123,
+    "email": "john.doe@example.com",
+    "name": "John Doe",
+    "display": "Office Display",
+    "event": "onboarding_complete"
+}
+
+### Test Registration Webhook
+POST {{registration_webhook_url}}
+Content-Type: application/json
+
+{
+    "user_id": 456,
+    "email": "jane.smith@example.com",
+    "name": "Jane Smith",
+    "display": "Main Office Display",
+    "event": "onboarding_complete"
+}
