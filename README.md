@@ -25,7 +25,7 @@ Creating modern no-nonsense solutions for every office. Easy to use and affordab
 ## Quick Start
 
 ### Cloud Hosted Solution
-Looking to get started for free with zero effort? Visit [spacepad.io](https://spacepad.io) to try out our cloud-hosted solution. We offer a free 7 day trail.
+Looking to get started for free with zero effort? Visit [spacepad.io](https://spacepad.io) to try out our cloud-hosted solution. We offer a free 7 day trial.
 Cloud hosting is a great way to support this project for future development.
 
 ### Self-Hosted Option
