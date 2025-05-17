@@ -16,6 +16,7 @@
         "microsoft/microsoft-graph": "^2.23",
         "predis/predis": "^2.3",
         "qruto/laravel-wave": "^0.9.1",
+        "sentry/sentry-laravel": "^4.13",
         "socialiteproviders/microsoft": "^4.6"
     },
     "require-dev": {

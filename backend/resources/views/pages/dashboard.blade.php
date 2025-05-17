@@ -13,11 +13,11 @@
             <div class="sm:flex sm:items-center sm:col-span-2 md:col-span-3">
                 <div class="sm:flex-auto">
                     <h1 class="text-lg font-semibold leading-6 text-gray-900">Accounts</h1>
-                    <p class="mt-2 text-md text-gray-500">Your connected outlook accounts.</p>
+                    <p class="mt-1 text-md text-gray-500">The accounts used to connect to calendars and rooms.</p>
                 </div>
             </div>
             <div class="bg-gray-50 sm:rounded-lg sm:col-span-2 md:col-span-1">
-                <div class="px-4 py-3 sm:p-5 flex">
+                <div class="p-4 flex">
                     <h3 class="text-base font-semibold text-gray-900">Connect code</h3>
                     <div class="max-w-xl text-base text-gray-500 ml-auto">
                         <p>{{ chunk_split($connectCode, 3, ' ') }}</p>
@@ -58,7 +58,7 @@
         </div>
     </div>
 
-    <div class="mb-6 rounded-md bg-gray-50 p-4">
+    <div class="mb-10 rounded-md bg-gray-50 p-4">
         <div class="flex">
             <div class="flex-1 md:flex md:justify-between">
                 <p class="text-base text-gray-700">Connect a new tablet by downloading the app from the <a target="_blank" href="https://play.google.com/store/apps/details?id=com.magweter.spacepad" class="text-blue-600 hover:text-blue-500">Play Store</a> or <a target="_blank" href="https://apps.apple.com/nl/app/spacepad/id6745528995" class="text-blue-600 hover:text-blue-500">App Store</a> and using the connect code displayed in the top right corner.</p>
@@ -70,10 +70,15 @@
         <div class="sm:flex sm:items-center">
             <div class="sm:flex-auto">
                 <h1 class="text-lg font-semibold leading-6 text-gray-900">Displays</h1>
-                <p class="mt-2 text-md text-gray-500">Your displays and their status.</p>
+                <p class="mt-1 text-md text-gray-500">Your displays and their status.</p>
             </div>
             <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
-                <a href="{{ route('displays.create') }}" class="block rounded-md bg-oxford px-3 py-2 text-center text-md font-semibold text-white">Create new display</a>
+                @if(auth()->user()->can('create', \App\Models\Display::class))
+                    <a href="{{ route('displays.create') }}" class="inline-flex items-center rounded-md bg-oxford px-3 py-2 text-center text-md font-semibold text-white">
+                        <x-icons.plus class="h-5 w-5 mr-1" />
+                        Create new display
+                    </a>
+                @endif
             </div>
         </div>
         <div class="mt-4 flow-root">
@@ -92,7 +97,7 @@
                         </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-200">
-                        @foreach($displays as $display)
+                        @forelse($displays as $display)
                             <tr>
                                 <td class="whitespace-nowrap py-4 pl-4 pr-3 text-md font-medium text-gray-900 sm:pl-0">{{ $display->name }}</td>
                                 <td class="whitespace-nowrap py-4 pl-4 pr-3 text-md font-medium text-gray-900 sm:pl-0">{{ $display->display_name }}</td>
@@ -146,7 +151,17 @@
                                     </form>
                                 </td>
                             </tr>
-                        @endforeach
+                        @empty
+                            <tr>
+                                <td colspan="7" class="py-12 text-center">
+                                    <div class="flex flex-col items-center justify-center">
+                                        <x-icons.display class="h-12 w-12 text-gray-400" />
+                                        <h3 class="mt-2 text-sm font-semibold text-gray-900">No displays</h3>
+                                        <p class="mt-1 text-sm text-gray-500">Get started by creating a new display.</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        @endforelse
                         </tbody>
                     </table>
                 </div>

@@ -42,43 +42,143 @@
                     </div>
                     <p class="mt-2 text-sm text-gray-500">This name will be displayed on the top right corner of the screen.</p>
                 </div>
-                <div class="mt-6">
-                    <p class="text-sm font-semibold leading-6 text-gray-900">Outlook Account</p>
-                    <p class="mt-1 text-sm leading-6 text-gray-600">Pick the account and the desired room to display.</p>
-                    <div class="mt-4 space-y-4">
-                        @foreach($outlookAccounts as $outlookAccount)
-                            <div class="flex items-start">
-                                <div class="flex items-center p-1 mr-2">
-                                    <x-icons.microsoft class="size-4 text-muted-foreground inline-flex"/>
-                                </div>
-                                <div class="min-w-0 flex-1">
-                                    <label for="account" class="font-medium text-gray-900 text-sm">{{ $outlookAccount->name }}</label>
-                                    <p class="text-gray-500 text-sm">{{ $outlookAccount->email }}</p>
-                                </div>
-                                <div class="ml-3 flex h-6 items-center">
-                                    <input
-                                        id="{{ $outlookAccount->id }}"
-                                        name="account"
-                                        value="{{ $outlookAccount->id }}"
-                                        type="radio" {{ $loop->first ? 'checked' : '' }}
-                                        class="h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-600"
-                                        hx-get="{{ route('rooms.outlook', $outlookAccount->id) }}"
-                                        hx-target="#room"
-                                        hx-swap="innerHTML"
-                                    >
-                                </div>
+
+                <!-- Step 1: Provider Selection -->
+                <div class="mt-6" id="providerSelection">
+                    <p class="text-sm font-semibold leading-6 text-gray-900">Select a calendar account</p>
+                    <p class="mt-1 text-sm leading-6 text-gray-600">Choose the service you want to connect to.</p>
+                    <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+                        <div class="relative flex items-center space-x-3 rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 hover:border-gray-400 cursor-pointer provider-tile" data-provider="outlook">
+                            <div class="flex-shrink-0">
+                                <x-icons.microsoft class="h-10 w-10" />
                             </div>
-                        @endforeach
+                            <div class="min-w-0 flex-1">
+                                <span class="absolute inset-0" aria-hidden="true"></span>
+                                <p class="text-sm font-medium text-gray-900">Microsoft 365</p>
+                                <p class="truncate text-sm text-gray-500">Connect to Outlook calendars</p>
+                            </div>
+                        </div>
+                        <div class="relative flex items-center space-x-3 rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 hover:border-gray-400 cursor-pointer provider-tile" data-provider="google">
+                            <div class="flex-shrink-0">
+                                <x-icons.google class="h-10 w-10" />
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <span class="absolute inset-0" aria-hidden="true"></span>
+                                <p class="text-sm font-medium text-gray-900">Google Calendar</p>
+                                <p class="truncate text-sm text-gray-500">Connect to Google calendars</p>
+                            </div>
+                        </div>
+                        <div class="relative flex items-center space-x-3 rounded-lg border border-gray-300 bg-gray-50 px-6 py-5 opacity-75 cursor-not-allowed" data-provider="caldav">
+                            <div class="flex-shrink-0">
+                                <x-icons.caldav class="h-10 w-10" />
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <span class="absolute inset-0" aria-hidden="true"></span>
+                                <p class="text-sm font-medium text-gray-900">CalDAV</p>
+                                <p class="truncate text-sm text-gray-500">Coming soon</p>
+                            </div>
+                        </div>
                     </div>
-                    <div id="room" class="mt-4">
-                        @include('components.rooms.outlook', ['rooms' => $outlookAccounts->first()->getRooms()])
+                </div>
+
+                <!-- Step 2: Search Method Selection (initially hidden) -->
+                <div class="mt-6 hidden" id="searchMethodSelection">
+                    <p class="text-sm font-semibold leading-6 text-gray-900">How do you want to find your calendar?</p>
+                    <p class="mt-1 text-sm leading-6 text-gray-600">Choose how you want to search for your calendar.</p>
+                    <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <div class="relative flex items-center space-x-3 rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 hover:border-gray-400 cursor-pointer search-method-tile" data-method="calendar">
+                            <div class="min-w-0 flex-1">
+                                <span class="absolute inset-0" aria-hidden="true"></span>
+                                <p class="text-sm font-medium text-gray-900">Search by Calendar</p>
+                                <p class="truncate text-sm text-gray-500">Find a specific calendar</p>
+                            </div>
+                        </div>
+                        <div class="relative flex items-center space-x-3 rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 hover:border-gray-400 cursor-pointer search-method-tile" data-method="room">
+                            <div class="min-w-0 flex-1">
+                                <span class="absolute inset-0" aria-hidden="true"></span>
+                                <p class="text-sm font-medium text-gray-900">Search by Room</p>
+                                <p class="truncate text-sm text-gray-500">Find a room's calendar</p>
+                            </div>
+                        </div>
                     </div>
-                    <p class="mt-2 text-sm text-gray-600">
-                        Don't have a room yet? Create one in the 
-                        <a href="https://admin.microsoft.com/?source=applauncher#/ResourceMailbox" 
-                        target="_blank" 
-                        class="text-blue-600 hover:text-blue-800 underline">Microsoft 365 Admin Center</a>.
-                    </p>
+                </div>
+
+                <!-- Step 3: Calendar/Room Selection (initially hidden) -->
+                <div class="mt-6 hidden" id="calendarSelection">
+                    <div id="outlookSelection" class="hidden">
+                        <p class="text-sm font-semibold leading-6 text-gray-900">Outlook Account</p>
+                        <p class="mt-1 text-sm leading-6 text-gray-600">Pick the account and the desired calendar or room to display.</p>
+                        <div class="mt-4 space-y-4">
+                            @foreach($outlookAccounts as $outlookAccount)
+                                <div class="flex items-start">
+                                    <div class="flex items-center p-1 mr-2">
+                                        <x-icons.microsoft class="size-4 text-muted-foreground inline-flex"/>
+                                    </div>
+                                    <div class="min-w-0 flex-1">
+                                        <label for="account" class="font-medium text-gray-900 text-sm">{{ $outlookAccount->name }}</label>
+                                        <p class="text-gray-500 text-sm">{{ $outlookAccount->email }}</p>
+                                    </div>
+                                    <div class="ml-3 flex h-6 items-center">
+                                        <input
+                                            id="{{ $outlookAccount->id }}"
+                                            name="account"
+                                            value="{{ $outlookAccount->id }}"
+                                            type="radio" {{ $loop->first ? 'checked' : '' }}
+                                            class="h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-600"
+                                            hx-get="{{ route('rooms.outlook', $outlookAccount->id) }}"
+                                            hx-target="#room"
+                                            hx-swap="innerHTML"
+                                        >
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                        <div id="outlookCalendars" class="mt-4 hidden">
+                            @include('components.calendars.outlook', ['calendars' => $outlookAccounts->first()->getCalendars()])
+                        </div>
+                        <div id="outlookRooms" class="mt-4 hidden">
+                            @include('components.rooms.outlook', ['rooms' => $outlookAccounts->first()->getRooms()])
+                        </div>
+                    </div>
+                    <div id="googleSelection" class="hidden">
+                        <p class="text-sm font-semibold leading-6 text-gray-900">Google Account</p>
+                        <p class="mt-1 text-sm leading-6 text-gray-600">Pick the account and the desired calendar or room to display.</p>
+                        <div class="mt-4 space-y-4">
+                            @foreach($googleAccounts as $googleAccount)
+                                <div class="flex items-start">
+                                    <div class="flex items-center p-1 mr-2">
+                                        <x-icons.google class="size-4 text-muted-foreground inline-flex"/>
+                                    </div>
+                                    <div class="min-w-0 flex-1">
+                                        <label for="account" class="font-medium text-gray-900 text-sm">{{ $googleAccount->name }}</label>
+                                        <p class="text-gray-500 text-sm">{{ $googleAccount->email }}</p>
+                                    </div>
+                                    <div class="ml-3 flex h-6 items-center">
+                                        <input
+                                            id="{{ $googleAccount->id }}"
+                                            name="account"
+                                            value="{{ $googleAccount->id }}"
+                                            type="radio" {{ $loop->first ? 'checked' : '' }}
+                                            class="h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-600"
+                                            hx-get="{{ route('rooms.google', $googleAccount->id) }}"
+                                            hx-target="#room"
+                                            hx-swap="innerHTML"
+                                        >
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                        <div id="googleCalendars" class="mt-4 hidden">
+                            @include('components.calendars.google', ['calendars' => $googleAccounts->first()->getCalendars()])
+                        </div>
+                        <div id="googleRooms" class="mt-4 hidden">
+                            @include('components.rooms.google', ['rooms' => $googleAccounts->first()->getRooms()])
+                        </div>
+                    </div>
+                    <div id="caldavSelection" class="hidden">
+                        <!-- CalDAV selection will be added here -->
+                        <p class="text-sm text-gray-500">CalDAV integration coming soon!</p>
+                    </div>
                 </div>
             </div>
 
@@ -95,6 +195,85 @@
         const submitButton = document.getElementById('submitButton');
         const buttonText = document.getElementById('buttonText');
         const form = document.getElementById('createForm');
+        const providerSelection = document.getElementById('providerSelection');
+        const searchMethodSelection = document.getElementById('searchMethodSelection');
+        const calendarSelection = document.getElementById('calendarSelection');
+        const outlookSelection = document.getElementById('outlookSelection');
+        const googleSelection = document.getElementById('googleSelection');
+        const caldavSelection = document.getElementById('caldavSelection');
+        const outlookCalendars = document.getElementById('outlookCalendars');
+        const outlookRooms = document.getElementById('outlookRooms');
+        const googleCalendars = document.getElementById('googleCalendars');
+        const googleRooms = document.getElementById('googleRooms');
+
+        // Provider selection
+        document.querySelectorAll('.provider-tile').forEach(tile => {
+            tile.addEventListener('click', function() {
+                // Remove selected state from all tiles
+                document.querySelectorAll('.provider-tile').forEach(t => {
+                    t.classList.remove('ring-2', 'ring-blue-500', 'ring-offset-2');
+                });
+                // Add selected state to clicked tile
+                this.classList.add('ring-2', 'ring-blue-500', 'ring-offset-2');
+                
+                // Show search method selection
+                searchMethodSelection.classList.remove('hidden');
+                
+                // Hide calendar selection initially
+                calendarSelection.classList.add('hidden');
+            });
+        });
+
+        // Search method selection
+        document.querySelectorAll('.search-method-tile').forEach(tile => {
+            tile.addEventListener('click', function() {
+                // Remove selected state from all tiles
+                document.querySelectorAll('.search-method-tile').forEach(t => {
+                    t.classList.remove('ring-2', 'ring-blue-500', 'ring-offset-2');
+                });
+                // Add selected state to clicked tile
+                this.classList.add('ring-2', 'ring-blue-500', 'ring-offset-2');
+                
+                // Show calendar selection
+                calendarSelection.classList.remove('hidden');
+                
+                // Show the appropriate provider selection
+                const selectedProvider = document.querySelector('.provider-tile.ring-2').dataset.provider;
+                const selectedMethod = this.dataset.method;
+                
+                outlookSelection.classList.add('hidden');
+                googleSelection.classList.add('hidden');
+                caldavSelection.classList.add('hidden');
+                
+                switch(selectedProvider) {
+                    case 'outlook':
+                        outlookSelection.classList.remove('hidden');
+                        // Show either calendars or rooms based on the selected method
+                        if (selectedMethod === 'calendar') {
+                            outlookCalendars.classList.remove('hidden');
+                            outlookRooms.classList.add('hidden');
+                        } else {
+                            outlookCalendars.classList.add('hidden');
+                            outlookRooms.classList.remove('hidden');
+                        }
+                        break;
+                    case 'google':
+                        googleSelection.classList.remove('hidden');
+                        // Show either calendars or rooms based on the selected method
+                        if (selectedMethod === 'calendar') {
+                            googleCalendars.classList.remove('hidden');
+                            googleRooms.classList.add('hidden');
+                        } else {
+                            googleCalendars.classList.add('hidden');
+                            googleRooms.classList.remove('hidden');
+                        }
+                        break;
+                    case 'caldav':
+                        caldavSelection.classList.remove('hidden');
+                        break;
+                }
+            });
+        });
 
         submitButton.addEventListener('click', function () {
             // Show the spinner and hide the button text

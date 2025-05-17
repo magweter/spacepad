@@ -150,7 +150,7 @@ class OutlookService
      * Fetch calendar events from Outlook account.
      *
      * @param OutlookAccount $outlookAccount
-     * @param string $calendarId
+     * @param string $emailAddress
      * @param Carbon $startDateTime
      * @param Carbon $endDateTime
      * @return mixed

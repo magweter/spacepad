@@ -93,6 +93,8 @@ class DisplayController extends Controller
 
     public function updateStatus(Request $request, Display $display): RedirectResponse
     {
+        $this->authorize('update', $display);
+
         $data = $request->validate([
             'status' => 'required|in:active,deactivated'
         ]);
@@ -104,7 +106,8 @@ class DisplayController extends Controller
 
     public function delete(Display $display): RedirectResponse
     {
-        $display->events()->delete();
+        $this->authorize('delete', $display);
+
         $display->eventSubscriptions()->delete();
         $display->delete();
 
