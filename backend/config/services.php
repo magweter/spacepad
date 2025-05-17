@@ -59,7 +59,7 @@ return [
     ],
 
     'microsoft' => [
-        'enabled' => env('MICROSOFT_CLIENT_ID') !== null,
+        'enabled' => env('MICROSOFT_CLIENT_ID', env('AZURE_AD_CLIENT_ID')) !== null,
         'client_id' => env('MICROSOFT_CLIENT_ID', env('AZURE_AD_CLIENT_ID')),
         'client_secret' => env('MICROSOFT_CLIENT_SECRET', env('AZURE_AD_CLIENT_SECRET')),
         'redirect' => env('MICROSOFT_REDIRECT_URI', 'https://'.env('DOMAIN').'/auth/microsoft/callback'),
