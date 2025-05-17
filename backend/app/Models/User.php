@@ -54,6 +54,11 @@ class User extends Authenticatable
         return $this->hasMany(OutlookAccount::class);
     }
 
+    public function googleAccounts(): HasMany
+    {
+        return $this->hasMany(GoogleAccount::class);
+    }
+
     public function displays(): HasMany
     {
         return $this->hasMany(Display::class);

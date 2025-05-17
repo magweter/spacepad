@@ -2,17 +2,14 @@
 
 namespace App\Services;
 
-use App\Enums\Provider;
 use App\Models\Display;
 use App\Models\EventSubscription;
 use App\Models\OutlookAccount;
+use Exception;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
-use Microsoft\Graph\Core\Authentication\TokenCredentialAuthProvider;
-use Microsoft\Kiota\Authentication\OAuth\AccessTokenProvider;
-use Microsoft\Graph\Model;
 
 class OutlookService
 {
@@ -77,7 +74,7 @@ class OutlookService
         $oauthTokenEndpoint = "https://login.microsoftonline.com/{$this->tenantId}/oauth2/v2.0/token";
 
         // Exchange authorization code for tokens
-        $response = \Http::asForm()->post($oauthTokenEndpoint, [
+        $response = Http::asForm()->post($oauthTokenEndpoint, [
             'client_id' => $this->clientId,
             'scope' => self::OAUTH_SCOPES,
             'code' => $authCode,
@@ -88,7 +85,7 @@ class OutlookService
 
         $tokenData = $response->json();
         if (isset($tokenData['error'])) {
-            throw new \Exception('Error authenticating with Outlook: ' . $tokenData['error_description']);
+            throw new Exception('Error authenticating with Outlook: ' . $tokenData['error_description']);
         }
 
         // Get the current user information
@@ -125,7 +122,7 @@ class OutlookService
     {
         $oauthTokenEndpoint = "https://login.microsoftonline.com/{$this->tenantId}/oauth2/v2.0/token";
 
-        $response = \Http::asForm()->post($oauthTokenEndpoint, [
+        $response = Http::asForm()->post($oauthTokenEndpoint, [
             'client_id' => $this->clientId,
             'scope' => self::OAUTH_SCOPES,
             'refresh_token' => $outlookAccount->refresh_token,
@@ -136,7 +133,7 @@ class OutlookService
         $tokenData = $response->json();
 
         if (isset($tokenData['error'])) {
-            throw new \Exception('Error refreshing Outlook token: ' . $tokenData['error_description']);
+            throw new Exception('Error refreshing Outlook token: ' . $tokenData['error_description']);
         }
 
         $outlookAccount->update([
@@ -175,29 +172,6 @@ class OutlookService
 
         $response = Http::withToken($outlookAccount->token)
             ->get("https://graph.microsoft.com/v1.0/users/$emailAddress/calendarview", $params);
-
-        return Arr::get($response->json(), 'value') ?? [];
-    }
-
-    /**
-     * @throws \Exception
-     */
-    public function fetchSerieInstances(
-        OutlookAccount $outlookAccount,
-        string $seriesMasterId,
-        Carbon $startDateTime,
-        Carbon $endDateTime,
-    ): array
-    {
-        $this->ensureAuthenticated($outlookAccount);
-
-        $params = [
-            'startDateTime' => $startDateTime->toIso8601String(),
-            'endDateTime' => $endDateTime->toIso8601String()
-        ];
-
-        $response = Http::withToken($outlookAccount->token)
-            ->get("https://graph.microsoft.com/v1.0/me/events/$seriesMasterId/instances", $params);
 
         return Arr::get($response->json(), 'value') ?? [];
     }
@@ -268,7 +242,7 @@ class OutlookService
             'Authorization' => 'Bearer ' . $outlookAccount->token,
         ])->get('https://graph.microsoft.com/v1.0/me/calendars');
 
-        return \Arr::get($response->json(), 'value');
+        return Arr::get($response->json(), 'value');
     }
 
     /**
@@ -306,7 +280,7 @@ class OutlookService
             'Authorization' => 'Bearer ' . $outlookAccount->token,
         ])->get('https://graph.microsoft.com/v1.0/places/microsoft.graph.room');
 
-        return \Arr::get($response->json(), 'value');
+        return Arr::get($response->json(), 'value');
     }
 
     /**

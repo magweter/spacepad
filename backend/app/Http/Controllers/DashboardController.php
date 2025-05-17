@@ -19,13 +19,13 @@ class DashboardController extends Controller
      */
     public function __invoke(): View|Factory|Application
     {
-        $outlookAccounts = auth()->user()->outlookAccounts;
-        $displays = auth()->user()->displays;
         $connectCode = auth()->user()->getConnectCode();
+        $user = auth()->user()->load(['outlookAccounts', 'googleAccounts', 'displays']);
 
         return view('pages.dashboard', [
-            'outlookAccounts' => $outlookAccounts,
-            'displays' => $displays,
+            'outlookAccounts' => $user->outlookAccounts,
+            'googleAccounts' => $user->googleAccounts,
+            'displays' => $user->displays,
             'connectCode' => $connectCode,
         ]);
     }

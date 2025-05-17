@@ -8,13 +8,14 @@
     "require": {
         "php": "^8.2",
         "cesargb/laravel-magiclink": "^2.22",
+        "google/apiclient": "^2.18",
         "guzzlehttp/guzzle": "^7.9",
         "laravel/framework": "^11.31",
         "laravel/sanctum": "^4.0",
         "laravel/socialite": "^5.16",
         "laravel/tinker": "^2.9",
         "microsoft/microsoft-graph": "^2.23",
-        "predis/predis": "^2.3",
+        "predis/predis": "^3.0",
         "qruto/laravel-wave": "^0.9.1",
         "sentry/sentry-laravel": "^4.13",
         "socialiteproviders/microsoft": "^4.6"

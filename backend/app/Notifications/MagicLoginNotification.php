@@ -35,11 +35,14 @@ class MagicLoginNotification extends Notification
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject('Your login link - '.config('app.name'))
-            ->greeting('Hi,')
-            ->line('Here you\'ll find the link you need to log in.')
-            ->action('Log in to '.config('app.name'), $this->loginUrl)
-            ->line('Thank you!');
+            ->subject('🔐 Your Magic Login Link - ' . config('app.name'))
+            ->greeting('Hello! 👋')
+            ->line('We\'ve generated a secure login link just for you.')
+            ->line('Click the button below to access your account:')
+            ->action('Log in to ' . config('app.name'), $this->loginUrl)
+            ->line('This link will expire in 15 minutes for your security.')
+            ->line('If you didn\'t request this login link, you can safely ignore this email.')
+            ->salutation('Best regards,');
     }
 
     /**

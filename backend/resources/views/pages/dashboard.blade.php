@@ -2,11 +2,7 @@
 @section('title', 'Management dashboard')
 @section('content')
     <!-- Session Status Alert -->
-    @if(session('status'))
-        <div id="alert" class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4">
-            {{ session('status') }}
-        </div>
-    @endif
+    <x-alerts.alert />
 
     <div class="mb-6">
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-4">
@@ -48,11 +44,37 @@
                         </div>
                     </div>
                 @endforeach
+                @foreach($googleAccounts as $googleAccount)
+                    <div class="relative flex items-center space-x-3 rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 hover:border-gray-400">
+                        <div class="flex-shrink-0">
+                            <x-icons.google class="h-10 w-10" />
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <span class="absolute inset-0" aria-hidden="true"></span>
+                            <div class="flex items-center gap-2">
+                                <p class="text-md font-medium text-gray-900">{{ $googleAccount->name }}</p>
+                                <p class="mt-0.5 whitespace-nowrap rounded-md bg-green-50 px-1.5 py-0.5 text-sm font-medium text-green-700 ring-1 ring-inset ring-green-600/20">Connected</p>
+                            </div>
+                            <p class="truncate text-sm text-gray-500 flex items-center gap-2 mt-1">
+                                <span>{{ $googleAccount->email }}</span>
+                                <svg viewBox="0 0 2 2" class="h-0.5 w-0.5 flex-none fill-gray-500">
+                                    <circle cx="1" cy="1" r="1" />
+                                </svg>
+                                <span>Created on {{ $googleAccount->created_at->toDateTimeString() }}</span>
+                            </p>
+                        </div>
+                    </div>
+                @endforeach
             </div>
         </div>
-        <div class="mt-4 flex gap-2">
+        <div class="mt-4 flex gap-4">
             <a href="{{ route('outlook-accounts.auth') }}" class="text-md font-medium text-blue-600 hover:text-blue-500">
                 Connect an Outlook account
+                <span aria-hidden="true"> &rarr;</span>
+            </a>
+            <span class="text-md font-medium">or</span>
+            <a href="{{ route('google-accounts.auth') }}" class="text-md font-medium text-blue-600 hover:text-blue-500">
+                Connect a Google account
                 <span aria-hidden="true"> &rarr;</span>
             </a>
         </div>
@@ -88,9 +110,9 @@
                         <thead>
                         <tr>
                             <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-md font-semibold text-gray-900 sm:pl-0" style="width: 15%">Device name</th>
-                            <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-md font-semibold text-gray-900 sm:pl-0" style="width: 15%">Display name</th>
+                            <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-md font-semibold text-gray-900 sm:pl-0" style="width: 15%">Room name</th>
                             <th scope="col" class="px-3 py-3.5 text-left text-md font-semibold text-gray-900">Account</th>
-                            <th scope="col" class="px-3 py-3.5 text-left text-md font-semibold text-gray-900">Room</th>
+                            <th scope="col" class="px-3 py-3.5 text-left text-md font-semibold text-gray-900">Calendar</th>
                             <th scope="col" class="px-3 py-3.5 text-left text-md font-semibold text-gray-900">Status</th>
                             <th scope="col" class="px-3 py-3.5 text-left text-md font-semibold text-gray-900">Devices</th>
                             <th scope="col" class="relative py-3.5 pl-3 pr-4 sm:pr-0"></th>
@@ -102,10 +124,18 @@
                                 <td class="whitespace-nowrap py-4 pl-4 pr-3 text-md font-medium text-gray-900 sm:pl-0">{{ $display->name }}</td>
                                 <td class="whitespace-nowrap py-4 pl-4 pr-3 text-md font-medium text-gray-900 sm:pl-0">{{ $display->display_name }}</td>
                                 <td class="whitespace-nowrap px-3 py-4 text-md text-gray-500">
-                                    <div class="flex items-center">
-                                        <x-icons.microsoft class="mr-2 size-4 text-muted-foreground inline-flex" />
-                                        <span>{{ $display->calendar->outlookAccount->name }}</span>
-                                    </div>
+                                    @if($display->calendar->outlookAccount)
+                                        <div class="flex items-center">
+                                            <x-icons.microsoft class="mr-2 size-4 text-muted-foreground inline-flex" />
+                                            <span>{{ $display->calendar->outlookAccount->name }}</span>
+                                        </div>
+                                    @endif
+                                    @if($display->calendar->googleAccount)
+                                        <div class="flex items-center">
+                                            <x-icons.google class="mr-2 size-4 text-muted-foreground inline-flex" />
+                                            <span>{{ $display->calendar->googleAccount->name }}</span>
+                                        </div>
+                                    @endif
                                 </td>
                                 <td class="whitespace-nowrap px-3 py-4 text-md text-gray-500">
                                     <div class="flex items-center">

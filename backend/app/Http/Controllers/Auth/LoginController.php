@@ -50,7 +50,7 @@ class LoginController extends Controller
 
         return redirect()
             ->back()
-            ->with('status', 'Check your e-mail. You should receive an e-mail with a login link shortly!');
+            ->with('success', 'Check your e-mail. You should receive an e-mail with a login link shortly.');
     }
 
     /**

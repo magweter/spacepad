@@ -48,14 +48,30 @@
                     </a>
                 </div>
             @endif
+
+            @if($googleAccounts->count() <= 0)
+                <div class="min-w-0 text-center">
+                    <div class="flex items-center justify-center gap-x-3">
+                        <p class="text-md font-semibold leading-6 text-gray-900">Connect a Google account</p>
+                    </div>
+                    <div class="mt-4 flex items-center justify-center gap-x-2 text-md leading-5 text-gray-500">
+                        <p class="break-words">You'll be able to show rooms from this account on a display.</p>
+                    </div>
+                </div>
+                <div class="flex items-center justify-center gap-x-4 mt-6">
+                    <a href="{{ route('google-accounts.auth') }}" class="block rounded-md bg-white px-2.5 py-1.5 text-md font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
+                        Connect a Google account
+                    </a>
+                </div>
+            @endif
                 
-            @if($outlookAccounts->count() > 0)
+            @if($outlookAccounts->count() > 0 || $googleAccounts->count() > 0)
                 <div class="min-w-0 text-center">
                     <div class="flex items-center justify-center gap-x-3">
                         <p class="text-md font-semibold leading-6 text-gray-900">Set up your first display</p>
                     </div>
                     <div class="mt-4 flex items-center justify-center gap-x-2 text-md leading-5 text-gray-500">
-                        <p class="break-words">Create a display and pick the calendar you would like to synchronize. You are able to connect multiple tablets to one display.</p>
+                        <p class="break-words">Create a display and pick the calendar or room you would like to synchronize. You are able to connect multiple tablets to one display.</p>
                     </div>
                 </div>
                 <div class="flex items-center justify-center gap-x-4 mt-6">

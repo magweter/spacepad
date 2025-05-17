@@ -17,6 +17,7 @@ class Calendar extends Model
     protected $fillable = [
         'user_id',
         'outlook_account_id',
+        'google_account_id',
         'calendar_id',
         'name',
         'is_primary',
@@ -25,6 +26,11 @@ class Calendar extends Model
     public function outlookAccount(): ?BelongsTo
     {
         return $this->belongsTo(OutlookAccount::class, 'outlook_account_id');
+    }
+
+    public function googleAccount(): ?BelongsTo
+    {
+        return $this->belongsTo(GoogleAccount::class, 'google_account_id');
     }
 
     public function room(): HasOne
