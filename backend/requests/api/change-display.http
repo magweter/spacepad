@@ -1,8 +1,8 @@
-PUT {{baseUrl}}/api/devices
+PUT {{baseUrl}}/api/devices/display
 Authorization: Bearer {{bearerToken}}
 Content-Type: application/json
 Accept: application/json
 
 {
-    "display_id": "01JHDD827R6YVP826XKDWA7X2G"
+    "display_id": "01JVFEFNK8EBHV5PMGJ43KMV5X"
 }

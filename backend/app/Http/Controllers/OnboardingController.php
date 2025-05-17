@@ -26,7 +26,7 @@ class OnboardingController extends Controller
     public function index(): View|Factory|Application
     {
         $outlookAccounts = auth()->user()->outlookAccounts;
-        //$synchronizations = auth()->user()->synchronizations;
+        $googleAccounts = auth()->user()->googleAccounts;
 
         $user = auth()->user();
         if (! $user->email_verified_at && ! $user->microsoft_id) {
@@ -36,7 +36,7 @@ class OnboardingController extends Controller
 
         return view('pages.onboarding', [
             'outlookAccounts' => $outlookAccounts,
-            //'synchronizations' => $synchronizations,
+            'googleAccounts' => $googleAccounts,
         ]);
     }
 }

@@ -8,6 +8,7 @@ use Google\Client;
 use Google\Service\Oauth2;
 use Google\Service\Calendar;
 use Google\Service\Directory;
+use Illuminate\Support\Carbon;
 
 class GoogleService
 {
@@ -132,38 +133,25 @@ class GoogleService
         return $results->getItems();
     }
 
-    public function fetchEvents(GoogleAccount $account, string $calendarId, ?string $timeMin = null, ?string $timeMax = null): array
+    /**
+     * @throws Exception
+     */
+    public function fetchEvents(
+        GoogleAccount $googleAccount,
+        string $calendarId,
+        Carbon $startDateTime,
+        Carbon $endDateTime
+    ): array
     {
-        $this->ensureAuthenticated($account);
+        $this->ensureAuthenticated($googleAccount);
 
-        $service = new Calendar($this->client);
-        $optParams = [
-            'maxResults' => 100,
-            'orderBy' => 'startTime',
-            'singleEvents' => true,
-        ];
+        $calendarService = new Calendar($this->client);
+        $events = $calendarService->events->listEvents($calendarId, [
+            'timeMin' => $startDateTime->toRfc3339String(),
+            'timeMax' => $endDateTime->toRfc3339String(),
+            'maxResults' => 100
+        ]);
 
-        if ($timeMin) {
-            $optParams['timeMin'] = $timeMin;
-        }
-        if ($timeMax) {
-            $optParams['timeMax'] = $timeMax;
-        }
-
-        $results = $service->events->listEvents($calendarId, $optParams);
-        $events = $results->getItems();
-
-        return collect($events)->map(function ($event) {
-            $start = $event->getStart();
-            $end = $event->getEnd();
-
-            return [
-                'id' => $event->getId(),
-                'summary' => $event->getSummary(),
-                'start' => $start->getDateTime() ?? $start->getDate(),
-                'end' => $end->getDateTime() ?? $end->getDate(),
-                'is_all_day' => !$start->getDateTime(),
-            ];
-        })->toArray();
+        return $events->getItems();
     }
 }
