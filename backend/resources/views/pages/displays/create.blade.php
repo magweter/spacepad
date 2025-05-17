@@ -49,7 +49,7 @@
                     <p class="text-sm font-semibold leading-6 text-gray-900">Select a calendar account</p>
                     <p class="mt-1 text-sm leading-6 text-gray-600">Choose the service you want to connect to.</p>
                     <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
-                        <div class="relative flex items-center space-x-3 rounded-lg border border-gray-300 {{ count($outlookAccounts) > 0 ? 'bg-white hover:border-gray-400 cursor-pointer' : 'bg-gray-50 opacity-75 cursor-not-allowed' }} px-6 py-5 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 provider-tile" data-provider="outlook">
+                        <div class="relative flex items-center space-x-3 rounded-lg border border-gray-300 {{ count($outlookAccounts) > 0 && config('services.microsoft.enabled') ? 'bg-white hover:border-gray-400 cursor-pointer' : 'bg-gray-50 opacity-75 cursor-not-allowed' }} px-6 py-5 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 provider-tile" data-provider="outlook">
                             <div class="flex-shrink-0">
                                 <x-icons.microsoft class="h-10 w-10" />
                             </div>
@@ -65,7 +65,7 @@
                                 </p>
                             </div>
                         </div>
-                        <div class="relative flex items-center space-x-3 rounded-lg border border-gray-300 {{ count($googleAccounts) > 0 ? 'bg-white hover:border-gray-400 cursor-pointer' : 'bg-gray-50 opacity-75 cursor-not-allowed' }} px-6 py-5 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 provider-tile" data-provider="google">
+                        <div class="relative flex items-center space-x-3 rounded-lg border border-gray-300 {{ count($googleAccounts) > 0 && config('services.google.enabled') ? 'bg-white hover:border-gray-400 cursor-pointer' : 'bg-gray-50 opacity-75 cursor-not-allowed' }} px-6 py-5 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 provider-tile" data-provider="google">
                             <div class="flex-shrink-0">
                                 <x-icons.google class="h-10 w-10" />
                             </div>

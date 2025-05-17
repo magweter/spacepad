@@ -72,6 +72,7 @@ class DisplayController extends Controller
 
                 $calendar = Calendar::firstOrCreate([
                     'calendar_id' => $calendarId,
+                    'user_id' => auth()->id(),
                 ], [
                     'user_id' => auth()->id(),
                     $provider . '_account_id' => $accountId,
@@ -92,6 +93,7 @@ class DisplayController extends Controller
 
                 $calendar = Calendar::firstOrCreate([
                     'calendar_id' => $calendarData[0],
+                    'user_id' => auth()->id(),
                 ], [
                     'user_id' => auth()->id(),
                     $provider . '_account_id' => $accountId,

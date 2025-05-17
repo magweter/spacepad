@@ -43,17 +43,20 @@
                         <p class="break-words leading-6">You'll be able to connect multiple accounts from different providers and display events from the calendars and rooms of the account.</p>
                     </div>
                 </div>
-                <div class="flex items-center justify-center gap-x-4 mt-8">
-                    <a href="{{ route('outlook-accounts.auth') }}" class="inline-flex items-center rounded-md bg-white py-3 px-4 text-md font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
-                        <x-icons.microsoft class="h-4 w-4 mr-2" />
-                        <span>Connect an Outlook account</span>
-                    </a>
-                </div>
-                <div class="flex items-center justify-center gap-x-4 mt-4">
-                    <a href="{{ route('google-accounts.auth') }}" class="inline-flex items-center rounded-md bg-white py-3 px-4 text-md font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
-                        <x-icons.google class="h-4 w-4 mr-2" />
-                        <span>Connect a Google account</span>
-                    </a>
+                <div class="flex flex-col items-center justify-center gap-y-4 mt-8">
+                    @if(config('services.microsoft.enabled'))
+                        <a href="{{ route('outlook-accounts.auth') }}" class="inline-flex items-center rounded-md bg-white py-3 px-4 text-md font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
+                            <x-icons.microsoft class="h-4 w-4 mr-2" />
+                            <span>Connect an Outlook account</span>
+                        </a>
+                    @endif
+
+                    @if(config('services.google.enabled'))
+                        <a href="{{ route('google-accounts.auth') }}" class="inline-flex items-center rounded-md bg-white py-3 px-4 text-md font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
+                            <x-icons.google class="h-4 w-4 mr-2" />
+                            <span>Connect a Google account</span>
+                        </a>
+                    @endif
                 </div>
             @else
                 <div class="min-w-0 text-center">

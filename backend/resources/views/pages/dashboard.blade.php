@@ -68,15 +68,23 @@
             </div>
         </div>
         <div class="mt-4 flex gap-2">
+            @if(config('services.microsoft.enabled'))
             <a href="{{ route('outlook-accounts.auth') }}" class="text-md font-medium text-blue-600 hover:text-blue-500">
                 Connect an Outlook account
                 <span aria-hidden="true"> &rarr;</span>
             </a>
+            @endif
+
+            @if(config('services.google.enabled') && config('services.microsoft.enabled'))
             <span class="text-md font-medium">or</span>
+            @endif
+
+            @if(config('services.google.enabled'))
             <a href="{{ route('google-accounts.auth') }}" class="text-md font-medium text-blue-600 hover:text-blue-500">
                 Connect a Google account
                 <span aria-hidden="true"> &rarr;</span>
             </a>
+            @endif
         </div>
     </div>
 

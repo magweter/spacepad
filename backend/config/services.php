@@ -42,13 +42,15 @@ return [
     ],
 
     'google' => [
+        'enabled' => env('GOOGLE_CLIENT_ID') !== null,
         'client_id' => env('GOOGLE_CLIENT_ID'),
         'client_secret' => env('GOOGLE_CLIENT_SECRET'),
-        'redirect' => env('GOOGLE_REDIRECT_URI'),
-        'calendar_redirect' => env('GOOGLE_CALENDAR_REDIRECT_URI'),
+        'redirect' => env('GOOGLE_REDIRECT_URI', 'https://'.env('DOMAIN').'/google-accounts/callback'),
+        'calendar_redirect' => env('GOOGLE_CALENDAR_REDIRECT_URI', 'https://'.env('DOMAIN').'/auth/google/callback'),
     ],
 
     'azure_ad' => [
+        'enabled' => env('AZURE_AD_CLIENT_ID') !== null,
         'client_id' => env('AZURE_AD_CLIENT_ID'),
         'client_secret' => env('AZURE_AD_CLIENT_SECRET'),
         'redirect' => env('AZURE_AD_REDIRECT_URI', 'https://'.env('DOMAIN').'/outlook-accounts/callback'),
@@ -57,6 +59,7 @@ return [
     ],
 
     'microsoft' => [
+        'enabled' => env('MICROSOFT_CLIENT_ID') !== null,
         'client_id' => env('MICROSOFT_CLIENT_ID', env('AZURE_AD_CLIENT_ID')),
         'client_secret' => env('MICROSOFT_CLIENT_SECRET', env('AZURE_AD_CLIENT_SECRET')),
         'redirect' => env('MICROSOFT_REDIRECT_URI', 'https://'.env('DOMAIN').'/auth/microsoft/callback'),
