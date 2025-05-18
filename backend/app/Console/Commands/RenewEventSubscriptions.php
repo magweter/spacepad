@@ -7,6 +7,7 @@ use App\Models\Display;
 use App\Models\EventSubscription;
 use App\Services\OutlookService;
 use Illuminate\Console\Command;
+use App\Enums\AccountStatus;
 
 class RenewEventSubscriptions extends Command
 {
@@ -30,25 +31,57 @@ class RenewEventSubscriptions extends Command
      */
     public function handle(OutlookService $outlookService): void
     {
-        $expiredSubscriptions = EventSubscription::with(['display'])->expired()->get();
+        $expiredSubscriptions = EventSubscription::with(['display'])
+            ->whereHas('outlookAccount', function ($query) {
+                $query->where('status', AccountStatus::CONNECTED);
+            })
+            ->expired()
+            ->get();
+
+        logger()->info('Renewing ' . $expiredSubscriptions->count() . ' expired subscriptions');
+
         foreach ($expiredSubscriptions as $expiredSubscription) {
             $outlookAccount = $expiredSubscription->outlookAccount;
             $display = $expiredSubscription->display;
             $emailAddress = $display->calendar->room->email_address;
 
-            $outlookService->deleteEventSubscription($outlookAccount, $expiredSubscription, false);
-            $outlookService->createEventSubscription($outlookAccount, $display, $emailAddress);
+            if (!$outlookAccount) {
+                continue;
+            }
+
+            try {
+                $outlookService->deleteEventSubscription($outlookAccount, $expiredSubscription, false);
+                $outlookService->createEventSubscription($outlookAccount, $display, $emailAddress);
+            } catch (\Exception $e) {
+                $display->update([
+                    'status' => DisplayStatus::ERROR,
+                ]);
+                logger()->error('Error renewing subscription for display ' . $display->id . ': ' . $e->getMessage());
+            }
         }
 
         $nonExistingSyncs = Display::with(['calendar.room'])
             ->whereIn('status', [DisplayStatus::READY, DisplayStatus::ACTIVE])
             ->doesntHave('eventSubscriptions')
             ->get();
+
+        logger()->info('Creating ' . $nonExistingSyncs->count() . ' new subscriptions');
+
         foreach ($nonExistingSyncs as $nonExistingSync) {
             $outlookAccount = $nonExistingSync->calendar->outlookAccount;
-            $emailAddress = $nonExistingSync->calendar->room->email_address;
+            if (!$outlookAccount) {
+                continue;
+            }
 
-            $outlookService->createEventSubscription($outlookAccount, $nonExistingSync, $emailAddress);
+            try {
+                $emailAddress = $nonExistingSync->calendar->room->email_address;
+                $outlookService->createEventSubscription($outlookAccount, $nonExistingSync, $emailAddress);
+            } catch (\Exception $e) {
+                $nonExistingSync->update([
+                    'status' => DisplayStatus::ERROR,
+                ]);
+                logger()->error('Error creating subscription for display ' . $nonExistingSync->id . ': ' . $e->getMessage());
+            }
         }
     }
 }

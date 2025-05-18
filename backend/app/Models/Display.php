@@ -28,6 +28,7 @@ class Display extends Model
     protected $casts = [
         'last_sync_at' => 'datetime',
         'last_event_at' => 'datetime',
+        'status' => DisplayStatus::class,
     ];
 
     public function calendar(): BelongsTo

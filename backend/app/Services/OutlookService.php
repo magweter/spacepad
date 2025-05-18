@@ -133,6 +133,9 @@ class OutlookService
         $tokenData = $response->json();
 
         if (isset($tokenData['error'])) {
+            $outlookAccount->update([
+                'status' => AccountStatus::ERROR,
+            ]);
             throw new Exception('Error refreshing Outlook token: ' . $tokenData['error_description']);
         }
 

@@ -32,7 +32,7 @@
                             <span class="absolute inset-0" aria-hidden="true"></span>
                             <div class="flex items-center gap-2">
                                 <p class="text-md font-medium text-gray-900">{{ $outlookAccount->name }}</p>
-                                <p class="mt-0.5 whitespace-nowrap rounded-md bg-green-50 px-1.5 py-0.5 text-sm font-medium text-green-700 ring-1 ring-inset ring-green-600/20">Connected</p>
+                                <p class="mt-0.5 whitespace-nowrap rounded-md bg-{{ $outlookAccount->status->color() }}-50 px-1.5 py-0.5 text-xs font-medium text-{{ $outlookAccount->status->color() }}-700 ring-1 ring-inset ring-{{ $outlookAccount->status->color() }}-600/20">{{ $outlookAccount->status->label() }}</p>
                             </div>
                             <p class="truncate text-sm text-gray-500 flex items-center gap-2 mt-1">
                                 <span>{{ $outlookAccount->email }}</span>
@@ -53,7 +53,7 @@
                             <span class="absolute inset-0" aria-hidden="true"></span>
                             <div class="flex items-center gap-2">
                                 <p class="text-md font-medium text-gray-900">{{ $googleAccount->name }}</p>
-                                <p class="mt-0.5 whitespace-nowrap rounded-md bg-green-50 px-1.5 py-0.5 text-sm font-medium text-green-700 ring-1 ring-inset ring-green-600/20">Connected</p>
+                                <p class="mt-0.5 whitespace-nowrap rounded-md bg-{{ $googleAccount->status->color() }}-50 px-1.5 py-0.5 text-xs font-medium text-{{ $googleAccount->status->color() }}-700 ring-1 ring-inset ring-{{ $googleAccount->status->color() }}-600/20">{{ $googleAccount->status->label() }}</p>
                             </div>
                             <p class="truncate text-sm text-gray-500 flex items-center gap-2 mt-1">
                                 <span>{{ $googleAccount->email }}</span>
@@ -150,15 +150,7 @@
                                         </td>
                                         <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{ $display->calendar->name }}</td>
                                         <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                                            @if ($display->status === \App\Enums\DisplayStatus::READY)
-                                                <span class="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20">Ready</span>
-                                            @elseif ($display->status === \App\Enums\DisplayStatus::ACTIVE)
-                                                <span class="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">Active</span>
-                                            @elseif ($display->status === \App\Enums\DisplayStatus::DEACTIVATED)
-                                                <span class="inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-600/20">Deactivated</span>
-                                            @elseif ($display->status === \App\Enums\DisplayStatus::ERROR)
-                                                <span class="inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/20">Error - try recreating</span>
-                                            @endif
+                                            <span class="inline-flex items-center rounded-md bg-{{ $display->status->color() }}-50 px-2 py-1 text-xs font-medium text-{{ $display->status->color() }}-700 ring-1 ring-inset ring-{{ $display->status->color() }}-600/20">{{ $display->status->label() }}</span>
                                         </td>
                                         <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                                             @forelse($display->devices as $device)

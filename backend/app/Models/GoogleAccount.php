@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Services\GoogleService;
 use App\Traits\HasUlid;
+use App\Enums\AccountStatus;
 
 class GoogleAccount extends Model
 {
@@ -15,18 +16,18 @@ class GoogleAccount extends Model
     use HasUlid;
 
     protected $fillable = [
-        'user_id',
-        'google_id',
         'name',
         'email',
-        'avatar',
-        'token',
+        'status',
+        'google_id',
+        'access_token',
         'refresh_token',
         'token_expires_at',
     ];
 
     protected $casts = [
         'token_expires_at' => 'datetime',
+        'status' => AccountStatus::class,
     ];
 
     public function user(): BelongsTo

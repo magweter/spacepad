@@ -6,6 +6,7 @@ use App\Services\OutlookService;
 use App\Traits\HasUlid;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Enums\AccountStatus;
 
 class OutlookAccount extends Model
 {
@@ -13,14 +14,18 @@ class OutlookAccount extends Model
     use HasUlid;
 
     protected $fillable = [
-        'user_id',
-        'outlook_id',
-        'email',
         'name',
-        'avatar',
-        'token',
+        'email',
+        'status',
+        'outlook_id',
+        'access_token',
         'refresh_token',
         'token_expires_at',
+    ];
+
+    protected $casts = [
+        'token_expires_at' => 'datetime',
+        'status' => AccountStatus::class,
     ];
 
     /**
