@@ -17,6 +17,7 @@ class OutlookAccount extends Model
         'name',
         'email',
         'status',
+        'user_id',
         'outlook_id',
         'access_token',
         'refresh_token',

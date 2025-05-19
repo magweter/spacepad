@@ -19,6 +19,7 @@ class GoogleAccount extends Model
         'name',
         'email',
         'status',
+        'user_id',
         'google_id',
         'access_token',
         'refresh_token',
