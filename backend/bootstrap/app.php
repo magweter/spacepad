@@ -14,6 +14,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/health',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        $middleware->trustProxies(at: '*');
         $middleware->alias([
             'user.onboarded' => \App\Http\Middleware\CheckUserOnboarded::class,
         ]);
