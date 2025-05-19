@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\AccountStatus;
 use App\Models\GoogleAccount;
 use Exception;
 use Google\Client;
@@ -61,12 +62,14 @@ class GoogleService
                 'google_id' => $googleUserInfo->id,
             ],
             [
+                'user_id' => auth()->id(),
                 'email' => $googleUserInfo->email,
                 'name' => $googleUserInfo->name,
                 'avatar' => $googleUserInfo->picture,
                 'token' => $accessToken['access_token'],
                 'refresh_token' => $accessToken['refresh_token'] ?? null,
                 'token_expires_at' => now()->addSeconds($accessToken['expires_in']),
+                'status' => AccountStatus::CONNECTED,
             ]
         );
     }
@@ -104,6 +107,8 @@ class GoogleService
         ]);
 
         $token = $this->client->fetchAccessTokenWithRefreshToken($account->refresh_token);
+
+        // TODO: add exception handling when refresh cannot be completed
 
         $account->update([
             'access_token' => $token['access_token'],

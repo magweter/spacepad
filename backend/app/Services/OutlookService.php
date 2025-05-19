@@ -99,15 +99,17 @@ class OutlookService
         // Save the Outlook account and tokens
         OutlookAccount::updateOrCreate(
             [
-                'user_id' => Auth::id(),  // Associate with the current user
+                'user_id' => auth()->id(),
                 'outlook_id' => $user['id'],
             ],
             [
+                'user_id' => auth()->id(),
                 'email' => $user['mail'],
                 'name' => $user['displayName'],
                 'token' => $tokenData['access_token'],
                 'refresh_token' => $tokenData['refresh_token'] ?? null,
                 'token_expires_at' => now()->addSeconds($tokenData['expires_in']),
+                'status' => AccountStatus::CONNECTED,
             ]
         );
     }
