@@ -16,10 +16,11 @@ class OutlookAccount extends Model
     protected $fillable = [
         'name',
         'email',
+        'avatar',
         'status',
         'user_id',
         'outlook_id',
-        'access_token',
+        'token',
         'refresh_token',
         'token_expires_at',
     ];

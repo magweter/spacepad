@@ -18,10 +18,11 @@ class GoogleAccount extends Model
     protected $fillable = [
         'name',
         'email',
+        'avatar',
         'status',
         'user_id',
         'google_id',
-        'access_token',
+        'token',
         'refresh_token',
         'token_expires_at',
     ];
