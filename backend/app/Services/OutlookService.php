@@ -159,7 +159,7 @@ class OutlookService
      * @return mixed
      * @throws \Exception
      */
-    public function fetchEvents(
+    public function fetchEventsByUser(
         OutlookAccount $outlookAccount,
         string $emailAddress,
         Carbon $startDateTime,
@@ -186,50 +186,33 @@ class OutlookService
      * Fetch calendar events from Outlook account.
      *
      * @param OutlookAccount $outlookAccount
-     * @param string $eventId
+     * @param string $calendarId
+     * @param Carbon $startDateTime
+     * @param Carbon $endDateTime
      * @return mixed
      * @throws \Exception
      */
-    public function fetchEvent(
+    public function fetchEventsByCalendar(
         OutlookAccount $outlookAccount,
-        string $eventId,
-    ): mixed
+        string $calendarId,
+        Carbon $startDateTime,
+        Carbon $endDateTime,
+    ): array
     {
         $this->ensureAuthenticated($outlookAccount);
 
-        $response = Http::withToken($outlookAccount->token)
-            ->get("https://graph.microsoft.com/v1.0/me/events/$eventId");
-
-        return Arr::get($response->json(), 'value');
-    }
-
-    /**
-     * Fetch calendar events from Outlook account.
-     *
-     * @param OutlookAccount $outlookAccount
-     * @param string $resource
-     * @return mixed
-     * @throws \Exception
-     */
-    public function fetchResource(
-        OutlookAccount $outlookAccount,
-        string $resource,
-    ): mixed
-    {
-        $this->ensureAuthenticated($outlookAccount);
+        $params = [
+            'startDateTime' => $startDateTime->toIso8601String(),
+            'endDateTime' => $endDateTime->toIso8601String(),
+            '$select' => 'id,lastModifiedDateTime,subject,body,bodyPreview,isAllDay,location,start,end',
+            '$orderby' => 'createdDateTime',
+            '$top' => 100
+        ];
 
         $response = Http::withToken($outlookAccount->token)
-            ->get("https://graph.microsoft.com/v1.0/$resource");
+            ->get("https://graph.microsoft.com/v1.0/me/calendars/$calendarId/calendarview", $params);
 
-        $payload = $response->json();
-        if ($response->failed() || ! Arr::has($payload, ['subject'])) {
-            logger()->error('Misformed outlook event', [
-                'status' => $response->status(),
-                'response' => $payload
-            ]);
-        }
-
-        return $payload;
+        return Arr::get($response->json(), 'value') ?? [];
     }
 
     /**

@@ -71,7 +71,7 @@
                             </div>
                             <div class="min-w-0 flex-1">
                                 <span class="absolute inset-0" aria-hidden="true"></span>
-                                <p class="text-sm font-medium text-gray-900">Google Calendar</p>
+                                <p class="text-sm font-medium text-gray-900">Google Calendar (beta)</p>
                                 <p class="truncate text-sm text-gray-500">
                                     @if(count($googleAccounts) > 0)
                                         Connect to Google calendars
@@ -215,18 +215,18 @@
             const selectedRoom = pickResource.querySelector('input[name="room"]:checked');
             const selectedCalendarSelect = pickResource.querySelector('select[name="calendar"]');
             const selectedRoomSelect = pickResource.querySelector('select[name="room"]');
-            
+
             const hasCalendarSelection = selectedCalendar || (selectedCalendarSelect && selectedCalendarSelect.value !== '');
             const hasRoomSelection = selectedRoom || (selectedRoomSelect && selectedRoomSelect.value !== '');
-            
+
             submitButton.disabled = !(hasCalendarSelection || hasRoomSelection);
         }
 
         // Listen for changes in the pickResource div
         const observer = new MutationObserver(checkSelection);
-        observer.observe(pickResource, { 
-            childList: true, 
-            subtree: true 
+        observer.observe(pickResource, {
+            childList: true,
+            subtree: true
         });
 
         // Also listen for changes in select elements
@@ -250,13 +250,13 @@
                 });
                 // Add selected state to clicked tile
                 this.classList.add('ring-2', 'ring-blue-500', 'ring-offset-2');
-                
+
                 // Set the provider value
                 providerInput.value = this.dataset.provider;
-                
+
                 // Show search method selection
                 searchMethodSelection.classList.remove('hidden');
-                
+
                 // Hide calendar selection initially
                 calendarSelection.classList.add('hidden');
 
@@ -279,27 +279,27 @@
                 });
                 // Add selected state to clicked tile
                 this.classList.add('ring-2', 'ring-blue-500', 'ring-offset-2');
-                
+
                 // Clear the pickResource div
                 pickResource.innerHTML = '';
-                
+
                 // Show calendar selection
                 calendarSelection.classList.remove('hidden');
-                
+
                 // Show the appropriate provider selection
                 const selectedProvider = document.querySelector('.provider-tile.ring-2').dataset.provider;
                 const selectedMethod = this.dataset.method;
-                
+
                 // Update all radio buttons' hx-get URLs based on the selected method
                 document.querySelectorAll('input[name="account"]').forEach(radio => {
-                    radio.setAttribute('hx-get', selectedMethod === 'calendar' 
-                        ? radio.dataset.calendarUrl 
+                    radio.setAttribute('hx-get', selectedMethod === 'calendar'
+                        ? radio.dataset.calendarUrl
                         : radio.dataset.roomUrl
                     );
                 });
-                
+
                 htmx.process(document.body);
-                
+
                 outlookSelection.classList.add('hidden');
                 googleSelection.classList.add('hidden');
                 caldavSelection.classList.add('hidden');
@@ -308,7 +308,7 @@
                 document.querySelectorAll('input[name="account"]').forEach(radio => {
                     radio.checked = false;
                 });
-                
+
                 switch(selectedProvider) {
                     case 'outlook':
                         outlookSelection.classList.remove('hidden');

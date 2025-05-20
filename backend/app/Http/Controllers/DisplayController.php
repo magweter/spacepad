@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\Provider;
 use App\Enums\DisplayStatus;
 use App\Events\UserOnboarded;
+use App\Http\Requests\CreateDisplayRequest;
 use App\Models\Calendar;
 use App\Models\Display;
 use App\Models\OutlookAccount;
@@ -39,16 +40,9 @@ class DisplayController extends Controller
     /**
      * @throws \Exception
      */
-    public function store(Request $request): RedirectResponse
+    public function store(CreateDisplayRequest $request): RedirectResponse
     {
-        $validatedData = $request->validate([
-            'name' => 'required|string',
-            'displayName' => 'required|string',
-            'account' => 'required|string',
-            'provider' => 'required|string|in:outlook,google',
-            'room' => 'required_without:calendar|string',
-            'calendar' => 'required_without:room|string',
-        ]);
+        $validatedData = $request->validated();
 
         $display = DB::transaction(function () use ($validatedData) {
             $provider = $validatedData['provider'];
@@ -62,45 +56,7 @@ class DisplayController extends Controller
             };
 
             // Handle room or calendar selection
-            if (isset($validatedData['room'])) {
-                $roomData = explode(',', $validatedData['room']);
-                $calendarId = match($provider) {
-                    'outlook' => $this->outlookService->fetchCalendarByEmail($account, $roomData[0])['id'],
-                    'google' => $roomData[0],
-                    default => throw new \InvalidArgumentException('Invalid provider')
-                };
-
-                $calendar = Calendar::firstOrCreate([
-                    'calendar_id' => $calendarId,
-                    'user_id' => auth()->id(),
-                ], [
-                    'user_id' => auth()->id(),
-                    $provider . '_account_id' => $accountId,
-                    'calendar_id' => $calendarId,
-                    'name' => $roomData[1],
-                ]);
-
-                Room::firstOrCreate([
-                    'email_address' => $roomData[0],
-                ], [
-                    'user_id' => auth()->id(),
-                    'calendar_id' => $calendar->id,
-                    'email_address' => $roomData[0],
-                    'name' => $roomData[1],
-                ]);
-            } else {
-                $calendarData = explode(',', $validatedData['calendar']);
-
-                $calendar = Calendar::firstOrCreate([
-                    'calendar_id' => $calendarData[0],
-                    'user_id' => auth()->id(),
-                ], [
-                    'user_id' => auth()->id(),
-                    $provider . '_account_id' => $accountId,
-                    'calendar_id' => $calendarData[0],
-                    'name' => $calendarData[1],
-                ]);
-            }
+            $calendar = $this->createCalendar($validatedData, $account);
 
             return Display::firstOrCreate([
                 'calendar_id' => $calendar->id,
@@ -134,7 +90,9 @@ class DisplayController extends Controller
 
         $display->update(['status' => $data['status']]);
 
-        return redirect()->route('dashboard')->with('status', 'Display status has been changed.');
+        return redirect()
+            ->route('dashboard')
+            ->with('status', 'Display status has been changed.');
     }
 
     public function delete(Display $display): RedirectResponse
@@ -144,6 +102,56 @@ class DisplayController extends Controller
         $display->eventSubscriptions()->delete();
         $display->delete();
 
-        return redirect()->route('dashboard')->with('status', 'Display has successfully been deleted.');
+        return redirect()
+            ->route('dashboard')
+            ->with('status', 'Display has successfully been deleted.');
+    }
+
+    private function createCalendar(array $validatedData, mixed $account): Calendar
+    {
+        $provider = $validatedData['provider'];
+        $accountId = $validatedData['account'];
+
+        if (isset($validatedData['room'])) {
+            $roomData = explode(',', $validatedData['room']);
+            $calendarId = match ($provider) {
+                'outlook' => $this->outlookService->fetchCalendarByEmail($account, $roomData[0])['id'],
+                'google' => $roomData[0],
+                default => throw new \InvalidArgumentException('Invalid provider')
+            };
+
+            $calendar = Calendar::firstOrCreate([
+                'calendar_id' => $calendarId,
+                'user_id' => auth()->id(),
+            ], [
+                'calendar_id' => $calendarId,
+                'user_id' => auth()->id(),
+                "{$provider}_account_id" => $accountId,
+                'name' => $roomData[1],
+            ]);
+
+            Room::firstOrCreate([
+                'email_address' => $roomData[0],
+                'user_id' => auth()->id(),
+            ], [
+                'email_address' => $roomData[0],
+                'user_id' => auth()->id(),
+                'calendar_id' => $calendar->id,
+                'name' => $roomData[1],
+            ]);
+
+            return $calendar;
+        }
+
+        $calendarData = explode(',', $validatedData['calendar']);
+        return Calendar::firstOrCreate([
+            'calendar_id' => $calendarData[0],
+            'user_id' => auth()->id(),
+        ], [
+            'user_id' => auth()->id(),
+            "{$provider}_account_id" => $accountId,
+            'calendar_id' => $calendarData[0],
+            'name' => $calendarData[1],
+        ]);
     }
 }

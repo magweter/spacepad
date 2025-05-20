@@ -101,17 +101,14 @@ class GoogleService
 
     private function refreshToken(GoogleAccount $account): void
     {
-        $this->client->setAccessToken([
-            'access_token' => $account->token,
-            'refresh_token' => $account->refresh_token,
-        ]);
+        $this->client->setAccessToken($account->token);
 
         $token = $this->client->fetchAccessTokenWithRefreshToken($account->refresh_token);
 
         // TODO: add exception handling when refresh cannot be completed
 
         $account->update([
-            'access_token' => $token['access_token'],
+            'token' => $token['access_token'],
             'refresh_token' => $token['refresh_token'] ?? $account->refresh_token,
             'token_expires_at' => now()->addSeconds($token['expires_in']),
         ]);
@@ -154,7 +151,8 @@ class GoogleService
         $events = $calendarService->events->listEvents($calendarId, [
             'timeMin' => $startDateTime->toRfc3339String(),
             'timeMax' => $endDateTime->toRfc3339String(),
-            'maxResults' => 100
+            'maxResults' => 100,
+            'singleEvents' => true
         ]);
 
         return $events->getItems();

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\API\EventResource;
+use App\Models\Calendar;
 use App\Models\Display;
 use App\Services\EventService;
 use App\Services\OutlookService;
@@ -50,37 +51,74 @@ class EventController extends Controller
     private function fetchEventsRemotely(Display $display): array
     {
         $calendar = $display->calendar()
-            ->with(['googleAccount', 'outlookAccount'])
+            ->with(['googleAccount', 'outlookAccount', 'room'])
             ->first();
 
-        // Fetch Google events
+        // Handle Google integration
         if ($calendar->google_account_id) {
-            $events = $this->googleService->fetchEvents(
-                googleAccount: $calendar->googleAccount,
-                calendarId: $calendar->calendar_id,
-                startDateTime: $display->getStartTime(),
-                endDateTime: $display->getEndTime(),
-            );
-
-            return collect($events)
-                ->map(fn ($e) => $this->eventService->sanitizeGoogleEvent($e))
-                ->toArray();
+            return $this->fetchGoogleEvents($calendar, $display);
         }
 
-        // Fetch Outlook events
+        // Handle Outlook integration
         if ($calendar->outlook_account_id) {
-            $events = $this->outlookService->fetchEvents(
+            return $this->fetchOutlookEvents($calendar, $display);
+        }
+
+        return [];
+    }
+
+    /**
+     * @param Calendar $calendar
+     * @param Display $display
+     * @return mixed[]
+     * @throws \Exception
+     */
+    private function fetchOutlookEvents(Calendar $calendar, Display $display): array
+    {
+        $events = [];
+
+        // Fetch events by user (room)
+        if ($calendar->room) {
+            $events = $this->outlookService->fetchEventsByUser(
                 outlookAccount: $calendar->outlookAccount,
                 emailAddress: $calendar->room->email_address,
                 startDateTime: $display->getStartTime(),
                 endDateTime: $display->getEndTime(),
             );
-
-            return collect($events)
-                ->map(fn ($e) => $this->eventService->sanitizeOutlookEvent($e))
-                ->toArray();
         }
 
-        return [];
+        // Fetch events by calendar
+        if (! $calendar->room) {
+            $events = $this->outlookService->fetchEventsByCalendar(
+                outlookAccount: $calendar->outlookAccount,
+                calendarId: $calendar->calendar_id,
+                startDateTime: $display->getStartTime(),
+                endDateTime: $display->getEndTime(),
+            );
+        }
+
+        return collect($events)
+            ->map(fn($e) => $this->eventService->sanitizeOutlookEvent($e))
+            ->toArray();
+    }
+
+    /**
+     * @param Calendar $calendar
+     * @param Display $display
+     * @return mixed[]
+     * @throws \Exception
+     */
+    private function fetchGoogleEvents(Calendar $calendar, Display $display): array
+    {
+        $events = $this->googleService->fetchEvents(
+            googleAccount: $calendar->googleAccount,
+            calendarId: $calendar->calendar_id,
+            startDateTime: $display->getStartTime(),
+            endDateTime: $display->getEndTime(),
+        );
+
+        return collect($events)
+            ->map(fn($e) => $this->eventService->sanitizeGoogleEvent($e))
+            ->toArray();
     }
 }
