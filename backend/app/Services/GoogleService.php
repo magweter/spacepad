@@ -4,6 +4,8 @@ namespace App\Services;
 
 use App\Enums\AccountStatus;
 use App\Models\GoogleAccount;
+use App\Models\Display;
+use App\Models\EventSubscription;
 use Exception;
 use Google\Client;
 use Google\Service\Oauth2;
@@ -156,5 +158,101 @@ class GoogleService
         ]);
 
         return $events->getItems();
+    }
+
+    /**
+     * Create a webhook subscription for Google Calendar events.
+     *
+     * @param GoogleAccount $googleAccount
+     * @param Display $display
+     * @param string $calendarId
+     * @return EventSubscription|null
+     * @throws Exception
+     */
+    public function createEventSubscription(
+        GoogleAccount $googleAccount,
+        Display $display,
+        string $calendarId
+    ): ?EventSubscription {
+        $this->ensureAuthenticated($googleAccount);
+
+        $calendarService = new Calendar($this->client);
+        
+        try {
+            $channel = new \Google\Service\Calendar\Channel();
+            $channel->setId(uniqid('channel_', true));
+            $channel->setType('web_hook');
+            $channel->setAddress(config('services.google.webhook_url'));
+            $channel->setExpiration(time() + 3600 * 24 * 7); // 7 days from now
+
+            $response = $calendarService->events->watch($calendarId, $channel);
+
+            if (!$response->getId()) {
+                logger()->error('Creating Google subscription failed', [
+                    'response' => $response
+                ]);
+                return null;
+            }
+
+            // Create the subscription record in the database
+            $eventSubscription = EventSubscription::create([
+                'subscription_id' => $response->getId(),
+                'resource' => $calendarId,
+                'expiration' => Carbon::createFromTimestamp($response->getExpiration())->toAtomString(),
+                'notification_url' => config('services.google.webhook_url'),
+                'display_id' => $display->id,
+                'google_account_id' => $googleAccount->id,
+            ]);
+
+            // Log the creation for debugging
+            logger()->info('Google subscription created', ['subscription' => $response]);
+
+            return $eventSubscription;
+        } catch (Exception $e) {
+            logger()->error('Error creating Google subscription', [
+                'error' => $e->getMessage(),
+                'calendarId' => $calendarId
+            ]);
+            return null;
+        }
+    }
+
+    /**
+     * Delete a webhook subscription for Google Calendar events.
+     *
+     * @param GoogleAccount $googleAccount
+     * @param EventSubscription $eventSubscription
+     * @param bool $useApi
+     * @return void
+     * @throws Exception
+     */
+    public function deleteEventSubscription(
+        GoogleAccount $googleAccount,
+        EventSubscription $eventSubscription,
+        bool $useApi = true
+    ): void {
+        $this->ensureAuthenticated($googleAccount);
+
+        if ($useApi) {
+            try {
+                $calendarService = new Calendar($this->client);
+                $channel = new \Google\Service\Calendar\Channel();
+                $channel->setId($eventSubscription->subscription_id);
+                $channel->setResourceId($eventSubscription->resource);
+                
+                $calendarService->channels->stop($channel);
+            } catch (Exception $e) {
+                logger()->error('Error stopping Google subscription', [
+                    'error' => $e->getMessage(),
+                    'subscriptionId' => $eventSubscription->subscription_id
+                ]);
+            }
+        }
+
+        // Delete the subscription record from the database
+        $eventSubscription->delete();
+
+        // Log the deletion for debugging
+        logger()->info('Google subscription deleted', ['subscriptionId' => $eventSubscription->id]);
     }
 }

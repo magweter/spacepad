@@ -7,6 +7,7 @@ use App\Models\Display;
 use App\Models\EventSubscription;
 use App\Models\OutlookAccount;
 use Exception;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -238,10 +239,11 @@ class OutlookService
      * Fetch a calendar from the authenticated user's Outlook account.
      *
      * @param OutlookAccount $outlookAccount
+     * @param string $emailAddress
      * @return mixed
-     * @throws \Exception
+     * @throws ConnectionException
      */
-    public function fetchCalendarByEmail(OutlookAccount $outlookAccount, string $emailAddress): mixed
+    public function fetchCalendarByUser(OutlookAccount $outlookAccount, string $emailAddress): mixed
     {
         $this->ensureAuthenticated($outlookAccount);
 
@@ -281,16 +283,52 @@ class OutlookService
      * @return EventSubscription|null
      * @throws \Exception
      */
-    public function createEventSubscription(
+    public function createEventSubscriptionByUser(
         OutlookAccount $outlookAccount,
         Display $display,
         string $emailAddress
     ): ?EventSubscription
     {
+        return $this->createEventSubscription($outlookAccount, $display, "/users/$emailAddress/events");
+    }
+
+    /**
+     * Create an event subscription for Outlook calendar events.
+     *
+     * @param OutlookAccount $outlookAccount
+     * @param Display $display
+     * @param string $calendarId
+     * @return EventSubscription|null
+     * @throws \Exception
+     */
+    public function createEventSubscriptionByCalendar(
+        OutlookAccount $outlookAccount,
+        Display $display,
+        string $calendarId
+    ): ?EventSubscription
+    {
+        return $this->createEventSubscription($outlookAccount, $display, "/me/calendars/$calendarId/events");
+    }
+
+    /**
+     * Create an event subscription for Outlook calendar events.
+     *
+     * @param OutlookAccount $outlookAccount
+     * @param Display $display
+     * @param string $resource
+     * @return EventSubscription|null
+     * @throws \Exception
+     */
+    private function createEventSubscription(
+        OutlookAccount $outlookAccount,
+        Display $display,
+        string $resource
+    ): ?EventSubscription
+    {
         $this->ensureAuthenticated($outlookAccount);
 
         $data = [
-            'resource' => "/users/$emailAddress/events",
+            'resource' => $resource,
             'changeType' => 'created,updated,deleted',
             'notificationUrl' => config('services.azure_ad.webhook_url'),
             'expirationDateTime' => now()->addHours(3)->toISOString(),

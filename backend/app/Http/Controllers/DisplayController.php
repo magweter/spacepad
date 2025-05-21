@@ -115,7 +115,7 @@ class DisplayController extends Controller
         if (isset($validatedData['room'])) {
             $roomData = explode(',', $validatedData['room']);
             $calendarId = match ($provider) {
-                'outlook' => $this->outlookService->fetchCalendarByEmail($account, $roomData[0])['id'],
+                'outlook' => $this->outlookService->fetchCalendarByUser($account, $roomData[0])['id'],
                 'google' => $roomData[0],
                 default => throw new \InvalidArgumentException('Invalid provider')
             };

@@ -47,6 +47,7 @@ return [
         'client_secret' => env('GOOGLE_CLIENT_SECRET'),
         'redirect' => env('GOOGLE_REDIRECT_URI', 'https://'.env('DOMAIN').'/google-accounts/callback'),
         'calendar_redirect' => env('GOOGLE_CALENDAR_REDIRECT_URI', 'https://'.env('DOMAIN').'/auth/google/callback'),
+        'webhook_url' => env('GOOGLE_WEBHOOK_URL', 'https://'.env('DOMAIN').'/api/webhook/google'),
     ],
 
     'azure_ad' => [
