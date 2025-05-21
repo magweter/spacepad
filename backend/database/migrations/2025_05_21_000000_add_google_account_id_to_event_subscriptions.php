@@ -15,6 +15,9 @@ return new class extends Migration
             $table->foreignUlid('google_account_id')->nullable()->after('outlook_account_id')
                 ->constrained()->onDelete('cascade');
         });
+        Schema::table('event_subscriptions', function (Blueprint $table) {
+            $table->foreignUlid('outlook_account_id')->nullable(true)->change();
+        });
     }
 
     /**
@@ -27,4 +30,4 @@ return new class extends Migration
             $table->dropColumn('google_account_id');
         });
     }
-}; 
+};

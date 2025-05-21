@@ -19,6 +19,7 @@ abstract class SocialAuthController extends AuthController
         try {
             return Socialite::driver($this->driver)->stateless()->redirect();
         } catch (\Exception $e) {
+            report($e);
             logger()->error('Social redirect failed', [
                 'provider' => $this->driver,
                 'error' => $e->getMessage()
@@ -34,6 +35,7 @@ abstract class SocialAuthController extends AuthController
             $user = $this->findOrCreateUser($socialUser);
             return $this->authenticateUser($user);
         } catch (\Exception $e) {
+            report($e);
             logger()->error('Social authentication failed', [
                 'provider' => $this->driver,
                 'error' => $e->getMessage()
@@ -68,6 +70,7 @@ abstract class SocialAuthController extends AuthController
                 $socialUser->name = $oauthTokenRequest->full_name;
             }
         } catch (\Exception $e) {
+            report($e);
             logger()->error('Something went wrong during OAuth2 authentication', [
                 'provider' => $this->driver,
                 'exception' => $e,

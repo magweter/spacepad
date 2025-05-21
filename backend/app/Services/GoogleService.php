@@ -8,6 +8,7 @@ use App\Models\Display;
 use App\Models\EventSubscription;
 use Exception;
 use Google\Client;
+use Google\Service\Calendar\Channel;
 use Google\Service\Oauth2;
 use Google\Service\Calendar;
 use Google\Service\Directory;
@@ -177,13 +178,13 @@ class GoogleService
         $this->ensureAuthenticated($googleAccount);
 
         $calendarService = new Calendar($this->client);
-        
+
         try {
-            $channel = new \Google\Service\Calendar\Channel();
-            $channel->setId(uniqid('channel_', true));
+            $channel = new Channel();
+            $channel->setId(base64_encode(uniqid('channel_', true)));
             $channel->setType('web_hook');
             $channel->setAddress(config('services.google.webhook_url'));
-            $channel->setExpiration(time() + 3600 * 24 * 7); // 7 days from now
+            $channel->setExpiration(now()->addDays(3)->getTimestampMs());
 
             $response = $calendarService->events->watch($calendarId, $channel);
 
@@ -209,6 +210,7 @@ class GoogleService
 
             return $eventSubscription;
         } catch (Exception $e) {
+            report($e);
             logger()->error('Error creating Google subscription', [
                 'error' => $e->getMessage(),
                 'calendarId' => $calendarId
@@ -236,12 +238,13 @@ class GoogleService
         if ($useApi) {
             try {
                 $calendarService = new Calendar($this->client);
-                $channel = new \Google\Service\Calendar\Channel();
+                $channel = new Channel();
                 $channel->setId($eventSubscription->subscription_id);
                 $channel->setResourceId($eventSubscription->resource);
-                
+
                 $calendarService->channels->stop($channel);
             } catch (Exception $e) {
+                report($e);
                 logger()->error('Error stopping Google subscription', [
                     'error' => $e->getMessage(),
                     'subscriptionId' => $eventSubscription->subscription_id
