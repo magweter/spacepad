@@ -155,7 +155,9 @@ class GoogleService
             'timeMin' => $startDateTime->toRfc3339String(),
             'timeMax' => $endDateTime->toRfc3339String(),
             'maxResults' => 100,
-            'singleEvents' => true
+            'singleEvents' => true,
+            'showDeleted' => false,
+            'orderBy' => 'startTime'
         ]);
 
         return $events->getItems();
@@ -181,7 +183,7 @@ class GoogleService
 
         try {
             $channel = new Channel();
-            $channel->setId(base64_encode(uniqid('channel_', true)));
+            $channel->setId(str()->uuid());
             $channel->setType('web_hook');
             $channel->setAddress(config('services.google.webhook_url'));
             $channel->setExpiration(now()->addDays(3)->getTimestampMs());

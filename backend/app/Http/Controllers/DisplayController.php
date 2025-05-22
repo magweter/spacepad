@@ -107,18 +107,14 @@ class DisplayController extends Controller
             ->with('status', 'Display has successfully been deleted.');
     }
 
-    private function createCalendar(array $validatedData, mixed $account): Calendar
+    private function createCalendar(array $validatedData): Calendar
     {
         $provider = $validatedData['provider'];
         $accountId = $validatedData['account'];
 
         if (isset($validatedData['room'])) {
             $roomData = explode(',', $validatedData['room']);
-            $calendarId = match ($provider) {
-                'outlook' => $this->outlookService->fetchCalendarByUser($account, $roomData[0])['id'],
-                'google' => $roomData[0],
-                default => throw new \InvalidArgumentException('Invalid provider')
-            };
+            $calendarId = $roomData[0];
 
             $calendar = Calendar::firstOrCreate([
                 'calendar_id' => $calendarId,
@@ -131,10 +127,10 @@ class DisplayController extends Controller
             ]);
 
             Room::firstOrCreate([
-                'email_address' => $roomData[0],
+                'email_address' => $calendarId,
                 'user_id' => auth()->id(),
             ], [
-                'email_address' => $roomData[0],
+                'email_address' => $calendarId,
                 'user_id' => auth()->id(),
                 'calendar_id' => $calendar->id,
                 'name' => $roomData[1],

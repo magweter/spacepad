@@ -236,26 +236,6 @@ class OutlookService
     }
 
     /**
-     * Fetch a calendar from the authenticated user's Outlook account.
-     *
-     * @param OutlookAccount $outlookAccount
-     * @param string $emailAddress
-     * @return mixed
-     * @throws ConnectionException
-     */
-    public function fetchCalendarByUser(OutlookAccount $outlookAccount, string $emailAddress): mixed
-    {
-        $this->ensureAuthenticated($outlookAccount);
-
-        // Get the current user information
-        $response = Http::acceptJson()->withHeaders([
-            'Authorization' => 'Bearer ' . $outlookAccount->token,
-        ])->get("https://graph.microsoft.com/v1.0/users/$emailAddress/calendar");
-
-        return $response->json();
-    }
-
-    /**
      * Fetch rooms from the authenticated user's Outlook account.
      *
      * @param OutlookAccount $outlookAccount

@@ -15,7 +15,7 @@ class DisplayPolicy
      */
     public function create(User $user): bool
     {
-        return $user->outlookAccounts()->count() > 0;
+        return $user->outlookAccounts()->count() > 0 || $user->googleAccounts()->count() > 0;
     }
 
     /**
@@ -33,4 +33,4 @@ class DisplayPolicy
     {
         return $user->id === $display->user_id;
     }
-} 
+}

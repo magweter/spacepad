@@ -81,7 +81,7 @@ class EventController extends Controller
         if ($calendar->room) {
             $events = $this->outlookService->fetchEventsByUser(
                 outlookAccount: $calendar->outlookAccount,
-                emailAddress: $calendar->room->email_address,
+                emailAddress: $calendar->calendar_id,
                 startDateTime: $display->getStartTime(),
                 endDateTime: $display->getEndTime(),
             );

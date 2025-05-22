@@ -133,7 +133,7 @@ class RenewEventSubscriptions extends Command
             $calendar = $display->calendar;
 
             if ($calendar->room) {
-                $outlookService->createEventSubscriptionByUser($outlookAccount, $display, $calendar->room->email_address);
+                $outlookService->createEventSubscriptionByUser($outlookAccount, $display, $calendar->calendar_id);
                 return;
             }
 

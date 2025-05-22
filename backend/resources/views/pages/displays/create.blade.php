@@ -135,6 +135,7 @@
                                             data-room-url="{{ route('rooms.outlook', $outlookAccount->id) }}"
                                             hx-target="#pickResource"
                                             hx-swap="innerHTML"
+                                            hx-indicator="#hxSpinner"
                                         >
                                     </div>
                                     <div class="flex items-center p-1 mr-2">
@@ -165,6 +166,7 @@
                                             data-room-url="{{ route('rooms.google', $googleAccount->id) }}"
                                             hx-target="#pickResource"
                                             hx-swap="innerHTML"
+                                            hx-indicator="#hxSpinner"
                                         >
                                     </div>
                                     <div class="flex items-center p-1 mr-2">
@@ -183,14 +185,24 @@
                         <p class="text-sm text-gray-500">CalDAV integration coming soon.</p>
                     </div>
 
-                    <div id="pickResource" class="mt-4"></div>
+                    <div id="pickResource" class="mt-4 relative"></div>
                 </div>
             </div>
 
-            <button type="submit" id="submitButton"
-                    class="relative ms-auto mt-6 block rounded-md bg-green-600 disabled:bg-gray-300 disabled:cursor-not-allowed px-3 py-2 text-center text-sm font-semibold text-white hover:bg-green-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600" disabled>
-                <span id="buttonText">Continue and create display</span>
-            </button>
+            <div class="flex justify-between items-center">
+                <div id="hxSpinner" class="relative">
+                    <div class="absolute htmx-indicator flex bg-white bg-opacity-75">
+                        <svg class="animate-spin h-6 w-6 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    </div>
+                </div>
+                <button type="submit" id="submitButton"
+                        class="relative ms-auto mt-6 block rounded-md bg-green-600 disabled:bg-gray-300 disabled:cursor-not-allowed px-3 py-2 text-center text-sm font-semibold text-white hover:bg-green-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600" disabled>
+                    <span id="buttonText">Continue and create display</span>
+                </button>
+            </div>
         </div>
     </form>
 @endsection

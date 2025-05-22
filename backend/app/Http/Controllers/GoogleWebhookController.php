@@ -22,37 +22,17 @@ class GoogleWebhookController extends Controller
      */
     public function handleNotification(Request $request): Response
     {
-        logger()->info('Received Google webhook', $request->toArray());
-
-        // Handle webhook validation request
-        if ($request->has('challenge')) {
-            return response($request->challenge, 200)
-                ->header('Content-Type', 'text/plain');
-        }
+        $subscriptionId = $request->header('X-Goog-Channel-ID');
+        logger()->info("Received Google webhook for channel $subscriptionId");
 
         $newSyncTimestamp = now();
 
-        $notifications = $request->input('notifications', []);
-        foreach ($notifications as $notification) {
-            $subscriptionId = Arr::get($notification, 'subscriptionId');
-            $resourceId = Arr::get($notification, 'resourceId');
+        // Find the corresponding subscription in the database
+        $subscription = EventSubscription::with('display')
+            ->where('subscription_id', $subscriptionId)
+            ->first();
 
-            // Check for resource id
-            if (!$resourceId) {
-                logger()->warning('ResourceId was missing from request body');
-                continue;
-            }
-
-            // Find the corresponding subscription in the database
-            $subscription = EventSubscription::with('display')
-                ->where('subscription_id', $subscriptionId)
-                ->first();
-
-            if (!$subscription) {
-                logger()->warning('Subscription not found', ['subscriptionId' => $subscriptionId]);
-                continue;
-            }
-
+        if ($subscription) {
             // Clear events cache for display
             cache()->forget($subscription->display->getEventsCacheKey());
 
@@ -62,6 +42,10 @@ class GoogleWebhookController extends Controller
             ]);
         }
 
+        if (! $subscription) {
+            logger()->warning('Subscription not found', ['subscriptionId' => $subscriptionId]);
+        }
+
         return response('Notification processed', 200);
     }
-} 
+}
