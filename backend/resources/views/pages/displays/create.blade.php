@@ -81,14 +81,20 @@
                                 </p>
                             </div>
                         </div>
-                        <div class="relative flex items-center space-x-3 rounded-lg border border-gray-300 bg-gray-50 px-6 py-5 opacity-75 cursor-not-allowed" data-provider="caldav">
+                        <div class="relative flex items-center space-x-3 rounded-lg border border-gray-300 {{ count($caldavAccounts) > 0 ? 'bg-white hover:border-gray-400 cursor-pointer' : 'bg-gray-50 opacity-75 cursor-not-allowed' }} px-6 py-5 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 provider-tile" data-provider="caldav">
                             <div class="flex-shrink-0">
                                 <x-icons.caldav class="h-10 w-10" />
                             </div>
                             <div class="min-w-0 flex-1">
                                 <span class="absolute inset-0" aria-hidden="true"></span>
                                 <p class="text-sm font-medium text-gray-900">CalDAV</p>
-                                <p class="truncate text-sm text-gray-500">Coming soon</p>
+                                <p class="truncate text-sm text-gray-500">
+                                    @if(count($caldavAccounts) > 0)
+                                        Connect to CalDAV calendars
+                                    @else
+                                        Connect an account first, via the dashboard
+                                    @endif
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -181,15 +187,41 @@
                         </div>
                     </div>
                     <div id="caldavSelection" class="hidden">
-                        <!-- CalDAV selection will be added here -->
-                        <p class="text-sm text-gray-500">CalDAV integration coming soon.</p>
+                        <p class="text-sm font-semibold leading-6 text-gray-900">CalDAV Account</p>
+                        <p class="mt-1 text-sm leading-6 text-gray-600">Pick the account and the desired calendar to display.</p>
+                        <div class="mt-4 space-y-4">
+                            @foreach($caldavAccounts as $caldavAccount)
+                                <div class="flex items-start">
+                                    <div class="flex items-center p-1 mr-2">
+                                        <input
+                                            id="{{ $caldavAccount->id }}"
+                                            name="account"
+                                            value="{{ $caldavAccount->id }}"
+                                            type="radio"
+                                            class="h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-600"
+                                            hx-get="{{ route('calendars.caldav', $caldavAccount->id) }}"
+                                            hx-target="#pickResource"
+                                            hx-swap="innerHTML"
+                                            hx-indicator="#hxSpinner"
+                                        >
+                                    </div>
+                                    <div class="flex items-center p-1 mr-2">
+                                        <x-icons.calendar class="size-4 text-muted-foreground inline-flex"/>
+                                    </div>
+                                    <div class="min-w-0 flex-1">
+                                        <label for="account" class="font-medium text-gray-900 text-sm">{{ $caldavAccount->name }}</label>
+                                        <p class="text-gray-500 text-sm">{{ $caldavAccount->email }}</p>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
                     </div>
 
                     <div id="pickResource" class="mt-4 relative"></div>
                 </div>
             </div>
 
-            <div class="flex justify-between items-center">
+            <div class="flex justify-between items-center mt-6">
                 <div id="hxSpinner" class="relative">
                     <div class="absolute htmx-indicator flex bg-white bg-opacity-75">
                         <svg class="animate-spin h-6 w-6 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -198,10 +230,13 @@
                         </svg>
                     </div>
                 </div>
-                <button type="submit" id="submitButton"
-                        class="relative ms-auto mt-6 block rounded-md bg-green-600 disabled:bg-gray-300 disabled:cursor-not-allowed px-3 py-2 text-center text-sm font-semibold text-white hover:bg-green-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600" disabled>
-                    <span id="buttonText">Continue and create display</span>
-                </button>
+                <div class="flex items-center justify-end gap-x-6">
+                    <a href="{{ route('dashboard') }}" class="text-sm font-semibold leading-6 text-gray-900">Cancel</a>
+                    <button type="submit" id="submitButton"
+                            class="relative block rounded-md bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed px-3 py-2 text-center text-sm font-semibold text-white hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600" disabled>
+                        <span id="buttonText">Continue and create display</span>
+                    </button>
+                </div>
             </div>
         </div>
     </form>
@@ -220,6 +255,7 @@
         const googleSelection = document.getElementById('googleSelection');
         const caldavSelection = document.getElementById('caldavSelection');
         const pickResource = document.getElementById('pickResource');
+        const roomMethodTile = document.querySelector('.search-method-tile[data-method="room"]');
 
         // Function to check if a calendar or room is selected
         function checkSelection() {
@@ -279,12 +315,24 @@
 
                 // Disable submit button when changing provider
                 submitButton.disabled = true;
+
+                // Enable/disable room option based on provider
+                if (this.dataset.provider === 'caldav') {
+                    roomMethodTile.classList.add('opacity-50', 'cursor-not-allowed');
+                } else {
+                    roomMethodTile.classList.remove('opacity-50', 'cursor-not-allowed');
+                }
             });
         });
 
         // Search method selection
         document.querySelectorAll('.search-method-tile').forEach(tile => {
             tile.addEventListener('click', function() {
+                // Don't allow clicking if disabled
+                if (this.classList.contains('cursor-not-allowed')) {
+                    return;
+                }
+
                 // Remove selected state from all tiles
                 document.querySelectorAll('.search-method-tile').forEach(t => {
                     t.classList.remove('ring-2', 'ring-blue-500', 'ring-offset-2');
@@ -302,13 +350,16 @@
                 const selectedProvider = document.querySelector('.provider-tile.ring-2').dataset.provider;
                 const selectedMethod = this.dataset.method;
 
-                // Update all radio buttons' hx-get URLs based on the selected method
-                document.querySelectorAll('input[name="account"]').forEach(radio => {
-                    radio.setAttribute('hx-get', selectedMethod === 'calendar'
-                        ? radio.dataset.calendarUrl
-                        : radio.dataset.roomUrl
-                    );
-                });
+                console.log(selectedProvider);
+                if (selectedProvider !== 'caldav') {
+                    // Update all radio buttons' hx-get URLs based on the selected method
+                    document.querySelectorAll('input[name="account"]').forEach(radio => {
+                        radio.setAttribute('hx-get', selectedMethod === 'calendar'
+                            ? radio.dataset.calendarUrl
+                            : radio.dataset.roomUrl
+                        );
+                    });
+                }
 
                 htmx.process(document.body);
 

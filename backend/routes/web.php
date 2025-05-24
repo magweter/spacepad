@@ -12,6 +12,7 @@ use App\Http\Controllers\GoogleAccountsController;
 use App\Http\Controllers\OutlookAccountsController;
 use App\Http\Controllers\DisplayController;
 use App\Http\Controllers\OutlookWebhookController;
+use App\Http\Controllers\CalDAVAccountsController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/login', [LoginController::class, 'create'])
@@ -53,6 +54,10 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/google-accounts/callback', [GoogleAccountsController::class, 'callback']);
     Route::get('/google-accounts/calendars', [GoogleAccountsController::class, 'getCalendars']);
 
+    Route::get('/caldav-accounts/create', [CalDAVAccountsController::class, 'create'])->name('caldav-accounts.create');
+    Route::post('/caldav-accounts', [CalDAVAccountsController::class, 'store'])->name('caldav-accounts.store');
+    Route::delete('/caldav-accounts/{caldavAccount}', [CalDAVAccountsController::class, 'delete'])->name('caldav-accounts.delete');
+
     Route::get('/displays/create', [DisplayController::class, 'create'])
         ->name('displays.create');
     Route::post('/displays', [DisplayController::class, 'store'])->name('displays.store');
@@ -64,6 +69,8 @@ Route::middleware(['auth'])->group(function () {
         ->name('calendars.outlook');
     Route::get('/calendars/google/{id}', [CalendarController::class, 'google'])
         ->name('calendars.google');
+    Route::get('/calendars/caldav/{id}', [CalendarController::class, 'caldav'])
+        ->name('calendars.caldav');
     Route::get('/rooms/outlook/{id}', [RoomController::class, 'outlook'])
         ->name('rooms.outlook');
     Route::get('/rooms/google/{id}', [RoomController::class, 'google'])
