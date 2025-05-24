@@ -4,20 +4,29 @@
     <!-- Session Status Alert -->
     <x-alerts.alert />
 
-    <div class="mb-6">
+    <div class="mb-8">
+        <div class="col-span-12 mb-6 flex gap-4">
+            <div class="rounded-md bg-gray-50 p-4">
+                <div class="flex">
+                    <div class="flex-1 md:flex md:justify-between">
+                        <p class="text-base text-gray-700"><strong>You're all set!</strong> Connect a new tablet by downloading the app from the <a target="_blank" href="https://play.google.com/store/apps/details?id=com.magweter.spacepad" class="text-blue-600 hover:text-blue-500">Play Store</a> or <a target="_blank" href="https://apps.apple.com/nl/app/spacepad/id6745528995" class="text-blue-600 hover:text-blue-500">App Store</a> and using the connect code displayed in the top right corner.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-gray-50 rounded-lg w-[300px] items-center flex">
+                <div class="p-4 flex w-full">
+                    <h3 class="text-base font-semibold text-gray-900">Connect code</h3>
+                    <div class="max-w-xl text-base text-gray-500 ml-auto">
+                        <p>{{ chunk_split($connectCode, 3, ' ') }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-4">
             <div class="sm:flex sm:items-center sm:col-span-2 md:col-span-3">
                 <div class="sm:flex-auto">
                     <h1 class="text-lg font-semibold leading-6 text-gray-900">Accounts</h1>
                     <p class="mt-1 text-md text-gray-500">The accounts used to connect to calendars and rooms.</p>
-                </div>
-            </div>
-            <div class="bg-gray-50 sm:rounded-lg sm:col-span-2 md:col-span-1">
-                <div class="p-4 flex">
-                    <h3 class="text-base font-semibold text-gray-900">Connect code</h3>
-                    <div class="max-w-xl text-base text-gray-500 ml-auto">
-                        <p>{{ chunk_split($connectCode, 3, ' ') }}</p>
-                    </div>
                 </div>
             </div>
         </div>
@@ -89,7 +98,7 @@
             </div>
         </div>
         <div class="mt-8">
-            <h2 class="text-lg font-semibold text-gray-900 mb-4">Connect a new calendar</h2>
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Connect a new account</h2>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 @if(config('services.microsoft.enabled'))
                 <a href="{{ route('outlook-accounts.auth') }}" 
@@ -114,14 +123,6 @@
                     <span class="font-medium text-gray-900">CalDAV</span>
                 </a>
                 @endif
-            </div>
-        </div>
-    </div>
-
-    <div class="mb-6 rounded-md bg-gray-50 p-4">
-        <div class="flex">
-            <div class="flex-1 md:flex md:justify-between">
-                <p class="text-base text-gray-700">You're all set! Connect a new tablet by downloading the app from the <a target="_blank" href="https://play.google.com/store/apps/details?id=com.magweter.spacepad" class="text-blue-600 hover:text-blue-500">Play Store</a> or <a target="_blank" href="https://apps.apple.com/nl/app/spacepad/id6745528995" class="text-blue-600 hover:text-blue-500">App Store</a> and using the connect code displayed in the top right corner.</p>
             </div>
         </div>
     </div>
