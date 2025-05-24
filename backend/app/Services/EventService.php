@@ -70,6 +70,24 @@ class EventService
         ];
     }
 
+    /**
+     * @param array $caldavEvent
+     * @return array
+     */
+    public function sanitizeCalDAVEvent(array $caldavEvent): array
+    {
+        return [
+            'id' => $caldavEvent['id'],
+            'summary' => $this->cleanSubject($caldavEvent['summary']),
+            'location' => $caldavEvent['location'],
+            'description' => $this->cleanBody($caldavEvent['description']),
+            'start' => $caldavEvent['start'],
+            'end' => $caldavEvent['end'],
+            'timezone' => 'UTC', // CalDAV events are typically in UTC
+            'isAllDay' => $caldavEvent['isAllDay']
+        ];
+    }
+
     private function cleanSubject(string $subject): string
     {
         return trim($subject); // Basic cleanup, can be expanded if necessary

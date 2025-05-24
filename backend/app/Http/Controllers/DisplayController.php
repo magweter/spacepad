@@ -10,7 +10,10 @@ use App\Models\Calendar;
 use App\Models\Display;
 use App\Models\OutlookAccount;
 use App\Models\Room;
+use App\Models\CalDAVAccount;
 use App\Services\OutlookService;
+use App\Services\GoogleService;
+use App\Services\CalDAVService;
 use Illuminate\Contracts\View\Factory;
 use Illuminate\Contracts\View\View;
 use Illuminate\Foundation\Application;
@@ -18,22 +21,26 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Models\GoogleAccount;
-use App\Services\GoogleService;
 
 class DisplayController extends Controller
 {
-    public function __construct(protected OutlookService $outlookService, protected GoogleService $googleService)
-    {
+    public function __construct(
+        protected OutlookService $outlookService,
+        protected GoogleService $googleService,
+        protected CalDAVService $caldavService
+    ) {
     }
 
-    public function create(Request $request): View|Application|Factory
+    public function create(): View
     {
-        $user = auth()->user()->load(['outlookAccounts', 'googleAccounts', 'displays']);
+        $outlookAccounts = auth()->user()->outlookAccounts;
+        $googleAccounts = auth()->user()->googleAccounts;
+        $caldavAccounts = auth()->user()->caldavAccounts;
 
         return view('pages.displays.create', [
-            'outlookAccounts' => $user->outlookAccounts,
-            'googleAccounts' => $user->googleAccounts,
-            'displays' => $user->displays,
+            'outlookAccounts' => $outlookAccounts,
+            'googleAccounts' => $googleAccounts,
+            'caldavAccounts' => $caldavAccounts,
         ]);
     }
 
@@ -42,38 +49,37 @@ class DisplayController extends Controller
      */
     public function store(CreateDisplayRequest $request): RedirectResponse
     {
-        $validatedData = $request->validated();
-
-        $display = DB::transaction(function () use ($validatedData) {
-            $provider = $validatedData['provider'];
-            $accountId = $validatedData['account'];
+        $validated = $request->validated();
+        $display = DB::transaction(function () use ($validated, $request) {
+            $provider = $validated['provider'];
+            $accountId = $validated['account'];
 
             // Get the appropriate account model based on provider
             $account = match($provider) {
                 'outlook' => OutlookAccount::findOrFail($accountId),
                 'google' => GoogleAccount::findOrFail($accountId),
+                'caldav' => CalDAVAccount::findOrFail($accountId),
                 default => throw new \InvalidArgumentException('Invalid provider')
             };
 
             // Handle room or calendar selection
-            $calendar = $this->createCalendar($validatedData, $account);
+            $calendar = $this->createCalendar($validated);
 
-            return Display::firstOrCreate([
-                'calendar_id' => $calendar->id,
-            ], [
+            $display = Display::create([
                 'user_id' => auth()->id(),
-                'name' => $validatedData['name'],
-                'display_name' => $validatedData['displayName'],
+                'name' => $validated['name'],
+                'display_name' => $validated['displayName'],
                 'status' => DisplayStatus::READY,
                 'calendar_id' => $calendar->id,
             ]);
+
+            if ($display) {
+                event(new UserOnboarded($request->user(), $display));
+            }
+
+            return $display;
         });
 
-        if ($display) {
-            event(new UserOnboarded($request->user(), $display));
-        }
-
-        // Redirect back with a success message
         return redirect()->route('dashboard')->with('status', $display ?
             'Display created! Now enter the connect code in the app on your tablet to connect it to the display.' :
             'Display could not be created. Please try again later.'

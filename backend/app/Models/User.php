@@ -59,6 +59,11 @@ class User extends Authenticatable
         return $this->hasMany(GoogleAccount::class);
     }
 
+    public function caldavAccounts(): HasMany
+    {
+        return $this->hasMany(CalDAVAccount::class);
+    }
+
     public function displays(): HasMany
     {
         return $this->hasMany(Display::class);

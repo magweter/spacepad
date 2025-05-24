@@ -107,8 +107,9 @@ class GoogleService
         $this->client->setAccessToken($account->token);
 
         $token = $this->client->fetchAccessTokenWithRefreshToken($account->refresh_token);
-
-        // TODO: add exception handling when refresh cannot be completed
+        if (isset($token['error'])) {
+            throw new Exception('Error authenticating with Google: ' . $tokenData['error_description']);
+        }
 
         $account->update([
             'token' => $token['access_token'],

@@ -67,4 +67,13 @@ return [
         'proxy' => env('PROXY')  // Optional, will be used for all requests
     ],
 
+    'caldav' => [
+        'enabled' => env('CALDAV_ENABLED', true),
+        'default_timezone' => env('CALDAV_DEFAULT_TIMEZONE', 'UTC'),
+    ],
+
+    'events' => [
+        'cache_enabled' => env('EVENTS_CACHE_ENABLED', true),
+    ],
+
 ];

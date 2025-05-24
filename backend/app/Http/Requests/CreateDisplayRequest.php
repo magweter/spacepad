@@ -32,7 +32,7 @@ class CreateDisplayRequest extends FormRequest
             'name' => 'required|string',
             'displayName' => 'required|string',
             'account' => 'required|string',
-            'provider' => 'required|string|in:outlook,google',
+            'provider' => 'required|string|in:outlook,google,caldav',
             'room' => 'required_without:calendar|string',
             'calendar' => 'required_without:room|string',
         ];
