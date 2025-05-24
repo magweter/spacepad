@@ -31,7 +31,7 @@ class EventController extends Controller
     {
         /** @var Device $device */
         $device = auth()->user();
-        $display = $device->display()->with('calendar')->first();
+        $display = $device->display()->with(['calendar', 'user'])->first();
 
         // Check if the device is connected to a display
         if (! $display) {
@@ -41,6 +41,11 @@ class EventController extends Controller
         // Check if the display is active
         if ($display->isDeactivated()) {
             return response()->json(['message' => 'Display is deactivated'], 400);
+        }
+
+        // Check if the user has access
+        if (! $display->user->hasAccess()) {
+            return response()->json(['message' => 'Your subscription has expired. Please renew to continue using Spacepad.'], 403);
         }
 
         // Cache events if enabled and not a CalDAV integration, since that doesn't support webhooks

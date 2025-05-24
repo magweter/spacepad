@@ -44,6 +44,7 @@
             background: #E5E5E5;
         }
     </style>
+    @lemonJS
 </head>
 <body class="h-full @yield('body-classes')">
 @stack('modals')

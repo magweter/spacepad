@@ -4,24 +4,46 @@
     <!-- Session Status Alert -->
     <x-alerts.alert />
 
-    <div class="mb-8">
-        <div class="col-span-12 mb-6 flex gap-4">
-            <div class="rounded-md bg-gray-50 p-4">
+    @if(! auth()->user()->hasAccess())
+        <div class="rounded-md bg-yellow-50 p-4 mb-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
+                    </svg>
+                </div>
+                <div class="ml-3 flex-1 md:flex md:justify-between">
+                    <p class="text-yellow-700">Your subscription has expired. Please renew to continue using Spacepad.</p>
+                    <p class="mt-3 md:ml-6 md:mt-0">
+                        <x-lemon-button :href="$checkout" class="whitespace-nowrap font-medium text-yellow-700 hover:text-yellow-600">
+                            Subscribe now
+                            <span aria-hidden="true"> &rarr;</span>
+                        </x-lemon-button>
+                    </p>
+                </div>
+            </div>
+        </div>
+    @else
+        <div class="mb-6 flex gap-4">
+            <div class="rounded-md bg-gray-50 p-4 grow">
                 <div class="flex">
                     <div class="flex-1 md:flex md:justify-between">
-                        <p class="text-base text-gray-700"><strong>You're all set!</strong> Connect a new tablet by downloading the app from the <a target="_blank" href="https://play.google.com/store/apps/details?id=com.magweter.spacepad" class="text-blue-600 hover:text-blue-500">Play Store</a> or <a target="_blank" href="https://apps.apple.com/nl/app/spacepad/id6745528995" class="text-blue-600 hover:text-blue-500">App Store</a> and using the connect code displayed in the top right corner.</p>
+                        <p class="text-base text-gray-700"><strong>You're all set!</strong> Connect a new device with the app from the <a target="_blank" href="https://play.google.com/store/apps/details?id=com.magweter.spacepad" class="text-blue-600 hover:text-blue-500">Play Store</a> or <a target="_blank" href="https://apps.apple.com/nl/app/spacepad/id6745528995" class="text-blue-600 hover:text-blue-500">App Store</a> and using the connect code.</p>
                     </div>
                 </div>
             </div>
-            <div class="bg-gray-50 rounded-lg w-[300px] items-center flex">
+            <div class="bg-gray-50 rounded-lg items-center flex">
                 <div class="p-4 flex w-full">
-                    <h3 class="text-base font-semibold text-gray-900">Connect code</h3>
+                    <h3 class="text-base font-semibold text-gray-900 mr-8">Connect code</h3>
                     <div class="max-w-xl text-base text-gray-500 ml-auto">
                         <p>{{ chunk_split($connectCode, 3, ' ') }}</p>
                     </div>
                 </div>
             </div>
         </div>
+    @endif
+
+    <div class="mb-8">
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-4">
             <div class="sm:flex sm:items-center sm:col-span-2 md:col-span-3">
                 <div class="sm:flex-auto">

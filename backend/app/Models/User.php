@@ -9,10 +9,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use LemonSqueezy\Laravel\Billable;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable, HasUlid;
+    use HasApiTokens, HasFactory, Notifiable, HasUlid, Billable;
 
     /**
      * The attributes that are mass assignable.
@@ -83,5 +84,16 @@ class User extends Authenticatable
         }
 
         return $connectCode;
+    }
+
+    public function hasAccess(): bool
+    {
+        $freeTrialDays = config('settings.free_trial_days');
+        $isNewerThanTrialPeriod = $this->created_at->gt(now()->subDays($freeTrialDays));
+        if (config('settings.is_self_hosted') || $isNewerThanTrialPeriod || $this->subscribed()) {
+            return true;
+        }
+
+        return false;
     }
 }

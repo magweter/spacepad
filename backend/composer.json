@@ -14,6 +14,7 @@
         "laravel/sanctum": "^4.0",
         "laravel/socialite": "^5.16",
         "laravel/tinker": "^2.9",
+        "lemonsqueezy/laravel": "^1.8",
         "microsoft/microsoft-graph": "^2.23",
         "predis/predis": "^3.0",
         "qruto/laravel-wave": "^0.9.1",

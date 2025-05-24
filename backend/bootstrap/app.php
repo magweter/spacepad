@@ -18,6 +18,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'user.onboarded' => \App\Http\Middleware\CheckUserOnboarded::class,
         ]);
+        $middleware->validateCsrfTokens(except: [
+            'lemon-squeezy/*',
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         Integration::handles($exceptions);
