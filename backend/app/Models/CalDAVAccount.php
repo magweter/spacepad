@@ -34,7 +34,7 @@ class CalDAVAccount extends Model
 
     protected $casts = [
         'status' => AccountStatus::class,
-        //'password' => 'encrypted',
+        'password' => 'encrypted',
     ];
 
     public function user(): BelongsTo
