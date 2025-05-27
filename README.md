@@ -128,7 +128,7 @@ We welcome contributions! Please check our [Contributing Guide](CONTRIBUTING.md)
 
 ## Roadmap
 
-- [ ] CalDav support
+- [x] CalDav support
 - [ ] Custom display themes (colors & backgrounds)
 - [ ] Amazon Fire Tablet support
 - [ ] Multi-room dashboard view
