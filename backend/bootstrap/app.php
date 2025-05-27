@@ -4,6 +4,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Sentry\Laravel\Integration;
+use App\Console\Commands\CleanupExpiredTrials;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -22,6 +23,11 @@ return Application::configure(basePath: dirname(__DIR__))
             'lemon-squeezy/*',
         ]);
     })
+    ->withSchedule([
+        'users:cleanup-expired-trials' => [
+            'schedule' => '0 0 * * *', // Run daily at midnight
+        ],
+    ])
     ->withExceptions(function (Exceptions $exceptions) {
         Integration::handles($exceptions);
     })->create();
