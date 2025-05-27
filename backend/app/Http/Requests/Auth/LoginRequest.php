@@ -30,6 +30,7 @@ class LoginRequest extends FormRequest
     {
         return [
             'email' => 'required|string|email',
+            'g-recaptcha-response' => 'required|recaptchav3:login,0.5'
         ];
     }
 

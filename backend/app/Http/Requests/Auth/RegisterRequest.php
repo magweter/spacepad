@@ -31,6 +31,7 @@ class RegisterRequest extends FormRequest
         return [
             'name' => 'required|string',
             'email' => 'required|string|email',
+            'g-recaptcha-response' => 'required|recaptchav3:register,0.5'
         ];
     }
 }

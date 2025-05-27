@@ -25,6 +25,7 @@
                 @else
                     <form action="{{ route('register.store') }}" method="POST">
                         @csrf
+                        {!! RecaptchaV3::field('register') !!}
                         <div class="mb-3">
                             <label for="name" class="block text-sm/6 font-medium text-gray-900">Name</label>
                             <div class="mt-2">

@@ -10,6 +10,7 @@
         "cesargb/laravel-magiclink": "^2.22",
         "google/apiclient": "^2.18",
         "guzzlehttp/guzzle": "^7.9",
+        "josiasmontag/laravel-recaptchav3": "^1.0",
         "laravel/framework": "^11.31",
         "laravel/sanctum": "^4.0",
         "laravel/socialite": "^5.16",

@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "aa7283085bcdce6a658926829a52ec28",
+    "content-hash": "aeacfa67e51b396eaf9d9dd33c149811",
     "packages": [
         {
             "name": "brick/math",
@@ -1760,6 +1760,72 @@
                 "source": "https://github.com/Jean85/pretty-package-versions/tree/2.1.1"
             },
             "time": "2025-03-19T14:43:43+00:00"
+        },
+        {
+            "name": "josiasmontag/laravel-recaptchav3",
+            "version": "1.0.4",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/josiasmontag/laravel-recaptchav3.git",
+                "reference": "08548b818223a20fc7db04a8d060758f8efc4ef5"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/josiasmontag/laravel-recaptchav3/zipball/08548b818223a20fc7db04a8d060758f8efc4ef5",
+                "reference": "08548b818223a20fc7db04a8d060758f8efc4ef5",
+                "shasum": ""
+            },
+            "require": {
+                "guzzlehttp/guzzle": "^6.2|^7.0",
+                "illuminate/container": "~5.7.0|~5.8.0|^6.0|^7.0|^8.0|^9.0|^10.0|^11.0|^12.0",
+                "illuminate/http": "~5.7.0|~5.8.0|^6.0|^7.0|^8.0|^9.0|^10.0|^11.0|^12.0",
+                "illuminate/support": "~5.7.0|~5.8.0|^6.0|^7.0|^8.0|^9.0|^10.0|^11.0|^12.0",
+                "php": ">=7.1.0"
+            },
+            "require-dev": {
+                "mockery/mockery": "^1.2",
+                "orchestra/testbench": "~3.7.0|~3.8.0|^4.0|^5.0|^6.0|^7.0|^8.0|^9.0|^10.0",
+                "phpunit/phpunit": "6.2|^7.0|^8.0|^9.5.10|^10.5|^11.5.3"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "aliases": {
+                        "RecaptchaV3": "Lunaweb\\RecaptchaV3\\Facades\\RecaptchaV3"
+                    },
+                    "providers": [
+                        "Lunaweb\\RecaptchaV3\\Providers\\RecaptchaV3ServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Lunaweb\\RecaptchaV3\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Josias Montag",
+                    "email": "josias@montag.info"
+                }
+            ],
+            "description": "Recaptcha V3 for Laravel package",
+            "homepage": "https://github.com/josiasmontag/laravel-recaptchav3",
+            "keywords": [
+                "captcha",
+                "laravel",
+                "php",
+                "recaptcha"
+            ],
+            "support": {
+                "issues": "https://github.com/josiasmontag/laravel-recaptchav3/issues",
+                "source": "https://github.com/josiasmontag/laravel-recaptchav3/tree/1.0.4"
+            },
+            "time": "2025-02-25T08:00:22+00:00"
         },
         {
             "name": "laravel/framework",
