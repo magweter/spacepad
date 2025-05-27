@@ -8,6 +8,7 @@ use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Validation\ValidationException;
 use Laravel\Socialite\Facades\Socialite;
+use Illuminate\Support\Str;
 
 abstract class SocialAuthController extends AuthController
 {
@@ -15,16 +16,32 @@ abstract class SocialAuthController extends AuthController
 
     public function redirect(): mixed
     {
-        return Socialite::driver($this->driver)->stateless()->redirect();
+        try {
+            return Socialite::driver($this->driver)->stateless()->redirect();
+        } catch (\Exception $e) {
+            report($e);
+            logger()->error('Social redirect failed', [
+                'provider' => $this->driver,
+                'error' => $e->getMessage()
+            ]);
+            return redirect()->route('login')->with('error', 'Redirecting to the provider failed. Please try again.');
+        }
     }
 
     public function callback(): RedirectResponse
     {
-        $socialUser = Socialite::driver($this->driver)->stateless()->user();
-
-        $user = $this->findOrCreateUser($socialUser);
-
-        return $this->authenticateUser($user);
+        try {
+            $socialUser = Socialite::driver($this->driver)->stateless()->user();
+            $user = $this->findOrCreateUser($socialUser);
+            return $this->authenticateUser($user);
+        } catch (\Exception $e) {
+            report($e);
+            logger()->error('Social authentication failed', [
+                'provider' => $this->driver,
+                'error' => $e->getMessage()
+            ]);
+            return redirect()->route('login')->with('error', 'Authentication with ' . Str::ucfirst($this->driver) . ' failed. Please try again.');
+        }
     }
 
     /**
@@ -53,6 +70,7 @@ abstract class SocialAuthController extends AuthController
                 $socialUser->name = $oauthTokenRequest->full_name;
             }
         } catch (\Exception $e) {
+            report($e);
             logger()->error('Something went wrong during OAuth2 authentication', [
                 'provider' => $this->driver,
                 'exception' => $e,

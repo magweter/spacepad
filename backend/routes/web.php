@@ -1,14 +1,18 @@
 <?php
 
+use App\Http\Controllers\Auth\GoogleController;
 use App\Http\Controllers\Auth\MicrosoftController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
+use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\RoomController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\OnboardingController;
+use App\Http\Controllers\GoogleAccountsController;
 use App\Http\Controllers\OutlookAccountsController;
 use App\Http\Controllers\DisplayController;
 use App\Http\Controllers\OutlookWebhookController;
+use App\Http\Controllers\CalDAVAccountsController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/login', [LoginController::class, 'create'])
@@ -34,6 +38,8 @@ Route::post('/logout', [LoginController::class, 'destroy'])
 Route::prefix('auth')->group(function () {
     Route::get('/microsoft/redirect', [MicrosoftController::class, 'redirect'])->name('auth.microsoft.redirect');
     Route::get('/microsoft/callback', [MicrosoftController::class, 'callback']);
+    Route::get('/google/redirect', [GoogleController::class, 'redirect'])->name('auth.google.redirect');
+    Route::get('/google/callback', [GoogleController::class, 'callback']);
 });
 
 Route::middleware(['auth'])->group(function () {
@@ -44,6 +50,14 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/outlook-accounts/callback', [OutlookAccountsController::class, 'callback']);
     Route::get('/outlook-accounts/calendars', [OutlookAccountsController::class, 'getCalendars']);
 
+    Route::get('/google-accounts/auth', [GoogleAccountsController::class, 'auth'])->name('google-accounts.auth');
+    Route::get('/google-accounts/callback', [GoogleAccountsController::class, 'callback']);
+    Route::get('/google-accounts/calendars', [GoogleAccountsController::class, 'getCalendars']);
+
+    Route::get('/caldav-accounts/create', [CalDAVAccountsController::class, 'create'])->name('caldav-accounts.create');
+    Route::post('/caldav-accounts', [CalDAVAccountsController::class, 'store'])->name('caldav-accounts.store');
+    Route::delete('/caldav-accounts/{caldavAccount}', [CalDAVAccountsController::class, 'delete'])->name('caldav-accounts.delete');
+
     Route::get('/displays/create', [DisplayController::class, 'create'])
         ->name('displays.create');
     Route::post('/displays', [DisplayController::class, 'store'])->name('displays.store');
@@ -51,6 +65,14 @@ Route::middleware(['auth'])->group(function () {
         ->name('displays.updateStatus');
     Route::delete('/displays/{display}', [DisplayController::class, 'delete'])->name('displays.delete');
 
+    Route::get('/calendars/outlook/{id}', [CalendarController::class, 'outlook'])
+        ->name('calendars.outlook');
+    Route::get('/calendars/google/{id}', [CalendarController::class, 'google'])
+        ->name('calendars.google');
+    Route::get('/calendars/caldav/{id}', [CalendarController::class, 'caldav'])
+        ->name('calendars.caldav');
     Route::get('/rooms/outlook/{id}', [RoomController::class, 'outlook'])
         ->name('rooms.outlook');
+    Route::get('/rooms/google/{id}', [RoomController::class, 'google'])
+        ->name('rooms.google');
 });

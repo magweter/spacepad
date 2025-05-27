@@ -5,6 +5,7 @@ use App\Http\Controllers\API\DeviceController;
 use App\Http\Controllers\API\DisplayController;
 use App\Http\Controllers\API\EventController;
 use App\Http\Controllers\OutlookWebhookController;
+use App\Http\Controllers\GoogleWebhookController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('auth')->group(function () {
@@ -19,3 +20,4 @@ Route::middleware(['auth:sanctum'])->group(function () {
 });
 
 Route::post('webhook/outlook', [OutlookWebhookController::class, 'handleNotification']);
+Route::post('webhook/google', [GoogleWebhookController::class, 'handleNotification']);

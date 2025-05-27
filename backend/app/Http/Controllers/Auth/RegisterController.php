@@ -38,10 +38,9 @@ class RegisterController extends Controller
 
         $user = User::where('email', $data['email'])->first();
         if (!$user) {
-            $user = User::factory()->create([
+            $user = User::factory()->unverified()->create([
                 'name' => $data['name'],
-                'email' => $data['email'],
-                'email_verified_at' => null,
+                'email' => $data['email']
             ]);
         }
 

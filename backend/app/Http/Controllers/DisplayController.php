@@ -5,109 +5,155 @@ namespace App\Http\Controllers;
 use App\Enums\Provider;
 use App\Enums\DisplayStatus;
 use App\Events\UserOnboarded;
+use App\Http\Requests\CreateDisplayRequest;
 use App\Models\Calendar;
 use App\Models\Display;
 use App\Models\OutlookAccount;
 use App\Models\Room;
+use App\Models\CalDAVAccount;
 use App\Services\OutlookService;
+use App\Services\GoogleService;
+use App\Services\CalDAVService;
 use Illuminate\Contracts\View\Factory;
 use Illuminate\Contracts\View\View;
 use Illuminate\Foundation\Application;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Models\GoogleAccount;
 
 class DisplayController extends Controller
 {
-    public function __construct(protected OutlookService $outlookService)
-    {
+    public function __construct(
+        protected OutlookService $outlookService,
+        protected GoogleService $googleService,
+        protected CalDAVService $caldavService
+    ) {
     }
 
-    public function create(Request $request): View|Application|Factory
+    public function create(): View
     {
         $outlookAccounts = auth()->user()->outlookAccounts;
-        $displays = auth()->user()->displays;
+        $googleAccounts = auth()->user()->googleAccounts;
+        $caldavAccounts = auth()->user()->caldavAccounts;
 
         return view('pages.displays.create', [
             'outlookAccounts' => $outlookAccounts,
-            'displays' => $displays
+            'googleAccounts' => $googleAccounts,
+            'caldavAccounts' => $caldavAccounts,
         ]);
     }
 
     /**
      * @throws \Exception
      */
-    public function store(Request $request): RedirectResponse
+    public function store(CreateDisplayRequest $request): RedirectResponse
     {
-        $validatedData = $request->validate([
-            'name' => 'required|string',
-            'displayName' => 'required|string',
-            'account' => 'required|string',
-            'room' => 'required|string',
-        ]);
+        $validated = $request->validated();
+        $display = DB::transaction(function () use ($validated, $request) {
+            $provider = $validated['provider'];
+            $accountId = $validated['account'];
 
-        $display = DB::transaction(function () use ($validatedData) {
-            $roomData = explode(',', $validatedData['room']);
-            $outlookAccount = OutlookAccount::findOrFail($validatedData['account']);
-            $outlookCalendar = $this->outlookService->fetchCalendarByEmail($outlookAccount, $roomData[0]);
+            // Get the appropriate account model based on provider
+            $account = match($provider) {
+                'outlook' => OutlookAccount::findOrFail($accountId),
+                'google' => GoogleAccount::findOrFail($accountId),
+                'caldav' => CalDAVAccount::findOrFail($accountId),
+                default => throw new \InvalidArgumentException('Invalid provider')
+            };
 
-            $calendar = Calendar::firstOrCreate([
-                'calendar_id' => $outlookCalendar['id'],
-            ], [
+            // Handle room or calendar selection
+            $calendar = $this->createCalendar($validated);
+
+            $display = Display::create([
                 'user_id' => auth()->id(),
-                'outlook_account_id' => $validatedData['account'],
-                'calendar_id' => $outlookCalendar['id'],
-                'name' => $roomData[1],
-            ]);
-
-            Room::firstOrCreate([
-                'email_address' => $roomData[0],
-            ], [
-                'user_id' => auth()->id(),
-                'calendar_id' => $calendar->id,
-                'email_address' => $roomData[0],
-                'name' => $roomData[1],
-            ]);
-
-            return Display::firstOrCreate([
-                'calendar_id' => $calendar->id,
-            ], [
-                'user_id' => auth()->id(),
-                'name' => $validatedData['name'],
-                'display_name' => $validatedData['displayName'],
+                'name' => $validated['name'],
+                'display_name' => $validated['displayName'],
                 'status' => DisplayStatus::READY,
                 'calendar_id' => $calendar->id,
             ]);
+
+            if ($display) {
+                event(new UserOnboarded($request->user(), $display));
+            }
+
+            return $display;
         });
 
-        if ($display) {
-            event(new UserOnboarded($request->user(), $display));
-        }
-
-        // Redirect back with a success message
         return redirect()->route('dashboard')->with('status', $display ?
-            'Display created! It will take a few minutes for the calendars to get synced.' :
+            'Display created! Now enter the connect code in the app on your tablet to connect it to the display.' :
             'Display could not be created. Please try again later.'
         );
     }
 
     public function updateStatus(Request $request, Display $display): RedirectResponse
     {
+        $this->authorize('update', $display);
+
         $data = $request->validate([
             'status' => 'required|in:active,deactivated'
         ]);
 
         $display->update(['status' => $data['status']]);
 
-        return redirect()->route('dashboard')->with('status', 'Display status has been changed.');
+        return redirect()
+            ->route('dashboard')
+            ->with('status', 'Display status has been changed.');
     }
 
     public function delete(Display $display): RedirectResponse
     {
-        $display->events()->delete();
+        $this->authorize('delete', $display);
+
         $display->eventSubscriptions()->delete();
         $display->delete();
 
-        return redirect()->route('dashboard')->with('status', 'Display has successfully been deleted.');
+        return redirect()
+            ->route('dashboard')
+            ->with('status', 'Display has successfully been deleted.');
+    }
+
+    private function createCalendar(array $validatedData): Calendar
+    {
+        $provider = $validatedData['provider'];
+        $accountId = $validatedData['account'];
+
+        if (isset($validatedData['room'])) {
+            $roomData = explode(',', $validatedData['room']);
+            $calendarId = $roomData[0];
+
+            $calendar = Calendar::firstOrCreate([
+                'calendar_id' => $calendarId,
+                'user_id' => auth()->id(),
+            ], [
+                'calendar_id' => $calendarId,
+                'user_id' => auth()->id(),
+                "{$provider}_account_id" => $accountId,
+                'name' => $roomData[1],
+            ]);
+
+            Room::firstOrCreate([
+                'email_address' => $calendarId,
+                'user_id' => auth()->id(),
+            ], [
+                'email_address' => $calendarId,
+                'user_id' => auth()->id(),
+                'calendar_id' => $calendar->id,
+                'name' => $roomData[1],
+            ]);
+
+            return $calendar;
+        }
+
+        $calendarData = explode(',', $validatedData['calendar']);
+        return Calendar::firstOrCreate([
+            'calendar_id' => $calendarData[0],
+            'user_id' => auth()->id(),
+        ], [
+            'user_id' => auth()->id(),
+            "{$provider}_account_id" => $accountId,
+            'calendar_id' => $calendarData[0],
+            'name' => $calendarData[1],
+        ]);
     }
 }

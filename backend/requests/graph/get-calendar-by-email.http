@@ -1,3 +1,3 @@
-GET https://graph.microsoft.com/v1.0/users/HorizonS@magweter.com/calendar
+GET https://graph.microsoft.com/v1.0/users/HorizonM@magweter.com/calendarview
 Authorization: Bearer {{outlookToken}}
 Content-Type: application/json

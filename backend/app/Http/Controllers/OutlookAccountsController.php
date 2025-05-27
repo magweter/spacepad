@@ -26,6 +26,10 @@ class OutlookAccountsController extends Controller
      */
     public function callback(): RedirectResponse
     {
+        if (request()->has('error')) {
+            return redirect()->route('dashboard')->with('error', 'Failed to connect to Outlook. Please try again.');
+        }
+
         $authCode = request('code');
         $this->outlookService->authenticateOutlookAccount($authCode);
 

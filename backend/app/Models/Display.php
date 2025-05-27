@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Enums\DisplayStatus;
 
 class Display extends Model
 {
@@ -27,6 +28,7 @@ class Display extends Model
     protected $casts = [
         'last_sync_at' => 'datetime',
         'last_event_at' => 'datetime',
+        'status' => DisplayStatus::class,
     ];
 
     public function calendar(): BelongsTo
@@ -62,5 +64,10 @@ class Display extends Model
     public function getEventsCacheKey(): string
     {
         return "display:$this->id:events";
+    }
+
+    public function isDeactivated(): bool
+    {
+        return $this->status === DisplayStatus::DEACTIVATED;
     }
 }

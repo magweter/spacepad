@@ -2,17 +2,16 @@
 
 namespace App\Services;
 
-use App\Enums\Provider;
+use App\Enums\AccountStatus;
 use App\Models\Display;
 use App\Models\EventSubscription;
 use App\Models\OutlookAccount;
+use Exception;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
-use Microsoft\Graph\Core\Authentication\TokenCredentialAuthProvider;
-use Microsoft\Kiota\Authentication\OAuth\AccessTokenProvider;
-use Microsoft\Graph\Model;
 
 class OutlookService
 {
@@ -77,7 +76,7 @@ class OutlookService
         $oauthTokenEndpoint = "https://login.microsoftonline.com/{$this->tenantId}/oauth2/v2.0/token";
 
         // Exchange authorization code for tokens
-        $response = \Http::asForm()->post($oauthTokenEndpoint, [
+        $response = Http::asForm()->post($oauthTokenEndpoint, [
             'client_id' => $this->clientId,
             'scope' => self::OAUTH_SCOPES,
             'code' => $authCode,
@@ -88,7 +87,7 @@ class OutlookService
 
         $tokenData = $response->json();
         if (isset($tokenData['error'])) {
-            throw new \Exception('Error authenticating with Outlook: ' . $tokenData['error_description']);
+            throw new Exception('Error authenticating with Outlook: ' . $tokenData['error_description']);
         }
 
         // Get the current user information
@@ -101,15 +100,17 @@ class OutlookService
         // Save the Outlook account and tokens
         OutlookAccount::updateOrCreate(
             [
-                'user_id' => Auth::id(),  // Associate with the current user
+                'user_id' => auth()->id(),
                 'outlook_id' => $user['id'],
             ],
             [
+                'user_id' => auth()->id(),
                 'email' => $user['mail'],
                 'name' => $user['displayName'],
                 'token' => $tokenData['access_token'],
                 'refresh_token' => $tokenData['refresh_token'] ?? null,
                 'token_expires_at' => now()->addSeconds($tokenData['expires_in']),
+                'status' => AccountStatus::CONNECTED,
             ]
         );
     }
@@ -125,7 +126,7 @@ class OutlookService
     {
         $oauthTokenEndpoint = "https://login.microsoftonline.com/{$this->tenantId}/oauth2/v2.0/token";
 
-        $response = \Http::asForm()->post($oauthTokenEndpoint, [
+        $response = Http::asForm()->post($oauthTokenEndpoint, [
             'client_id' => $this->clientId,
             'scope' => self::OAUTH_SCOPES,
             'refresh_token' => $outlookAccount->refresh_token,
@@ -136,7 +137,10 @@ class OutlookService
         $tokenData = $response->json();
 
         if (isset($tokenData['error'])) {
-            throw new \Exception('Error refreshing Outlook token: ' . $tokenData['error_description']);
+            $outlookAccount->update([
+                'status' => AccountStatus::ERROR,
+            ]);
+            throw new Exception('Error refreshing Outlook token: ' . $tokenData['error_description']);
         }
 
         $outlookAccount->update([
@@ -150,13 +154,13 @@ class OutlookService
      * Fetch calendar events from Outlook account.
      *
      * @param OutlookAccount $outlookAccount
-     * @param string $calendarId
+     * @param string $emailAddress
      * @param Carbon $startDateTime
      * @param Carbon $endDateTime
      * @return mixed
      * @throws \Exception
      */
-    public function fetchEvents(
+    public function fetchEventsByUser(
         OutlookAccount $outlookAccount,
         string $emailAddress,
         Carbon $startDateTime,
@@ -180,11 +184,18 @@ class OutlookService
     }
 
     /**
+     * Fetch calendar events from Outlook account.
+     *
+     * @param OutlookAccount $outlookAccount
+     * @param string $calendarId
+     * @param Carbon $startDateTime
+     * @param Carbon $endDateTime
+     * @return mixed
      * @throws \Exception
      */
-    public function fetchSerieInstances(
+    public function fetchEventsByCalendar(
         OutlookAccount $outlookAccount,
-        string $seriesMasterId,
+        string $calendarId,
         Carbon $startDateTime,
         Carbon $endDateTime,
     ): array
@@ -193,63 +204,16 @@ class OutlookService
 
         $params = [
             'startDateTime' => $startDateTime->toIso8601String(),
-            'endDateTime' => $endDateTime->toIso8601String()
+            'endDateTime' => $endDateTime->toIso8601String(),
+            '$select' => 'id,lastModifiedDateTime,subject,body,bodyPreview,isAllDay,location,start,end',
+            '$orderby' => 'createdDateTime',
+            '$top' => 100
         ];
 
         $response = Http::withToken($outlookAccount->token)
-            ->get("https://graph.microsoft.com/v1.0/me/events/$seriesMasterId/instances", $params);
+            ->get("https://graph.microsoft.com/v1.0/me/calendars/$calendarId/calendarview", $params);
 
         return Arr::get($response->json(), 'value') ?? [];
-    }
-
-    /**
-     * Fetch calendar events from Outlook account.
-     *
-     * @param OutlookAccount $outlookAccount
-     * @param string $eventId
-     * @return mixed
-     * @throws \Exception
-     */
-    public function fetchEvent(
-        OutlookAccount $outlookAccount,
-        string $eventId,
-    ): mixed
-    {
-        $this->ensureAuthenticated($outlookAccount);
-
-        $response = Http::withToken($outlookAccount->token)
-            ->get("https://graph.microsoft.com/v1.0/me/events/$eventId");
-
-        return Arr::get($response->json(), 'value');
-    }
-
-    /**
-     * Fetch calendar events from Outlook account.
-     *
-     * @param OutlookAccount $outlookAccount
-     * @param string $resource
-     * @return mixed
-     * @throws \Exception
-     */
-    public function fetchResource(
-        OutlookAccount $outlookAccount,
-        string $resource,
-    ): mixed
-    {
-        $this->ensureAuthenticated($outlookAccount);
-
-        $response = Http::withToken($outlookAccount->token)
-            ->get("https://graph.microsoft.com/v1.0/$resource");
-
-        $payload = $response->json();
-        if ($response->failed() || ! Arr::has($payload, ['subject'])) {
-            logger()->error('Misformed outlook event', [
-                'status' => $response->status(),
-                'response' => $payload
-            ]);
-        }
-
-        return $payload;
     }
 
     /**
@@ -268,26 +232,7 @@ class OutlookService
             'Authorization' => 'Bearer ' . $outlookAccount->token,
         ])->get('https://graph.microsoft.com/v1.0/me/calendars');
 
-        return \Arr::get($response->json(), 'value');
-    }
-
-    /**
-     * Fetch a calendar from the authenticated user's Outlook account.
-     *
-     * @param OutlookAccount $outlookAccount
-     * @return mixed
-     * @throws \Exception
-     */
-    public function fetchCalendarByEmail(OutlookAccount $outlookAccount, string $emailAddress): mixed
-    {
-        $this->ensureAuthenticated($outlookAccount);
-
-        // Get the current user information
-        $response = Http::acceptJson()->withHeaders([
-            'Authorization' => 'Bearer ' . $outlookAccount->token,
-        ])->get("https://graph.microsoft.com/v1.0/users/$emailAddress/calendar");
-
-        return $response->json();
+        return Arr::get($response->json(), 'value');
     }
 
     /**
@@ -306,7 +251,7 @@ class OutlookService
             'Authorization' => 'Bearer ' . $outlookAccount->token,
         ])->get('https://graph.microsoft.com/v1.0/places/microsoft.graph.room');
 
-        return \Arr::get($response->json(), 'value');
+        return Arr::get($response->json(), 'value');
     }
 
     /**
@@ -318,16 +263,52 @@ class OutlookService
      * @return EventSubscription|null
      * @throws \Exception
      */
-    public function createEventSubscription(
+    public function createEventSubscriptionByUser(
         OutlookAccount $outlookAccount,
         Display $display,
         string $emailAddress
     ): ?EventSubscription
     {
+        return $this->createEventSubscription($outlookAccount, $display, "/users/$emailAddress/events");
+    }
+
+    /**
+     * Create an event subscription for Outlook calendar events.
+     *
+     * @param OutlookAccount $outlookAccount
+     * @param Display $display
+     * @param string $calendarId
+     * @return EventSubscription|null
+     * @throws \Exception
+     */
+    public function createEventSubscriptionByCalendar(
+        OutlookAccount $outlookAccount,
+        Display $display,
+        string $calendarId
+    ): ?EventSubscription
+    {
+        return $this->createEventSubscription($outlookAccount, $display, "/me/calendars/$calendarId/events");
+    }
+
+    /**
+     * Create an event subscription for Outlook calendar events.
+     *
+     * @param OutlookAccount $outlookAccount
+     * @param Display $display
+     * @param string $resource
+     * @return EventSubscription|null
+     * @throws \Exception
+     */
+    private function createEventSubscription(
+        OutlookAccount $outlookAccount,
+        Display $display,
+        string $resource
+    ): ?EventSubscription
+    {
         $this->ensureAuthenticated($outlookAccount);
 
         $data = [
-            'resource' => "/users/$emailAddress/events",
+            'resource' => $resource,
             'changeType' => 'created,updated,deleted',
             'notificationUrl' => config('services.azure_ad.webhook_url'),
             'expirationDateTime' => now()->addHours(3)->toISOString(),

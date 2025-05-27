@@ -22,6 +22,7 @@ class EventSubscription extends Model
         'user_id',
         'display_id',
         'outlook_account_id',
+        'google_account_id',
     ];
 
     public function scopeExpired(Builder $query)
@@ -32,6 +33,11 @@ class EventSubscription extends Model
     public function outlookAccount(): BelongsTo
     {
         return $this->belongsTo(OutlookAccount::class, 'outlook_account_id');
+    }
+
+    public function googleAccount(): BelongsTo
+    {
+        return $this->belongsTo(GoogleAccount::class, 'google_account_id');
     }
 
     public function display(): BelongsTo

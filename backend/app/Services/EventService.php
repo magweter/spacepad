@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Google\Service\Calendar\Event;
 use Illuminate\Support\Arr;
 
 class EventService
@@ -10,7 +11,7 @@ class EventService
      * @param array $outlookEvent
      * @return array
      */
-    public function sanitizeEvent(array $outlookEvent): array
+    public function sanitizeOutlookEvent(array $outlookEvent): array
     {
         $summary = $this->cleanSubject($outlookEvent['subject']);
 
@@ -42,6 +43,48 @@ class EventService
             'end' => $end['dateTime'],
             'timezone' => $outlookEvent['start']['timeZone'],
             'isAllDay' => $isAllDay
+        ];
+    }
+
+    /**
+     * @param Event $googleEvent
+     * @return array
+     */
+    public function sanitizeGoogleEvent(Event $googleEvent): array
+    {
+        $start = $googleEvent->getStart();
+        $end = $googleEvent->getEnd();
+
+        // Handle all-day event - Google Calendar uses 'date' field for all-day events
+        $isAllDay = $start->getDate() !== null;
+
+        return [
+            'id' => $googleEvent->getId(),
+            'summary' => $this->cleanSubject($googleEvent->getSummary()),
+            'location' => $googleEvent->getLocation(),
+            'description' => $googleEvent->getDescription(),
+            'start' => $isAllDay ? $start->getDate() : $start->getDateTime(),
+            'end' => $isAllDay ? $end->getDate() : $end->getDateTime(),
+            'timezone' => $start->getTimeZone(),
+            'isAllDay' => $isAllDay
+        ];
+    }
+
+    /**
+     * @param array $caldavEvent
+     * @return array
+     */
+    public function sanitizeCalDAVEvent(array $caldavEvent): array
+    {
+        return [
+            'id' => $caldavEvent['id'],
+            'summary' => $this->cleanSubject($caldavEvent['summary']),
+            'location' => $caldavEvent['location'],
+            'description' => $this->cleanBody($caldavEvent['description']),
+            'start' => $caldavEvent['start'],
+            'end' => $caldavEvent['end'],
+            'timezone' => 'UTC', // CalDAV events are typically in UTC
+            'isAllDay' => $caldavEvent['isAllDay']
         ];
     }
 

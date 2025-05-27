@@ -27,6 +27,6 @@ abstract class AuthController extends Controller
             'password' => $password ? Hash::make($password) : null,
         ];
 
-        return User::factory()->create($attributes);
+        return User::factory()->unverified()->create($attributes);
     }
 }

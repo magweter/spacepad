@@ -58,8 +58,11 @@ sed -i '' "s/^APP_KEY=.*/APP_KEY=$(php -r 'echo "base64:".base64_encode(random_b
 (Get-Content .env) -replace '^APP_KEY=.*', "APP_KEY=$(php -r 'echo "base64:".base64_encode(random_bytes(32));')" | Set-Content .env
 ```
 
-Now on to configuring the application:
-1. Open the .env file and configure your domain and email.
+Now open the .env file and configure your domain and email.
+
+Configuring the following providers is optional, but you do require at least one. Leaving the client id of the provider empty will ensure it is not enabled.
+
+Configuring the Outlook provider:
 1. Go to [Azure Portal - App Registrations](https://entra.microsoft.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade/quickStartType~/null/sourceType/Microsoft_AAD_IAM)
 1. Create a new app registration, only fill in a name and click 'create'
 1. Open the 'verification' tab and create two new 'web' platforms:
@@ -71,6 +74,26 @@ Now on to configuring the application:
 1. Create a new secret (not certificate) and copy the value
 1. Click on 'overview' and copy the 'client id'. Beware: this is the client ID value you need, not the ID of the secret you just created.
 1. Paste the values in the .env 'AZURE_AD...' variables
+
+Configuring the Google provider:
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+1. Create a new project or select an existing one
+1. Navigate to "APIs & Services" > "Credentials"
+1. Click "Create Credentials" > "OAuth client ID"
+1. Select "Web application" as the application type
+1. Add authorized redirect URIs:
+    - https://your-domain.com/google-accounts/callback
+    - https://your-domain.com/auth/google/callback
+1. Click "Create"
+1. Enable the required Google APIs:
+   - Go to "APIs & Services" > "Library"
+   - Search for and enable:
+     - Google Calendar API
+     - Google Admin SDK API
+1. Copy the Client ID and Client Secret
+1. Paste the values in your .env file:
+   - GOOGLE_CLIENT_ID=your_client_id
+   - GOOGLE_CLIENT_SECRET=your_client_secret
 
 Now run the application using Docker Compose:
 ```bash
@@ -105,6 +128,8 @@ We welcome contributions! Please check our [Contributing Guide](CONTRIBUTING.md)
 
 ## Roadmap
 
+- [x] CalDav support
 - [ ] Custom display themes (colors & backgrounds)
+- [ ] Amazon Fire Tablet support
 - [ ] Multi-room dashboard view
 - [ ] Bookings rooms via the app
