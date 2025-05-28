@@ -71,7 +71,7 @@
                             </div>
                             <div class="min-w-0 flex-1">
                                 <span class="absolute inset-0" aria-hidden="true"></span>
-                                <p class="text-sm font-medium text-gray-900">Google Calendar (beta)</p>
+                                <p class="text-sm font-medium text-gray-900">Google</p>
                                 <p class="truncate text-sm text-gray-500">
                                     @if(count($googleAccounts) > 0)
                                         Connect to Google calendars
