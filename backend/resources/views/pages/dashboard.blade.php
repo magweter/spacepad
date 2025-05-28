@@ -4,27 +4,43 @@
     <!-- Session Status Alert -->
     <x-alerts.alert />
 
-    @if(! auth()->user()->hasAccess())
-        <div class="rounded-md bg-yellow-50 p-4 mb-6">
+    @php($trialDaysLeft = auth()->user()->getTrialDaysLeft())
+    @if(! auth()->user()->hasActiveSubscription())
+        <div class="rounded-md {{ $trialDaysLeft > 1 ? 'bg-blue-50' : 'bg-yellow-50' }} p-4 mb-4">
             <div class="flex items-center">
                 <div class="flex-shrink-0">
-                    <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                        <path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
-                    </svg>
+                    @if($trialDaysLeft > 1)
+                        <svg class="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 009.253 9H9z" clip-rule="evenodd" />
+                        </svg>
+                    @else
+                        <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                            <path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
+                        </svg>
+                    @endif
                 </div>
-                <div class="ml-3 flex-1 md:flex md:justify-between">
-                    <p class="text-yellow-700">Your subscription has expired. Please renew to continue using Spacepad.</p>
+                <div class="ml-2 flex-1 md:flex md:justify-between">
+                    <p class="{{ $trialDaysLeft > 1 ? 'text-blue-700' : 'text-yellow-700' }}">
+                        @if ($trialDaysLeft > 1)
+                            Your trial period is active for {{ $trialDaysLeft }} more days. Enjoy using Spacepad!
+                        @elseif (now()->lt(auth()->user()->trial_ends_at))
+                            This is the last day of your trial. Add your payment info to get 7 extra days for free.
+                        @else
+                            Unfortunately, your trial has expired. Add your payment info to get 7 extra days for free.
+                        @endif
+                    </p>
                     <p class="mt-3 md:ml-6 md:mt-0">
-                        <x-lemon-button :href="$checkout" class="whitespace-nowrap font-medium text-yellow-700 hover:text-yellow-600">
-                            Subscribe now
+                        <x-lemon-button :href="$checkout" class="whitespace-nowrap font-medium {{ $trialDaysLeft > 1 ? 'text-blue-700 hover:text-blue-600' : 'text-yellow-700 hover:text-yellow-600' }}">
+                            Add payment method
                             <span aria-hidden="true"> &rarr;</span>
                         </x-lemon-button>
                     </p>
                 </div>
             </div>
         </div>
-    @else
-        <div class="mb-6 flex gap-4">
+    @endif
+    @if(auth()->user()->hasAccess() && auth()->user()->hasDisplays())
+        <div class="mb-4 flex gap-4">
             <div class="rounded-md bg-gray-50 p-4 grow">
                 <div class="flex">
                     <div class="flex-1 md:flex md:justify-between">
@@ -123,7 +139,7 @@
             <h2 class="text-lg font-semibold text-gray-900 mb-4">Connect a new account</h2>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 @if(config('services.microsoft.enabled'))
-                <a href="{{ route('outlook-accounts.auth') }}" 
+                <a href="{{ route('outlook-accounts.auth') }}"
                    class="flex items-center justify-center gap-3 rounded-lg border border-gray-200 bg-white p-4 shadow-sm hover:border-blue-500 hover:shadow-md transition-all duration-200">
                     <x-icons.microsoft class="h-6 w-6" />
                     <span class="font-medium text-gray-900">Outlook</span>

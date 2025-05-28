@@ -60,4 +60,4 @@ class CleanupExpiredTrials extends Command
 
         $this->info("Successfully deleted {$count} expired trial users.");
     }
-} 
+}

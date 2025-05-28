@@ -29,8 +29,10 @@ class User extends Authenticatable
         'google_id',
         'status',
         'email_verified_at',
-        'last_login_at',
-        'last_activity_at'
+        'last_activity_at',
+        'is_billing_exempt',
+        'is_unlimited',
+        'trial_ends_at'
     ];
 
     /**
@@ -51,8 +53,10 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
-        'last_login_at' => 'datetime',
         'last_activity_at' => 'datetime',
+        'is_billing_exempt' => 'boolean',
+        'is_unlimited' => 'boolean',
+        'trial_ends_at' => 'datetime',
     ];
 
     public function outlookAccounts(): HasMany
@@ -75,6 +79,11 @@ class User extends Authenticatable
         return $this->hasMany(Display::class);
     }
 
+    public function hasDisplays(): bool
+    {
+        return $this->displays()->count() > 0;
+    }
+
     public function getConnectCode(): string
     {
         $connectCode = cache()->get("user:$this->id:connect-code");
@@ -93,12 +102,22 @@ class User extends Authenticatable
 
     public function hasAccess(): bool
     {
-        $freeTrialDays = config('settings.free_trial_days');
-        $isNewerThanTrialPeriod = $this->created_at->gt(now()->subDays($freeTrialDays));
-        if (config('settings.is_self_hosted') || $isNewerThanTrialPeriod || $this->subscribed()) {
-            return true;
-        }
+        return config('settings.is_self_hosted') ||
+            $this->is_billing_exempt ||
+            $this->is_unlimited ||
+            $this->trial_ends_at?->isFuture() ||
+            $this->subscribed();
+    }
 
-        return false;
+    public function hasActiveSubscription(): bool
+    {
+        return config('settings.is_self_hosted') ||
+            $this->is_unlimited ||
+            $this->subscribed();
+    }
+
+    public function getTrialDaysLeft(): int
+    {
+        return now()->diffInDays($this->trial_ends_at);
     }
 }

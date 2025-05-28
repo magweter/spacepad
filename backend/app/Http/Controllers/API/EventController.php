@@ -27,7 +27,7 @@ class EventController extends Controller
     /**
      * @throws \Exception
      */
-    public function getAll(): AnonymousResourceCollection|JsonResponse
+    public function index(): AnonymousResourceCollection|JsonResponse
     {
         /** @var Device $device */
         $device = auth()->user();
@@ -45,7 +45,7 @@ class EventController extends Controller
 
         // Check if the user has access
         if (! $display->user->hasAccess()) {
-            return response()->json(['message' => 'Your subscription has expired. Please renew to continue using Spacepad.'], 403);
+            return response()->json(['message' => 'Your trial has expired. Please subscribe to continue using Spacepad.'], 403);
         }
 
         // Cache events if enabled and not a CalDAV integration, since that doesn't support webhooks
