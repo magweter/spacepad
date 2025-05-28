@@ -70,4 +70,14 @@ class Display extends Model
     {
         return $this->status === DisplayStatus::DEACTIVATED;
     }
+
+    public function updateLastEventAt(Carbon|null $date = null): void
+    {
+        $this->update(['last_event_at' => $date ?? now()]);
+    }
+
+    public function updateLastSyncAt(Carbon|null $date = null): void
+    {
+        $this->update(['last_sync_at' => $date ?? now()]);
+    }
 }

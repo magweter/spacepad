@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\Plan;
 use App\Traits\HasUlid;
+use App\Traits\HasLastActivity;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -12,7 +13,7 @@ use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable, HasUlid;
+    use HasApiTokens, HasFactory, Notifiable, HasUlid, HasLastActivity;
 
     /**
      * The attributes that are mass assignable.
@@ -26,7 +27,9 @@ class User extends Authenticatable
         'microsoft_id',
         'google_id',
         'status',
-        'email_verified_at'
+        'email_verified_at',
+        'last_login_at',
+        'last_activity_at'
     ];
 
     /**
@@ -47,6 +50,8 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
+        'last_login_at' => 'datetime',
+        'last_activity_at' => 'datetime',
     ];
 
     public function outlookAccounts(): HasMany
