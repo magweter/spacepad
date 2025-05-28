@@ -42,7 +42,7 @@ Route::prefix('auth')->group(function () {
     Route::get('/google/callback', [GoogleController::class, 'callback']);
 });
 
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', 'user.update-last-activity'])->group(function () {
     Route::get('/', DashboardController::class)->name('dashboard')->middleware('user.onboarded');
     Route::get('/onboarding', [OnboardingController::class, 'index'])->name('onboarding');
 

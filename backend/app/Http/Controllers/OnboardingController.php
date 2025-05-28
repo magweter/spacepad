@@ -25,18 +25,17 @@ class OnboardingController extends Controller
      */
     public function index(): View|Factory|Application
     {
-        $outlookAccounts = auth()->user()->outlookAccounts;
-        $googleAccounts = auth()->user()->googleAccounts;
-
         $user = auth()->user();
-        if (! $user->email_verified_at && ! $user->microsoft_id) {
+
+        // Register email verified if not a social auth user and publish the registered event
+        if (! $user->hasVerifiedEmail() && ! $user->microsoft_id && ! $user->google_id) {
             $user->update(['email_verified_at' => now()]);
             event(new UserRegistered($user));
         }
 
         return view('pages.onboarding', [
-            'outlookAccounts' => $outlookAccounts,
-            'googleAccounts' => $googleAccounts,
+            'outlookAccounts' => $user->outlookAccounts,
+            'googleAccounts' => $user->googleAccounts,
         ]);
     }
 }

@@ -59,9 +59,7 @@ class OutlookWebhookController extends Controller
             cache()->forget($subscription->display->getEventsCacheKey());
 
             // Set new point to sync from
-            $subscription->display->update([
-                'last_event_at' => $newSyncTimestamp,
-            ]);
+            $subscription->display->updateLastEventAt($newSyncTimestamp);
         }
 
         return response('Notification processed', 200);

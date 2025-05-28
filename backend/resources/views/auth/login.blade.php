@@ -14,6 +14,7 @@
 
                 <form action="{{ route('login.store') }}" method="POST">
                     @csrf
+                    {!! RecaptchaV3::field('login') !!}
                     <div class="mb-6">
                         <label for="email" class="block text-sm/6 font-medium text-gray-900">Email address</label>
                         <div class="mt-2">
@@ -55,7 +56,7 @@
                                     <path d="M5.26498 14.2949C5.02498 13.5699 4.88501 12.7999 4.88501 11.9999C4.88501 11.1999 5.01998 10.4299 5.26498 9.7049L1.275 6.60986C0.46 8.22986 0 10.0599 0 11.9999C0 13.9399 0.46 15.7699 1.28 17.3899L5.26498 14.2949Z" fill="#FBBC05" />
                                     <path d="M12.0004 24.0001C15.2404 24.0001 17.9654 22.935 19.9454 21.095L16.0804 18.095C15.0054 18.82 13.6204 19.245 12.0004 19.245C8.8704 19.245 6.21537 17.135 5.2654 14.29L1.27539 17.385C3.25539 21.31 7.3104 24.0001 12.0004 24.0001Z" fill="#34A853" />
                                 </svg>
-                                <span class="text-sm/6 font-semibold">Google (beta)</span>
+                                <span class="text-sm/6 font-semibold">Google</span>
                             </a>
                         </div>
                     @endif

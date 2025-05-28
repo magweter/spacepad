@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\Plan;
 use App\Traits\HasUlid;
+use App\Traits\HasLastActivity;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -13,7 +14,7 @@ use LemonSqueezy\Laravel\Billable;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable, HasUlid, Billable;
+    use HasApiTokens, HasFactory, Notifiable, HasUlid, HasLastActivity, Billable;
 
     /**
      * The attributes that are mass assignable.
@@ -24,10 +25,12 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'azure_ad_id',
-        'plan_id',
+        'microsoft_id',
+        'google_id',
         'status',
-        'email_verified_at'
+        'email_verified_at',
+        'last_login_at',
+        'last_activity_at'
     ];
 
     /**
@@ -48,6 +51,8 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
+        'last_login_at' => 'datetime',
+        'last_activity_at' => 'datetime',
     ];
 
     public function outlookAccounts(): HasMany

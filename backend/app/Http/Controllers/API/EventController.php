@@ -59,6 +59,9 @@ class EventController extends Controller
             $events = $this->fetchEventsRemotely($display);
         }
 
+        // Update last sync timestamp
+        $display->updateLastSyncAt();
+
         return EventResource::collection($events);
     }
 
