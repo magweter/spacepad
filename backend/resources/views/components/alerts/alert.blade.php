@@ -11,7 +11,7 @@
     // Set type and title based on session messages
     if (session('success')) {
         $type = 'success';
-        $title = 'Success!';
+        $title = 'Success';
     } elseif (session('error')) {
         $type = 'error';
         $title = 'Something went wrong';
@@ -55,9 +55,9 @@
     <div id="alert" class="rounded-md p-4 mb-4 {{ $alertClasses }}">
         <div class="flex flex-col">
             @if($title)
-                <h3 class="text-sm font-medium {{ $titleClasses }}">{{ $title }}</h3>
+                <h3 class="text-md font-semibold {{ $titleClasses }}">{{ $title }}</h3>
             @endif
-            <div class="mt-2 text-sm {{ $messageClasses }}">
+            <div class="mt-1 text-md {{ $messageClasses }}">
                 @if($message)
                     <p>{{ $message }}</p>
                 @endif

@@ -22,7 +22,8 @@
         "sabre/dav": "^4.7",
         "sabre/vobject": "^4.5",
         "sentry/sentry-laravel": "^4.13",
-        "socialiteproviders/microsoft": "^4.6"
+        "socialiteproviders/microsoft": "^4.6",
+        "spatie/laravel-data": "^4.15"
     },
     "require-dev": {
         "laravel/pail": "^1.1",
