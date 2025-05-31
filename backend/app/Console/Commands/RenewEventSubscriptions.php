@@ -11,6 +11,7 @@ use App\Services\OutlookService;
 use App\Services\GoogleService;
 use Illuminate\Console\Command;
 use App\Enums\AccountStatus;
+use Illuminate\Support\Str;
 
 class RenewEventSubscriptions extends Command
 {
@@ -155,7 +156,14 @@ class RenewEventSubscriptions extends Command
     private function createGoogleEventSubscription(GoogleAccount $googleAccount, Display $display, GoogleService $googleService): void
     {
         try {
-            $googleService->createEventSubscription($googleAccount, $display, $display->calendar->calendar_id);
+            $calendar = $display->calendar;
+
+            // Prevent resources and groups from creating a push notification, as it is not supported by Google (pushNotSupportedForRequestedResource)
+            if ($calendar->room || Str::contains($calendar->calendar_id, ['group.calendar.google.com', 'resource.calendar.google.com'])) {
+                return;
+            }
+
+            $googleService->createEventSubscription($googleAccount, $display, $calendar->calendar_id);
         } catch (\Exception $e) {
             $display->update([
                 'status' => DisplayStatus::ERROR,
