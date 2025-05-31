@@ -41,7 +41,7 @@ class EventService
             'description' => $description,
             'start' => $start['dateTime'],
             'end' => $end['dateTime'],
-            'timezone' => $outlookEvent['start']['timeZone'],
+            'timezone' => $outlookEvent['start']['timeZone'] ?? $outlookEvent['end']['timeZone'] ?? 'UTC',
             'isAllDay' => $isAllDay
         ];
     }
@@ -65,7 +65,7 @@ class EventService
             'description' => $googleEvent->getDescription(),
             'start' => $isAllDay ? $start->getDate() : $start->getDateTime(),
             'end' => $isAllDay ? $end->getDate() : $end->getDateTime(),
-            'timezone' => $start->getTimeZone(),
+            'timezone' => $start->getTimeZone() ?? $end->getTimeZone() ?? 'UTC',
             'isAllDay' => $isAllDay
         ];
     }

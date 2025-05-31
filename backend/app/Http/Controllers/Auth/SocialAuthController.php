@@ -40,7 +40,9 @@ abstract class SocialAuthController extends AuthController
                 'provider' => $this->driver,
                 'error' => $e->getMessage()
             ]);
-            return redirect()->route('login')->with('error', 'Authentication with ' . Str::ucfirst($this->driver) . ' failed. Please try again.');
+            return redirect()
+                ->route('login')
+                ->with('error', 'Authentication with ' . Str::ucfirst($this->driver) . ' failed. Please try again.');
         }
     }
 
