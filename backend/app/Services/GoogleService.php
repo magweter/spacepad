@@ -106,15 +106,15 @@ class GoogleService
     {
         $this->client->setAccessToken($account->token);
 
-        $token = $this->client->fetchAccessTokenWithRefreshToken($account->refresh_token);
-        if (isset($token['error'])) {
+        $tokenData = $this->client->fetchAccessTokenWithRefreshToken($account->refresh_token);
+        if (isset($tokenData['error'])) {
             throw new Exception('Error authenticating with Google: ' . $tokenData['error_description']);
         }
 
         $account->update([
-            'token' => $token['access_token'],
-            'refresh_token' => $token['refresh_token'] ?? $account->refresh_token,
-            'token_expires_at' => now()->addSeconds($token['expires_in']),
+            'token' => $tokenData['access_token'],
+            'refresh_token' => $tokenData['refresh_token'] ?? $account->refresh_token,
+            'token_expires_at' => now()->addSeconds($tokenData['expires_in']),
         ]);
     }
 
@@ -202,7 +202,7 @@ class GoogleService
             $eventSubscription = EventSubscription::create([
                 'subscription_id' => $response->getId(),
                 'resource' => $calendarId,
-                'expiration' => Carbon::createFromTimestamp($response->getExpiration())->toAtomString(),
+                'expiration' => Carbon::createFromTimestampMs($response->getExpiration())->toAtomString(),
                 'notification_url' => config('services.google.webhook_url'),
                 'display_id' => $display->id,
                 'google_account_id' => $googleAccount->id,

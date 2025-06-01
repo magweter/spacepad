@@ -80,7 +80,7 @@ class DisplayController extends Controller
             return $display;
         });
 
-        return redirect()->route('dashboard')->with('status', $display ?
+        return redirect()->route('dashboard')->with($display ? 'success' : 'error', $display ?
             'Display created! Now enter the connect code in the app on your tablet to connect it to the display.' :
             'Display could not be created. Please try again later.'
         );

@@ -12,7 +12,7 @@ Route::prefix('auth')->group(function () {
     Route::post('login', [AuthController::class, 'login']);
 });
 
-Route::middleware(['auth:sanctum'])->group(function () {
+Route::middleware(['auth:sanctum', 'user.update-last-activity'])->group(function () {
     Route::get('devices/me', [DeviceController::class, 'getMe']);
     Route::put('devices/display', [DeviceController::class, 'changeDisplay']);
     Route::get('displays', [DisplayController::class, 'getDisplays']);

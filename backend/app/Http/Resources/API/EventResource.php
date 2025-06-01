@@ -15,14 +15,15 @@ class EventResource extends JsonResource
      */
     public function toArray($request): array
     {
+        $timezone = $this['timezone'] ?? 'UTC';
         return [
             'id' => $this['id'],
             'summary' => $this['summary'],
             'location' => $this['location'],
             'description' => $this['description'],
-            'start' => Carbon::parse($this['start'])->setTimezone($this['timezone'])->toAtomString(),
-            'end' => Carbon::parse($this['end'])->setTimezone($this['timezone'])->toAtomString(),
-            'timezone' => $this['timezone'],
+            'start' => Carbon::parse($this['start'])->setTimezone($timezone)->toAtomString(),
+            'end' => Carbon::parse($this['end'])->setTimezone($timezone)->toAtomString(),
+            'timezone' => $timezone,
             'isAllDay' => $this['isAllDay'],
         ];
     }

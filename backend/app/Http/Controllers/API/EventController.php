@@ -11,6 +11,7 @@ use App\Services\EventService;
 use App\Services\OutlookService;
 use App\Services\GoogleService;
 use App\Services\CalDAVService;
+use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
@@ -25,13 +26,16 @@ class EventController extends Controller
     }
 
     /**
-     * @throws \Exception
+     * @throws Exception
      */
     public function getAll(): AnonymousResourceCollection|JsonResponse
     {
         /** @var Device $device */
         $device = auth()->user();
-        $display = $device->display()->with('calendar')->first();
+        $display = $device->display()
+            ->with('calendar')
+            ->withCount('eventSubscriptions')
+            ->first();
 
         // Check if the device is connected to a display
         if (! $display) {
@@ -43,22 +47,11 @@ class EventController extends Controller
             return response()->json(['message' => 'Display is deactivated'], 400);
         }
 
-        // Cache events if enabled and not a CalDAV integration, since that doesn't support webhooks
-        if (config('services.events.cache_enabled') && ! $display->calendar->caldav_account_id) {
-            $events = cache()->remember(
-                key: $display->getEventsCacheKey(),
-                ttl: now()->addMinutes(15),
-                callback: fn () => $this->fetchEventsRemotely($display)
-            );
-        } else {
-            $events = $this->fetchEventsRemotely($display);
-        }
-
-        return EventResource::collection($events);
+        return $this->fetchEventsForDisplay($display);
     }
 
     /**
-     * @throws \Exception
+     * @throws Exception
      */
     private function fetchEventsRemotely(Display $display): array
     {
@@ -88,7 +81,7 @@ class EventController extends Controller
      * @param Calendar $calendar
      * @param Display $display
      * @return array
-     * @throws \Exception
+     * @throws Exception
      */
     private function fetchOutlookEvents(Calendar $calendar, Display $display): array
     {
@@ -143,7 +136,7 @@ class EventController extends Controller
      * @param Calendar $calendar
      * @param Display $display
      * @return array
-     * @throws \Exception
+     * @throws Exception
      */
     private function fetchCalDAVEvents(Calendar $calendar, Display $display): array
     {
@@ -157,5 +150,35 @@ class EventController extends Controller
         return collect($events)
             ->map(fn($e) => $this->eventService->sanitizeCalDAVEvent($e))
             ->toArray();
+    }
+
+    /**
+     * @param Display $display
+     * @return AnonymousResourceCollection|JsonResponse
+     * @throws Exception
+     */
+    private function fetchEventsForDisplay(Display $display): AnonymousResourceCollection|JsonResponse
+    {
+        // Cache events if caching is enabled and the display has an event subscription
+        $cachingEnabled = config('services.events.cache_enabled') && $display->event_subscriptions_count > 0;
+        try {
+            if ($cachingEnabled) {
+                $events = cache()->remember(
+                    key: $display->getEventsCacheKey(),
+                    ttl: now()->addMinutes(15),
+                    callback: fn() => $this->fetchEventsRemotely($display)
+                );
+            } else {
+                $events = $this->fetchEventsRemotely($display);
+            }
+
+            // Update last sync timestamp
+            $display->updateLastSyncAt();
+
+            return EventResource::collection($events);
+        } catch (Exception $e) {
+            report($e);
+            return response()->json(['message' => $e->getMessage()], 500);
+        }
     }
 }
