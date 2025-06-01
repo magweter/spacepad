@@ -60,16 +60,29 @@ sed -i '' "s/^APP_KEY=.*/APP_KEY=$(php -r 'echo "base64:".base64_encode(random_b
 
 Now open the .env file and configure your domain and email.
 
+You can log into the app using three different methods; Email, Microsoft (OAuth) or Google (OAuth).
+
+In order to use the regular email login you should configure an email provider, as it sends a 'magic link' by email. Edit the following variables:
+```env
+MAIL_MAILER=smtp
+MAIL_HOST=
+MAIL_PORT=587
+MAIL_USERNAME=
+MAIL_PASSWORD=
+MAIL_FROM_ADDRESS="hello@example.com"
+```
+
 Configuring the following providers is optional, but you do require at least one. Leaving the client id of the provider empty will ensure it is not enabled.
 
 Configuring the Outlook provider:
 1. Go to [Azure Portal - App Registrations](https://entra.microsoft.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade/quickStartType~/null/sourceType/Microsoft_AAD_IAM)
-1. Create a new app registration, only fill in a name and click 'create'
-1. Open the 'verification' tab and create two new 'web' platforms:
+1. Click on 'New registration', add a name for the applicaton e.g. "Spacepad" and click 'register'
+1. You will be taken to the Overview Page, record the "Application (client) ID" as this is the "AZURE_AD_CLIENT_ID="
+1. Click on the 'Authentication' tab and create two new 'web' platforms:
     - https://your-domain.com/outlook-accounts/callback
     - https://your-domain.com/auth/microsoft/callback
 1. Save, and click on 'API-permissions'
-1. Click 'Microsoft Graph', delegated permissions and add `Calendars.Read.Shared`, `Place.Read.All` and `User.Read`.
+1. Click 'Microsoft Graph', click 'Delegated permissions' and search for and select the following permissions `Calendars.Read.Shared`, `Place.Read.All` and `User.Read`.
 1. Save, and click on 'certificates and secrets'
 1. Create a new secret (not certificate) and copy the value
 1. Click on 'overview' and copy the 'client id'. Beware: this is the client ID value you need, not the ID of the secret you just created.
