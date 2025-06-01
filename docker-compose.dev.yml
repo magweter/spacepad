@@ -1,0 +1,34 @@
+name: spacepad-dev
+services:
+  app:
+    image: spacepad/app:latest
+    restart: unless-stopped
+    build:
+      context: ./backend
+      dockerfile: ./Dockerfile
+    networks:
+      - app
+    volumes:
+      - ./backend:/var/www/html
+    environment:
+      PHP_OPCACHE_ENABLE: 0
+      AUTORUN_ENABLED: 'false'
+      AUTORUN_LARAVEL_MIGRATION: 'false'
+    ports:
+      - "8080:8080"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  scheduler:
+    image: spacepad/app:latest
+    restart: unless-stopped
+    command: php artisan schedule:work
+    networks:
+      - app
+    volumes:
+      - ./backend:/var/www/html
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+networks:
+  app:
