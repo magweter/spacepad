@@ -31,7 +31,13 @@ class EventController extends Controller
     {
         /** @var Device $device */
         $device = auth()->user();
-        $display = $device->display()->with('calendar')->first();
+        $display = $device->display()
+            ->with('calendar')
+            ->withCount('eventSubscriptions')
+            ->first();
+
+        // Cache events if caching is enabled and the display has an event subscription
+        $cachingEnabled = config('services.events.cache_enabled') && $display->event_subscriptions_count > 0;
 
         // Check if the device is connected to a display
         if (! $display) {
@@ -43,8 +49,8 @@ class EventController extends Controller
             return response()->json(['message' => 'Display is deactivated'], 400);
         }
 
-        // Cache events if enabled and not a CalDAV integration, since that doesn't support webhooks
-        if (config('services.events.cache_enabled') && ! $display->calendar->caldav_account_id) {
+        // Fetch events
+        if ($cachingEnabled) {
             $events = cache()->remember(
                 key: $display->getEventsCacheKey(),
                 ttl: now()->addMinutes(15),
