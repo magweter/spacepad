@@ -1,34 +1,36 @@
-name: spacepad-dev
+name: spacepad
 services:
   app:
-    image: spacepad/app:latest
+    image: ghcr.io/magweter/spacepad:latest
     restart: unless-stopped
-    build:
-      context: ./backend
-      dockerfile: ./Dockerfile
-    networks:
-      - app
-    volumes:
-      - ./backend:/var/www/html
-    environment:
-      PHP_OPCACHE_ENABLE: 0
-      AUTORUN_ENABLED: 'false'
-      AUTORUN_LARAVEL_MIGRATION: 'false'
+    platform: linux/amd64
     ports:
       - "8080:8080"
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+    volumes:
+      - storage_data:/var/www/html/storage
+      - database_data:/var/www/html/database
+      - .env:/var/www/html/.env:ro
+    environment:
+      PHP_OPCACHE_ENABLE: 1
+      AUTORUN_ENABLED: 'true'
+      AUTORUN_LARAVEL_MIGRATION: 'true'
 
   scheduler:
-    image: spacepad/app:latest
+    image: ghcr.io/magweter/spacepad:latest
     restart: unless-stopped
-    command: php artisan schedule:work
-    networks:
-      - app
+    command: ["php", "/var/www/html/artisan", "schedule:work"]
+    platform: linux/amd64
     volumes:
-      - ./backend:/var/www/html
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+      - storage_data:/var/www/html/storage
+      - database_data:/var/www/html/database
+      - .env:/var/www/html/.env:ro
+    environment:
+      PHP_OPCACHE_ENABLE: 1
+    healthcheck:
+      # This is our native healthcheck script for the scheduler
+      test: ["CMD", "healthcheck-schedule"]
+      start_period: 10s
 
-networks:
-  app:
+volumes:
+  storage_data:
+  database_data:
