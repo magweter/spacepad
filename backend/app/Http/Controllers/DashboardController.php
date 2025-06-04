@@ -21,8 +21,6 @@ class DashboardController extends Controller
     {
         $connectCode = auth()->user()->getConnectCode();
         $user = auth()->user()->load(['outlookAccounts', 'googleAccounts', 'caldavAccounts', 'displays']);
-        $checkout = auth()->user()->subscribe(config('settings.cloud_plan_id'))
-            ->redirectTo(route('dashboard'));
 
         return view('pages.dashboard', [
             'outlookAccounts' => $user->outlookAccounts,
@@ -30,7 +28,6 @@ class DashboardController extends Controller
             'caldavAccounts' => $user->caldavAccounts,
             'displays' => $user->displays,
             'connectCode' => $connectCode,
-            'checkout' => $checkout,
         ]);
     }
 }

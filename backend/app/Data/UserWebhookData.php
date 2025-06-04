@@ -15,7 +15,6 @@ class UserWebhookData extends Data
         public ?Carbon $emailVerifiedAt,
         public ?string $microsoftId,
         public ?string $googleId,
-        public ?Carbon $trialEndsAt,
         public bool $isBillingExempt,
         public bool $isUnlimited,
         public Carbon $lastActivityAt,

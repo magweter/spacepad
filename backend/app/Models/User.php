@@ -11,6 +11,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use LemonSqueezy\Laravel\Billable;
+use LemonSqueezy\Laravel\Checkout;
 
 class User extends Authenticatable
 {
@@ -32,7 +33,6 @@ class User extends Authenticatable
         'last_activity_at',
         'is_billing_exempt',
         'is_unlimited',
-        'trial_ends_at'
     ];
 
     /**
@@ -56,7 +56,6 @@ class User extends Authenticatable
         'last_activity_at' => 'datetime',
         'is_billing_exempt' => 'boolean',
         'is_unlimited' => 'boolean',
-        'trial_ends_at' => 'datetime',
     ];
 
     public function outlookAccounts(): HasMany
@@ -100,13 +99,18 @@ class User extends Authenticatable
         return $connectCode;
     }
 
-    public function hasAccess(): bool
+    public function hasPro(): bool
     {
-        return config('settings.is_self_hosted') ||
-            $this->is_billing_exempt ||
+        return $this->is_billing_exempt ||
             $this->is_unlimited ||
-            $this->trial_ends_at?->isFuture() ||
             $this->subscribed();
+    }
+
+    public function shouldUpgrade(): bool
+    {
+        return ! $this->is_unlimited &&
+            ! $this->subscribed() &&
+            $this->hasDisplays();
     }
 
     public function hasActiveSubscription(): bool
@@ -116,8 +120,12 @@ class User extends Authenticatable
             $this->subscribed();
     }
 
-    public function getTrialDaysLeft(): int
+    public function getCheckoutUrl(string $redirectUrl = null): Checkout
     {
-        return now()->diffInDays($this->trial_ends_at);
+        $redirectUrl ??= route('dashboard');
+
+        return config('settings.is_self_hosted') ?
+            auth()->user()->subscribe(config('settings.self_hosted_pro_plan_id'))->redirectTo($redirectUrl) :
+            auth()->user()->subscribe(config('settings.cloud_hosted_pro_plan_id'))->redirectTo($redirectUrl);
     }
 }

@@ -47,11 +47,6 @@ class EventController extends Controller
             return response()->json(['message' => 'Display is deactivated'], 400);
         }
 
-        // Check if the user has access
-        if (! $display->user->hasAccess()) {
-            return response()->json(['message' => 'Your trial has expired. Please subscribe to continue using Spacepad.'], 403);
-        }
-
         return $this->fetchEventsForDisplay($display);
     }
 

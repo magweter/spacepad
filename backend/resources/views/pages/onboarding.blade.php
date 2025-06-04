@@ -11,8 +11,8 @@
         <div class="flex justify-center">
             <img class="h-12 w-auto mb-4" src="/images/logo-black.svg" alt="Logo">
         </div>
-        <h2 class="mt-6 text-center text-2xl/9 font-bold tracking-tight text-gray-900">Let's get your rooms connected 🥳</h2>
-        <p class="mt-2 text-center text-lg text-gray-500">We'll walk you through setting up a device in just a few minutes</p>
+        <h2 class="mt-6 text-center text-2xl/9 font-bold tracking-tight text-gray-900">Let's get your calendars connected 🥳</h2>
+        <p class="mt-2 text-center text-lg text-gray-500">We'll walk you through setting up a display in just a few minutes</p>
     </div>
 
     <div class="mt-10 sm:mx-auto sm:w-full sm:max-w-[480px]">
@@ -43,18 +43,28 @@
                         <p class="break-words leading-6">You'll be able to connect multiple accounts from different providers and display events from the calendars and rooms of the account.</p>
                     </div>
                 </div>
-                <div class="flex flex-col items-center justify-center gap-y-4 mt-8">
+                <div class="flex flex-col gap-y-4 mt-8 w-full">
                     @if(config('services.microsoft.enabled'))
-                        <a href="{{ route('outlook-accounts.auth') }}" class="inline-flex items-center rounded-md bg-white py-3 px-4 text-md font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
-                            <x-icons.microsoft class="h-4 w-4 mr-2" />
-                            <span>Connect an Outlook account</span>
+                        <a href="{{ route('outlook-accounts.auth') }}"
+                           class="flex items-center justify-center gap-3 rounded-lg border border-gray-200 bg-white p-4 shadow-sm hover:border-blue-500 hover:shadow-md transition-all duration-200">
+                            <x-icons.microsoft class="h-6 w-6" />
+                            <span class="font-medium text-gray-900">Connect a Microsoft account</span>
                         </a>
                     @endif
 
                     @if(config('services.google.enabled'))
-                        <a href="{{ route('google-accounts.auth') }}" class="inline-flex items-center rounded-md bg-white py-3 px-4 text-md font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
-                            <x-icons.google class="h-4 w-4 mr-2" />
-                            <span>Connect a Google account</span>
+                        <a href="{{ route('google-accounts.auth') }}"
+                           class="flex items-center justify-center gap-3 rounded-lg border border-gray-200 bg-white p-4 shadow-sm hover:border-blue-500 hover:shadow-md transition-all duration-200">
+                            <x-icons.google class="h-6 w-6" />
+                            <span class="font-medium text-gray-900">Connect a Google account</span>
+                        </a>
+                    @endif
+
+                    @if(config('services.caldav.enabled'))
+                        <a href="{{ route('caldav-accounts.create') }}"
+                           class="flex items-center justify-center gap-3 rounded-lg border border-gray-200 bg-white p-4 shadow-sm hover:border-blue-500 hover:shadow-md transition-all duration-200">
+                            <x-icons.calendar class="h-6 w-6 text-gray-600" />
+                            <span class="font-medium text-gray-900">Connect to a CalDAV server</span>
                         </a>
                     @endif
                 </div>
