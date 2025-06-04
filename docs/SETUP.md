@@ -77,11 +77,18 @@ Configuring the Google provider:
    - GOOGLE_CLIENT_ID=your_client_id
    - GOOGLE_CLIENT_SECRET=your_client_secret
 
-Now run the application using Docker Compose:
+Now you can choose to run the application with or without built-in proxy using Docker Compose.
+
+To run the application with Traefik as a proxy:
 ```bash
 docker compose -f docker-compose.prod.yml up -d
 ```
 
-Great! You should now be able to access the application at http://localhost.
+To run the application standalone (e.g. to use your own proxy):
+```bash
+docker compose up -d
+```
+
+Great! You should now be able to access the application at http://localhost or without proxy at http://localhost:8080.
 
 Download the mobile app from the App Store or Play Store and follow the instructions 🚀

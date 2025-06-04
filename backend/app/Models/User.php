@@ -101,8 +101,7 @@ class User extends Authenticatable
 
     public function hasPro(): bool
     {
-        return $this->is_billing_exempt ||
-            $this->is_unlimited ||
+        return $this->is_unlimited ||
             $this->subscribed();
     }
 
@@ -113,14 +112,7 @@ class User extends Authenticatable
             $this->hasDisplays();
     }
 
-    public function hasActiveSubscription(): bool
-    {
-        return config('settings.is_self_hosted') ||
-            $this->is_unlimited ||
-            $this->subscribed();
-    }
-
-    public function getCheckoutUrl(string $redirectUrl = null): Checkout
+    public function getCheckoutUrl(?string $redirectUrl = null): Checkout
     {
         $redirectUrl ??= route('dashboard');
 

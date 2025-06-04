@@ -1,12 +1,16 @@
 @extends('layouts.base')
 @section('title', 'Management dashboard')
 @section('content')
-    <!-- Session Status Alert -->
+    @php
+        $isSelfHosted = config('settings.is_self_hosted');
+        $checkout = auth()->user()->getCheckoutUrl(route('dashboard'));
+    @endphp
+
+    {{-- Session Status Alert --}}
     <x-alerts.alert />
 
-    @php($checkout = auth()->user()->getCheckoutUrl(route('dashboard')))
-    @php($shouldUpgrade = ! config('settings.is_self_hosted') && auth()->user()->shouldUpgrade())
-    @if(! config('settings.is_self_hosted') && ! auth()->user()->hasPro())
+    {{-- Commercial Banner --}}
+    @if(! auth()->user()->hasPro())
         <div class="rounded-md bg-blue-50 p-4 mb-4">
             <div class="flex items-center">
                 <div class="flex-shrink-0">
@@ -16,28 +20,7 @@
                 </div>
                 <div class="ml-2 flex-1 md:flex md:justify-between">
                     <p class="text-blue-700">
-                        Need multiple displays or access to resources like rooms? Try out Pro and support development
-                    </p>
-                    <p class="mt-3 md:ml-6 md:mt-0">
-                        <x-lemon-button :href="$checkout" class="whitespace-nowrap font-medium text-blue-700 hover:text-blue-600">
-                            Try 7 days for free
-                            <span aria-hidden="true"> &rarr;</span>
-                        </x-lemon-button>
-                    </p>
-                </div>
-            </div>
-        </div>
-    @else
-        <div class="rounded-md bg-blue-50 p-4 mb-4">
-            <div class="flex items-center">
-                <div class="flex-shrink-0">
-                    <svg class="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 009.253 9H9z" clip-rule="evenodd" />
-                    </svg>
-                </div>
-                <div class="ml-2 flex-1 md:flex md:justify-between">
-                    <p class="text-blue-700">
-                        Using Spacepad for business? Support development by purchasing a license — it’s just $5 per display.
+                        {{ config('settings.is_self_hosted') ? 'Using Spacepad for business? Support development by purchasing a license — it’s just $5 per display.' : 'Need multiple displays or access to resources like rooms? Try out Pro and support development — it’s just $5 per display.' }}
                     </p>
                     <p class="mt-3 md:ml-6 md:mt-0">
                         <x-lemon-button :href="$checkout" class="whitespace-nowrap font-medium text-blue-700 hover:text-blue-600">
@@ -50,6 +33,7 @@
         </div>
     @endif
 
+    {{-- Instruction Banner --}}
     @if(auth()->user()->hasDisplays())
         <div class="mb-4 flex gap-4">
             <div class="rounded-md bg-gray-50 p-4 grow">
@@ -176,7 +160,7 @@
         </div>
     </div>
 
-    <div>
+    <div class="mb-2">
         <div class="sm:flex sm:items-center">
             <div class="sm:flex-auto">
                 <h1 class="text-lg font-semibold leading-6 text-gray-900">Displays</h1>
@@ -184,7 +168,7 @@
             </div>
             <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
                 @if(auth()->user()->can('create', \App\Models\Display::class))
-                    @if($shouldUpgrade)
+                    @if(! $isSelfHosted && auth()->user()->shouldUpgrade())
                         <x-lemon-button :href="$checkout" class="inline-flex items-center rounded-md bg-oxford px-3 py-2 text-center text-md font-semibold text-white">
                             <x-icons.plus class="h-5 w-5 mr-1" />
                             Create new display <span class="ml-2 inline-flex items-center rounded-md bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20">Pro</span>

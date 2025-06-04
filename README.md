@@ -6,7 +6,7 @@
     <br />
     <a href="https://spacepad.io">Website</a>
     ·
-    <a href="https://github.com/openstatushq/openstatus/issues">Issues</a>
+    <a href="https://github.com/magweter/spacepad/issues">Issues</a>
   </p>
 </p>
 
@@ -28,12 +28,12 @@ We believe in open source and personal tinkering, and want to support these comm
 
 🏢 If you're a business using Spacepad in your office, we ask you to support development by [buying a license](https://spacepad.io/#pricing). It’s affordable, simple, and helps keep the project alive.
 
-| Feature | Cloud Hosted<br> (Community) | Cloud Hosted<br> (Pro) | Self Hosted<br> (Community) | Self Hosted<br> (Pro) |
+| Feature | Cloud Hosted<br> (Community) | Cloud Hosted <br>(Pro) | Self Hosted <br>(Community) | Self Hosted<br> (Pro) |
 | ------- | ------------------------ | ------------------ | ----------------------- | ----------------- |
 | Real-time Room Status Display | ✅ | ✅ | ✅ | ✅ |
 | M365 / Google / CalDAV Integration | ✅ | ✅ | ✅ | ✅ |
 | Rooms & resources | ❌ | ✅ | ✅ | ✅ |
-| Number of Displays | 1 display free | $5/month per display, 14 day free trial | Unlimited | $5/month per display, 14 day free trial |
+| Number of Displays | 1 display free | $5/month per display, <br>14 day free trial | Unlimited | $5/month per display, <br>14 day free trial |
 
 ## 🔧 Get Started
 
@@ -87,7 +87,7 @@ We love open source and welcome your contributions! See [CONTRIBUTING.md](CONTRI
 [x] CalDAV support
 [ ] Amazon Fire Tablet support
 [ ] Custom display themes & logos
-[ ] Multi-room overview dashboard
 [ ] Room booking directly on device
+[ ] Multi-room overview dashboard
 
-Feature requests? We're all ears. Please open an issue.
+Feature requests? We're all ears! Please open a new [issue](https://github.com/magweter/spacepad/issues).

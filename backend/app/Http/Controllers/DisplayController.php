@@ -14,6 +14,7 @@ use App\Models\CalDAVAccount;
 use App\Services\OutlookService;
 use App\Services\GoogleService;
 use App\Services\CalDAVService;
+use Exception;
 use Illuminate\Contracts\View\Factory;
 use Illuminate\Contracts\View\View;
 use Illuminate\Foundation\Application;
@@ -45,40 +46,49 @@ class DisplayController extends Controller
     }
 
     /**
-     * @throws \Exception
+     * @throws Exception
      */
     public function store(CreateDisplayRequest $request): RedirectResponse
     {
-        $validated = $request->validated();
-        $display = DB::transaction(function () use ($validated, $request) {
-            $provider = $validated['provider'];
-            $accountId = $validated['account'];
+        $validatedData = $request->validated();
 
-            // Get the appropriate account model based on provider
-            $account = match($provider) {
-                'outlook' => OutlookAccount::findOrFail($accountId),
-                'google' => GoogleAccount::findOrFail($accountId),
-                'caldav' => CalDAVAccount::findOrFail($accountId),
-                default => throw new \InvalidArgumentException('Invalid provider')
-            };
+        $provider = $validatedData['provider'];
+        $accountId = $validatedData['account'];
 
+        // Check on access to create multiple displays
+        if (! config('settings.is_self_hosted') && auth()->user()->shouldUpgrade()) {
+            return redirect()->back()->with('error', 'You require an active Pro license to create multiple displays.');
+        }
+
+        // Check on access to features and subscription
+        if (! config('settings.is_self_hosted') && ! auth()->user()->hasPro() && isset($validatedData['room'])) {
+            return redirect()->back()->with('error', 'You require an active Pro license to be able to use resources.');
+        }
+
+        // Validate the existence of the appropriate account based on provider
+        match ($provider) {
+            'outlook' => OutlookAccount::findOrFail($accountId),
+            'google' => GoogleAccount::findOrFail($accountId),
+            'caldav' => CalDAVAccount::findOrFail($accountId),
+            default => throw new \InvalidArgumentException('Invalid provider')
+        };
+
+        $display = DB::transaction(function () use ($validatedData) {
             // Handle room or calendar selection
-            $calendar = $this->createCalendar($validated);
+            $calendar = $this->createCalendar($validatedData);
 
-            $display = Display::create([
+            return Display::create([
                 'user_id' => auth()->id(),
-                'name' => $validated['name'],
-                'display_name' => $validated['displayName'],
+                'name' => $validatedData['name'],
+                'display_name' => $validatedData['displayName'],
                 'status' => DisplayStatus::READY,
                 'calendar_id' => $calendar->id,
             ]);
-
-            if ($display) {
-                event(new UserOnboarded($request->user(), $display));
-            }
-
-            return $display;
         });
+
+        if ($display) {
+            event(new UserOnboarded($request->user(), $display));
+        }
 
         return redirect()->route('dashboard')->with($display ? 'success' : 'error', $display ?
             'Display created! Now enter the connect code in the app on your tablet to connect it to the display.' :

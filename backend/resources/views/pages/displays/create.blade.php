@@ -1,26 +1,15 @@
 @extends('layouts.base')
 @section('title', 'Create a new display')
 @section('content')
-    <!-- Session Status Alert -->
-    @if(session('status'))
-        <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4">
-            {{ session('status') }}
-        </div>
-    @endif
+    @php
+        $isSelfHosted = config('settings.is_self_hosted');
+        $checkout = auth()->user()->getCheckoutUrl(route('displays.create'));
+        $userHasPro = auth()->user()->hasPro();
+    @endphp
 
-    <!-- Validation Errors Alert -->
-    @if ($errors->any())
-        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4">
-            <strong>Please pay attention to the following errors.</strong>
-            <ul class="mt-2 list-disc list-inside">
-                @foreach ($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
-        </div>
-    @endif
+    {{-- Session Status Alert --}}
+    <x-alerts.alert />
 
-    @php($checkout = auth()->user()->getCheckoutUrl(route('displays.create')))
     <form id="createForm" action="{{ route('displays.store') }}" method="POST">
         @csrf
         <input type="hidden" name="provider" id="providerInput" value="">
@@ -106,32 +95,37 @@
                     <p class="text-sm font-semibold leading-6 text-gray-900">How do you want to find your calendar?</p>
                     <p class="mt-1 text-sm leading-6 text-gray-600">Choose how you want to search for your calendar.</p>
                     <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                        <div class="relative flex items-center space-x-3 rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 hover:border-gray-400 cursor-pointer search-method-tile" data-method="calendar">
+                        <div data-method="calendar" class="search-method-tile relative flex items-center space-x-3 rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 hover:border-gray-400 cursor-pointer">
                             <div class="min-w-0 flex-1">
-                                <span class="absolute inset-0" aria-hidden="true"></span>
                                 <p class="text-sm font-medium text-gray-900 mb-1">Connect by Calendar</p>
                                 <p class="truncate text-sm text-gray-500">Search by personal or work calendar</p>
                             </div>
                         </div>
 
-                        @if(! config('settings.is_self_hosted') && ! auth()->user()->hasPro())
+                        @if(! $isSelfHosted && ! $userHasPro)
                             <x-lemon-button :href="$checkout">
-                        @endif
-                        <div class="relative flex items-center space-x-3 rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 hover:border-gray-400 cursor-pointer search-method-tile" data-method="room">
-                            <div class="min-w-0 flex-1">
-                                <span class="absolute inset-0" aria-hidden="true"></span>
-                                <p class="text-sm font-medium text-gray-900 mb-1">
-                                    Connect by Room
-                                    @if(! auth()->user()->hasPro())
-                                        <span class="ml-1 inline-flex items-center rounded-md bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20">Pro</span>
-                                        <span class="ml-1 inline-flex items-center rounded-md bg-green-50 px-1.5 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">Try 7 days for free</span>
-                                    @endif
-                                </p>
-                                <p class="truncate text-sm text-gray-500">Search organization resources like rooms</p>
-                            </div>
-                        </div>
-                        @if(! config('settings.is_self_hosted') && ! auth()->user()->hasPro())
+                                <div class="relative flex items-center space-x-3 rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 hover:border-gray-400 cursor-pointer">
+                                    <div class="min-w-0 flex-1">
+                                        <p class="text-sm font-medium text-gray-900 mb-1">
+                                            Connect by Room
+                                            @if(! $userHasPro)
+                                                <span class="ml-1 inline-flex items-center rounded-md bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20">Pro</span>
+                                                <span class="ml-1 inline-flex items-center rounded-md bg-green-50 px-1.5 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">Try 7 days for free</span>
+                                            @endif
+                                        </p>
+                                        <p class="truncate text-sm text-gray-500">Search organization resources like rooms</p>
+                                    </div>
+                                </div>
                             </x-lemon-button>
+                        @else
+                            <div data-method="room" class="search-method-tile relative flex items-center space-x-3 rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 hover:border-gray-400 cursor-pointer">
+                                <div class="min-w-0 flex-1">
+                                    <p class="text-sm font-medium text-gray-900 mb-1">
+                                        Connect by Room
+                                    </p>
+                                    <p class="truncate text-sm text-gray-500">Search organization resources like rooms</p>
+                                </div>
+                            </div>
                         @endif
                     </div>
                 </div>
