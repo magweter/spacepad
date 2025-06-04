@@ -236,9 +236,9 @@ class GoogleService
         EventSubscription $eventSubscription,
         bool $useApi = true
     ): void {
-        $this->ensureAuthenticated($googleAccount);
-
         if ($useApi) {
+            $this->ensureAuthenticated($googleAccount);
+
             try {
                 $calendarService = new Calendar($this->client);
                 $channel = new Channel();

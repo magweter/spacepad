@@ -366,10 +366,10 @@ class OutlookService
         bool $useApi = true
     ): void
     {
-        $this->ensureAuthenticated($outlookAccount);
-
         // Delete the subscription on Microsoft Graph
         if ($useApi) {
+            $this->ensureAuthenticated($outlookAccount);
+
             Http::withToken($outlookAccount->token)
                 ->delete("https://graph.microsoft.com/v1.0/subscriptions/{$eventSubscription->subscription_id}");
         }
