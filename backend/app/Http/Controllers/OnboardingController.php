@@ -36,6 +36,7 @@ class OnboardingController extends Controller
         return view('pages.onboarding', [
             'outlookAccounts' => $user->outlookAccounts,
             'googleAccounts' => $user->googleAccounts,
+            'caldavAccounts' => $user->caldavAccounts,
         ]);
     }
 }

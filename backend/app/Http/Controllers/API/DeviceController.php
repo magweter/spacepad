@@ -10,7 +10,7 @@ use Illuminate\Http\JsonResponse;
 
 class DeviceController extends Controller
 {
-    public function getMe(): DeviceResource
+    public function me(): DeviceResource
     {
         return DeviceResource::make(auth()->user());
     }

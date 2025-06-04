@@ -28,12 +28,12 @@ class EventController extends Controller
     /**
      * @throws Exception
      */
-    public function getAll(): AnonymousResourceCollection|JsonResponse
+    public function index(): AnonymousResourceCollection|JsonResponse
     {
         /** @var Device $device */
         $device = auth()->user();
         $display = $device->display()
-            ->with('calendar')
+            ->with(['calendar', 'user'])
             ->withCount('eventSubscriptions')
             ->first();
 

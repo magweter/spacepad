@@ -46,6 +46,7 @@
         }
         .grecaptcha-badge { visibility: hidden !important; }
     </style>
+    @lemonJS
 </head>
 <body class="h-full @yield('body-classes')">
 @stack('modals')

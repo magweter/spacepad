@@ -21,6 +21,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'user.update-last-activity' => UpdateLastActivity::class,
             'user.onboarded' => CheckUserOnboarded::class,
         ]);
+        $middleware->validateCsrfTokens(except: [
+            'lemon-squeezy/*',
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         Integration::handles($exceptions);

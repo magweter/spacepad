@@ -1,4 +1,4 @@
-FROM composer:2.6.6 AS php_builder
+FROM composer:lts AS php_builder
 
 WORKDIR /app
 
@@ -10,7 +10,7 @@ RUN composer install --no-cache --no-scripts --no-autoloader --ansi --no-interac
     && composer dump-autoload -o
 
 # Set our base image
-FROM serversideup/php:8.2-unit as base
+FROM serversideup/php:8.4-unit as base
 
 FROM base as production
 

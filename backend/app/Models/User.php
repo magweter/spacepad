@@ -10,10 +10,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use LemonSqueezy\Laravel\Billable;
+use LemonSqueezy\Laravel\Checkout;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable, HasUlid, HasLastActivity;
+    use HasApiTokens, HasFactory, Notifiable, HasUlid, HasLastActivity, Billable;
 
     /**
      * The attributes that are mass assignable.
@@ -28,8 +30,9 @@ class User extends Authenticatable
         'google_id',
         'status',
         'email_verified_at',
-        'last_login_at',
-        'last_activity_at'
+        'last_activity_at',
+        'is_billing_exempt',
+        'is_unlimited',
     ];
 
     /**
@@ -50,8 +53,9 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
-        'last_login_at' => 'datetime',
         'last_activity_at' => 'datetime',
+        'is_billing_exempt' => 'boolean',
+        'is_unlimited' => 'boolean',
     ];
 
     public function outlookAccounts(): HasMany
@@ -74,6 +78,11 @@ class User extends Authenticatable
         return $this->hasMany(Display::class);
     }
 
+    public function hasDisplays(): bool
+    {
+        return $this->displays()->count() > 0;
+    }
+
     public function getConnectCode(): string
     {
         $connectCode = cache()->get("user:$this->id:connect-code");
@@ -88,5 +97,27 @@ class User extends Authenticatable
         }
 
         return $connectCode;
+    }
+
+    public function hasPro(): bool
+    {
+        return $this->is_unlimited ||
+            $this->subscribed();
+    }
+
+    public function shouldUpgrade(): bool
+    {
+        return ! $this->is_unlimited &&
+            ! $this->subscribed() &&
+            $this->hasDisplays();
+    }
+
+    public function getCheckoutUrl(?string $redirectUrl = null): Checkout
+    {
+        $redirectUrl ??= route('dashboard');
+
+        return config('settings.is_self_hosted') ?
+            auth()->user()->subscribe(config('settings.self_hosted_pro_plan_id'))->redirectTo($redirectUrl) :
+            auth()->user()->subscribe(config('settings.cloud_hosted_pro_plan_id'))->redirectTo($redirectUrl);
     }
 }

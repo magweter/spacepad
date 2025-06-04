@@ -1,27 +1,60 @@
 @extends('layouts.base')
 @section('title', 'Management dashboard')
 @section('content')
-    <!-- Session Status Alert -->
+    @php
+        $isSelfHosted = config('settings.is_self_hosted');
+        $checkout = auth()->user()->getCheckoutUrl(route('dashboard'));
+    @endphp
+
+    {{-- Session Status Alert --}}
     <x-alerts.alert />
 
-    <div class="mb-8">
-        <div class="col-span-12 mb-6 flex gap-4">
-            <div class="rounded-md bg-gray-50 p-4">
+    {{-- Commercial Banner --}}
+    @if(! auth()->user()->hasPro())
+        <div class="rounded-md bg-blue-50 p-4 mb-4">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 009.253 9H9z" clip-rule="evenodd" />
+                    </svg>
+                </div>
+                <div class="ml-2 flex-1 md:flex md:justify-between">
+                    <p class="text-blue-700">
+                        {{ config('settings.is_self_hosted') ? 'Using Spacepad for business? Support development by purchasing a license — it’s just $5 per display.' : 'Need multiple displays or access to resources like rooms? Try out Pro and support development — it’s just $5 per display.' }}
+                    </p>
+                    <p class="mt-3 md:ml-6 md:mt-0">
+                        <x-lemon-button :href="$checkout" class="whitespace-nowrap font-medium text-blue-700 hover:text-blue-600">
+                            Try 7 days for free
+                            <span aria-hidden="true"> &rarr;</span>
+                        </x-lemon-button>
+                    </p>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    {{-- Instruction Banner --}}
+    @if(auth()->user()->hasDisplays())
+        <div class="mb-4 flex gap-4">
+            <div class="rounded-md bg-gray-50 p-4 grow">
                 <div class="flex">
                     <div class="flex-1 md:flex md:justify-between">
-                        <p class="text-base text-gray-700"><strong>You're all set!</strong> Connect a new tablet by downloading the app from the <a target="_blank" href="https://play.google.com/store/apps/details?id=com.magweter.spacepad" class="text-blue-600 hover:text-blue-500">Play Store</a> or <a target="_blank" href="https://apps.apple.com/nl/app/spacepad/id6745528995" class="text-blue-600 hover:text-blue-500">App Store</a> and using the connect code displayed in the top right corner.</p>
+                        <p class="text-base text-gray-700"><strong>You're all set!</strong> Connect a new device with the app from the <a target="_blank" href="https://play.google.com/store/apps/details?id=com.magweter.spacepad" class="text-blue-600 hover:text-blue-500">Play Store</a> or <a target="_blank" href="https://apps.apple.com/nl/app/spacepad/id6745528995" class="text-blue-600 hover:text-blue-500">App Store</a> and using the connect code.</p>
                     </div>
                 </div>
             </div>
-            <div class="bg-gray-50 rounded-lg w-[300px] items-center flex">
+            <div class="bg-gray-50 rounded-lg items-center flex">
                 <div class="p-4 flex w-full">
-                    <h3 class="text-base font-semibold text-gray-900">Connect code</h3>
+                    <h3 class="text-base font-semibold text-gray-900 mr-8">Connect code</h3>
                     <div class="max-w-xl text-base text-gray-500 ml-auto">
                         <p>{{ chunk_split($connectCode, 3, ' ') }}</p>
                     </div>
                 </div>
             </div>
         </div>
+    @endif
+
+    <div class="mb-8">
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-4">
             <div class="sm:flex sm:items-center sm:col-span-2 md:col-span-3">
                 <div class="sm:flex-auto">
@@ -101,7 +134,7 @@
             <h2 class="text-lg font-semibold text-gray-900 mb-4">Connect a new account</h2>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 @if(config('services.microsoft.enabled'))
-                <a href="{{ route('outlook-accounts.auth') }}" 
+                <a href="{{ route('outlook-accounts.auth') }}"
                    class="flex items-center justify-center gap-3 rounded-lg border border-gray-200 bg-white p-4 shadow-sm hover:border-blue-500 hover:shadow-md transition-all duration-200">
                     <x-icons.microsoft class="h-6 w-6" />
                     <span class="font-medium text-gray-900">Outlook</span>
@@ -127,7 +160,7 @@
         </div>
     </div>
 
-    <div>
+    <div class="mb-2">
         <div class="sm:flex sm:items-center">
             <div class="sm:flex-auto">
                 <h1 class="text-lg font-semibold leading-6 text-gray-900">Displays</h1>
@@ -135,10 +168,17 @@
             </div>
             <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
                 @if(auth()->user()->can('create', \App\Models\Display::class))
-                    <a href="{{ route('displays.create') }}" class="inline-flex items-center rounded-md bg-oxford px-3 py-2 text-center text-md font-semibold text-white">
-                        <x-icons.plus class="h-5 w-5 mr-1" />
-                        Create new display
-                    </a>
+                    @if(! $isSelfHosted && auth()->user()->shouldUpgrade())
+                        <x-lemon-button :href="$checkout" class="inline-flex items-center rounded-md bg-oxford px-3 py-2 text-center text-md font-semibold text-white">
+                            <x-icons.plus class="h-5 w-5 mr-1" />
+                            Create new display <span class="ml-2 inline-flex items-center rounded-md bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20">Pro</span>
+                        </x-lemon-button>
+                    @else
+                        <a href="{{ route('displays.create') }}" class="inline-flex items-center rounded-md bg-oxford px-3 py-2 text-center text-md font-semibold text-white">
+                            <x-icons.plus class="h-5 w-5 mr-1" />
+                            Create new display
+                        </a>
+                    @endif
                 @endif
             </div>
         </div>
@@ -201,14 +241,12 @@
                                                 <form action="{{ route('displays.updateStatus', $display) }}" method="POST">
                                                     @csrf
                                                     @method('PATCH')
-                                                    @if ($display->status === \App\Enums\DisplayStatus::ACTIVE)
+                                                    @if ($display->status !== \App\Enums\DisplayStatus::DEACTIVATED)
                                                         <input type="hidden" name="status" value="{{\App\Enums\DisplayStatus::DEACTIVATED}}" />
                                                         <button type="submit" class="text-blue-600 hover:text-blue-900">Deactivate</button>
-                                                    @elseif ($display->status === \App\Enums\DisplayStatus::DEACTIVATED)
+                                                    @else
                                                         <input type="hidden" name="status" value="{{\App\Enums\DisplayStatus::ACTIVE}}" />
                                                         <button type="submit" class="text-blue-600 hover:text-blue-900">Activate</button>
-                                                    @else
-                                                        <button type="submit" class="text-gray-400" disabled>Deactivate</button>
                                                     @endif
                                                 </form>
                                                 <form action="{{ route('displays.delete', $display) }}" method="POST">

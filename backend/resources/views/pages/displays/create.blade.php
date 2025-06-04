@@ -1,24 +1,14 @@
 @extends('layouts.base')
 @section('title', 'Create a new display')
 @section('content')
-    <!-- Session Status Alert -->
-    @if(session('status'))
-        <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4">
-            {{ session('status') }}
-        </div>
-    @endif
+    @php
+        $isSelfHosted = config('settings.is_self_hosted');
+        $checkout = auth()->user()->getCheckoutUrl(route('displays.create'));
+        $userHasPro = auth()->user()->hasPro();
+    @endphp
 
-    <!-- Validation Errors Alert -->
-    @if ($errors->any())
-        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4">
-            <strong>Please pay attention to the following errors.</strong>
-            <ul class="mt-2 list-disc list-inside">
-                @foreach ($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
-        </div>
-    @endif
+    {{-- Session Status Alert --}}
+    <x-alerts.alert />
 
     <form id="createForm" action="{{ route('displays.store') }}" method="POST">
         @csrf
@@ -32,7 +22,7 @@
                                class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6"
                                placeholder="">
                     </div>
-                    <p class="mt-2 text-sm text-gray-500">This name is only used in the dashboard and for your identification only.</p>
+                    <p class="mt-2 text-sm text-gray-500">This name is only used in the dashboard and for your identification.</p>
                 </div>
                 <div class="mb-4">
                     <label for="displayName" class="block text-sm font-medium leading-6 text-gray-900">Room name</label>
@@ -41,7 +31,7 @@
                                class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6"
                                placeholder="">
                     </div>
-                    <p class="mt-2 text-sm text-gray-500">This name will be displayed on the top right corner of the screen.</p>
+                    <p class="mt-2 text-sm text-gray-500">This name will be displayed on the top right corner of the display.</p>
                 </div>
 
                 <!-- Step 1: Provider Selection -->
@@ -60,7 +50,7 @@
                                     @if(count($outlookAccounts) > 0)
                                         Connect to Outlook calendars
                                     @else
-                                        Connect an account first, via the dashboard
+                                        Connect an account first
                                     @endif
                                 </p>
                             </div>
@@ -76,7 +66,7 @@
                                     @if(count($googleAccounts) > 0)
                                         Connect to Google calendars
                                     @else
-                                        Connect an account first, via the dashboard
+                                        Connect an account first
                                     @endif
                                 </p>
                             </div>
@@ -92,7 +82,7 @@
                                     @if(count($caldavAccounts) > 0)
                                         Connect to CalDAV calendars
                                     @else
-                                        Connect an account first, via the dashboard
+                                        Connect an account first
                                     @endif
                                 </p>
                             </div>
@@ -105,20 +95,38 @@
                     <p class="text-sm font-semibold leading-6 text-gray-900">How do you want to find your calendar?</p>
                     <p class="mt-1 text-sm leading-6 text-gray-600">Choose how you want to search for your calendar.</p>
                     <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                        <div class="relative flex items-center space-x-3 rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 hover:border-gray-400 cursor-pointer search-method-tile" data-method="calendar">
+                        <div data-method="calendar" class="search-method-tile relative flex items-center space-x-3 rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 hover:border-gray-400 cursor-pointer">
                             <div class="min-w-0 flex-1">
-                                <span class="absolute inset-0" aria-hidden="true"></span>
-                                <p class="text-sm font-medium text-gray-900">Search by Calendar</p>
-                                <p class="truncate text-sm text-gray-500">Find a specific calendar</p>
+                                <p class="text-sm font-medium text-gray-900 mb-1">Connect by Calendar</p>
+                                <p class="truncate text-sm text-gray-500">Search by personal or work calendar</p>
                             </div>
                         </div>
-                        <div class="relative flex items-center space-x-3 rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 hover:border-gray-400 cursor-pointer search-method-tile" data-method="room">
-                            <div class="min-w-0 flex-1">
-                                <span class="absolute inset-0" aria-hidden="true"></span>
-                                <p class="text-sm font-medium text-gray-900">Search by Room</p>
-                                <p class="truncate text-sm text-gray-500">Find a room's calendar</p>
+
+                        @if(! $isSelfHosted && ! $userHasPro)
+                            <x-lemon-button :href="$checkout">
+                                <div class="relative flex items-center space-x-3 rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 hover:border-gray-400 cursor-pointer">
+                                    <div class="min-w-0 flex-1">
+                                        <p class="text-sm font-medium text-gray-900 mb-1">
+                                            Connect by Room
+                                            @if(! $userHasPro)
+                                                <span class="ml-1 inline-flex items-center rounded-md bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20">Pro</span>
+                                                <span class="ml-1 inline-flex items-center rounded-md bg-green-50 px-1.5 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">Try 7 days for free</span>
+                                            @endif
+                                        </p>
+                                        <p class="truncate text-sm text-gray-500">Search organization resources like rooms</p>
+                                    </div>
+                                </div>
+                            </x-lemon-button>
+                        @else
+                            <div data-method="room" class="search-method-tile relative flex items-center space-x-3 rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 hover:border-gray-400 cursor-pointer">
+                                <div class="min-w-0 flex-1">
+                                    <p class="text-sm font-medium text-gray-900 mb-1">
+                                        Connect by Room
+                                    </p>
+                                    <p class="truncate text-sm text-gray-500">Search organization resources like rooms</p>
+                                </div>
                             </div>
-                        </div>
+                        @endif
                     </div>
                 </div>
 
