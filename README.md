@@ -14,7 +14,9 @@
 
 ## Our Mission
 
-We’re building focused, fun tools for modern offices — tools that just work, without enterprise BS. Our values:<br>
+We’re building focused, fun tools for modern offices — tools that just work, without enterprise BS. 
+
+Our values:<br>
 ✅ Simplicity: Easy to deploy and use<br>
 🔐 Privacy-first: Self hosted and open source auditable<br>
 💸 Fair and sustainable: We offer paid features to keep development active<br>

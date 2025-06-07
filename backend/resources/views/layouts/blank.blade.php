@@ -47,6 +47,7 @@
         .grecaptcha-badge { visibility: hidden !important; }
     </style>
     @lemonJS
+    @includeWhen(config('services.clarity.tag_code'), 'components.scripts.clarity')
 </head>
 <body class="h-full @yield('body-classes')">
 @stack('modals')
