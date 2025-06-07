@@ -29,44 +29,4 @@ class OutlookAccount extends Model
         'token_expires_at' => 'datetime',
         'status' => AccountStatus::class,
     ];
-
-    /**
-     * @throws \Exception
-     */
-    public function getRooms(): array
-    {
-        try {
-            $rooms = app(OutlookService::class)->fetchRooms($this);
-            return collect($rooms)->map(function (array $room) {
-                return [
-                    'emailAddress' => $room['emailAddress'],
-                    'name' => $room['displayName']
-                ];
-            })->toArray();
-        } catch (\Exception $e) {
-            report($e);
-        }
-
-        return [];
-    }
-
-    /**
-     * @throws \Exception
-     */
-    public function getCalendars(): array
-    {
-        try {
-            $calendars = app(OutlookService::class)->fetchCalendars($this);
-            return collect($calendars)->map(function (array $calendar) {
-                return [
-                    'id' => $calendar['id'],
-                    'name' => $calendar['name']
-                ];
-            })->toArray();
-        } catch (\Exception $e) {
-            report($e);
-        }
-
-        return [];
-    }
 }

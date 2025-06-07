@@ -46,21 +46,4 @@ class CalDAVAccount extends Model
     {
         return $this->hasMany(Calendar::class);
     }
-
-    public function getCalendars(): array
-    {
-        try {
-            $calendars = app(CalDAVService::class)->fetchCalendars($this);
-            return collect($calendars)->map(function ($calendar) {
-                return [
-                    'id' => $calendar['id'],
-                    'name' => $calendar['name']
-                ];
-            })->toArray();
-        } catch (\Exception $e) {
-            report($e);
-        }
-
-        return [];
-    }
 }

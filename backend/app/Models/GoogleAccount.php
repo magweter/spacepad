@@ -41,38 +41,4 @@ class GoogleAccount extends Model
     {
         return $this->hasMany(Calendar::class);
     }
-
-    public function getCalendars(): array
-    {
-        try {
-            $calendars = app(GoogleService::class)->fetchCalendars($this);
-            return collect($calendars)->map(function ($calendar) {
-                return [
-                    'id' => $calendar->getId(),
-                    'name' => $calendar->getSummary(),
-                ];
-            })->toArray();
-        } catch (\Exception $e) {
-            report($e);
-        }
-
-        return [];
-    }
-
-    public function getRooms(): array
-    {
-        try {
-            $rooms = app(GoogleService::class)->fetchRooms($this);
-            return collect($rooms)->map(function ($room) {
-                return [
-                    'emailAddress' => $room->getResourceEmail(),
-                    'name' => $room->getResourceName(),
-                ];
-            })->toArray();
-        } catch (\Exception $e) {
-            report($e);
-        }
-
-        return [];
-    }
-} 
+}
