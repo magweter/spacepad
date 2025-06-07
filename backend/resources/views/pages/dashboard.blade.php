@@ -1,5 +1,20 @@
 @extends('layouts.base')
 @section('title', 'Management dashboard')
+
+@section('actions')
+    {{-- Instruction Banner --}}
+    @if(auth()->user()->hasDisplays())
+        <div class="items-center flex ml-auto">
+            <div class="flex w-full bg-white border border-dashed rounded-lg p-3.5">
+                <h3 class="text-sm font-semibold text-gray-900 mr-8">Connect code</h3>
+                <div class="max-w-xl text-sm text-gray-500 ml-auto">
+                    <p>{{ chunk_split($connectCode, 3, ' ') }}</p>
+                </div>
+            </div>
+        </div>
+    @endif
+@endsection
+
 @section('content')
     @php
         $isSelfHosted = config('settings.is_self_hosted');
@@ -10,61 +25,209 @@
     <x-alerts.alert />
 
     {{-- Commercial Banner --}}
-    @if(! auth()->user()->hasPro())
-        <div class="rounded-md bg-blue-50 p-4 mb-4">
-            <div class="flex items-center">
-                <div class="flex-shrink-0">
-                    <svg class="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 009.253 9H9z" clip-rule="evenodd" />
-                    </svg>
-                </div>
-                <div class="ml-2 flex-1 md:flex md:justify-between">
-                    <p class="text-blue-700">
-                        {{ config('settings.is_self_hosted') ? 'Using Spacepad for business? Support development by purchasing a license — it’s just $5 per display.' : 'Need multiple displays or access to resources like rooms? Try out Pro and support development — it’s just $5 per display.' }}
-                    </p>
-                    <p class="mt-3 md:ml-6 md:mt-0">
-                        <x-lemon-button :href="$checkout" class="whitespace-nowrap font-medium text-blue-700 hover:text-blue-600">
-                            Try 7 days for free
-                            <span aria-hidden="true"> &rarr;</span>
-                        </x-lemon-button>
-                    </p>
-                </div>
-            </div>
-        </div>
-    @endif
-
-    {{-- Instruction Banner --}}
-    @if(auth()->user()->hasDisplays())
-        <div class="mb-4 flex gap-4">
-            <div class="rounded-md bg-gray-50 p-4 grow">
-                <div class="flex">
-                    <div class="flex-1 md:flex md:justify-between">
-                        <p class="text-base text-gray-700"><strong>You're all set!</strong> Connect a new device with the app from the <a target="_blank" href="https://play.google.com/store/apps/details?id=com.magweter.spacepad" class="text-blue-600 hover:text-blue-500">Play Store</a> or <a target="_blank" href="https://apps.apple.com/nl/app/spacepad/id6745528995" class="text-blue-600 hover:text-blue-500">App Store</a> and using the connect code.</p>
+    @if(auth()->user()->hasPro())
+        <x-cards.card class="mb-4">
+            <div class="sm:flex sm:items-start sm:justify-between">
+                <div>
+                    <h3 class="text-base font-semibold text-gray-900">Manage subscription</h3>
+                    <div class="mt-2 max-w-4xl text-sm text-gray-500">
+                        <p>{{ config('settings.is_self_hosted') ? 'Using Spacepad for business? Support development by purchasing a license — it\'s just $5 per display.' : 'Need multiple displays or access to resources like rooms? Try out Pro and support development — it\'s just $5 per display.' }}</p>
                     </div>
                 </div>
-            </div>
-            <div class="bg-gray-50 rounded-lg items-center flex">
-                <div class="p-4 flex w-full">
-                    <h3 class="text-base font-semibold text-gray-900 mr-8">Connect code</h3>
-                    <div class="max-w-xl text-base text-gray-500 ml-auto">
-                        <p>{{ chunk_split($connectCode, 3, ' ') }}</p>
-                    </div>
+                <div class="mt-5 sm:mt-0 sm:ml-6 sm:flex sm:shrink-0 sm:items-center">
+                    <x-lemon-button :href="$checkout" class="inline-flex items-center rounded-md bg-orange px-3 py-2 text-sm font-semibold text-white shadow-xs hover:bg-orange-400">
+                        Try 7 days for free
+                    </x-lemon-button>
                 </div>
             </div>
-        </div>
+        </x-cards.card>
     @endif
 
-    <div class="mb-8">
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-4">
-            <div class="sm:flex sm:items-center sm:col-span-2 md:col-span-3">
+    <div class="grid gap-4 grid-cols-12">
+        <x-cards.card class="col-span-12 md:col-span-8">
+            <div class="sm:flex sm:items-center mb-4">
                 <div class="sm:flex-auto">
-                    <h1 class="text-lg font-semibold leading-6 text-gray-900">Accounts</h1>
-                    <p class="mt-1 text-md text-gray-500">The accounts used to connect to calendars and rooms.</p>
+                    <h2 class="text-lg font-semibold leading-6 text-gray-900">Displays</h2>
+                    <p class="mt-1 text-sm text-gray-500">Overview of your displays and their status.</p>
+                </div>
+                <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none flex items-center gap-2">
+                    <button type="button" onclick="openConnectModal()" class="inline-flex items-center gap-x-1.5 rounded-md bg-oxford px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-oxford-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-oxford-600">
+                        <x-icons.display class="h-4 w-4" />
+                        Connect instructions
+                    </button>
+                    @if(auth()->user()->can('create', \App\Models\Display::class))
+                        @if(! $isSelfHosted && auth()->user()->shouldUpgrade())
+                            <x-lemon-button :href="$checkout" class="inline-flex items-center rounded-md bg-oxford px-3 py-2 text-center text-sm font-semibold text-white">
+                                <x-icons.plus class="h-5 w-5 mr-1" />
+                                Create new display <span class="ml-2 inline-flex items-center rounded-md bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20">Pro</span>
+                            </x-lemon-button>
+                        @else
+                            <a href="{{ route('displays.create') }}" class="inline-flex items-center rounded-md bg-oxford px-3 py-2 text-center text-sm font-semibold text-white">
+                                <x-icons.plus class="h-5 w-5 mr-1" />
+                                Create new display
+                            </a>
+                        @endif
+                    @endif
                 </div>
             </div>
-        </div>
-        <div class="mt-4 flow-root">
-            <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+
+            {{-- Connect Instructions Modal --}}
+            <div id="connectModal" class="relative z-10 hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+                <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
+
+                <div class="fixed inset-0 z-10 overflow-y-auto">
+                    <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+                        <div class="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
+                            <div>
+                                <div class="mt-3 text-center sm:mt-5">
+                                    <h3 class="text-base font-semibold leading-6 text-gray-900" id="modal-title">Connect Instructions</h3>
+                                    <div class="mt-4 flex-1 md:flex md:justify-between">
+                                        <p class="text-sm text-gray-700">You're all set! Connect a new device with the app from the <a target="_blank" href="https://play.google.com/store/apps/details?id=com.magweter.spacepad" class="text-blue-600 hover:text-blue-500">Play Store</a> or <a target="_blank" href="https://apps.apple.com/nl/app/spacepad/id6745528995" class="text-blue-600 hover:text-blue-500">App Store</a> and using the connect code.</p>
+                                    </div>
+                                    <div class="mt-4 p-4 bg-gray-50 rounded-lg">
+                                        <p class="text-2xl font-mono text-center">{{ chunk_split($connectCode, 3, ' ') }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-5 sm:mt-6">
+                                <button type="button" onclick="closeConnectModal()" class="inline-flex w-full justify-center rounded-md bg-oxford px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-oxford-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-oxford-600">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-8 flow-root">
+                <div class="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+                    <div class="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
+                        <table class="min-w-full divide-y divide-gray-300">
+                            <thead>
+                            <tr>
+                                <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-0">Name</th>
+                                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Account</th>
+                                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Status</th>
+                                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Devices</th>
+                                <th scope="col" class="relative py-3.5 pr-4 pl-3 sm:pr-0">
+                                    <span class="sr-only">Actions</span>
+                                </th>
+                            </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200">
+                            @forelse($displays as $display)
+                                <tr>
+                                    <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0">
+                                        <div class="font-medium text-gray-900">{{ $display->name }}</div>
+                                        <div class="text-gray-500">{{ $display->display_name }}</div>
+                                    </td>
+                                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                        @if($display->calendar->outlookAccount)
+                                            <div class="flex items-center mb-1">
+                                                <x-icons.microsoft class="h-5 w-5 text-gray-400 mr-2" />
+                                                <span>{{ $display->calendar->outlookAccount->name }}</span>
+                                            </div>
+                                        @endif
+                                        @if($display->calendar->googleAccount)
+                                            <div class="flex items-center mb-1">
+                                                <x-icons.google class="h-5 w-5 text-gray-400 mr-2" />
+                                                <span>{{ $display->calendar->googleAccount->name }}</span>
+                                            </div>
+                                        @endif
+                                        @if($display->calendar->caldavAccount)
+                                            <div class="flex items-center mb-1">
+                                                <x-icons.calendar class="h-5 w-5 text-gray-400 mr-2" />
+                                                <span>{{ $display->calendar->caldavAccount->name }}</span>
+                                            </div>
+                                        @endif
+                                        <div class="text-gray-500">{{ $display->display_name }}</div>
+                                    </td>
+                                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                        <span class="inline-flex items-center rounded-md bg-{{ $display->status->color() }}-50 px-2 py-1 text-xs font-medium text-{{ $display->status->color() }}-700 ring-1 ring-inset ring-{{ $display->status->color() }}-600/20">
+                                            {{ $display->status->label() }}
+                                        </span>
+                                    </td>
+                                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{ $display->devices->count() }}</td>
+                                    <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-0">
+                                        <div class="flex justify-end gap-x-3">
+                                            <form action="{{ route('displays.updateStatus', $display) }}" method="POST" class="inline">
+                                                @csrf
+                                                @method('PATCH')
+                                                <input type="hidden" name="status" value="{{ $display->status === \App\Enums\DisplayStatus::ACTIVE ? 'deactivated' : 'active' }}">
+                                                <button type="submit" class="inline-flex items-center rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
+                                                    @if($display->status === \App\Enums\DisplayStatus::ACTIVE)
+                                                        <x-icons.pause class="h-4 w-4" />
+                                                    @else
+                                                        <x-icons.play class="h-4 w-4" />
+                                                    @endif
+                                                </button>
+                                            </form>
+                                            <form action="{{ route('displays.delete', $display) }}" method="POST" class="inline">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="inline-flex items-center rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-red-600 shadow-sm ring-1 ring-inset ring-red-300 hover:bg-red-50">
+                                                    <x-icons.trash class="h-4 w-4" />
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="5" class="py-12 text-center">
+                                        <div class="flex flex-col items-center justify-center">
+                                            <x-icons.display class="h-12 w-12 text-gray-400" />
+                                            <h3 class="mt-2 text-sm font-semibold text-gray-900">No displays</h3>
+                                            <p class="mt-1 text-sm text-gray-500">Get started by creating a new display.</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </x-cards.card>
+        <x-cards.card class="col-span-12 md:col-span-4 space-y-6">
+            <div>
+                <h2 class="text-lg font-semibold leading-6 text-gray-900">Accounts</h2>
+                <p class="mt-1 text-sm text-gray-500">The accounts used to connect to calendars and rooms.</p>
+            </div>
+            <div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    @if(config('services.microsoft.enabled'))
+                        <a href="{{ route('outlook-accounts.auth') }}"
+                           class="flex items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white p-4 shadow-sm hover:border-blue-500 hover:shadow-md transition-all duration-200">
+                            <x-icons.microsoft class="h-6 w-6" />
+                            <span class="font-medium text-gray-900">Microsoft</span>
+                        </a>
+                    @endif
+
+                    @if(config('services.google.enabled'))
+                        <a href="{{ route('google-accounts.auth') }}"
+                           class="flex items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white p-4 shadow-sm hover:border-blue-500 hover:shadow-md transition-all duration-200">
+                            <x-icons.google class="h-6 w-6" />
+                            <span class="font-medium text-gray-900">Google</span>
+                        </a>
+                    @endif
+
+                    @if(config('services.caldav.enabled'))
+                        <a href="{{ route('caldav-accounts.create') }}"
+                           class="flex items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white p-4 shadow-sm hover:border-blue-500 hover:shadow-md transition-all duration-200">
+                            <x-icons.calendar class="h-6 w-6 text-gray-600" />
+                            <span class="font-medium text-gray-900">CalDAV</span>
+                        </a>
+                    @endif
+                </div>
+            </div>
+            <div class="relative">
+                <div class="absolute inset-0 flex items-center" aria-hidden="true">
+                    <div class="w-full border-t border-gray-300"></div>
+                </div>
+                <div class="relative flex justify-center">
+                    <span class="bg-white px-2 text-sm text-gray-500">Connected accounts</span>
+                </div>
+            </div>
+            <div class="space-y-4">
                 @foreach($outlookAccounts as $outlookAccount)
                     <div class="relative flex items-center space-x-3 rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 hover:border-gray-400">
                         <div class="flex-shrink-0">
@@ -74,14 +237,10 @@
                             <span class="absolute inset-0" aria-hidden="true"></span>
                             <div class="flex items-center gap-2">
                                 <p class="text-md font-medium text-gray-900">{{ $outlookAccount->name }}</p>
-                                <p class="mt-0.5 whitespace-nowrap rounded-md bg-{{ $outlookAccount->status->color() }}-50 px-1.5 py-0.5 text-xs font-medium text-{{ $outlookAccount->status->color() }}-700 ring-1 ring-inset ring-{{ $outlookAccount->status->color() }}-600/20">{{ $outlookAccount->status->label() }}</p>
+                                <p class="mt-0.5 whitespace-nowrap rounded-md bg-green-50 px-1.5 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">Connected</p>
                             </div>
                             <p class="truncate text-sm text-gray-500 flex items-center gap-2 mt-1">
                                 <span>{{ $outlookAccount->email }}</span>
-                                <svg viewBox="0 0 2 2" class="h-0.5 w-0.5 flex-none fill-gray-500">
-                                    <circle cx="1" cy="1" r="1" />
-                                </svg>
-                                <span>Created on {{ $outlookAccount->created_at->toDateTimeString() }}</span>
                             </p>
                         </div>
                     </div>
@@ -95,14 +254,10 @@
                             <span class="absolute inset-0" aria-hidden="true"></span>
                             <div class="flex items-center gap-2">
                                 <p class="text-md font-medium text-gray-900">{{ $googleAccount->name }}</p>
-                                <p class="mt-0.5 whitespace-nowrap rounded-md bg-{{ $googleAccount->status->color() }}-50 px-1.5 py-0.5 text-xs font-medium text-{{ $googleAccount->status->color() }}-700 ring-1 ring-inset ring-{{ $googleAccount->status->color() }}-600/20">{{ $googleAccount->status->label() }}</p>
+                                <p class="mt-0.5 whitespace-nowrap rounded-md bg-green-50 px-1.5 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">Connected</p>
                             </div>
                             <p class="truncate text-sm text-gray-500 flex items-center gap-2 mt-1">
                                 <span>{{ $googleAccount->email }}</span>
-                                <svg viewBox="0 0 2 2" class="h-0.5 w-0.5 flex-none fill-gray-500">
-                                    <circle cx="1" cy="1" r="1" />
-                                </svg>
-                                <span>Created on {{ $googleAccount->created_at->toDateTimeString() }}</span>
                             </p>
                         </div>
                     </div>
@@ -120,159 +275,37 @@
                             </div>
                             <p class="truncate text-sm text-gray-500 flex items-center gap-2 mt-1">
                                 <span>{{ $caldavAccount->email }}</span>
-                                <svg viewBox="0 0 2 2" class="h-0.5 w-0.5 flex-none fill-gray-500">
-                                    <circle cx="1" cy="1" r="1" />
-                                </svg>
-                                <span>Created on {{ $googleAccount->created_at->toDateTimeString() }}</span>
                             </p>
                         </div>
                     </div>
                 @endforeach
             </div>
-        </div>
-        <div class="mt-8">
-            <h2 class="text-lg font-semibold text-gray-900 mb-4">Connect a new account</h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                @if(config('services.microsoft.enabled'))
-                <a href="{{ route('outlook-accounts.auth') }}"
-                   class="flex items-center justify-center gap-3 rounded-lg border border-gray-200 bg-white p-4 shadow-sm hover:border-blue-500 hover:shadow-md transition-all duration-200">
-                    <x-icons.microsoft class="h-6 w-6" />
-                    <span class="font-medium text-gray-900">Outlook</span>
-                </a>
-                @endif
-
-                @if(config('services.google.enabled'))
-                <a href="{{ route('google-accounts.auth') }}"
-                   class="flex items-center justify-center gap-3 rounded-lg border border-gray-200 bg-white p-4 shadow-sm hover:border-blue-500 hover:shadow-md transition-all duration-200">
-                    <x-icons.google class="h-6 w-6" />
-                    <span class="font-medium text-gray-900">Google</span>
-                </a>
-                @endif
-
-                @if(config('services.caldav.enabled'))
-                <a href="{{ route('caldav-accounts.create') }}"
-                   class="flex items-center justify-center gap-3 rounded-lg border border-gray-200 bg-white p-4 shadow-sm hover:border-blue-500 hover:shadow-md transition-all duration-200">
-                    <x-icons.calendar class="h-6 w-6 text-gray-600" />
-                    <span class="font-medium text-gray-900">CalDAV</span>
-                </a>
-                @endif
-            </div>
-        </div>
-    </div>
-
-    <div class="mb-2">
-        <div class="sm:flex sm:items-center">
-            <div class="sm:flex-auto">
-                <h1 class="text-lg font-semibold leading-6 text-gray-900">Displays</h1>
-                <p class="mt-1 text-md text-gray-500">Your displays and their status.</p>
-            </div>
-            <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
-                @if(auth()->user()->can('create', \App\Models\Display::class))
-                    @if(! $isSelfHosted && auth()->user()->shouldUpgrade())
-                        <x-lemon-button :href="$checkout" class="inline-flex items-center rounded-md bg-oxford px-3 py-2 text-center text-md font-semibold text-white">
-                            <x-icons.plus class="h-5 w-5 mr-1" />
-                            Create new display <span class="ml-2 inline-flex items-center rounded-md bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20">Pro</span>
-                        </x-lemon-button>
-                    @else
-                        <a href="{{ route('displays.create') }}" class="inline-flex items-center rounded-md bg-oxford px-3 py-2 text-center text-md font-semibold text-white">
-                            <x-icons.plus class="h-5 w-5 mr-1" />
-                            Create new display
-                        </a>
-                    @endif
-                @endif
-            </div>
-        </div>
-        <div class="mt-4 flow-root">
-            <div class="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
-                <div class="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
-                    <div class="overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
-                        <table class="min-w-full divide-y divide-gray-300">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">Device name</th>
-                                    <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Room name</th>
-                                    <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Account</th>
-                                    <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Calendar</th>
-                                    <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Status</th>
-                                    <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Devices</th>
-                                    <th scope="col" class="relative py-3.5 pl-3 pr-4 sm:pr-6">
-                                        <span class="sr-only">Actions</span>
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-200 bg-white">
-                                @forelse($displays as $display)
-                                    <tr>
-                                        <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">{{ $display->name }}</td>
-                                        <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{ $display->display_name }}</td>
-                                        <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                                            @if($display->calendar->outlookAccount)
-                                                <div class="flex items-center">
-                                                    <x-icons.microsoft class="mr-2 size-4 text-muted-foreground inline-flex" />
-                                                    <span>{{ $display->calendar->outlookAccount->name }}</span>
-                                                </div>
-                                            @endif
-                                            @if($display->calendar->googleAccount)
-                                                <div class="flex items-center">
-                                                    <x-icons.google class="mr-2 size-4 text-muted-foreground inline-flex" />
-                                                    <span>{{ $display->calendar->googleAccount->name }}</span>
-                                                </div>
-                                            @endif
-                                            @if($display->calendar->caldavAccount)
-                                                <div class="flex items-center">
-                                                    <x-icons.calendar class="mr-2 size-4 text-muted-foreground inline-flex" />
-                                                    <span>{{ $display->calendar->caldavAccount->name }}</span>
-                                                </div>
-                                            @endif
-                                        </td>
-                                        <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{ $display->calendar->name }}</td>
-                                        <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                                            <span class="inline-flex items-center rounded-md bg-{{ $display->status->color() }}-50 px-2 py-1 text-xs font-medium text-{{ $display->status->color() }}-700 ring-1 ring-inset ring-{{ $display->status->color() }}-600/20">{{ $display->status->label() }}</span>
-                                        </td>
-                                        <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                                            @forelse($display->devices as $device)
-                                                {{ $device->name }}<br/>
-                                            @empty
-                                                -
-                                            @endforelse
-                                        </td>
-                                        <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                                            <div class="flex justify-end gap-3">
-                                                <form action="{{ route('displays.updateStatus', $display) }}" method="POST">
-                                                    @csrf
-                                                    @method('PATCH')
-                                                    @if ($display->status !== \App\Enums\DisplayStatus::DEACTIVATED)
-                                                        <input type="hidden" name="status" value="{{\App\Enums\DisplayStatus::DEACTIVATED}}" />
-                                                        <button type="submit" class="text-blue-600 hover:text-blue-900">Deactivate</button>
-                                                    @else
-                                                        <input type="hidden" name="status" value="{{\App\Enums\DisplayStatus::ACTIVE}}" />
-                                                        <button type="submit" class="text-blue-600 hover:text-blue-900">Activate</button>
-                                                    @endif
-                                                </form>
-                                                <form action="{{ route('displays.delete', $display) }}" method="POST">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button type="submit" class="text-red-600 hover:text-red-900">Delete</button>
-                                                </form>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="7" class="py-12 text-center">
-                                            <div class="flex flex-col items-center justify-center">
-                                                <x-icons.display class="h-12 w-12 text-gray-400" />
-                                                <h3 class="mt-2 text-sm font-semibold text-gray-900">No displays</h3>
-                                                <p class="mt-1 text-sm text-gray-500">Get started by creating a new display.</p>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
+        </x-cards.card>
     </div>
 @endsection
+
+@push('scripts')
+    <script>
+        function openConnectModal() {
+            document.getElementById('connectModal').classList.remove('hidden');
+        }
+
+        function closeConnectModal() {
+            document.getElementById('connectModal').classList.add('hidden');
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('connectModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeConnectModal();
+            }
+        });
+
+        // Close modal when pressing Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeConnectModal();
+            }
+        });
+    </script>
+@endpush

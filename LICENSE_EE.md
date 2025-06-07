@@ -59,7 +59,7 @@ IN NO EVENT SHALL THE LICENSOR BE LIABLE FOR ANY SPECIAL, INCIDENTAL, INDIRECT, 
 
 ## 8. Governing Law
 
-This Agreement shall be governed by the laws of [Your Jurisdiction].
+This Agreement shall be governed by the laws of The Netherlands.
 
 ## 9. Contact
 

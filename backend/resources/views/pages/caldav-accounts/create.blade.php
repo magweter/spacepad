@@ -1,7 +1,7 @@
 @extends('layouts.base')
 @section('title', 'Create a new CalDAV Account')
 @section('content')
-    <div class="mx-auto">
+    <x-cards.card>
         <!-- Session Status Alert -->
         @if(session('status'))
             <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4">
@@ -66,5 +66,5 @@
                 </div>
             </div>
         </form>
-    </div>
+    </x-cards.card>
 @endsection

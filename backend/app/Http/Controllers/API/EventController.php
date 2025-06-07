@@ -14,6 +14,7 @@ use App\Services\CalDAVService;
 use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Collection;
 
 class EventController extends Controller
 {
@@ -59,31 +60,33 @@ class EventController extends Controller
             ->with(['googleAccount', 'outlookAccount', 'caldavAccount', 'room'])
             ->first();
 
+        $events = collect();
+
         // Handle Google integration
         if ($calendar->google_account_id) {
-            return $this->fetchGoogleEvents($calendar, $display);
+            $events = $this->fetchGoogleEvents($calendar, $display);
         }
 
         // Handle Outlook integration
         if ($calendar->outlook_account_id) {
-            return $this->fetchOutlookEvents($calendar, $display);
+            $events = $this->fetchOutlookEvents($calendar, $display);
         }
 
         // Handle CalDAV integration
         if ($calendar->caldav_account_id) {
-            return $this->fetchCalDAVEvents($calendar, $display);
+            $events = $this->fetchCalDAVEvents($calendar, $display);
         }
 
-        return [];
+        return $events->filter(fn ($event) => ! $event['isAllDay'])->toArray();
     }
 
     /**
      * @param Calendar $calendar
      * @param Display $display
-     * @return array
+     * @return Collection
      * @throws Exception
      */
-    private function fetchOutlookEvents(Calendar $calendar, Display $display): array
+    private function fetchOutlookEvents(Calendar $calendar, Display $display): Collection
     {
         $events = [];
 
@@ -107,18 +110,16 @@ class EventController extends Controller
             );
         }
 
-        return collect($events)
-            ->map(fn($e) => $this->eventService->sanitizeOutlookEvent($e))
-            ->toArray();
+        return collect($events)->map(fn($e) => $this->eventService->sanitizeOutlookEvent($e));
     }
 
     /**
      * @param Calendar $calendar
      * @param Display $display
-     * @return array
+     * @return Collection
      * @throws \Exception
      */
-    private function fetchGoogleEvents(Calendar $calendar, Display $display): array
+    private function fetchGoogleEvents(Calendar $calendar, Display $display): Collection
     {
         $events = $this->googleService->fetchEvents(
             googleAccount: $calendar->googleAccount,
@@ -127,18 +128,16 @@ class EventController extends Controller
             endDateTime: $display->getEndTime(),
         );
 
-        return collect($events)
-            ->map(fn($e) => $this->eventService->sanitizeGoogleEvent($e))
-            ->toArray();
+        return collect($events)->map(fn($e) => $this->eventService->sanitizeGoogleEvent($e));
     }
 
     /**
      * @param Calendar $calendar
      * @param Display $display
-     * @return array
+     * @return Collection
      * @throws Exception
      */
-    private function fetchCalDAVEvents(Calendar $calendar, Display $display): array
+    private function fetchCalDAVEvents(Calendar $calendar, Display $display): Collection
     {
         $events = $this->caldavService->fetchEvents(
             caldavAccount: $calendar->caldavAccount,
@@ -147,9 +146,7 @@ class EventController extends Controller
             endDateTime: $display->getEndTime(),
         );
 
-        return collect($events)
-            ->map(fn($e) => $this->eventService->sanitizeCalDAVEvent($e))
-            ->toArray();
+        return collect($events)->map(fn($e) => $this->eventService->sanitizeCalDAVEvent($e));
     }
 
     /**
