@@ -1,5 +1,7 @@
 # Spacepad
 
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/magweter/spacepad)
+
 Spacepad is a simple and fun meeting room occupancy display that helps you manage and visualize your meeting spaces effectively. Suitable for both small offices and larger deployments.
 
 ![Spacepad - Screenshot](assets/screenshot.png)
