@@ -12,6 +12,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class OnboardingController extends Controller
 {
@@ -38,5 +39,18 @@ class OnboardingController extends Controller
             'googleAccounts' => $user->googleAccounts,
             'caldavAccounts' => $user->caldavAccounts,
         ]);
+    }
+
+    public function updateUsageType(Request $request)
+    {
+        $request->validate([
+            'usage_type' => ['required', 'string', Rule::in(['business', 'personal'])],
+        ]);
+
+        auth()->user()->update([
+            'usage_type' => $request->usage_type,
+        ]);
+
+        return redirect()->route('onboarding');
     }
 }

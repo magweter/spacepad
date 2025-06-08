@@ -10,13 +10,15 @@
                     <span class="text-xl font-semibold text-black">Spacepad</span>
                 </a>
                 <div class="ml-4 flex items-center space-x-4">
-                    <a href="mailto:support@spacepad.io" class="rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300 hover:text-black">
-                        Need help?
-                    </a>
-                    <a href="https://github.com/magweter/spacepad/issues" class="rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300 hover:text-black">
+                    @if(auth()->user()->hasPro())
+                        <a href="mailto:support@spacepad.io" class="hidden md:block rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300 hover:text-black">
+                            Need help?
+                        </a>
+                    @endif
+                    <a href="https://github.com/magweter/spacepad/issues" class="hidden md:block rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300 hover:text-black">
                         Give feedback
                     </a>
-                    <a href="https://spacepad.io" class="rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300 hover:text-black">
+                    <a href="https://spacepad.io" class="hidden md:block rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300 hover:text-black">
                         Visit website
                     </a>
                     @auth
@@ -32,14 +34,14 @@
         </div>
     </nav>
 
-    <header class="mx-auto container px-4 sm:px-6 py-4">
+    <header class="mx-auto @yield('container_class', 'container') px-4 sm:px-6 py-6">
         <div class="flex gap-4 items-center">
             <h1 class="text-2xl/7 font-bold text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">@yield('title')</h1>
             @yield('actions')
         </div>
     </header>
 
-    <main class="mx-auto container px-4 sm:px-6">
+    <main class="mx-auto @yield('container_class', 'container') px-4 sm:px-6 pb-16">
         @yield('content')
     </main>
 @endsection

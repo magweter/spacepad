@@ -5,6 +5,7 @@
     'dismissible' => false,
     'autoDismiss' => true,
     'autoDismissDelay' => 5000,
+    'errors' => null,
 ])
 
 @php
@@ -54,9 +55,9 @@
     <div id="alert" class="rounded-md p-4 mb-4 {{ $alertClasses }}">
         <div class="flex flex-col">
             @if($title)
-                <h3 class="text-md font-semibold {{ $titleClasses }}">{{ $title }}</h3>
+                <h3 class="text-base font-semibold {{ $titleClasses }}">{{ $title }}</h3>
             @endif
-            <div class="mt-1 text-md {{ $messageClasses }}">
+            <div class="mt-1 text-sm {{ $messageClasses }}">
                 @if($message)
                     <p>{{ $message }}</p>
                 @endif

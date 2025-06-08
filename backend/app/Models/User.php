@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\Plan;
+use App\Enums\UsageType;
 use App\Traits\HasUlid;
 use App\Traits\HasLastActivity;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -29,6 +30,7 @@ class User extends Authenticatable
         'microsoft_id',
         'google_id',
         'status',
+        'usage_type',
         'email_verified_at',
         'last_activity_at',
         'is_billing_exempt',
@@ -56,6 +58,7 @@ class User extends Authenticatable
         'last_activity_at' => 'datetime',
         'is_billing_exempt' => 'boolean',
         'is_unlimited' => 'boolean',
+        'usage_type' => UsageType::class,
     ];
 
     public function outlookAccounts(): HasMany
@@ -101,15 +104,12 @@ class User extends Authenticatable
 
     public function hasPro(): bool
     {
-        return $this->is_unlimited ||
-            $this->subscribed();
+        return $this->is_unlimited || $this->subscribed() || (config('settings.is_self_hosted') && $this->usage_type === UsageType::PERSONAL);
     }
 
     public function shouldUpgrade(): bool
     {
-        return ! $this->is_unlimited &&
-            ! $this->subscribed() &&
-            $this->hasDisplays();
+        return ! $this->hasPro() && $this->hasDisplays();
     }
 
     public function getCheckoutUrl(?string $redirectUrl = null): Checkout

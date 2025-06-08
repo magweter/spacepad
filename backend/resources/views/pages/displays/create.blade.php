@@ -1,5 +1,6 @@
 @extends('layouts.base')
 @section('title', 'Create a new display')
+@section('container_class', 'max-w-5xl')
 @section('content')
     @php
         $isSelfHosted = config('settings.is_self_hosted');
@@ -7,37 +8,39 @@
         $userHasPro = auth()->user()->hasPro();
     @endphp
 
-    {{-- Session Status Alert --}}
-    <x-alerts.alert />
-
     <x-cards.card>
+        {{-- Session Status Alert --}}
+        <x-alerts.alert />
+
         <form id="createForm" action="{{ route('displays.store') }}" method="POST">
             @csrf
             <input type="hidden" name="provider" id="providerInput" value="">
             <div class="flex flex-col">
                 <div class="flow-root">
-                    <div class="mb-4">
-                        <label for="name" class="block text-sm font-medium leading-6 text-gray-900">Device name</label>
-                        <div class="mt-2">
-                            <input type="text" name="name" id="name" value="{{ old('name') }}"
-                                   class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6"
-                                   placeholder="">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        <div class="mb-4">
+                            <label for="name" class="block text-sm font-medium leading-6 text-gray-900">Device name</label>
+                            <div class="mt-2">
+                                <input type="text" name="name" id="name" value="{{ old('name') }}"
+                                       class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6"
+                                       placeholder="">
+                            </div>
+                            <p class="mt-2 text-sm text-gray-500">This name is only used in the dashboard and for your identification.</p>
                         </div>
-                        <p class="mt-2 text-sm text-gray-500">This name is only used in the dashboard and for your identification.</p>
-                    </div>
-                    <div class="mb-4">
-                        <label for="displayName" class="block text-sm font-medium leading-6 text-gray-900">Room name</label>
-                        <div class="mt-2">
-                            <input type="text" name="displayName" id="displayName" value="{{ old('displayName') }}"
-                                   class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6"
-                                   placeholder="">
+                        <div class="mb-4">
+                            <label for="displayName" class="block text-sm font-medium leading-6 text-gray-900">Room name</label>
+                            <div class="mt-2">
+                                <input type="text" name="displayName" id="displayName" value="{{ old('displayName') }}"
+                                       class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6"
+                                       placeholder="">
+                            </div>
+                            <p class="mt-2 text-sm text-gray-500">This name will be displayed on the top right corner of the display.</p>
                         </div>
-                        <p class="mt-2 text-sm text-gray-500">This name will be displayed on the top right corner of the display.</p>
                     </div>
 
                     <!-- Step 1: Provider Selection -->
-                    <div class="mt-6" id="providerSelection">
-                        <p class="text-sm font-semibold leading-6 text-gray-900">Select a calendar account</p>
+                    <div class="mt-4" id="providerSelection">
+                        <p class="text-sm font-semibold leading-6 text-gray-900">1. Select a calendar account</p>
                         <p class="mt-1 text-sm leading-6 text-gray-600">Choose the service you want to connect to.</p>
                         <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
                             <div class="relative flex items-center space-x-3 rounded-lg border border-gray-300 {{ count($outlookAccounts) > 0 && config('services.microsoft.enabled') ? 'bg-white hover:border-gray-400 cursor-pointer' : 'bg-gray-50 opacity-75 cursor-not-allowed' }} px-6 py-5 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 provider-tile" data-provider="outlook">
@@ -93,7 +96,7 @@
 
                     <!-- Step 2: Search Method Selection (initially hidden) -->
                     <div class="mt-6 hidden" id="searchMethodSelection">
-                        <p class="text-sm font-semibold leading-6 text-gray-900">How do you want to find your calendar?</p>
+                        <p class="text-sm font-semibold leading-6 text-gray-900">2. How do you want to find your calendar?</p>
                         <p class="mt-1 text-sm leading-6 text-gray-600">Choose how you want to search for your calendar.</p>
                         <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
                             <div data-method="calendar" class="search-method-tile relative flex items-center space-x-3 rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 hover:border-gray-400 cursor-pointer">
@@ -134,7 +137,7 @@
                     <!-- Step 3: Calendar/Room Selection (initially hidden) -->
                     <div class="mt-6 hidden" id="calendarSelection">
                         <div id="outlookSelection" class="hidden">
-                            <p class="text-sm font-semibold leading-6 text-gray-900">Outlook Account</p>
+                            <p class="text-sm font-semibold leading-6 text-gray-900">3. What account do you want to use?</p>
                             <p class="mt-1 text-sm leading-6 text-gray-600">Pick the account and the desired calendar or room to display.</p>
                             <div class="mt-4 space-y-4">
                                 @foreach($outlookAccounts as $outlookAccount)
@@ -165,7 +168,7 @@
                             </div>
                         </div>
                         <div id="googleSelection" class="hidden">
-                            <p class="text-sm font-semibold leading-6 text-gray-900">Google Account</p>
+                            <p class="text-sm font-semibold leading-6 text-gray-900">3. What account do you want to use?</p>
                             <p class="mt-1 text-sm leading-6 text-gray-600">Pick the account and the desired calendar or room to display.</p>
                             <div class="mt-4 space-y-4">
                                 @foreach($googleAccounts as $googleAccount)
@@ -196,7 +199,7 @@
                             </div>
                         </div>
                         <div id="caldavSelection" class="hidden">
-                            <p class="text-sm font-semibold leading-6 text-gray-900">CalDAV Account</p>
+                            <p class="text-sm font-semibold leading-6 text-gray-900">3. What account do you want to use?</p>
                             <p class="mt-1 text-sm leading-6 text-gray-600">Pick the account and the desired calendar to display.</p>
                             <div class="mt-4 space-y-4">
                                 @foreach($caldavAccounts as $caldavAccount)

@@ -5,7 +5,7 @@
     {{-- Instruction Banner --}}
     @if(auth()->user()->hasDisplays())
         <div class="items-center flex ml-auto">
-            <div class="flex w-full bg-white border border-dashed rounded-lg p-3.5">
+            <div class="flex w-full border border-dashed rounded-lg p-4 border-gray-400">
                 <h3 class="text-sm font-semibold text-gray-900 mr-8">Connect code</h3>
                 <div class="max-w-xl text-sm text-gray-500 ml-auto">
                     <p>{{ chunk_split($connectCode, 3, ' ') }}</p>
@@ -22,29 +22,37 @@
     @endphp
 
     {{-- Session Status Alert --}}
-    <x-alerts.alert />
+    <x-alerts.alert :errors="$errors" />
 
     {{-- Commercial Banner --}}
-    @if(auth()->user()->hasPro())
+    @if(!auth()->user()->hasPro())
         <x-cards.card class="mb-4">
-            <div class="sm:flex sm:items-start sm:justify-between">
+            <div class="sm:flex sm:items-center sm:justify-between">
                 <div>
-                    <h3 class="text-base font-semibold text-gray-900">Manage subscription</h3>
-                    <div class="mt-2 max-w-4xl text-sm text-gray-500">
-                        <p>{{ config('settings.is_self_hosted') ? 'Using Spacepad for business? Support development by purchasing a license — it\'s just $5 per display.' : 'Need multiple displays or access to resources like rooms? Try out Pro and support development — it\'s just $5 per display.' }}</p>
+                    <h3 class="text-lg font-semibold text-gray-900">Get access to all features</h3>
+                    <div class="mt-1 text-sm text-gray-500 leading-5">
+                        <p>
+                            @if(config('settings.is_self_hosted'))
+                                We value your privacy and strive to be fair and sustainable. Features for businesses and power-users like multiple displays, rooms and customization are therefore paid. <br>
+                                Using Spacepad for business? Support development by purchasing a Pro license — it's just $5 per display. The first display is always free.
+                            @else
+                                We value your privacy and strive to be fair and sustainable. Features for businesses and power-users like multiple displays, rooms and customization are therefore paid. <br>
+                                Try out Pro 7 days for free — after that it's just $5 per display. The first display is always free.
+                            @endif
+                        </p>
                     </div>
                 </div>
                 <div class="mt-5 sm:mt-0 sm:ml-6 sm:flex sm:shrink-0 sm:items-center">
                     <x-lemon-button :href="$checkout" class="inline-flex items-center rounded-md bg-orange px-3 py-2 text-sm font-semibold text-white shadow-xs hover:bg-orange-400">
-                        Try 7 days for free
+                        Try Pro for 7 days
                     </x-lemon-button>
                 </div>
             </div>
         </x-cards.card>
     @endif
 
-    <div class="grid gap-4 grid-cols-12">
-        <x-cards.card class="col-span-12 md:col-span-8">
+    <div class="grid gap-4 grid-cols-12 min-h-[600px]">
+        <x-cards.card class="col-span-12 xl:col-span-8">
             <div class="sm:flex sm:items-center mb-4">
                 <div class="sm:flex-auto">
                     <h2 class="text-lg font-semibold leading-6 text-gray-900">Displays</h2>
@@ -53,7 +61,7 @@
                 <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none flex items-center gap-2">
                     <button type="button" onclick="openConnectModal()" class="inline-flex items-center gap-x-1.5 rounded-md bg-oxford px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-oxford-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-oxford-600">
                         <x-icons.display class="h-4 w-4" />
-                        Connect instructions
+                        How to connect a tablet
                     </button>
                     @if(auth()->user()->can('create', \App\Models\Display::class))
                         @if(! $isSelfHosted && auth()->user()->shouldUpgrade())
@@ -79,17 +87,28 @@
                     <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
                         <div class="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
                             <div>
-                                <div class="mt-3 text-center sm:mt-5">
-                                    <h3 class="text-base font-semibold leading-6 text-gray-900" id="modal-title">Connect Instructions</h3>
-                                    <div class="mt-4 flex-1 md:flex md:justify-between">
-                                        <p class="text-sm text-gray-700">You're all set! Connect a new device with the app from the <a target="_blank" href="https://play.google.com/store/apps/details?id=com.magweter.spacepad" class="text-blue-600 hover:text-blue-500">Play Store</a> or <a target="_blank" href="https://apps.apple.com/nl/app/spacepad/id6745528995" class="text-blue-600 hover:text-blue-500">App Store</a> and using the connect code.</p>
+                                <div class="mt-2 text-center">
+                                    <h3 class="text-lg font-semibold leading-6 text-gray-900" id="modal-title">Instructions on connecting a new device</h3>
+                                    <div class="mt-2 mx-auto max-w-md">
+                                        <p class="text-sm text-gray-700">Connect a new device like a tablet or phone by downloading the app from the <a target="_blank" href="https://play.google.com/store/apps/details?id=com.magweter.spacepad" class="text-blue-600 hover:text-blue-500">Play Store</a> or <a target="_blank" href="https://apps.apple.com/nl/app/spacepad/id6745528995" class="text-blue-600 hover:text-blue-500">App Store</a>.</p>
+                                    </div>
+                                    @if(config('settings.is_self_hosted'))
+                                        <div class="mt-6 mx-auto max-w-md text-center">
+                                            <p class="text-sm text-gray-700">Select 'self-hosted' and enter the following url:</p>
+                                        </div>
+                                        <div class="mt-4 p-4 bg-gray-50 rounded-lg">
+                                            <p class="text-lg font-mono text-center">{{ config('app.url') }}</p>
+                                        </div>
+                                    @endif
+                                    <div class="mt-6 mx-auto max-w-md text-center">
+                                        <p class="text-sm text-gray-700">Enter the following connect code:</p>
                                     </div>
                                     <div class="mt-4 p-4 bg-gray-50 rounded-lg">
                                         <p class="text-2xl font-mono text-center">{{ chunk_split($connectCode, 3, ' ') }}</p>
                                     </div>
                                 </div>
                             </div>
-                            <div class="mt-5 sm:mt-6">
+                            <div class="mt-5 sm:mt-8">
                                 <button type="button" onclick="closeConnectModal()" class="inline-flex w-full justify-center rounded-md bg-oxford px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-oxford-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-oxford-600">Close</button>
                             </div>
                         </div>
@@ -97,7 +116,7 @@
                 </div>
             </div>
 
-            <div class="mt-8 flow-root">
+            <div class="mt-6 flow-root">
                 <div class="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
                     <div class="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
                         <table class="min-w-full divide-y divide-gray-300">
@@ -106,7 +125,7 @@
                                 <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-0">Name</th>
                                 <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Account</th>
                                 <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Status</th>
-                                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Devices</th>
+                                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Activity</th>
                                 <th scope="col" class="relative py-3.5 pr-4 pl-3 sm:pr-0">
                                     <span class="sr-only">Actions</span>
                                 </th>
@@ -117,35 +136,74 @@
                                 <tr>
                                     <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0">
                                         <div class="font-medium text-gray-900">{{ $display->name }}</div>
-                                        <div class="text-gray-500">{{ $display->display_name }}</div>
+                                        <div class="text-gray-500">{{ $display->calendar->name }}</div>
                                     </td>
                                     <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                                        @if($display->calendar->outlookAccount)
-                                            <div class="flex items-center mb-1">
-                                                <x-icons.microsoft class="h-5 w-5 text-gray-400 mr-2" />
-                                                <span>{{ $display->calendar->outlookAccount->name }}</span>
-                                            </div>
-                                        @endif
-                                        @if($display->calendar->googleAccount)
-                                            <div class="flex items-center mb-1">
-                                                <x-icons.google class="h-5 w-5 text-gray-400 mr-2" />
-                                                <span>{{ $display->calendar->googleAccount->name }}</span>
-                                            </div>
-                                        @endif
-                                        @if($display->calendar->caldavAccount)
-                                            <div class="flex items-center mb-1">
-                                                <x-icons.calendar class="h-5 w-5 text-gray-400 mr-2" />
-                                                <span>{{ $display->calendar->caldavAccount->name }}</span>
-                                            </div>
-                                        @endif
-                                        <div class="text-gray-500">{{ $display->display_name }}</div>
+                                        <div class="flex flex-col gap-1">
+                                            @if($display->calendar->outlookAccount)
+                                                <div class="flex items-center">
+                                                    <x-icons.microsoft class="h-4 w-4 text-gray-900 mr-2" />
+                                                    <span class="text-gray-900">{{ $display->calendar->outlookAccount->name }}</span>
+                                                </div>
+                                            @endif
+                                            @if($display->calendar->googleAccount)
+                                                <div class="flex items-center">
+                                                    <x-icons.google class="h-4 w-4 text-gray-900 mr-2" />
+                                                    <span class="text-gray-900">{{ $display->calendar->googleAccount->name }}</span>
+                                                </div>
+                                            @endif
+                                            @if($display->calendar->caldavAccount)
+                                                <div class="flex items-center">
+                                                    <x-icons.calendar class="h-4 w-4 text-gray-900 mr-2" />
+                                                    <span class="text-gray-900">{{ $display->calendar->caldavAccount->name }}</span>
+                                                </div>
+                                            @endif
+                                        </div>
                                     </td>
                                     <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                                         <span class="inline-flex items-center rounded-md bg-{{ $display->status->color() }}-50 px-2 py-1 text-xs font-medium text-{{ $display->status->color() }}-700 ring-1 ring-inset ring-{{ $display->status->color() }}-600/20">
                                             {{ $display->status->label() }}
                                         </span>
                                     </td>
-                                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{ $display->devices->count() }}</td>
+                                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                        <div class="flex flex-col gap-1">
+                                            <div class="flex items-center gap-x-1.5">
+                                                @if($display->devices->isNotEmpty())
+                                                    <div class="flex-none rounded-full bg-emerald-500/20 p-1">
+                                                        <div class="h-2 w-2 rounded-full bg-emerald-500"></div>
+                                                    </div>
+                                                    <div class="group relative">
+                                                        <button type="button" class="flex items-center gap-x-1 text-sm text-gray-500 hover:text-gray-900">
+                                                            <span>{{ $display->devices->count() }} device{{ $display->devices->count() > 1 ? 's' : '' }}</span>
+                                                            <x-icons.information class="h-4 w-4 text-gray-400" />
+                                                        </button>
+                                                        <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block">
+                                                            <div class="rounded-md bg-gray-900 px-2 py-1 text-xs text-white shadow-lg">
+                                                                <div class="whitespace-nowrap">
+                                                                    @foreach($display->devices as $device)
+                                                                        <div class="flex items-center gap-x-1">
+                                                                            <span>{{ $device->name }}</span>
+                                                                            @if($device->last_activity_at)
+                                                                                <span class="text-gray-400">({{ $device->last_activity_at->diffForHumans() }})</span>
+                                                                            @endif
+                                                                        </div>
+                                                                    @endforeach
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                @else
+                                                    <div class="flex-none rounded-full bg-gray-500/20 p-1">
+                                                        <div class="h-2 w-2 rounded-full bg-gray-500"></div>
+                                                    </div>
+                                                    <span class="text-gray-500">No devices</span>
+                                                @endif
+                                            </div>
+                                            @if($display->last_sync_at)
+                                                <div class="text-gray-400 text-xs">Last sync {{ $display->last_sync_at->diffForHumans() }}</div>
+                                            @endif
+                                        </div>
+                                    </td>
                                     <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-0">
                                         <div class="flex justify-end gap-x-3">
                                             <form action="{{ route('displays.updateStatus', $display) }}" method="POST" class="inline">
@@ -187,16 +245,16 @@
                 </div>
             </div>
         </x-cards.card>
-        <x-cards.card class="col-span-12 md:col-span-4 space-y-6">
+        <x-cards.card class="col-span-12 xl:col-span-4 space-y-6">
             <div>
                 <h2 class="text-lg font-semibold leading-6 text-gray-900">Accounts</h2>
                 <p class="mt-1 text-sm text-gray-500">The accounts used to connect to calendars and rooms.</p>
             </div>
             <div>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-4">
                     @if(config('services.microsoft.enabled'))
                         <a href="{{ route('outlook-accounts.auth') }}"
-                           class="flex items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white p-4 shadow-sm hover:border-blue-500 hover:shadow-md transition-all duration-200">
+                           class="col-span-1 md:col-span-2 2xl:col-span-1 flex items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white p-4 shadow-sm hover:border-blue-500 hover:shadow-md transition-all duration-200">
                             <x-icons.microsoft class="h-6 w-6" />
                             <span class="font-medium text-gray-900">Microsoft</span>
                         </a>
@@ -204,7 +262,7 @@
 
                     @if(config('services.google.enabled'))
                         <a href="{{ route('google-accounts.auth') }}"
-                           class="flex items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white p-4 shadow-sm hover:border-blue-500 hover:shadow-md transition-all duration-200">
+                           class="col-span-1 flex items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white p-4 shadow-sm hover:border-blue-500 hover:shadow-md transition-all duration-200">
                             <x-icons.google class="h-6 w-6" />
                             <span class="font-medium text-gray-900">Google</span>
                         </a>
@@ -212,7 +270,7 @@
 
                     @if(config('services.caldav.enabled'))
                         <a href="{{ route('caldav-accounts.create') }}"
-                           class="flex items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white p-4 shadow-sm hover:border-blue-500 hover:shadow-md transition-all duration-200">
+                           class="col-span-1 flex items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white p-4 shadow-sm hover:border-blue-500 hover:shadow-md transition-all duration-200">
                             <x-icons.calendar class="h-6 w-6 text-gray-600" />
                             <span class="font-medium text-gray-900">CalDAV</span>
                         </a>
@@ -227,7 +285,7 @@
                     <span class="bg-white px-2 text-sm text-gray-500">Connected accounts</span>
                 </div>
             </div>
-            <div class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-1 gap-4">
                 @foreach($outlookAccounts as $outlookAccount)
                     <div class="relative flex items-center space-x-3 rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 hover:border-gray-400">
                         <div class="flex-shrink-0">
