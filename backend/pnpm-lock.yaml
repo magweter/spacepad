@@ -20,6 +20,9 @@ importers:
       rollup:
         specifier: ^4.42.0
         version: 4.42.0
+      tailwindcss:
+        specifier: ^3.4.17
+        version: 3.4.17
     devDependencies:
       autoprefixer:
         specifier: ^10.4.21
@@ -39,9 +42,6 @@ importers:
       postcss:
         specifier: ^8.5.4
         version: 8.5.4
-      tailwindcss:
-        specifier: ^3.4.17
-        version: 3.4.17
       vite:
         specifier: ^6.3.5
         version: 6.3.5(jiti@1.21.7)(yaml@2.8.0)
