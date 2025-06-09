@@ -17,6 +17,9 @@ importers:
       htmx.org:
         specifier: ^1.9.12
         version: 1.9.12
+      rollup:
+        specifier: ^4.42.0
+        version: 4.42.0
     devDependencies:
       autoprefixer:
         specifier: ^10.4.21
