@@ -7,10 +7,8 @@ use App\Models\Display;
 use App\Models\EventSubscription;
 use App\Models\OutlookAccount;
 use Exception;
-use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 
 class OutlookService
@@ -91,11 +89,13 @@ class OutlookService
         }
 
         // Get the current user information
-        $response = Http::acceptJson()->withHeaders([
-            'Authorization' => 'Bearer ' . $tokenData['access_token'],
-        ])->get('https://graph.microsoft.com/v1.0/me');
+        $response = Http::acceptJson()
+            ->withToken($tokenData['access_token'])
+            ->get('https://graph.microsoft.com/v1.0/me');
 
         $user = $response->json();
+
+        $tenantId = $this->getTenantId($tokenData['access_token']);
 
         // Save the Outlook account and tokens
         OutlookAccount::updateOrCreate(
@@ -105,14 +105,37 @@ class OutlookService
             ],
             [
                 'user_id' => auth()->id(),
-                'email' => $user['mail'],
+                'email' => $user['mail'] ?? $user['userPrincipalName'],
                 'name' => $user['displayName'],
+                'tenant_id' => $tenantId,
                 'token' => $tokenData['access_token'],
                 'refresh_token' => $tokenData['refresh_token'] ?? null,
                 'token_expires_at' => now()->addSeconds($tokenData['expires_in']),
                 'status' => AccountStatus::CONNECTED,
             ]
         );
+    }
+
+    public function getTenantId(string $token): ?string
+    {
+        try {
+            $response = Http::withToken($token)
+                ->get('https://graph.microsoft.com/v1.0/organization');
+
+            if (!$response->successful()) {
+                logger()->error('Failed to fetch Microsoft user info', [
+                    'status' => $response->status(),
+                    'response' => $response->json(),
+                ]);
+                return null;
+            }
+
+            $data = Arr::get($response->json(), 'value') ?? [];
+            return Arr::get($data, '0.id');
+        } catch (\Exception $e) {
+            report($e);
+            return null;
+        }
     }
 
     /**
@@ -339,7 +362,7 @@ class OutlookService
         $eventSubscription = EventSubscription::create([
             'subscription_id' => $responseBody['id'],
             'resource' => $responseBody['resource'],
-            'expiration' => $responseBody['expirationDateTime'],
+            'expiration' => Carbon::parse($responseBody['expirationDateTime']),
             'notification_url' => $data['notificationUrl'],
             'display_id' => $display->id,
             'outlook_account_id' => $outlookAccount->id,

@@ -17,6 +17,7 @@ class OutlookAccount extends Model
         'name',
         'email',
         'avatar',
+        'tenant_id',
         'status',
         'user_id',
         'outlook_id',

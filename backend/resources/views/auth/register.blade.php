@@ -38,15 +38,20 @@
                                 <input id="email" name="email" type="email" autocomplete="email" required class="block w-full rounded-md border-0 px-3 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm/6">
                             </div>
                         </div>
-                        <div>
+                        <div class="mb-4">
                             <button type="submit" class="flex w-full justify-center rounded-md bg-oxford px-3 py-1.5 text-sm/6 font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">
                                 {{ config('settings.is_self_hosted') ? 'Register' : 'Get started' }}
                             </button>
                         </div>
+                        <div>
+                            <div class="text-sm text-center">
+                                <label class="text-gray-500">By continuing, you indicate that you agree to our<br> <a href="https://spacepad.io/terms" target="_blank" class="text-blue-600 hover:text-blue-500">Terms of Service</a> and <a href="https://spacepad.io/privacy" target="_blank" class="text-blue-600 hover:text-blue-500">Privacy Policy</a>.</label>
+                            </div>
+                        </div>
                     </form>
 
                     <div>
-                        <div class="relative mt-10">
+                        <div class="relative mt-4">
                             <div class="absolute inset-0 flex items-center" aria-hidden="true">
                                 <div class="w-full border-t border-gray-200"></div>
                             </div>

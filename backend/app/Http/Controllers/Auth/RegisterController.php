@@ -40,7 +40,8 @@ class RegisterController extends Controller
         if (!$user) {
             $user = User::factory()->unverified()->create([
                 'name' => $data['name'],
-                'email' => $data['email']
+                'email' => $data['email'],
+                'terms_accepted_at' => ! config('settings.is_self_hosted') ? now() : null,
             ]);
         }
 

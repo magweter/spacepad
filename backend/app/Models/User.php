@@ -33,8 +33,8 @@ class User extends Authenticatable
         'usage_type',
         'email_verified_at',
         'last_activity_at',
-        'is_billing_exempt',
         'is_unlimited',
+        'terms_accepted_at',
     ];
 
     /**
@@ -56,9 +56,9 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
         'last_activity_at' => 'datetime',
-        'is_billing_exempt' => 'boolean',
         'is_unlimited' => 'boolean',
         'usage_type' => UsageType::class,
+        'terms_accepted_at' => 'datetime',
     ];
 
     public function outlookAccounts(): HasMany
@@ -81,9 +81,19 @@ class User extends Authenticatable
         return $this->hasMany(Display::class);
     }
 
-    public function hasDisplays(): bool
+    public function rooms(): HasMany
+    {
+        return $this->hasMany(Room::class);
+    }
+
+    public function hasAnyDisplay(): bool
     {
         return $this->displays()->count() > 0;
+    }
+
+    public function hasAnyAccount(): bool
+    {
+        return $this->outlookAccounts()->count() > 0 || $this->googleAccounts()->count() > 0 || $this->caldavAccounts()->count() > 0;
     }
 
     public function getConnectCode(): string
@@ -102,22 +112,55 @@ class User extends Authenticatable
         return $connectCode;
     }
 
+    public function isOnboarded(): bool
+    {
+        $isSelfHosted = config('settings.is_self_hosted');
+
+        return $this->usage_type && (! $isSelfHosted || $this->terms_accepted_at) && $this->hasAnyAccount();
+    }
+
     public function hasPro(): bool
     {
         return $this->is_unlimited || $this->subscribed() || (config('settings.is_self_hosted') && $this->usage_type === UsageType::PERSONAL);
     }
 
-    public function shouldUpgrade(): bool
+    /**
+     * Check if the user should be treated as a business user
+     */
+    public function isBusinessUser(): bool
     {
-        return ! $this->hasPro() && $this->hasDisplays();
+        // If the user has explicitly set their usage type to business, respect that
+        if ($this->usage_type === 'business') {
+            return true;
+        }
+
+        // If the user has any business accounts, they should be treated as a business user
+//        if ($this->hasBusinessAccount()) {
+//            return true;
+//        }
+
+        return false;
     }
 
-    public function getCheckoutUrl(?string $redirectUrl = null): Checkout
+    /**
+     * Check if the user should upgrade to Pro
+     */
+    public function shouldUpgrade(): bool
+    {
+        // If the user is a business user and doesn't have Pro, they should upgrade
+        if ($this->isBusinessUser() && !$this->hasPro()) {
+            return true;
+        }
+
+        return false;
+    }
+
+    public function getCheckoutUrl(?string $redirectUrl = null): ?Checkout
     {
         $redirectUrl ??= route('dashboard');
 
-        return config('settings.is_self_hosted') ?
-            auth()->user()->subscribe(config('settings.self_hosted_pro_plan_id'))->redirectTo($redirectUrl) :
-            auth()->user()->subscribe(config('settings.cloud_hosted_pro_plan_id'))->redirectTo($redirectUrl);
+        return !config('settings.is_self_hosted') ?
+            auth()->user()->subscribe(config('settings.cloud_hosted_pro_plan_id'))->redirectTo($redirectUrl) :
+            null;
     }
 }

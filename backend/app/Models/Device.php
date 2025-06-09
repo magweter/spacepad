@@ -20,6 +20,7 @@ class Device extends Model
         'user_id',
         'display_id',
         'name',
+        'uid',
         'last_activity_at'
     ];
 
