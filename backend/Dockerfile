@@ -21,7 +21,7 @@ COPY package.json pnpm-lock.yaml ./
 COPY vite.config.js ./
 COPY resources ./resources
 
-RUN pnpm install --dev && pnpm run build
+RUN pnpm install && pnpm run build
 
 # Set our base image
 FROM serversideup/php:8.4-unit as base
