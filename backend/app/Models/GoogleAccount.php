@@ -19,6 +19,7 @@ class GoogleAccount extends Model
         'name',
         'email',
         'avatar',
+        'hosted_domain',
         'status',
         'user_id',
         'google_id',

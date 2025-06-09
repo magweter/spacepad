@@ -1,3 +1,20 @@
+@import '@fortawesome/fontawesome-free/css/all.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.bg-oxford {
+    background: #14213D;
+}
+.bg-orange {
+    background: #FCA311;
+}
+.text-orange {
+    color: #FCA311;
+}
+.bg-platinum {
+    background: #E5E5E5;
+}
+.grecaptcha-badge { visibility: hidden !important; }
+[x-cloak] { display: none !important; }

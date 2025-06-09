@@ -6,6 +6,7 @@ use App\Http\Controllers\API\DisplayController;
 use App\Http\Controllers\API\EventController;
 use App\Http\Controllers\OutlookWebhookController;
 use App\Http\Controllers\GoogleWebhookController;
+use App\Http\Controllers\InstanceController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('auth')->group(function () {
@@ -21,3 +22,8 @@ Route::middleware(['auth:sanctum', 'user.update-last-activity'])->group(function
 
 Route::post('webhook/outlook', [OutlookWebhookController::class, 'handleNotification']);
 Route::post('webhook/google', [GoogleWebhookController::class, 'handleNotification']);
+
+Route::prefix('v1')->group(function () {
+    Route::post('/instances/activate', [InstanceController::class, 'activate']);
+    Route::post('/instances/heartbeat', [InstanceController::class, 'heartbeat']);
+});

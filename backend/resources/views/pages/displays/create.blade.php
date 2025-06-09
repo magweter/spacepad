@@ -8,6 +8,9 @@
         $userHasPro = auth()->user()->hasPro();
     @endphp
 
+    {{-- License Key Modal --}}
+    <x-modals.license-key />
+
     <x-cards.card>
         {{-- Session Status Alert --}}
         <x-alerts.alert />
@@ -121,6 +124,19 @@
                                         </div>
                                     </div>
                                 </x-lemon-button>
+                            @elseif($isSelfHosted && ! $userHasPro)
+                                <div x-data @click="$dispatch('open-modal', 'license-key')" class="relative flex items-center space-x-3 rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 hover:border-gray-400 cursor-pointer">
+                                    <div class="min-w-0 flex-1">
+                                        <p class="text-sm font-medium text-gray-900 mb-1">
+                                            Connect by Room
+                                            @if(! $userHasPro)
+                                                <span class="ml-1 inline-flex items-center rounded-md bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20">Pro</span>
+                                                <span class="ml-1 inline-flex items-center rounded-md bg-green-50 px-1.5 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">Try 7 days for free</span>
+                                            @endif
+                                        </p>
+                                        <p class="truncate text-sm text-gray-500">Search organization resources like rooms</p>
+                                    </div>
+                                </div>
                             @else
                                 <div data-method="room" class="search-method-tile relative flex items-center space-x-3 rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 hover:border-gray-400 cursor-pointer">
                                     <div class="min-w-0 flex-1">

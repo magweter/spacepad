@@ -13,6 +13,7 @@ use App\Http\Controllers\OutlookAccountsController;
 use App\Http\Controllers\DisplayController;
 use App\Http\Controllers\OutlookWebhookController;
 use App\Http\Controllers\CalDAVAccountsController;
+use App\Http\Controllers\LicenseController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/login', [LoginController::class, 'create'])
@@ -46,6 +47,7 @@ Route::middleware(['auth', 'user.update-last-activity'])->group(function () {
     Route::get('/', DashboardController::class)->name('dashboard')->middleware('user.onboarded');
     Route::get('/onboarding', [OnboardingController::class, 'index'])->name('onboarding');
     Route::post('/onboarding/usage-type', [OnboardingController::class, 'updateUsageType'])->name('onboarding.usage-type');
+    Route::post('/onboarding/terms', [OnboardingController::class, 'acceptTerms'])->name('onboarding.terms');
 
     Route::get('/outlook-accounts/auth', [OutlookAccountsController::class, 'auth'])->name('outlook-accounts.auth');
     Route::get('/outlook-accounts/callback', [OutlookAccountsController::class, 'callback']);
@@ -76,4 +78,6 @@ Route::middleware(['auth', 'user.update-last-activity'])->group(function () {
         ->name('rooms.outlook');
     Route::get('/rooms/google/{id}', [RoomController::class, 'google'])
         ->name('rooms.google');
+
+    Route::post('/license/validate', [LicenseController::class, 'validate'])->name('license.validate');
 });

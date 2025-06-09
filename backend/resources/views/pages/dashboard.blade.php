@@ -3,7 +3,7 @@
 
 @section('actions')
     {{-- Instruction Banner --}}
-    @if(auth()->user()->hasDisplays())
+    @if(auth()->user()->hasAnyDisplay())
         <div class="items-center flex ml-auto">
             <div class="flex w-full border border-dashed rounded-lg p-4 border-gray-400">
                 <h3 class="text-sm font-semibold text-gray-900 mr-8">Connect code</h3>
@@ -19,22 +19,26 @@
     @php
         $isSelfHosted = config('settings.is_self_hosted');
         $checkout = auth()->user()->getCheckoutUrl(route('dashboard'));
+        $showLicenseModal = $isSelfHosted && !auth()->user()->hasPro();
     @endphp
 
     {{-- Session Status Alert --}}
     <x-alerts.alert :errors="$errors" />
 
+    {{-- License Key Modal --}}
+    <x-modals.license-key />
+
     {{-- Commercial Banner --}}
-    @if(!auth()->user()->hasPro())
+    @if(! auth()->user()->hasPro())
         <x-cards.card class="mb-4">
             <div class="sm:flex sm:items-center sm:justify-between">
                 <div>
                     <h3 class="text-lg font-semibold text-gray-900">Get access to all features</h3>
                     <div class="mt-1 text-sm text-gray-500 leading-5">
                         <p>
-                            @if(config('settings.is_self_hosted'))
+                            @if($isSelfHosted)
                                 We value your privacy and strive to be fair and sustainable. Features for businesses and power-users like multiple displays, rooms and customization are therefore paid. <br>
-                                Using Spacepad for business? Support development by purchasing a Pro license — it's just $5 per display. The first display is always free.
+                                Support development by <a class="text-blue-500 underline" href="https://spacepad.io/purchase/self-hosted-pro" target="_blank">purchasing a Pro license</a> — it's just $5 per display. The first display is always free.
                             @else
                                 We value your privacy and strive to be fair and sustainable. Features for businesses and power-users like multiple displays, rooms and customization are therefore paid. <br>
                                 Try out Pro 7 days for free — after that it's just $5 per display. The first display is always free.
@@ -43,9 +47,15 @@
                     </div>
                 </div>
                 <div class="mt-5 sm:mt-0 sm:ml-6 sm:flex sm:shrink-0 sm:items-center">
-                    <x-lemon-button :href="$checkout" class="inline-flex items-center rounded-md bg-orange px-3 py-2 text-sm font-semibold text-white shadow-xs hover:bg-orange-400">
-                        Try Pro for 7 days
-                    </x-lemon-button>
+                    @if($isSelfHosted)
+                        <button type="button" x-data @click="$dispatch('open-modal', 'license-key')" class="inline-flex items-center rounded-md bg-orange px-3 py-2 text-sm font-semibold text-white shadow-xs hover:bg-orange-400">
+                            Try Pro for 7 days
+                        </button>
+                    @else
+                        <x-lemon-button :href="$checkout" class="inline-flex items-center rounded-md bg-orange px-3 py-2 text-sm font-semibold text-white shadow-xs hover:bg-orange-400">
+                            Try Pro for 7 days
+                        </x-lemon-button>
+                    @endif
                 </div>
             </div>
         </x-cards.card>
@@ -69,6 +79,11 @@
                                 <x-icons.plus class="h-5 w-5 mr-1" />
                                 Create new display <span class="ml-2 inline-flex items-center rounded-md bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20">Pro</span>
                             </x-lemon-button>
+                        @elseif($isSelfHosted && auth()->user()->shouldUpgrade())
+                            <button type="button" x-data @click="$dispatch('open-modal', 'license-key')" class="inline-flex items-center rounded-md bg-oxford px-3 py-2 text-center text-sm font-semibold text-white">
+                                <x-icons.plus class="h-5 w-5 mr-1" />
+                                Create new display <span class="ml-2 inline-flex items-center rounded-md bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20">Pro</span>
+                            </button>
                         @else
                             <a href="{{ route('displays.create') }}" class="inline-flex items-center rounded-md bg-oxford px-3 py-2 text-center text-sm font-semibold text-white">
                                 <x-icons.plus class="h-5 w-5 mr-1" />
@@ -230,11 +245,16 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="5" class="py-12 text-center">
+                                    <td colspan="5" class="py-16 text-center">
                                         <div class="flex flex-col items-center justify-center">
-                                            <x-icons.display class="h-12 w-12 text-gray-400" />
-                                            <h3 class="mt-2 text-sm font-semibold text-gray-900">No displays</h3>
-                                            <p class="mt-1 text-sm text-gray-500">Get started by creating a new display.</p>
+                                            <x-icons.display class="h-12 w-12 text-orange mb-3" />
+                                            <h3 class="mb-2 text-md font-semibold text-gray-900">
+                                                You are almost ready!<br>Next, set up a new display.
+                                            </h3>
+                                            <p class="mb-6 text-sm text-gray-500 max-w-sm">Pick the calendar or room you would like to synchronize. You are able to connect multiple tablets to one display.</p>
+                                            <a href="{{ route('displays.create') }}" class="inline-flex items-center rounded-md bg-oxford px-3 py-2 text-center text-sm font-semibold text-white">
+                                                <x-icons.plus class="h-5 w-5 mr-1" /> Create new display
+                                            </a>
                                         </div>
                                     </td>
                                 </tr>

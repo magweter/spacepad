@@ -14,7 +14,8 @@
 
 ## Our Mission
 
-We’re building focused, fun tools for modern offices — tools that just work, without enterprise BS. 
+We’re building focused, fun tools for modern offices — tools that just work, without enterprise BS.
+Spacepad strives to be the perfect all-encompassing room display solution for SMB's.
 
 Our values:<br>
 ✅ Simplicity: Easy to deploy and use<br>
@@ -28,7 +29,7 @@ We believe in open source and personal tinkering, and want to support these comm
 
 🙎‍♂️ If you’re a hobbyist or home user, enjoy Spacepad self hosted for free — even with multiple displays.
 
-🏢 If you're a business using Spacepad in your office, we ask you to support development by [buying a license](https://spacepad.io/#pricing). It’s affordable, simple, and helps keep the project alive.
+🏢 If you're a business using Spacepad in your office, we ask you to [purchase a license](https://spacepad.io/#pricing) to support development. It’s affordable, simple, and helps keeping the project sustainable.
 
 | Feature | Cloud Hosted<br> (Community) | Cloud Hosted <br>(Pro) | Self Hosted <br>(Community) | Self Hosted<br> (Pro) |
 | ------- | ------------------------ | ------------------ | ----------------------- | ----------------- |
@@ -87,9 +88,11 @@ We love open source and welcome your contributions! See [CONTRIBUTING.md](CONTRI
 - [x] Self-hosted with Docker
 - [x] Google Workspace support
 - [x] CalDAV support
-- [ ] Amazon Fire Tablet support
 - [ ] Custom display themes & logos
-- [ ] Room booking directly on device
+- [ ] Booking directly on device
+- [ ] Showing all events of the day
+- [ ] Amazon Fire Tablet support
+- [ ] Organizations & management
 - [ ] Multi-room overview dashboard
 
 Feature requests? We're all ears! Please open a new [issue](https://github.com/magweter/spacepad/issues).

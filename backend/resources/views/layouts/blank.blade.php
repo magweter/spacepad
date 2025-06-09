@@ -19,33 +19,12 @@
         <meta name="robots" content="noindex, nofollow">
         <title>{{ config('app.name') }}</title>
 
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-
-        <script src="https://cdn.tailwindcss.com"></script>
-        <script src="https://unpkg.com/htmx.org@2.0.3"></script>
+        <!-- Scripts -->
+        @vite(['resources/css/app.css', 'resources/js/app.js'])
 
         {!! RecaptchaV3::initJs() !!}
-
-        <!-- FontAwesome CDN for Google Icon -->
-        <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
-
+        
         @stack('styles')
-        <style>
-            .bg-oxford {
-                background: #14213D;
-            }
-            .bg-orange {
-                background: #FCA311;
-            }
-            .text-orange {
-                color: #FCA311;
-            }
-            .bg-platinum {
-                background: #E5E5E5;
-            }
-            .grecaptcha-badge { visibility: hidden !important; }
-        </style>
         @lemonJS
         @includeWhen(config('services.clarity.tag_code'), 'components.scripts.clarity')
     </head>

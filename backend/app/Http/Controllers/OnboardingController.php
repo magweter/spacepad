@@ -13,6 +13,8 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use App\Models\User;
+use Illuminate\Support\Facades\Auth;
 
 class OnboardingController extends Controller
 {
@@ -24,9 +26,10 @@ class OnboardingController extends Controller
      * @return Application|Factory|View
      * @throws \Exception
      */
-    public function index(): View|Factory|Application
+    public function index(): View|RedirectResponse
     {
         $user = auth()->user();
+        $isSelfHosted = config('settings.is_self_hosted');
 
         // Register email verified if not a social auth user and publish the registered event
         if (! $user->hasVerifiedEmail() && ! $user->microsoft_id && ! $user->google_id) {
@@ -35,22 +38,31 @@ class OnboardingController extends Controller
         }
 
         return view('pages.onboarding', [
-            'outlookAccounts' => $user->outlookAccounts,
-            'googleAccounts' => $user->googleAccounts,
-            'caldavAccounts' => $user->caldavAccounts,
+            'hasUsageType' => $user->usage_type !== null,
+            'hasAcceptedTerms' => ! $isSelfHosted || $user->terms_accepted_at !== null,
+            'hasAnyAccount' => $user->hasAnyAccount(),
         ]);
     }
 
-    public function updateUsageType(Request $request)
+    public function updateUsageType(Request $request): RedirectResponse
     {
         $request->validate([
-            'usage_type' => ['required', 'string', Rule::in(['business', 'personal'])],
+            'usage_type' => 'required|in:business,personal',
         ]);
 
         auth()->user()->update([
             'usage_type' => $request->usage_type,
         ]);
 
-        return redirect()->route('onboarding');
+        return redirect()->route('dashboard');
+    }
+
+    public function acceptTerms(): RedirectResponse
+    {
+        auth()->user()->update([
+            'terms_accepted_at' => now(),
+        ]);
+
+        return redirect()->route('dashboard');
     }
 }

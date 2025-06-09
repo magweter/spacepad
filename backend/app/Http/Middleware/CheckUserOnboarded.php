@@ -17,7 +17,7 @@ class CheckUserOnboarded
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (auth()->user()?->status === UserStatus::ONBOARDING) {
+        if (! auth()->user()->isOnboarded()) {
             return redirect()->route('onboarding');
         }
 
