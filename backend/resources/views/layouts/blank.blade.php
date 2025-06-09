@@ -23,7 +23,7 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
 
         {!! RecaptchaV3::initJs() !!}
-        
+
         @stack('styles')
         @lemonJS
         @includeWhen(config('services.clarity.tag_code'), 'components.scripts.clarity')

@@ -10,7 +10,7 @@ RUN composer install --no-cache --no-scripts --no-autoloader --ansi --no-interac
     && composer dump-autoload -o
 
 # Node.js builder stage
-FROM node:20-alpine AS node_builder
+FROM node:22-alpine AS node_builder
 
 WORKDIR /app
 
