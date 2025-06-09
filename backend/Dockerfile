@@ -21,7 +21,7 @@ COPY package.json pnpm-lock.yaml ./
 COPY vite.config.js ./
 COPY resources ./resources
 
-RUN pnpm install && pnpm run build
+RUN pnpm install --dev && pnpm run build
 
 # Set our base image
 FROM serversideup/php:8.4-unit as base
@@ -37,7 +37,7 @@ ENV SPACEPAD_VERSION=${GIT_TAG:-${GIT_COMMIT}}
 
 COPY --chown=www-data:www-data . /var/www/html
 COPY --chown=www-data:www-data --from=php_builder /app/vendor /var/www/html/vendor
-COPY --chown=www-data:www-data --from=node_builder /app/public /var/www/html/public
+COPY --chown=www-data:www-data --from=node_builder /app/public/build /var/www/html/public/build
 
 USER www-data
 
