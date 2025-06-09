@@ -15,6 +15,7 @@ class Instance extends Model
     protected $fillable = [
         'instance_id',
         'license_key',
+        'is_self_hosted',
         'accounts',
         'users',
         'last_heartbeat_at',
@@ -24,6 +25,7 @@ class Instance extends Model
     protected $casts = [
         'accounts' => 'array',
         'users' => 'array',
+        'is_self_hosted' => 'boolean',
         'last_heartbeat_at' => 'datetime',
     ];
 

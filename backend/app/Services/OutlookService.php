@@ -105,7 +105,7 @@ class OutlookService
             ],
             [
                 'user_id' => auth()->id(),
-                'email' => $user['mail'],
+                'email' => $user['mail'] ?? $user['userPrincipalName'],
                 'name' => $user['displayName'],
                 'tenant_id' => $tenantId,
                 'token' => $tokenData['access_token'],

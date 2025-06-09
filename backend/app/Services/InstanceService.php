@@ -138,6 +138,7 @@ class InstanceService
         return InstanceData::from([
             'instanceId' => $instanceId,
             'licenseKey' => $this->getInstanceVariable('license_key'),
+            'isSelfHosted' => config('settings.is_self_hosted'),
             'version' => config('settings.version'),
             'accounts' => $accounts->toArray(),
             'users' => $users->toArray(),

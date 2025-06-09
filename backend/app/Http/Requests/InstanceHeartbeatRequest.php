@@ -17,6 +17,7 @@ class InstanceHeartbeatRequest extends FormRequest
         return [
             'instanceId' => ['required', 'string'],
             'licenseKey' => ['nullable', 'string'],
+            'isSelfHosted' => ['required', 'boolean'],
             'version' => ['required', 'string'],
             'accounts' => ['required', 'array'],
             'users' => ['required', 'array'],

@@ -20,6 +20,7 @@ class InstanceController extends Controller
             [
                 'instance_id' => $request['instanceId'],
                 'license_key' => $request['licenseKey'],
+                'is_self_hosted' => $request['isSelfHosted'],
                 'accounts' => $request['accounts'],
                 'users' => $request['users'],
                 'version' => $request['version'],

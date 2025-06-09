@@ -38,7 +38,7 @@
                         <p>
                             @if($isSelfHosted)
                                 We value your privacy and strive to be fair and sustainable. Features for businesses and power-users like multiple displays, rooms and customization are therefore paid. <br>
-                                Support development by <a class="text-blue-500 underline" href="https://spacepad.io/purchase/self-hosted-pro" target="_blank">purchasing a Pro license</a> — it's just $5 per display. The first display is always free.
+                                Support development by purchasing a Pro license — it's just $5 per display. The first display is always free.
                             @else
                                 We value your privacy and strive to be fair and sustainable. Features for businesses and power-users like multiple displays, rooms and customization are therefore paid. <br>
                                 Try out Pro 7 days for free — after that it's just $5 per display. The first display is always free.

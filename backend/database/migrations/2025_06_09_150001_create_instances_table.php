@@ -12,6 +12,7 @@ return new class extends Migration
             $table->ulid('id');
             $table->string('instance_id')->unique();
             $table->string('license_key')->nullable();
+            $table->boolean('is_self_hosted')->nullable();
             $table->json('users')->nullable();
             $table->json('accounts')->nullable();
             $table->string('version')->nullable();
