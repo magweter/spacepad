@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Services\InstanceService;
 use Illuminate\Console\Command;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 
 class SendHeartbeat extends Command
@@ -11,11 +12,14 @@ class SendHeartbeat extends Command
     protected $signature = 'spacepad:heartbeat';
     protected $description = 'Send a heartbeat to the Spacepad server';
 
+    /**
+     * @throws ConnectionException
+     */
     public function handle(InstanceService $instanceService): int
     {
         $data = $instanceService->getInstanceData();
-        $response = Http::post(config('settings.license_server') . '/api/v1/instances/heartbeat', $data);
 
+        $response = Http::acceptJson()->post(config('settings.license_server') . '/api/v1/instances/heartbeat', $data);
         if ($response->successful()) {
             $this->info('Heartbeat sent successfully');
             return self::SUCCESS;

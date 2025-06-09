@@ -58,7 +58,7 @@ class User extends Authenticatable
         'last_activity_at' => 'datetime',
         'is_unlimited' => 'boolean',
         'usage_type' => UsageType::class,
-        'privacy_notice_accepted_at' => 'datetime',
+        'terms_accepted_at' => 'datetime',
     ];
 
     public function outlookAccounts(): HasMany
@@ -79,6 +79,11 @@ class User extends Authenticatable
     public function displays(): HasMany
     {
         return $this->hasMany(Display::class);
+    }
+
+    public function rooms(): HasMany
+    {
+        return $this->hasMany(Room::class);
     }
 
     public function hasAnyDisplay(): bool

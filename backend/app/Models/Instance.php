@@ -5,28 +5,32 @@ namespace App\Models;
 use App\Traits\HasUlid;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use LemonSqueezy\Laravel\Billable;
 
 class Instance extends Model
 {
-    use HasFactory, HasUlid;
+    use HasFactory, HasUlid, Billable;
 
     protected $fillable = [
         'instance_id',
         'license_key',
-        'num_displays',
-        'email_domain',
-        'calendar_provider',
-        'version',
+        'accounts',
+        'users',
         'last_heartbeat_at',
-        'activated_at',
-        'is_telemetry_enabled',
+        'version',
     ];
 
     protected $casts = [
+        'accounts' => 'array',
+        'users' => 'array',
         'last_heartbeat_at' => 'datetime',
-        'activated_at' => 'datetime',
-        'is_telemetry_enabled' => 'boolean',
     ];
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
 
     public function isActive(): bool
     {
@@ -47,4 +51,4 @@ class Instance extends Model
         // TODO: Implement license validation with LemonSqueezy
         return false;
     }
-} 
+}

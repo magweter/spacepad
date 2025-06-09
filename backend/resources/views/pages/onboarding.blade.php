@@ -53,7 +53,7 @@
                     <div class="mt-6 text-left space-y-4">
                         <div class="bg-gray-50 p-4 rounded-lg">
                             <h4 class="font-medium text-gray-900 mb-2">1. Email Collection for Fair Use</h4>
-                            <p class="text-gray-600">We collect your email address to verify licensing and ensure fair use. This is not shared externally and is only used for administrative purposes.</p>
+                            <p class="text-gray-600">We collect your email address and display usage to verify licensing and ensure fair use. This is not shared externally and is only used for administrative purposes.</p>
                         </div>
                         <div class="bg-gray-50 p-4 rounded-lg">
                             <h4 class="font-medium text-gray-900 mb-2">2. License Agreement</h4>

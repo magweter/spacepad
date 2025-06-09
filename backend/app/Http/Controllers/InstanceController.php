@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\InstanceHeartbeatRequest;
 use App\Models\Instance;
 use App\Services\InstanceService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 class InstanceController extends Controller
 {
@@ -13,18 +13,16 @@ class InstanceController extends Controller
         protected InstanceService $instanceService
     ) {}
 
-    public function heartbeat(Request $request): JsonResponse
+    public function heartbeat(InstanceHeartbeatRequest $request): JsonResponse
     {
-        $data = $this->instanceService->getInstanceData();
-        
-        $instance = Instance::updateOrCreate(
-            ['instance_id' => $data['instance_id']],
+        Instance::updateOrCreate(
+            ['instance_id' => $request['instanceId']],
             [
-                'license_key' => $data['license_key'],
-                'num_displays' => $data['num_displays'],
-                'email_domain' => $data['email_domain'],
-                'calendar_provider' => $data['calendar_provider'],
-                'version' => $data['version'],
+                'instance_id' => $request['instanceId'],
+                'license_key' => $request['licenseKey'],
+                'accounts' => $request['accounts'],
+                'users' => $request['users'],
+                'version' => $request['version'],
                 'last_heartbeat_at' => now(),
             ]
         );
@@ -33,4 +31,4 @@ class InstanceController extends Controller
             'message' => 'Heartbeat received',
         ]);
     }
-} 
+}

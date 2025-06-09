@@ -347,9 +347,9 @@
 
                 // Enable/disable room option based on provider
                 if (this.dataset.provider === 'caldav') {
-                    roomMethodTile.classList.add('opacity-50', 'cursor-not-allowed');
+                    roomMethodTile?.classList.add('opacity-50', 'cursor-not-allowed');
                 } else {
-                    roomMethodTile.classList.remove('opacity-50', 'cursor-not-allowed');
+                    roomMethodTile?.classList.remove('opacity-50', 'cursor-not-allowed');
                 }
             });
         });
