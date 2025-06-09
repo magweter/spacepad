@@ -37,7 +37,7 @@ ENV SPACEPAD_VERSION=${GIT_TAG:-${GIT_COMMIT}}
 
 COPY --chown=www-data:www-data . /var/www/html
 COPY --chown=www-data:www-data --from=php_builder /app/vendor /var/www/html/vendor
-COPY --chown=www-data:www-data --from=node_builder /app/public/build /var/www/html/public/build
+COPY --chown=www-data:www-data --from=node_builder /app/public /var/www/html/public
 
 USER www-data
 
