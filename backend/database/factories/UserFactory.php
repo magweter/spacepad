@@ -32,7 +32,7 @@ class UserFactory extends Factory
             'remember_token' => Str::random(10),
             'status' => UserStatus::ONBOARDING,
             'is_unlimited' => false,
-            'terms_accepted_at' => false,
+            'terms_accepted_at' => null,
         ];
     }
 
