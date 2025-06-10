@@ -16,3 +16,4 @@
 }
 .grecaptcha-badge { visibility: hidden !important; }
 [x-cloak] { display: none !important; }
+button { cursor: pointer; }

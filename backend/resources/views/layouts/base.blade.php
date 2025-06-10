@@ -15,16 +15,16 @@
                             Need help?
                         </a>
                     @endif
-                    <a href="https://github.com/magweter/spacepad/issues" class="hidden md:block rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300 hover:text-black">
+                    <a href="https://github.com/magweter/spacepad/issues" target="_blank" class="hidden md:block rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300 hover:text-black">
                         Give feedback
                     </a>
-                    <a href="https://spacepad.io" class="hidden md:block rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300 hover:text-black">
+                    <a href="https://spacepad.io" target="_blank" class="hidden md:block rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300 hover:text-black">
                         Visit website
                     </a>
                     @auth
                         <form action="{{ route('logout') }}" method="POST">
                             @csrf
-                            <button type="submit" class="rounded-md px-3 py-2 text-sm border font-medium text-gray-700 hover:bg-gray-300 hover:text-black">
+                            <button type="submit" class="rounded-md px-3 py-2 text-sm border border-gray-300 font-medium text-gray-700 hover:bg-gray-300 hover:text-black">
                                 Log out
                             </button>
                         </form>

@@ -19,7 +19,7 @@
         x-transition:leave="ease-in duration-200"
         x-transition:leave-start="opacity-100"
         x-transition:leave-end="opacity-0"
-        class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+        class="fixed inset-0 bg-gray-500 opacity-75 transition-opacity"
     ></div>
 
     <div class="fixed inset-0 z-50 overflow-y-auto">
