@@ -38,11 +38,11 @@
                     <form action="{{ route('onboarding.usage-type') }}" method="POST" class="mt-8 space-y-4">
                         @csrf
                         <div class="grid grid-cols-1 gap-4">
-                            <button type="submit" name="usage_type" value="business" class="flex items-center justify-center gap-3 rounded-lg border border-gray-200 bg-white p-4 shadow-sm hover:border-blue-500 hover:shadow-md transition-all duration-200">
+                            <button type="submit" name="usage_type" value="business" class="flex items-center justify-center gap-3 rounded-lg border border-gray-200 bg-white p-4 shadow-sm hover:border-blue-500 hover:shadow-md transition-all duration-200 cursor-pointer">
                                 <x-icons.building class="h-6 w-6" />
                                 <span class="font-medium text-gray-900">I am using this for a business or organization</span>
                             </button>
-                            <button type="submit" name="usage_type" value="personal" class="flex items-center justify-center gap-3 rounded-lg border border-gray-200 bg-white p-4 shadow-sm hover:border-blue-500 hover:shadow-md transition-all duration-200">
+                            <button type="submit" name="usage_type" value="personal" class="flex items-center justify-center gap-3 rounded-lg border border-gray-200 bg-white p-4 shadow-sm hover:border-blue-500 hover:shadow-md transition-all duration-200 cursor-pointer">
                                 <x-icons.users class="h-6 w-6" />
                                 <span class="font-medium text-gray-900">I am a hobbyist / personal user</span>
                             </button>

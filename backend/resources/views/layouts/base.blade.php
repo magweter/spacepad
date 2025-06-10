@@ -1,6 +1,6 @@
 @extends('layouts.blank')
 @section('page')
-    <nav class="bg-white border-b mb-8">
+    <nav class="bg-white border-b border-gray-200 mb-8">
         <div class="mx-auto container px-4 sm:px-6">
             <div class="flex h-16 items-center justify-between px-4 sm:px-0">
                 <a href="/" class="flex items-center">

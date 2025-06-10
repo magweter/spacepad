@@ -8,8 +8,8 @@
             <p class="mt-2 text-center text-lg text-gray-500">Please sign in to continue</p>
         </div>
 
-        <div class="mt-10 sm:mx-auto sm:w-full sm:max-w-[480px]">
-            <div class="bg-white px-6 py-12 border sm:rounded-lg sm:px-12">
+        <x-cards.card class="mt-10 sm:mx-auto sm:w-full sm:max-w-[480px]">
+            <div class="py-6 sm:px-6">
                 <x-alerts.alert />
 
                 <form action="{{ route('login.store') }}" method="POST">
@@ -62,7 +62,7 @@
                     @endif
                 </div>
             </div>
-        </div>
+        </x-cards.card>
 
         <div class="mt-8 text-center">
             <p class="text-sm text-gray-600">
