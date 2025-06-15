@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Data\LicenseData;
-use App\Http\Requests\ValidateLicenseRequest;
+use App\Http\Requests\ActivateLicenseRequest;
 use App\Services\InstanceService;
 use Illuminate\Support\Facades\Http;
 
@@ -13,7 +13,7 @@ class LicenseController extends Controller
         protected InstanceService $instanceService
     ) {}
 
-    public function validateLicense(ValidateLicenseRequest $request)
+    public function validateLicense(ActivateLicenseRequest $request)
     {
         try {
             // Get instance data

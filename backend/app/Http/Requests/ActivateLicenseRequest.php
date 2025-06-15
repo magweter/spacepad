@@ -5,7 +5,7 @@ namespace App\Http\Requests;
 use Illuminate\Foundation\Http\FormRequest;
 use App\Enums\Provider;
 
-class ValidateLicenseRequest extends FormRequest
+class ActivateLicenseRequest extends FormRequest
 {
     public function authorize(): bool
     {

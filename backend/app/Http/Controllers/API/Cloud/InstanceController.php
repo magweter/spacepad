@@ -4,10 +4,10 @@ namespace App\Http\Controllers\API\Cloud;
 
 use App\Data\LicenseData;
 use App\Http\Controllers\API\ApiController;
+use App\Http\Requests\API\InstanceHeartbeatRequest;
 use App\Http\Requests\API\ValidateInstanceRequest;
-use App\Http\Requests\InstanceHeartbeatRequest;
+use App\Infrastructure\Cloud\LicenseService;
 use App\Models\Instance;
-use App\Services\Cloud\LicenseService;
 use App\Services\InstanceService;
 use Illuminate\Http\JsonResponse;
 use LemonSqueezy\Laravel\Exceptions\LemonSqueezyApiError;

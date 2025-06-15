@@ -2,9 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\GoogleAccount;
-use App\Models\OutlookAccount;
-use App\Models\Synchronization;
 use App\Services\GoogleService;
 use App\Services\OutlookService;
 use App\Services\CalDAVService;

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\Cloud;
+namespace App\Infrastructure\Cloud;
 
 use Exception;
 use Illuminate\Http\Client\Response;
