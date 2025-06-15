@@ -2,22 +2,21 @@
 
 namespace Database\Factories;
 
-use App\Models\Device;
+use App\Models\Room;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
-use Illuminate\Support\Str;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Device>
+ * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Room>
  */
-class DeviceFactory extends Factory
+class RoomFactory extends Factory
 {
     /**
      * The name of the factory's corresponding model.
      *
      * @var string
      */
-    protected $model = Device::class;
+    protected $model = Room::class;
 
     /**
      * Define the model's default state.
@@ -28,8 +27,9 @@ class DeviceFactory extends Factory
     {
         return [
             'user_id' => User::factory(),
-            'name' => $this->faker->word(),
-            'uid' => Str::random(32),
+            'name' => fake()->word(),
+            'email_address' => fake()->unique()->safeEmail(),
+            'calendar_id' => null,
         ];
     }
 } 
