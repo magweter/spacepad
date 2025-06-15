@@ -37,10 +37,10 @@
                     <div class="mt-1 text-sm text-gray-500 leading-5">
                         <p>
                             @if($isSelfHosted)
-                                We value your privacy and strive to be fair and sustainable. Features for businesses and power-users like multiple displays, rooms and customization are therefore paid. <br>
+                                Spacepad strives to be fair and sustainable. Features for businesses and power-users like using multiple displays, rooms and customization are therefore paid. <br>
                                 Support development by purchasing a Pro license — it's just $5 per display. The first display is always free.
                             @else
-                                We value your privacy and strive to be fair and sustainable. Features for businesses and power-users like multiple displays, rooms and customization are therefore paid. <br>
+                                Spacepad strives to be fair and sustainable. Features for businesses and power-users like using multiple displays, rooms and customization are therefore paid. <br>
                                 Try out Pro 7 days for free — after that it's just $5 per display. The first display is always free.
                             @endif
                         </p>
@@ -69,10 +69,12 @@
                     <p class="mt-1 text-sm text-gray-500">Overview of your displays and their status.</p>
                 </div>
                 <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none flex items-center gap-2">
-                    <button type="button" onclick="openConnectModal()" class="inline-flex items-center gap-x-1.5 rounded-md bg-oxford px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-oxford-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-oxford-600">
-                        <x-icons.display class="h-4 w-4" />
-                        How to connect a tablet
-                    </button>
+                    @if(auth()->user()->hasAnyDisplay())
+                        <button type="button" onclick="openConnectModal()" class="inline-flex items-center gap-x-1.5 rounded-md bg-oxford px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-oxford-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-oxford-600">
+                            <x-icons.display class="h-4 w-4" />
+                            How to connect a tablet
+                        </button>
+                    @endif
                     @if(auth()->user()->can('create', \App\Models\Display::class))
                         @if(! $isSelfHosted && auth()->user()->shouldUpgrade())
                             <x-lemon-button :href="$checkout" class="inline-flex items-center rounded-md bg-oxford px-3 py-2 text-center text-sm font-semibold text-white">
