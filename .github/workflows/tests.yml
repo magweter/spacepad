@@ -89,8 +89,7 @@ jobs:
         run: vendor/bin/pest --coverage-text --coverage-clover=coverage.xml
 
       - name: Upload coverage to Codecov
-        working-directory: backend
         uses: codecov/codecov-action@v3
         with:
-          file: ./coverage.xml
+          file: backend/coverage.xml
           fail_ci_if_error: true 
