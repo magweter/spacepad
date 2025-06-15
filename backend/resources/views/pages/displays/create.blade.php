@@ -116,8 +116,8 @@
                                             <p class="text-sm font-medium text-gray-900 mb-1">
                                                 Connect by Room
                                                 @if(! $userHasPro)
-                                                    <span class="ml-1 inline-flex items-center rounded-md bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20">Pro</span>
-                                                    <span class="ml-1 inline-flex items-center rounded-md bg-green-50 px-1.5 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">Try 7 days for free</span>
+                                                    <span class="ml-1 inline-flex items-center rounded-md bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600">Pro</span>
+                                                    <span class="ml-1 inline-flex items-center rounded-md bg-green-50 px-1.5 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600">Try 7 days for free</span>
                                                 @endif
                                             </p>
                                             <p class="truncate text-sm text-gray-500">Search organization resources like rooms</p>
@@ -130,8 +130,8 @@
                                         <p class="text-sm font-medium text-gray-900 mb-1">
                                             Connect by Room
                                             @if(! $userHasPro)
-                                                <span class="ml-1 inline-flex items-center rounded-md bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20">Pro</span>
-                                                <span class="ml-1 inline-flex items-center rounded-md bg-green-50 px-1.5 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">Try 7 days for free</span>
+                                                <span class="ml-1 inline-flex items-center rounded-md bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600">Pro</span>
+                                                <span class="ml-1 inline-flex items-center rounded-md bg-green-50 px-1.5 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600">Try 7 days for free</span>
                                             @endif
                                         </p>
                                         <p class="truncate text-sm text-gray-500">Search organization resources like rooms</p>

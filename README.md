@@ -93,6 +93,7 @@ We love open source and welcome your contributions! See [CONTRIBUTING.md](CONTRI
 - [ ] Showing all events of the day
 - [ ] Amazon Fire Tablet support
 - [ ] Organizations & management
+- [ ] Web and TV view
 - [ ] Multi-room overview dashboard
 
 Feature requests? We're all ears! Please open a new [issue](https://github.com/magweter/spacepad/issues).

@@ -30,4 +30,9 @@ class OutlookAccount extends Model
         'token_expires_at' => 'datetime',
         'status' => AccountStatus::class,
     ];
+
+    public function isBusiness(): bool
+    {
+        return !empty($this->tenant_id);
+    }
 }

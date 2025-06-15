@@ -13,6 +13,7 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use LemonSqueezy\Laravel\Billable;
 use LemonSqueezy\Laravel\Checkout;
+use App\Services\InstanceService;
 
 class User extends Authenticatable
 {
@@ -114,14 +115,20 @@ class User extends Authenticatable
 
     public function isOnboarded(): bool
     {
-        $isSelfHosted = config('settings.is_self_hosted');
+        if (config('settings.is_self_hosted')) {
+            return $this->usage_type && $this->terms_accepted_at && $this->hasAnyAccount();
+        }
 
-        return $this->usage_type && (! $isSelfHosted || $this->terms_accepted_at) && $this->hasAnyAccount();
+        return $this->usage_type && $this->hasAnyAccount();
     }
 
     public function hasPro(): bool
     {
-        return $this->is_unlimited || $this->subscribed() || (config('settings.is_self_hosted') && $this->usage_type === UsageType::PERSONAL);
+        if (config('settings.is_self_hosted')) {
+            return $this->usage_type === UsageType::PERSONAL || InstanceService::hasValidLicense();
+        }
+
+        return $this->is_unlimited || $this->subscribed();
     }
 
     /**
@@ -129,17 +136,7 @@ class User extends Authenticatable
      */
     public function isBusinessUser(): bool
     {
-        // If the user has explicitly set their usage type to business, respect that
-        if ($this->usage_type === 'business') {
-            return true;
-        }
-
-        // If the user has any business accounts, they should be treated as a business user
-//        if ($this->hasBusinessAccount()) {
-//            return true;
-//        }
-
-        return false;
+        return $this->usage_type === UsageType::BUSINESS;
     }
 
     /**
@@ -158,9 +155,15 @@ class User extends Authenticatable
     public function getCheckoutUrl(?string $redirectUrl = null): ?Checkout
     {
         $redirectUrl ??= route('dashboard');
+        
+        if (config('settings.is_self_hosted')) {
+            return null;
+        }
 
-        return !config('settings.is_self_hosted') ?
-            auth()->user()->subscribe(config('settings.cloud_hosted_pro_plan_id'))->redirectTo($redirectUrl) :
-            null;
+        $cacheKey = "user:{$this->id}:checkout-url:{$redirectUrl}";
+        
+        return cache()->remember($cacheKey, now()->addHour(), function () use ($redirectUrl) {
+            return auth()->user()->subscribe(config('settings.cloud_hosted_pro_plan_id'))->redirectTo($redirectUrl);
+        });
     }
 }

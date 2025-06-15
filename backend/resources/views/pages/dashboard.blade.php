@@ -77,12 +77,12 @@
                         @if(! $isSelfHosted && auth()->user()->shouldUpgrade())
                             <x-lemon-button :href="$checkout" class="inline-flex items-center rounded-md bg-oxford px-3 py-2 text-center text-sm font-semibold text-white">
                                 <x-icons.plus class="h-5 w-5 mr-1" />
-                                Create new display <span class="ml-2 inline-flex items-center rounded-md bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20">Pro</span>
+                                Create new display <span class="ml-2 inline-flex items-center rounded-md bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600">Pro</span>
                             </x-lemon-button>
                         @elseif($isSelfHosted && auth()->user()->shouldUpgrade())
                             <button type="button" x-data @click="$dispatch('open-modal', 'license-key')" class="inline-flex items-center rounded-md bg-oxford px-3 py-2 text-center text-sm font-semibold text-white">
                                 <x-icons.plus class="h-5 w-5 mr-1" />
-                                Create new display <span class="ml-2 inline-flex items-center rounded-md bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20">Pro</span>
+                                Create new display <span class="ml-2 inline-flex items-center rounded-md bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600">Pro</span>
                             </button>
                         @else
                             <a href="{{ route('displays.create') }}" class="inline-flex items-center rounded-md bg-oxford px-3 py-2 text-center text-sm font-semibold text-white">
@@ -176,7 +176,7 @@
                                         </div>
                                     </td>
                                     <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                                        <span class="inline-flex items-center rounded-md bg-{{ $display->status->color() }}-50 px-2 py-1 text-xs font-medium text-{{ $display->status->color() }}-700 ring-1 ring-inset ring-{{ $display->status->color() }}-600/20">
+                                        <span class="inline-flex items-center rounded-md bg-{{ $display->status->color() }}-50 px-2 py-1 text-xs font-medium text-{{ $display->status->color() }}-700 ring-1 ring-inset ring-{{ $display->status->color() }}-600">
                                             {{ $display->status->label() }}
                                         </span>
                                     </td>
@@ -315,7 +315,7 @@
                             <span class="absolute inset-0" aria-hidden="true"></span>
                             <div class="flex items-center gap-2">
                                 <p class="text-md font-medium text-gray-900">{{ $outlookAccount->name }}</p>
-                                <p class="mt-0.5 whitespace-nowrap rounded-md bg-green-50 px-1.5 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">Connected</p>
+                                <p class="mt-0.5 whitespace-nowrap rounded-md bg-green-50 px-1.5 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600">Connected</p>
                             </div>
                             <p class="truncate text-sm text-gray-500 flex items-center gap-2 mt-1">
                                 <span>{{ $outlookAccount->email }}</span>
@@ -332,7 +332,7 @@
                             <span class="absolute inset-0" aria-hidden="true"></span>
                             <div class="flex items-center gap-2">
                                 <p class="text-md font-medium text-gray-900">{{ $googleAccount->name }}</p>
-                                <p class="mt-0.5 whitespace-nowrap rounded-md bg-green-50 px-1.5 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">Connected</p>
+                                <p class="mt-0.5 whitespace-nowrap rounded-md bg-green-50 px-1.5 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600">Connected</p>
                             </div>
                             <p class="truncate text-sm text-gray-500 flex items-center gap-2 mt-1">
                                 <span>{{ $googleAccount->email }}</span>
@@ -349,7 +349,7 @@
                             <span class="absolute inset-0" aria-hidden="true"></span>
                             <div class="flex items-center gap-2">
                                 <p class="text-md font-medium text-gray-900">{{ $caldavAccount->name }}</p>
-                                <p class="mt-0.5 whitespace-nowrap rounded-md bg-green-50 px-1.5 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">Connected</p>
+                                <p class="mt-0.5 whitespace-nowrap rounded-md bg-green-50 px-1.5 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600">Connected</p>
                             </div>
                             <p class="truncate text-sm text-gray-500 flex items-center gap-2 mt-1">
                                 <span>{{ $caldavAccount->email }}</span>

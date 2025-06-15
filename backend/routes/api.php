@@ -1,12 +1,12 @@
 <?php
 
 use App\Http\Controllers\API\Auth\AuthController;
+use App\Http\Controllers\API\Cloud\InstanceController;
 use App\Http\Controllers\API\DeviceController;
 use App\Http\Controllers\API\DisplayController;
 use App\Http\Controllers\API\EventController;
-use App\Http\Controllers\OutlookWebhookController;
 use App\Http\Controllers\GoogleWebhookController;
-use App\Http\Controllers\InstanceController;
+use App\Http\Controllers\OutlookWebhookController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('auth')->group(function () {
@@ -26,4 +26,5 @@ Route::post('webhook/google', [GoogleWebhookController::class, 'handleNotificati
 Route::prefix('v1')->group(function () {
     Route::post('/instances/activate', [InstanceController::class, 'activate']);
     Route::post('/instances/heartbeat', [InstanceController::class, 'heartbeat']);
+    Route::post('/instances/validate', [InstanceController::class, 'validateInstance']);
 });

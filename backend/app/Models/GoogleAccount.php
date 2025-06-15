@@ -42,4 +42,9 @@ class GoogleAccount extends Model
     {
         return $this->hasMany(Calendar::class);
     }
+
+    public function isBusiness(): bool
+    {
+        return !empty($this->hosted_domain);
+    }
 }

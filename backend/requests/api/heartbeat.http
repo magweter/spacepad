@@ -1,0 +1,23 @@
+### Send heartbeat to Spacepad server
+POST {{baseUrl}}/api/v1/instances/heartbeat
+Content-Type: application/json
+Accept: application/json
+
+{
+    "instance_key": "",
+    "license_key": "",
+    "license_valid": true,
+    "license_expires_at": "2024-12-31T23:59:59Z",
+    "is_self_hosted": true,
+    "displays_count": 2,
+    "rooms_count": 1,
+    "version": "1.0.0",
+    "users": [
+        {
+            "email": "user@example.com",
+            "usage_type": "personal",
+            "is_unlimited": false,
+            "terms_accepted_at": "2024-01-01T00:00:00Z"
+        }
+    ]
+}

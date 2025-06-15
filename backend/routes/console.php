@@ -2,10 +2,24 @@
 
 use App\Console\Commands\RenewEventSubscriptions;
 use App\Console\Commands\SendHeartbeat;
+use App\Console\Commands\ValidateLicense;
+use App\Services\InstanceService;
 use Illuminate\Support\Facades\Schedule;
 
-Schedule::command(RenewEventSubscriptions::class)->everyMinute();
+// Generate random minutes for scheduling (between 0-59)
+$heartbeatMinute = rand(0, 59);
+$validateMinute = rand(0, 59);
+
+Schedule::command(RenewEventSubscriptions::class)
+    ->everyMinute()
+    ->withoutOverlapping();
+
 Schedule::command(SendHeartbeat::class)
     ->when(fn() => config('settings.is_self_hosted'))
-    ->hourly()
+    ->hourlyAt($heartbeatMinute)
+    ->withoutOverlapping();
+
+Schedule::command(ValidateLicense::class)
+    ->when(fn() => config('settings.is_self_hosted') && InstanceService::hasLicense())
+    ->hourlyAt($validateMinute)
     ->withoutOverlapping();

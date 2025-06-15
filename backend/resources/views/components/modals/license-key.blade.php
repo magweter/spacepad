@@ -10,15 +10,19 @@
     role="dialog"
     aria-modal="true"
 >
+    @if($errors->has('license_key'))
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                window.dispatchEvent(new CustomEvent('open-modal', { detail: 'license-key' }));
+            });
+        </script>
+    @endif
+
     {{-- Background backdrop --}}
     <div
         x-show="show"
         x-transition:enter="ease-out duration-300"
-        x-transition:enter-start="opacity-0"
-        x-transition:enter-end="opacity-100"
         x-transition:leave="ease-in duration-200"
-        x-transition:leave-start="opacity-100"
-        x-transition:leave-end="opacity-0"
         class="fixed inset-0 bg-gray-500 opacity-75 transition-opacity"
     ></div>
 
@@ -51,7 +55,7 @@
                     </div>
                 </div>
 
-                <form action="{{ route('license.validate') }}" method="POST" class="mt-5 sm:mt-6">
+                <form action="{{ route('license.validate') }}" method="POST" class="mt-5 sm:mt-6" x-on:submit="if ($event.target.checkValidity()) show = false">
                     @csrf
                     <div>
                         <label for="license_key" class="sr-only">License Key</label>
@@ -61,7 +65,6 @@
                             id="license_key"
                             class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-orange-600 sm:text-sm sm:leading-6"
                             placeholder="XXXX-XXXX-XXXX-XXXX"
-                            pattern="[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}"
                             required
                         >
                     </div>

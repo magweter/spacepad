@@ -2,75 +2,61 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Instance;
+use App\Data\LicenseData;
+use App\Http\Requests\ValidateLicenseRequest;
 use App\Services\InstanceService;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
 
 class LicenseController extends Controller
 {
-    protected $instanceService;
+    public function __construct(
+        protected InstanceService $instanceService
+    ) {}
 
-    public function __construct(InstanceService $instanceService)
+    public function validateLicense(ValidateLicenseRequest $request)
     {
-        $this->instanceService = $instanceService;
-    }
-
-    public function validate(Request $request)
-    {
-        $request->validate([
-            'license_key' => ['required', 'string', 'regex:/^[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/'],
-        ]);
-
         try {
             // Get instance data
             $instanceData = $this->instanceService->getInstanceData();
-            
-            // Send validation request to Spacepad server
-            $response = Http::post(config('settings.spacepad_api_url') . '/api/v1/licenses/validate', [
-                'instance_id' => $instanceData['instance_id'],
-                'license_key' => $request->license_key,
+
+            // Send validation request to the license server
+            $response = Http::acceptJson()->post(config('settings.license_server') . '/api/v1/instances/activate', [
+                'instance_key' => $instanceData->instanceKey,
+                'license_key' => $request['license_key'],
             ]);
 
-            if (!$response->successful()) {
-                Log::error('License validation failed', [
-                    'status' => $response->status(),
-                    'response' => $response->json(),
+            if ($response->notFound()) {
+                return back()->withErrors([
+                    'license_key' => 'License key was not found.',
                 ]);
-                
+            }
+
+            if ($response->failed()) {
                 return back()->withErrors([
                     'license_key' => 'Failed to validate license key. Please try again later.',
                 ]);
             }
 
-            $data = $response->json();
-
-            if (!$data['valid']) {
+            $licenseData = LicenseData::from($response->json()['data']);
+            if (! $licenseData->valid) {
                 return back()->withErrors([
-                    'license_key' => $data['message'] ?? 'Invalid license key.',
+                    'license_key' => 'License key was invalid or has been used before.',
                 ]);
             }
 
-            // Update instance with license key
-            Instance::updateOrCreate(
-                ['instance_id' => $instanceData['instance_id']],
-                [
-                    'license_key' => $request->license_key,
-                    'last_heartbeat_at' => now(),
-                ]
-            );
+            $activated = $this->instanceService->updateLicense($licenseData);
+            if (! $activated) {
+                return back()->withErrors([
+                    'license_key' => 'Instance could not be activated.',
+                ]);
+            }
 
-            return back()->with('success', 'License key validated successfully!');
+            return back()->with('success', 'Thank you for supporting Spacepad! Your license key was validated successfully. Enjoy using the Pro features.');
         } catch (\Exception $e) {
-            Log::error('License validation error', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
+            report($e);
             return back()->withErrors([
                 'license_key' => 'An error occurred while validating the license key. Please try again later.',
             ]);
         }
     }
-} 
+}

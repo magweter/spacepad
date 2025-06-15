@@ -7,8 +7,7 @@ return [
     'onboarding_complete_webhook_url' => env('ONBOARDING_COMPLETE_WEBHOOK_URL'),
     'order_created_webhook_url' => env('ORDER_CREATED_WEBHOOK_URL'),
 
-    'heartbeat_interval' => 24,
-    'license_server' => env('SELF_HOSTED', true) ? 'https://app.spacepad.io' : env('APP_URL', 'http://localhost'),
+    'license_server' => env('LICENSE_SERVER', 'https://app.spacepad.io'),
 
     'cloud_hosted_pro_plan_id' => env('CLOUD_HOSTED_PRO_PLAN_ID'),
 

@@ -10,12 +10,16 @@ return new class extends Migration
     {
         Schema::create('instances', function (Blueprint $table) {
             $table->ulid('id');
-            $table->string('instance_id')->unique();
+            $table->string('instance_key')->unique();
             $table->string('license_key')->nullable();
+            $table->boolean('license_valid')->nullable();
+            $table->timestamp('license_expires_at')->nullable();
             $table->boolean('is_self_hosted')->nullable();
+            $table->integer('displays_count')->nullable();
+            $table->integer('rooms_count')->nullable();
             $table->json('users')->nullable();
-            $table->json('accounts')->nullable();
             $table->string('version')->nullable();
+            $table->timestamp('last_validated_at')->nullable();
             $table->timestamp('last_heartbeat_at')->nullable();
             $table->timestamps();
         });

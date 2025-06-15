@@ -6,6 +6,7 @@ use App\Models\PersonalAccessToken;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Sanctum\Sanctum;
+use LemonSqueezy\Laravel\LemonSqueezy;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -14,7 +15,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        if (config('settings.is_self_hosted')) {
+            LemonSqueezy::ignoreMigrations();
+        }
     }
 
     /**

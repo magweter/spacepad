@@ -55,7 +55,7 @@
                         </div>
                         <div class="mt-3 flex flex-col items-center justify-center gap-x-2 text-md leading-5 text-gray-500 max-w-md mx-auto">
                             <p class="break-words leading-6 mb-3">
-                                In order to be the perfect all-encompassing room display solution for SMB's it is mandatory this project is sustainable.
+                                In order to be the perfect all-encompassing room display solution for SMB's it is mandatory Spacepad is sustainable.
                             </p>
                             <p class="break-words leading-6">
                                 That's why as a self-hosted user, we need your agreement on two important points:
@@ -63,12 +63,12 @@
                         </div>
                         <div class="mt-6 text-left space-y-4">
                             <div class="bg-gray-50 p-4 rounded-lg">
-                                <h4 class="font-medium text-gray-900 mb-2">1. Email Collection for Fair Use</h4>
-                                <p class="text-gray-600">We collect your email address and display usage to verify licensing and ensure fair use. This is not shared externally and is only used for administrative purposes.</p>
+                                <h4 class="font-medium text-gray-900 mb-2">1. Fair Use</h4>
+                                <p class="text-gray-600">We collect your email address to verify licensing and ensure fair use. This is not shared externally and is only used for administrative purposes.</p>
                             </div>
                             <div class="bg-gray-50 p-4 rounded-lg">
                                 <h4 class="font-medium text-gray-900 mb-2">2. License Agreement</h4>
-                                <p class="text-gray-600">By using Spacepad, you agree to our <a class="text-blue-500 underline" href="https://github.com/magweter/spacepad?tab=readme-ov-file#license" target="_blank">licensing terms</a>. Personal users get full access, while business users need a valid license key for multiple displays.</p>
+                                <p class="text-gray-600">By using Spacepad, you agree to our <a class="text-blue-500 underline" href="https://github.com/magweter/spacepad?tab=readme-ov-file#license" target="_blank">licensing terms</a>. Personal users get full access, while business users need a valid license key for multiple displays and Pro features.</p>
                             </div>
                         </div>
                     </div>

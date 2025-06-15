@@ -23,18 +23,18 @@
         $title = 'Please note';
     }
 
-    $hasErrors = $errors->any();
+    $hasErrors = $errors->any() && !$errors->has('license_key');
     if ($hasErrors) {
         $type = 'error';
         $title = 'There were errors with your submission';
     }
 
     $alertClasses = [
-        'success' => 'bg-green-50',
-        'error' => 'bg-red-50',
-        'warning' => 'bg-yellow-50',
-        'info' => 'bg-blue-50',
-    ][$type] ?? 'bg-blue-50';
+        'success' => 'bg-green-50 ring-green-600',
+        'error' => 'bg-red-50 ring-red-600',
+        'warning' => 'bg-yellow-50 ring-yellow-600',
+        'info' => 'bg-blue-50 ring-blue-600',
+    ][$type] ?? 'bg-blue-50 ring-blue-600';
 
     $titleClasses = [
         'success' => 'text-green-700',
@@ -52,12 +52,12 @@
 @endphp
 
 @if(session('success') || session('error') || session('warning') || session('info') || $hasErrors)
-    <div id="alert" class="rounded-md p-4 mb-4 {{ $alertClasses }}">
+    <div id="alert" class="rounded-md p-4 mb-4 ring-1 ring-inset {{ $alertClasses }}">
         <div class="flex flex-col">
             @if($title)
-                <h3 class="text-base font-semibold {{ $titleClasses }}">{{ $title }}</h3>
+                <h3 class="text-base font-semibold mb-1 {{ $titleClasses }}">{{ $title }}</h3>
             @endif
-            <div class="mt-1 text-sm {{ $messageClasses }}">
+            <div class="text-sm {{ $messageClasses }}">
                 @if($message)
                     <p>{{ $message }}</p>
                 @endif

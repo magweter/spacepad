@@ -3,17 +3,18 @@
 namespace App\Data;
 
 use Spatie\LaravelData\Data;
+use Spatie\LaravelData\Attributes\MapName;
 use Carbon\Carbon;
 
 class UserData extends Data
 {
     public function __construct(
         public string $email,
-        public string $status,
-        public int $numDisplays,
-        public int $numRooms,
+        #[MapName('usage_type')]
         public ?string $usageType,
-        public ?bool $isUnlimited,
-        public ?Carbon $termsAcceptedAt = null,
+        #[MapName('is_unlimited')]
+        public bool $isUnlimited,
+        #[MapName('terms_accepted_at')]
+        public ?string $termsAcceptedAt,
     ) {}
 }

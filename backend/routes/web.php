@@ -44,8 +44,8 @@ Route::prefix('auth')->group(function () {
 });
 
 Route::middleware(['auth', 'user.update-last-activity'])->group(function () {
-    Route::get('/', DashboardController::class)->name('dashboard')->middleware('user.onboarded');
-    Route::get('/onboarding', [OnboardingController::class, 'index'])->name('onboarding');
+    Route::get('/', DashboardController::class)->name('dashboard')->middleware('user.active');
+    Route::get('/onboarding', [OnboardingController::class, 'index'])->name('onboarding')->middleware('user.onboarding');
     Route::post('/onboarding/usage-type', [OnboardingController::class, 'updateUsageType'])->name('onboarding.usage-type');
     Route::post('/onboarding/terms', [OnboardingController::class, 'acceptTerms'])->name('onboarding.terms');
 
@@ -79,5 +79,5 @@ Route::middleware(['auth', 'user.update-last-activity'])->group(function () {
     Route::get('/rooms/google/{id}', [RoomController::class, 'google'])
         ->name('rooms.google');
 
-    Route::post('/license/validate', [LicenseController::class, 'validate'])->name('license.validate');
+    Route::post('/license/validate', [LicenseController::class, 'validateLicense'])->name('license.validate');
 });
