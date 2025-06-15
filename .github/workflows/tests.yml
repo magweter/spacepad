@@ -40,13 +40,12 @@ jobs:
           extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv, mysql
           coverage: xdebug
 
-      - name: Change to backend directory
-        run: cd backend
-
       - name: Copy .env
+        working-directory: backend
         run: php -r "file_exists('.env') || copy('.env.example', '.env');"
 
       - name: Get Composer Cache Directory
+        working-directory: backend
         id: composer-cache
         run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
 
@@ -54,27 +53,32 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ${{ steps.composer-cache.outputs.dir }}
-          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('backend/composer.lock') }}
           restore-keys: ${{ runner.os }}-composer-
 
       - name: Install Dependencies
+        working-directory: backend
         run: |
           composer self-update
           composer install --prefer-dist --no-progress --no-scripts
           composer dump-autoload
 
       - name: Generate key
+        working-directory: backend
         run: php artisan key:generate
 
       - name: Directory Permissions
+        working-directory: backend
         run: chmod -R 777 storage bootstrap/cache
 
       - name: Create Database
+        working-directory: backend
         run: |
           mysql -u root -ppassword -e "CREATE DATABASE IF NOT EXISTS spacepad_test;"
           php artisan migrate --env=testing
 
       - name: Execute tests (via Pest)
+        working-directory: backend
         env:
           DB_CONNECTION: mysql
           DB_HOST: 127.0.0.1
@@ -85,6 +89,7 @@ jobs:
         run: vendor/bin/pest --coverage-text --coverage-clover=coverage.xml
 
       - name: Upload coverage to Codecov
+        working-directory: backend
         uses: codecov/codecov-action@v3
         with:
           file: ./coverage.xml
