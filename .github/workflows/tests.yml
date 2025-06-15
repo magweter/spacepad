@@ -19,15 +19,6 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    services:
-      mysql:
-        image: mysql:8.0
-        env:
-          MYSQL_ROOT_PASSWORD: password
-          MYSQL_DATABASE: spacepad_test
-        ports:
-          - 3306:3306
-        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
 
     steps:
       - name: Checkout repository
@@ -37,7 +28,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
-          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv, mysql
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv
           coverage: xdebug
 
       - name: Copy .env
@@ -71,21 +62,8 @@ jobs:
         working-directory: backend
         run: chmod -R 777 storage bootstrap/cache
 
-      - name: Create Database
-        working-directory: backend
-        run: |
-          mysql -u root -ppassword -e "CREATE DATABASE IF NOT EXISTS spacepad_test;"
-          php artisan migrate --env=testing
-
       - name: Execute tests (via Pest)
         working-directory: backend
-        env:
-          DB_CONNECTION: mysql
-          DB_HOST: 127.0.0.1
-          DB_PORT: 3306
-          DB_DATABASE: spacepad_test
-          DB_USERNAME: root
-          DB_PASSWORD: password
         run: vendor/bin/pest --coverage-text --coverage-clover=coverage.xml
 
       - name: Upload coverage to Codecov
