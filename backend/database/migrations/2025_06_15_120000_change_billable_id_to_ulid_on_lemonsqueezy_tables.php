@@ -10,6 +10,10 @@ return new class extends Migration {
      */
     public function up(): void
     {
+        if (config('settings.is_self_hosted')) {
+            return;
+        }
+        
         $connection = Schema::getConnection();
         $driver = $connection->getDriverName();
 
@@ -58,16 +62,17 @@ return new class extends Migration {
      */
     public function down(): void
     {
+        if (config('settings.is_self_hosted')) {
+            return;
+        }
         // Customers table
         Schema::table('lemon_squeezy_customers', function (Blueprint $table) {
             $table->unsignedBigInteger('billable_id')->change();
         });
-
         // Subscriptions table
         Schema::table('lemon_squeezy_subscriptions', function (Blueprint $table) {
             $table->unsignedBigInteger('billable_id')->change();
         });
-
         // Orders table
         Schema::table('lemon_squeezy_orders', function (Blueprint $table) {
             $table->unsignedBigInteger('billable_id')->change();
