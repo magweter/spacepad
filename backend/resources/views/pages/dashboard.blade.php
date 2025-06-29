@@ -222,7 +222,7 @@
                                         </div>
                                     </td>
                                     <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-0">
-                                        <div class="flex justify-end gap-x-3">
+                                        <div class="flex justify-end gap-x-2">
                                             <form action="{{ route('displays.updateStatus', $display) }}" method="POST" class="inline">
                                                 @csrf
                                                 @method('PATCH')
