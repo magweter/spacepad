@@ -10,20 +10,47 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        // Customers table
-        Schema::table('lemon_squeezy_customers', function (Blueprint $table) {
-            $table->ulid('billable_id')->change();
-        });
+        $connection = Schema::getConnection();
+        $driver = $connection->getDriverName();
 
-        // Subscriptions table
-        Schema::table('lemon_squeezy_subscriptions', function (Blueprint $table) {
-            $table->ulid('billable_id')->change();
-        });
+        if ($driver === 'sqlite') {
+            // Customers table
+            Schema::table('lemon_squeezy_customers', function (Blueprint $table) {
+                $table->dropColumn('billable_id');
+            });
+            Schema::table('lemon_squeezy_customers', function (Blueprint $table) {
+                $table->ulid('billable_id')->after('id');
+            });
 
-        // Orders table
-        Schema::table('lemon_squeezy_orders', function (Blueprint $table) {
-            $table->ulid('billable_id')->change();
-        });
+            // Subscriptions table
+            Schema::table('lemon_squeezy_subscriptions', function (Blueprint $table) {
+                $table->dropColumn('billable_id');
+            });
+            Schema::table('lemon_squeezy_subscriptions', function (Blueprint $table) {
+                $table->ulid('billable_id')->after('id');
+            });
+
+            // Orders table
+            Schema::table('lemon_squeezy_orders', function (Blueprint $table) {
+                $table->dropColumn('billable_id');
+            });
+            Schema::table('lemon_squeezy_orders', function (Blueprint $table) {
+                $table->ulid('billable_id')->after('id');
+            });
+        } else {
+            // Customers table
+            Schema::table('lemon_squeezy_customers', function (Blueprint $table) {
+                $table->ulid('billable_id')->change();
+            });
+            // Subscriptions table
+            Schema::table('lemon_squeezy_subscriptions', function (Blueprint $table) {
+                $table->ulid('billable_id')->change();
+            });
+            // Orders table
+            Schema::table('lemon_squeezy_orders', function (Blueprint $table) {
+                $table->ulid('billable_id')->change();
+            });
+        }
     }
 
     /**
