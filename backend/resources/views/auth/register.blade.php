@@ -12,7 +12,9 @@
             <div class="py-6 sm:px-6">
                 <x-alerts.alert />
 
-                @if(session('registered'))
+                @if(config('settings.disable_email_login'))
+                    <div class="mb-6 p-4 bg-orange-100 text-orange-800 rounded">Email registration is currently disabled on this instance.</div>
+                @elseif(session('registered'))
                     <div class="flex flex-col items-center justify-center p-8 mb-8">
                         <div class="mb-4">
                             <svg class="h-12 w-12 text-orange" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">

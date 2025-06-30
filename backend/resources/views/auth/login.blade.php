@@ -12,19 +12,23 @@
             <div class="py-6 sm:px-6">
                 <x-alerts.alert />
 
-                <form action="{{ route('login.store') }}" method="POST">
-                    @csrf
-                    {!! RecaptchaV3::field('login') !!}
-                    <div class="mb-6">
-                        <label for="email" class="block text-sm/6 font-medium text-gray-900">Email address</label>
-                        <div class="mt-2">
-                            <input id="email" name="email" type="email" autocomplete="email" required class="block w-full rounded-md border-0 px-3 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm/6">
+                @if(config('settings.disable_email_login'))
+                    <div class="mb-6 p-4 bg-orange-100 text-orange-800 rounded">Email login is currently disabled on this instance.</div>
+                @else
+                    <form action="{{ route('login.store') }}" method="POST">
+                        @csrf
+                        {!! RecaptchaV3::field('login') !!}
+                        <div class="mb-6">
+                            <label for="email" class="block text-sm/6 font-medium text-gray-900">Email address</label>
+                            <div class="mt-2">
+                                <input id="email" name="email" type="email" autocomplete="email" required class="block w-full rounded-md border-0 px-3 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm/6">
+                            </div>
                         </div>
-                    </div>
-                    <div>
-                        <button type="submit" class="flex w-full justify-center rounded-md bg-oxford px-3 py-1.5 text-sm/6 font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">Send login link</button>
-                    </div>
-                </form>
+                        <div>
+                            <button type="submit" class="flex w-full justify-center rounded-md bg-oxford px-3 py-1.5 text-sm/6 font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">Send login link</button>
+                        </div>
+                    </form>
+                @endif
 
                 <div>
                     <div class="relative mt-10">

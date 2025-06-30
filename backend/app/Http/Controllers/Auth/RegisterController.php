@@ -23,6 +23,10 @@ class RegisterController extends Controller
      */
     public function create(): View
     {
+        if (config('settings.disable_email_login')) {
+            abort(403, 'Email registration is disabled.');
+        }
+        
         return view('auth.register');
     }
 
@@ -34,6 +38,10 @@ class RegisterController extends Controller
      */
     public function store(RegisterRequest $request): RedirectResponse
     {
+        if (config('settings.disable_email_login')) {
+            return redirect()->back()->withErrors(['email' => 'Email registration is disabled.']);
+        }
+
         $data = $request->validated();
 
         $user = User::where('email', $data['email'])->first();

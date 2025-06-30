@@ -13,4 +13,6 @@ return [
 
     'version' => env('SPACEPAD_VERSION', 'unknown'),
 
+    'disable_email_login' => env('DISABLE_EMAIL_LOGIN', false),
+
 ];

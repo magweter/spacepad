@@ -18,16 +18,24 @@ Set the app key for the application:
 
 ```bash
 # Linux
-sed -i "s/^APP_KEY=.*/APP_KEY=$(php -r 'echo "base64:".base64_encode(random_bytes(32));')/" .env
+sed -i "s/^APP_KEY=.*/APP_KEY=base64:$(openssl rand -base64 32)/" .env
 
 # macOS
-sed -i '' "s/^APP_KEY=.*/APP_KEY=$(php -r 'echo "base64:".base64_encode(random_bytes(32));')/" .env
+sed -i '' "s/^APP_KEY=.*/APP_KEY=base64:$(openssl rand -base64 32)/" .env
 
 # Windows (PowerShell)
-(Get-Content .env) -replace '^APP_KEY=.*', "APP_KEY=$(php -r 'echo "base64:".base64_encode(random_bytes(32));')" | Set-Content .env
+$appKey = "base64:" + [Convert]::ToBase64String((1..32 | ForEach-Object { Get-Random -Maximum 256 }))
+(Get-Content .env) -replace '^APP_KEY=.*', "APP_KEY=$appKey" | Set-Content .env
 ```
 
-Now open the .env file and configure your domain and email.
+Now open the .env file and configure your domain and email. Edit the DOMAIN and ACME_EMAIL variables:
+```env
+DOMAIN="mypublicdomain.com"
+ACME_EMAIL="your-email@example.com"
+```
+
+> [!NOTE]
+> When using Microsoft as integration, you are not able to use http due to security limitations. So your server is required to use https and be publicly available.
 
 You can log into the app using three different methods; Email, Microsoft (OAuth) or Google (OAuth).
 
@@ -45,6 +53,8 @@ Configuring the following providers is optional, but you do require at least one
 
 Configuring the Outlook provider:
 1. Go to [Azure Portal - App Registrations](https://entra.microsoft.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade/quickStartType~/null/sourceType/Microsoft_AAD_IAM)
+> [!NOTE]
+> Please ensure you have selected 'multi-tenant' for your app. Using the single tenant configuration is not yet supported.
 1. Click on 'New registration', add a name for the applicaton e.g. "Spacepad" and click 'register'
 1. You will be taken to the Overview Page, record the "Application (client) ID" as this is the "AZURE_AD_CLIENT_ID="
 1. Click on the 'Authentication' tab and create two new 'web' platforms:
@@ -92,3 +102,13 @@ docker compose up -d
 Great! You should now be able to access the application at http://localhost or without proxy at http://localhost:8080.
 
 Download the mobile app from the App Store or Play Store and follow the instructions 🚀
+
+> **Email login security**
+> 
+> If you want to disable email login (for example, to prevent spam or abuse of the email login form), you can set the following environment variable in your `.env` file:
+>
+> ```env
+> DISABLE_EMAIL_LOGIN=true
+> ```
+>
+> When this is set to `true`, users will not be able to log in or register using email. Only OAuth (Microsoft/Google) will be available.

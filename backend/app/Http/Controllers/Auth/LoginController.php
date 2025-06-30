@@ -23,6 +23,10 @@ class LoginController extends Controller
      */
     public function create(): View
     {
+        if (config('settings.disable_email_login')) {
+            abort(403, 'Email login is disabled.');
+        }
+        
         return view('auth.login');
     }
 
@@ -34,6 +38,10 @@ class LoginController extends Controller
      */
     public function store(LoginRequest $request): RedirectResponse
     {
+        if (config('settings.disable_email_login')) {
+            return redirect()->back()->withErrors(['email' => 'Email login is disabled.']);
+        }
+
         $data = $request->validated();
 
         $user = User::where('email', $data['email'])->first();

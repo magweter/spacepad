@@ -65,14 +65,17 @@ return new class extends Migration {
         if (config('settings.is_self_hosted')) {
             return;
         }
+        
         // Customers table
         Schema::table('lemon_squeezy_customers', function (Blueprint $table) {
             $table->unsignedBigInteger('billable_id')->change();
         });
+
         // Subscriptions table
         Schema::table('lemon_squeezy_subscriptions', function (Blueprint $table) {
             $table->unsignedBigInteger('billable_id')->change();
         });
+
         // Orders table
         Schema::table('lemon_squeezy_orders', function (Blueprint $table) {
             $table->unsignedBigInteger('billable_id')->change();
