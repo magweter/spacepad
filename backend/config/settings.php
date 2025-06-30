@@ -11,7 +11,7 @@ return [
 
     'cloud_hosted_pro_plan_id' => env('CLOUD_HOSTED_PRO_PLAN_ID'),
 
-    'version' => env('SPACEPAD_VERSION', 'unknown'),
+    'version' => env('SPACEPAD_VERSION'),
 
     'disable_email_login' => env('DISABLE_EMAIL_LOGIN', false),
 
