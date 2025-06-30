@@ -97,6 +97,7 @@ class InstanceService
             );
         });
 
+        $version = config('settings.version');
         $licenseExpiresAt = self::getInstanceVariable('license_expires_at');
         return new InstanceData(
             instanceKey: $instanceKey,
@@ -106,7 +107,7 @@ class InstanceService
             isSelfHosted: config('settings.is_self_hosted'),
             displaysCount: Display::count(),
             roomsCount: Room::count(),
-            version: config('settings.version'),
+            version: ! empty($version) ? $version : 'unknown',
             users: $users->toArray()
         );
     }
