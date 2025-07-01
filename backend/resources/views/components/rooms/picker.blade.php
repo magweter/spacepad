@@ -32,6 +32,7 @@
     </div>
 @endif
 
+@if($type === \App\Enums\Provider::GOOGLE)
 <div id="roomWarning" class="mt-4 hidden">
     <div class="rounded-md bg-yellow-50 p-4">
         <div class="flex items-start">
@@ -68,3 +69,4 @@ document.getElementById('room').addEventListener('change', function() {
     warning.classList.toggle('hidden', !this.value);
 });
 </script>
+@endif

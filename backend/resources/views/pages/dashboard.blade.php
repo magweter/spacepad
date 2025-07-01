@@ -273,10 +273,10 @@
                 <p class="mt-1 text-sm text-gray-500">The accounts used to connect to calendars and rooms.</p>
             </div>
             <div>
-                <div class="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-4">
+                <div class="flex flex-col md:flex-row gap-4">
                     @if(config('services.microsoft.enabled'))
                         <a href="{{ route('outlook-accounts.auth') }}"
-                           class="col-span-1 md:col-span-2 2xl:col-span-1 flex items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white p-4 shadow-sm hover:border-blue-500 hover:shadow-md transition-all duration-200">
+                           class="grow flex items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white p-4 shadow-sm hover:border-blue-500 hover:shadow-md transition-all duration-200">
                             <x-icons.microsoft class="h-6 w-6" />
                             <span class="font-medium text-gray-900">Microsoft</span>
                         </a>
@@ -284,7 +284,7 @@
 
                     @if(config('services.google.enabled'))
                         <a href="{{ route('google-accounts.auth') }}"
-                           class="col-span-1 flex items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white p-4 shadow-sm hover:border-blue-500 hover:shadow-md transition-all duration-200">
+                           class="grow flex items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white p-4 shadow-sm hover:border-blue-500 hover:shadow-md transition-all duration-200">
                             <x-icons.google class="h-6 w-6" />
                             <span class="font-medium text-gray-900">Google</span>
                         </a>
@@ -292,7 +292,7 @@
 
                     @if(config('services.caldav.enabled'))
                         <a href="{{ route('caldav-accounts.create') }}"
-                           class="col-span-1 flex items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white p-4 shadow-sm hover:border-blue-500 hover:shadow-md transition-all duration-200">
+                           class="grow flex items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white p-4 shadow-sm hover:border-blue-500 hover:shadow-md transition-all duration-200">
                             <x-icons.calendar class="h-6 w-6 text-gray-600" />
                             <span class="font-medium text-gray-900">CalDAV</span>
                         </a>

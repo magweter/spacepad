@@ -16,14 +16,6 @@ class InstanceService
 {
     private const SETTING_PREFIX = 'instance_data';
 
-    public static function generateInstanceKey(): string
-    {
-        $hostname = gethostname();
-        $appKey = config('app.key');
-
-        return sha1($hostname . $appKey);
-    }
-
     public static function hasValidLicense(): bool
     {
         $licenseKey = self::getInstanceVariable('license_key');
@@ -78,15 +70,32 @@ class InstanceService
         }
     }
 
+    private static function getInstanceKey(): string
+    {
+        $instanceKey = self::getInstanceVariable('instance_key');
+
+        // Generate and set a new key when non existant
+        if (is_null($instanceKey)) {
+            $instanceKey = self::generateInstanceKey();
+            self::storeInstanceVariable('instance_key', $instanceKey);
+        }
+
+        return $instanceKey;
+    }
+
+    private static function generateInstanceKey(): string
+    {
+        return sha1(Str::ulid()->toString());
+    }
+
     private static function getSettingKey(string $key): string
     {
-        $instanceKey = self::generateInstanceKey();
-        return self::SETTING_PREFIX . '_' . $instanceKey . '_' . Str::snake($key);
+        return self::SETTING_PREFIX . '_' . Str::snake($key);
     }
 
     public static function getInstanceData(): InstanceData
     {
-        $instanceKey = self::generateInstanceKey();
+        $instanceKey = self::getInstanceKey();
 
         $users = User::all()->map(function ($user) {
             return new UserData(

@@ -12,6 +12,7 @@
     // Set type and title based on session messages
     if (session('success')) {
         $type = 'success';
+        $title = 'Success';
     } elseif (session('error')) {
         $type = 'error';
         $title = 'Something went wrong';
