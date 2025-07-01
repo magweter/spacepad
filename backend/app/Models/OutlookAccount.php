@@ -7,6 +7,7 @@ use App\Traits\HasUlid;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Enums\AccountStatus;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class OutlookAccount extends Model
 {
@@ -34,5 +35,10 @@ class OutlookAccount extends Model
     public function isBusiness(): bool
     {
         return !empty($this->tenant_id);
+    }
+
+    public function calendars(): HasMany
+    {
+        return $this->hasMany(Calendar::class);
     }
 }

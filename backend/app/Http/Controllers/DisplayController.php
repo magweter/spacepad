@@ -115,8 +115,17 @@ class DisplayController extends Controller
     {
         $this->authorize('delete', $display);
 
+        // Get the calendar associated with the display
+        $calendar = $display->calendar;
+
+        // Delete the display
         $display->eventSubscriptions()->delete();
         $display->delete();
+
+        // Delete the calendar if it has no displays
+        if ($calendar && $calendar->displays()->count() === 0) {
+            $calendar->delete();
+        }
 
         return redirect()
             ->route('dashboard')

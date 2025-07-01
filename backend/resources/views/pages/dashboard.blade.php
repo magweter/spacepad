@@ -310,6 +310,21 @@
             <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-1 gap-4">
                 @foreach($outlookAccounts as $outlookAccount)
                     <div class="relative flex items-center space-x-3 rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 hover:border-gray-400">
+                        @if($outlookAccount->calendars->isEmpty())
+                            <form action="{{ route('outlook-accounts.delete', $outlookAccount) }}" method="POST" class="absolute top-4.5 right-2 z-10">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="group p-1 rounded hover:bg-gray-100" title="Disconnect">
+                                    <x-icons.trash class="h-4 w-4 text-gray-400 group-hover:text-red-600" />
+                                </button>
+                            </form>
+                        @else
+                            <span class="flex absolute top-4.5 right-2 z-10 group cursor-not-allowed" title="Delete all connected displays first before disconnecting the account">
+                                <span class="p-1 rounded">
+                                    <x-icons.trash class="h-4 w-4 text-gray-300" />
+                                </span>
+                            </span>
+                        @endif
                         <div class="flex-shrink-0">
                             <x-icons.microsoft class="h-10 w-10" />
                         </div>
@@ -327,6 +342,21 @@
                 @endforeach
                 @foreach($googleAccounts as $googleAccount)
                     <div class="relative flex items-center space-x-3 rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 hover:border-gray-400">
+                        @if($googleAccount->calendars->isEmpty())
+                            <form action="{{ route('google-accounts.delete', $googleAccount) }}" method="POST" class="absolute top-4.5 right-2 z-10">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="group p-1 rounded hover:bg-gray-100" title="Disconnect">
+                                    <x-icons.trash class="h-4 w-4 text-gray-400 group-hover:text-red-600" />
+                                </button>
+                            </form>
+                        @else
+                            <span class="flex absolute top-4.5 right-2 z-10 group cursor-not-allowed" title="Delete all connected displays first before disconnecting the account">
+                                <span class="p-1 rounded">
+                                    <x-icons.trash class="h-4 w-4 text-gray-300" />
+                                </span>
+                            </span>
+                        @endif
                         <div class="flex-shrink-0">
                             <x-icons.google class="h-10 w-10" />
                         </div>
@@ -344,6 +374,21 @@
                 @endforeach
                 @foreach($caldavAccounts as $caldavAccount)
                     <div class="relative flex items-center space-x-3 rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 hover:border-gray-400">
+                        @if($caldavAccount->calendars->isEmpty())
+                            <form action="{{ route('caldav-accounts.delete', $caldavAccount) }}" method="POST" class="absolute top-4.5 right-2 z-10">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="group p-1 rounded hover:bg-gray-100" title="Disconnect">
+                                    <x-icons.trash class="h-4 w-4 text-gray-400 group-hover:text-red-600" />
+                                </button>
+                            </form>
+                        @else
+                            <span class="flex absolute top-4.5 right-2 z-10 group cursor-not-allowed" title="Delete all connected displays first before disconnecting the account">
+                                <span class="p-1 rounded">
+                                    <x-icons.trash class="h-4 w-4 text-gray-300" />
+                                </span>
+                            </span>
+                        @endif
                         <div class="flex-shrink-0">
                             <x-icons.calendar class="h-10 w-10" />
                         </div>

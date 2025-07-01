@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Calendar extends Model
 {
@@ -42,5 +43,10 @@ class Calendar extends Model
     public function room(): HasOne
     {
         return $this->hasOne(Room::class);
+    }
+
+    public function displays(): HasMany
+    {
+        return $this->hasMany(Display::class);
     }
 }
