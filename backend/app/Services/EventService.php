@@ -2,8 +2,12 @@
 
 namespace App\Services;
 
-use Google\Service\Calendar\Event;
+use App\Models\Display;
+use App\Models\Event;
+use App\Models\User;
+use Google\Service\Calendar\Event as GoogleEvent;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Collection;
 
 class EventService
 {
@@ -47,10 +51,10 @@ class EventService
     }
 
     /**
-     * @param Event $googleEvent
+     * @param GoogleEvent $googleEvent
      * @return array
      */
-    public function sanitizeGoogleEvent(Event $googleEvent): array
+    public function sanitizeGoogleEvent(GoogleEvent $googleEvent): array
     {
         $start = $googleEvent->getStart();
         $end = $googleEvent->getEnd();
@@ -104,5 +108,49 @@ class EventService
         // Replace newlines and carriage returns as in JS version
         $body = str_replace("\r", "\n", $body);
         return str_replace("\n", ' ', $body);
+    }
+
+    /**
+     * Check if there is an active custom booking for a display and time window.
+     */
+    public static function getActiveCustomEvents($displayId, $now = null): Collection
+    {
+        $now = $now ?: now();
+        return Event::query()
+            ->where('display_id', $displayId)
+            ->where('start', '<=', $now)
+            ->where('end', '>=', $now)
+            ->orderBy('start')
+            ->get();
+    }
+
+    /**
+     * Book a room for a given duration. Handles all business logic.
+     * Throws exception if not allowed.
+     */
+    public function bookRoom(Display $display, User $user, int $duration, ?string $summary = null): Event
+    {
+        $start = now();
+        $end = $start->copy()->addMinutes($duration);
+
+        // Remove any overlapping custom events for this display
+        Event::query()
+            ->where('display_id', $display->id)
+            ->where(function ($q) use ($start, $end) {
+                $q->whereBetween('start', [$start, $end])
+                  ->orWhereBetween('end', [$start, $end])
+                  ->orWhere(function ($q2) use ($start, $end) {
+                      $q2->where('start', '<=', $start)->where('end', '>=', $end);
+                  });
+            })
+            ->delete();
+
+        return Event::create([
+            'display_id' => $display->id,
+            'user_id' => $user->id,
+            'start' => $start,
+            'end' => $end,
+            'summary' => $summary ?? __('Booked'),
+        ]);
     }
 }

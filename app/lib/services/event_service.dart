@@ -12,4 +12,11 @@ class EventService {
 
     return data.map((e) => EventModel.fromJson(e)).toList();
   }
+
+  Future<void> bookRoom(int duration, {String? summary}) async {
+    await ApiService.post('events/book', {
+      'duration': duration,
+      if (summary != null) 'summary': summary,
+    });
+  }
 }

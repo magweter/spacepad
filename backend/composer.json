@@ -8,6 +8,7 @@
     "require": {
         "php": "^8.4",
         "cesargb/laravel-magiclink": "^2.22",
+        "doctrine/dbal": "^4.2",
         "google/apiclient": "^2.18",
         "guzzlehttp/guzzle": "^7.9",
         "josiasmontag/laravel-recaptchav3": "^1.0",

@@ -20,6 +20,9 @@ return new class extends Migration {
         if ($driver === 'sqlite') {
             // Customers table
             Schema::table('lemon_squeezy_customers', function (Blueprint $table) {
+                $table->dropUnique('lemon_squeezy_customers_billable_id_billable_type_unique');
+            });
+            Schema::table('lemon_squeezy_customers', function (Blueprint $table) {
                 $table->dropColumn('billable_id');
             });
             Schema::table('lemon_squeezy_customers', function (Blueprint $table) {

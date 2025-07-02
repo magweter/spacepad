@@ -179,7 +179,28 @@ class _DashboardPageState extends State<DashboardPage> {
                                   ),
                                 ]
                               ),
-                              SizedBox(height: isPhone ? 10 : 20)
+                              SizedBox(height: isPhone ? 10 : 20),
+                              if (!controller.isReserved && (AuthService.instance.currentDevice.value?.user?.isPro ?? false)) SpaceRow(
+                                spaceBetween: isPhone ? 10 : 20,
+                                children: [
+                                  for (var min in [15, 30, 45, 60])
+                                    ElevatedButton(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: TWColors.green_500,
+                                        foregroundColor: Colors.white,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        padding: EdgeInsets.symmetric(
+                                          vertical: isPhone ? 10 : 18,
+                                          horizontal: isPhone ? 16 : 32,
+                                        ),
+                                      ),
+                                      onPressed: () => controller.bookRoom(min),
+                                      child: Text('$min min', style: TextStyle(fontSize: isPhone ? 18 : 28)),
+                                    ),
+                                ],
+                              ),
                             ],
                           ),
                         ],

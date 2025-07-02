@@ -7,14 +7,18 @@ use App\Http\Resources\API\EventResource;
 use App\Models\Calendar;
 use App\Models\Device;
 use App\Models\Display;
+use App\Models\Event;
 use App\Services\EventService;
 use App\Services\OutlookService;
 use App\Services\GoogleService;
 use App\Services\CalDAVService;
 use Exception;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
+use App\Http\Requests\API\EventBookRequest;
 
 class EventController extends Controller
 {
@@ -156,10 +160,19 @@ class EventController extends Controller
      */
     private function fetchEventsForDisplay(Display $display): AnonymousResourceCollection|JsonResponse
     {
-        // Cache events if caching is enabled and the display has an event subscription
-        $cachingEnabled = config('services.events.cache_enabled') && $display->event_subscriptions_count > 0;
         try {
-            if ($cachingEnabled) {
+            // Update last sync timestamp
+            $display->updateLastSyncAt();
+
+            // Check for a custom event (booking) that overlaps with the current window
+            $customEvents = $this->eventService->getActiveCustomEvents($display->id);
+            if ($customEvents->isNotEmpty()) {
+                return EventResource::collection($customEvents);
+            }
+
+            // Cache events if caching is enabled and the display has an event subscription
+            $cachingEnabled = config('services.events.cache_enabled') && $display->event_subscriptions_count > 0;
+            if ($cachingEnabled && $customEvents) {
                 $events = cache()->remember(
                     key: $display->getEventsCacheKey(),
                     ttl: now()->addMinutes(15),
@@ -169,13 +182,45 @@ class EventController extends Controller
                 $events = $this->fetchEventsRemotely($display);
             }
 
-            // Update last sync timestamp
-            $display->updateLastSyncAt();
-
             return EventResource::collection($events);
         } catch (Exception $e) {
             report($e);
             return response()->json(['message' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Book a room for a given duration (Pro feature).
+     */
+    public function book(EventBookRequest $request): JsonResponse
+    {
+        /** @var Device $device */
+        $device = auth()->user();
+        $display = $device->display()->with('user')->first();
+
+        // Check if the device is connected to a display
+        if (! $display) {
+            return response()->json(['message' => 'Device is not connected to a display'], 400);
+        }
+
+        // Check if the display is active
+        if ($display->isDeactivated()) {
+            return response()->json(['message' => 'Display is deactivated'], 400);
+        }
+
+        try {
+            $data = $request->validated();
+            $event = $this->eventService->bookRoom(
+                $display,
+                $display->user,
+                (int) $data['duration'],
+                Arr::get($data, 'summary', __('Reserved'))
+            );
+
+            return response()->json(['data' => new EventResource($event)], 201);
+        } catch (\Exception $e) {
+            $status = $e->getCode() === 403 ? 403 : 400;
+            return response()->json(['message' => $e->getMessage()], $status);
         }
     }
 }

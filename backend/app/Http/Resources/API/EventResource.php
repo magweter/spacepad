@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\API;
 
+use App\Models\Event;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Carbon;
@@ -15,7 +16,22 @@ class EventResource extends JsonResource
      */
     public function toArray($request): array
     {
-        $timezone = $this['timezone'] ?? 'UTC';
+        // Support both custom Event model and external event arrays
+        $event = $this->resource;
+        if ($event instanceof Event) {
+            return [
+                'id' => $event->id,
+                'summary' => $event->summary,
+                'location' => null,
+                'description' => null,
+                'start' => $event->start->toAtomString(),
+                'end' => $event->end->toAtomString(),
+                'timezone' => config('app.timezone'),
+                'isAllDay' => false,
+            ];
+        }
+
+        $timezone = $this['timezone'] ?? config('app.timezone');
         return [
             'id' => $this['id'],
             'summary' => $this['summary'],

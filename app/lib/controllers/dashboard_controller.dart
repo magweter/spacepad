@@ -147,6 +147,16 @@ class DashboardController extends GetxController {
     AuthService.instance.signOut();
   }
 
+  Future<void> bookRoom(int duration, {String? summary}) async {
+    try {
+      await EventService.instance.bookRoom(duration, summary: summary);
+      await fetchEvents();
+      Toast.showSuccess('Room booked!');
+    } catch (e) {
+      Toast.showError('Could not book room');
+    }
+  }
+
   @override
   void dispose() {
     _clock?.cancel();
