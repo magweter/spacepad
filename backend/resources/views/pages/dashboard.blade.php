@@ -38,10 +38,10 @@
                         <p>
                             @if($isSelfHosted)
                                 Spacepad strives to be fair and sustainable. Features for businesses and power-users like using multiple displays, rooms and customization are therefore paid. <br>
-                                Support development by purchasing a Pro license — it's just $5 per display. The first display is always free.
+                                Support development by purchasing a Pro license — it's just $6 per display. The first display is always free.
                             @else
                                 Spacepad strives to be fair and sustainable. Features for businesses and power-users like using multiple displays, rooms and customization are therefore paid. <br>
-                                Try out Pro 7 days for free — after that it's just $5 per display. The first display is always free.
+                                Try out Pro 14 days for free — after that it's just $6 per display. The first display is always free.
                             @endif
                         </p>
                     </div>
@@ -49,11 +49,11 @@
                 <div class="mt-5 sm:mt-0 sm:ml-6 sm:flex sm:shrink-0 sm:items-center">
                     @if($isSelfHosted)
                         <button type="button" x-data @click="$dispatch('open-modal', 'license-key')" class="inline-flex items-center rounded-md bg-orange px-3 py-2 text-sm font-semibold text-white shadow-xs hover:bg-orange-400">
-                            Try Pro for 7 days
+                            Try Pro for 14 days
                         </button>
                     @else
                         <x-lemon-button :href="$checkout" class="inline-flex items-center rounded-md bg-orange px-3 py-2 text-sm font-semibold text-white shadow-xs hover:bg-orange-400">
-                            Try Pro for 7 days
+                            Try Pro for 14 days
                         </x-lemon-button>
                     @endif
                 </div>

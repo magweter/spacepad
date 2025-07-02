@@ -47,7 +47,7 @@ Looking to get started quickly? Get started in minutes using our cloud.
 1. Visit [spacepad.io](https://spacepad.io)
 2. Create a free account
 3. Set up your first display — the first one is free forever
-4. Add more displays at $5/month each
+4. Add more displays at $6/month each
 
 Great for fast deployments with zero maintenance.
 
@@ -65,13 +65,15 @@ For full setup instructions, see [Setup Guide](docs/SETUP.md).
 
 ## 🛠 Licensing
 
-Spacepad is distributed under a dual-license:
+Spacepad is dual-licensed:
 
-* **Community Edition** (`LICENSE.md`)<br>
-  For personal use (self-hosted only).
+- 🧑‍💻 **Community License** ([LICENSE.md](LICENSE.md))  
+  For personal use and self-hosted commercial use with up to 1 display.
 
-* **Pro Edition** (`LICENSE_EE.md`)<br>
-  For non-personal use with multiple displays or Pro features (branding, display booking, etc).
+- 🏢 **Pro License** ([LICENSE_PRO.md](LICENSE_PRO.md))  
+  Required for commercial use with multiple displays or Pro features.
+
+Purchasing a license helps support continued development.
 
 ## 🤝 Contributing
 
@@ -83,12 +85,12 @@ We love open source and welcome your contributions! See [CONTRIBUTING.md](CONTRI
 - [x] Self-hosted with Docker
 - [x] Google Workspace support
 - [x] CalDAV support
-- [ ] Custom display themes & logos
 - [ ] Booking directly on device
+- [ ] Custom display themes & logos
 - [ ] Showing all events of the day
 - [ ] Amazon Fire Tablet support
 - [ ] Organizations & management
 - [ ] Web and TV view
 - [ ] Multi-room overview dashboard
 
-Feature requests? We're all ears! Please open a new [issue](https://github.com/magweter/spacepad/issues).
+Feature requests? We're all ears! Please open a new [discussion](https://github.com/magweter/spacepad/discussions).
