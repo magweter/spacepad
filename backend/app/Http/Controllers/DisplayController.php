@@ -56,12 +56,12 @@ class DisplayController extends Controller
         $accountId = $validatedData['account'];
 
         // Check on access to create multiple displays
-        if (! config('settings.is_self_hosted') && auth()->user()->shouldUpgrade()) {
+        if (auth()->user()->shouldUpgrade()) {
             return redirect()->back()->with('error', 'You require an active Pro license to create multiple displays.');
         }
 
         // Check on access to features and subscription
-        if (! config('settings.is_self_hosted') && ! auth()->user()->hasPro() && isset($validatedData['room'])) {
+        if (! auth()->user()->hasPro() && isset($validatedData['room'])) {
             return redirect()->back()->with('error', 'You require an active Pro license to be able to use resources.');
         }
 

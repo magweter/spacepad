@@ -140,16 +140,25 @@ class User extends Authenticatable
     }
 
     /**
+     * Check if the user should be treated as a personal user
+     */
+    public function isPersonalUser(): bool
+    {
+        return $this->usage_type === UsageType::PERSONAL;
+    }
+
+    /**
      * Check if the user should upgrade to Pro
      */
     public function shouldUpgrade(): bool
     {
-        // If the user is a business user and doesn't have Pro, they should upgrade
-        if ($this->isBusinessUser() && ! $this->hasPro() && $this->hasAnyDisplay()) {
-            return true;
+        // Self Hosted: If the user is a personal user, use a soft limit
+        if (config('settings.is_self_hosted') && $this->isPersonalUser()) {
+            return false;
         }
 
-        return false;
+        // Cloud Hosted: If the user is a business user and doesn't have Pro, they should upgrade
+        return ! $this->hasPro() && $this->hasAnyDisplay();
     }
 
     public function getCheckoutUrl(?string $redirectUrl = null): ?Checkout
@@ -176,7 +185,7 @@ class User extends Authenticatable
         if (empty($allowed)) {
             return true; // No restrictions set
         }
-        
+
         $email = strtolower(trim($email));
         $domain = substr(strrchr($email, '@'), 1);
         foreach ($allowed as $allowedEntry) {
