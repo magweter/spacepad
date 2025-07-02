@@ -41,7 +41,7 @@ class InstanceService
     {
         return self::storeInstanceVariable('license_key', $data->licenseKey) &&
             self::storeInstanceVariable('license_valid', $data->valid) &&
-            self::storeInstanceVariable('license_expires_at', $data->expiresAt);
+            self::storeInstanceVariable('license_expires_at', $data->expiresAt?->toDateTimeString());
     }
 
     public static function storeInstanceVariable(string $key, ?string $value): bool
