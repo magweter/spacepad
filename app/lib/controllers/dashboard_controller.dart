@@ -141,6 +141,12 @@ class DashboardController extends GetxController {
     }
   }
 
+  void logout() {
+    _clock?.cancel();
+    _timer?.cancel();
+    AuthService.instance.signOut();
+  }
+
   @override
   void dispose() {
     _clock?.cancel();

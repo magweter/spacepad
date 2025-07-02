@@ -110,7 +110,7 @@ class _DashboardPageState extends State<DashboardPage> {
                               child: IconButton(
                                 icon: const Icon(Icons.logout, size: 24, color: Colors.white),
                                 onPressed: () {
-                                  AuthService.instance.signOut();
+                                  controller.logout();
                                 },
                                 tooltip: 'Logout',
                               ),
