@@ -32,7 +32,14 @@ abstract class SocialAuthController extends AuthController
     {
         try {
             $socialUser = Socialite::driver($this->driver)->stateless()->user();
+            if (! User::isAllowedLogin($socialUser->getEmail())) {
+                return redirect()
+                    ->route('login')
+                    ->with('error', 'Your organization or email is not allowed to log in.');
+            }
+
             $user = $this->findOrCreateUser($socialUser);
+
             return $this->authenticateUser($user);
         } catch (\Exception $e) {
             report($e);
@@ -54,6 +61,11 @@ abstract class SocialAuthController extends AuthController
         $socialUser = $this->getSocialUserFromToken($oauthTokenRequest);
 
         $this->validateSocialUser($socialUser);
+        if (! User::isAllowedLogin($socialUser->getEmail())) {
+            return redirect()
+                ->route('login')
+                ->with('error', 'Your organization or email is not allowed to log in.');
+        }
 
         $user = $this->findOrCreateUser($socialUser);
 

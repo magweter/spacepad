@@ -112,3 +112,15 @@ Download the mobile app from the App Store or Play Store and follow the instruct
 > ```
 >
 > When this is set to `true`, users will not be able to log in or register using email. Only OAuth (Microsoft/Google) will be available.
+
+> **Restricting login to specific domains or emails**
+>
+> To restrict who can log in or register, set the `ALLOWED_LOGINS` environment variable in your `.env` file. This can be a comma-separated list of allowed email addresses and/or domains. For example:
+>
+> ```env
+> ALLOWED_LOGINS=yourcompany.com,anothercompany.com,admin@special.com
+> ```
+>
+> - To allow all users from a domain, add the domain (e.g. `yourcompany.com`).
+> - To allow a specific email, add the full email address (e.g. `admin@special.com`).
+> - Leave empty to allow all users.

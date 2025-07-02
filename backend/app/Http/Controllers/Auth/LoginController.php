@@ -40,6 +40,10 @@ class LoginController extends Controller
 
         $data = $request->validated();
 
+        if (! User::isAllowedLogin($data['email'])) {
+            return redirect()->back()->withErrors(['email' => 'Your organization or email is not allowed to log in.']);
+        }
+
         $user = User::where('email', $data['email'])->first();
         if (!$user) {
             $user = User::factory()->unverified()->create([

@@ -16,8 +16,8 @@
 | Tier       | Max Displays | Price (Commercial) | Price (Nonprofit)  | Ideal For                     |
 |------------|--------------|--------------------|--------------------|-------------------------------|
 | Community  | 1            | Free               | Free               | Home use, personal tinkering  |
-| Mini       | Up to 3      | $10/month          | $5/month           | Small teams (1–3 displays)    |
-| Starter    | Up to 10     | $40/month          | $20/month          | Offices (4–10 displays)       |
+| Starter    | Up to 3      | $10/month          | $5/month           | Small teams (1–3 displays)    |
+| Team       | Up to 10     | $40/month          | $20/month          | Offices (4–10 displays)       |
 | Business   | Up to 25     | $120/month         | $60/month          | Mid-sized organizations       |
 | Enterprise | Unlimited    | $200+/month        | $100+/month        | Corporates, education, NGOs   |
 

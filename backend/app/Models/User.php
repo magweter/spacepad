@@ -166,4 +166,25 @@ class User extends Authenticatable
             return auth()->user()->subscribe(config('settings.cloud_hosted_pro_plan_id'))->redirectTo($redirectUrl);
         });
     }
+
+    /**
+     * Check if the given email is allowed based on config('settings.allowed_logins')
+     */
+    public static function isAllowedLogin(string $email): bool
+    {
+        $allowed = config('settings.allowed_logins', []);
+        if (empty($allowed)) {
+            return true; // No restrictions set
+        }
+        
+        $email = strtolower(trim($email));
+        $domain = substr(strrchr($email, '@'), 1);
+        foreach ($allowed as $allowedEntry) {
+            $allowedEntry = strtolower($allowedEntry);
+            if ($allowedEntry === $email || $allowedEntry === $domain) {
+                return true;
+            }
+        }
+        return false;
+    }
 }

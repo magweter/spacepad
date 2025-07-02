@@ -15,4 +15,6 @@ return [
 
     'disable_email_login' => env('DISABLE_EMAIL_LOGIN', false),
 
+    'allowed_logins' => array_filter(array_map('trim', explode(',', env('ALLOWED_LOGINS', '')))), // Comma-separated list of allowed domains or emails
+
 ];
