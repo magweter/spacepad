@@ -44,6 +44,7 @@ class InstanceController extends ApiController
 
     public function validateInstance(ValidateInstanceRequest $request): JsonResponse
     {
+        // Fetch current instance and update last validated at timestamp
         $instance = Instance::updateOrCreate(
             ['instance_key' => $request['instance_key']],
             [
@@ -52,6 +53,7 @@ class InstanceController extends ApiController
             ]
         );
 
+        // Return current instance data to sync license data
         return $this->success(
             message: 'Instance successfully validated',
             data: LicenseData::fromModel($instance)

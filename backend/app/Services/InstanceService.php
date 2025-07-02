@@ -39,9 +39,14 @@ class InstanceService
 
     public static function updateLicense(LicenseData $data): bool
     {
-        return self::storeInstanceVariable('license_key', $data->licenseKey) &&
-            self::storeInstanceVariable('license_valid', $data->valid) &&
-            self::storeInstanceVariable('license_expires_at', $data->expiresAt?->toDateTimeString());
+        $updatedLicense = self::storeInstanceVariable('license_key', $data->licenseKey) &&
+            self::storeInstanceVariable('license_valid', $data->valid);
+
+        if ($data->expiresAt && ! self::storeInstanceVariable('license_expires_at', $data->expiresAt->toDateTimeString())) {
+            return false;
+        }
+
+        return $updatedLicense;
     }
 
     public static function storeInstanceVariable(string $key, ?string $value): bool

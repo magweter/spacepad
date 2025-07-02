@@ -23,10 +23,6 @@ class RegisterController extends Controller
      */
     public function create(): View
     {
-        if (config('settings.disable_email_login')) {
-            abort(403, 'Email registration is disabled.');
-        }
-        
         return view('auth.register');
     }
 

@@ -23,10 +23,6 @@ class LoginController extends Controller
      */
     public function create(): View
     {
-        if (config('settings.disable_email_login')) {
-            abort(403, 'Email login is disabled.');
-        }
-        
         return view('auth.login');
     }
 
