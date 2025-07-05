@@ -18,6 +18,10 @@ class DisplayResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'display_name' => $this->display_name,
+            'settings' => [
+                'check_in_enabled' => $this->isCheckInEnabled(),
+                'booking_enabled' => $this->isBookingEnabled(),
+            ],
         ];
     }
 }

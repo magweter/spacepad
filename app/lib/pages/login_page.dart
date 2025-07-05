@@ -144,7 +144,7 @@ class LoginPage extends StatelessWidget {
                             child: TextField(
                               decoration: InputDecoration(
                                 labelText: 'self_hosted_url'.tr,
-                                hintText: 'https://your-instance.com',
+                                hintText: 'url_hint'.tr,
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(10),
                                   borderSide: const BorderSide(color: AppTheme.oxford),

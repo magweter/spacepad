@@ -6,6 +6,7 @@ import 'package:spacepad/components/toast.dart';
 import 'package:spacepad/models/event_model.dart';
 import 'package:spacepad/services/event_service.dart';
 import 'package:spacepad/services/auth_service.dart';
+import 'package:spacepad/pages/display_page.dart';
 
 class DashboardController extends GetxController {
   final RxBool loading = RxBool(true);
@@ -141,21 +142,51 @@ class DashboardController extends GetxController {
     }
   }
 
-  void logout() {
+  void switchRoom() {
     _clock?.cancel();
     _timer?.cancel();
-    AuthService.instance.signOut();
+    Get.offAll(() => const DisplayPage());
   }
 
   Future<void> bookRoom(int duration, {String? summary}) async {
     try {
       await EventService.instance.bookRoom(duration, summary: summary);
       await fetchEvents();
-      Toast.showSuccess('Room booked!');
-    } catch (e) {
-      Toast.showError('Could not book room');
+      Toast.showSuccess('room_booked'.tr);
+      } catch (e) {
+        Toast.showError('could_not_book_room'.tr);
     }
   }
+
+  // Check if booking should be displayed based on display settings
+  bool get shouldShowBooking {
+    return !isReserved && (AuthService.instance.currentDevice.value?.display?.settings.bookingEnabled ?? false);
+  }
+
+  // Track if booking options are shown
+  final RxBool showBookingOptions = RxBool(false);
+
+  // Show booking options
+  void toggleBookingOptions() {
+    showBookingOptions.value = true;
+  }
+
+  // Hide booking options
+  void hideBookingOptions() {
+    showBookingOptions.value = false;
+  }
+
+  // Future check-in functionality - can be implemented when needed
+  // Future<void> checkIn() async {
+  //   if (AuthService.instance.currentDevice.value?.display?.settings.checkInEnabled ?? false) {
+  //     try {
+  //       // Call check-in API
+  //       Toast.showSuccess('Checked in!');
+  //     } catch (e) {
+  //       Toast.showError('Could not check in');
+  //     }
+  //   }
+  // }
 
   @override
   void dispose() {

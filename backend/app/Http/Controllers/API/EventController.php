@@ -208,6 +208,16 @@ class EventController extends Controller
             return response()->json(['message' => 'Display is deactivated'], 400);
         }
 
+        // Check if user has Pro access for booking
+        if (!$display->user->hasPro()) {
+            return response()->json(['message' => 'Booking is a Pro feature. Please upgrade to Pro to use this feature.'], 403);
+        }
+
+        // Check if booking is enabled for this display
+        if (!$display->isBookingEnabled()) {
+            return response()->json(['message' => 'Booking is not enabled for this display'], 403);
+        }
+
         try {
             $data = $request->validated();
             $event = $this->eventService->bookRoom(

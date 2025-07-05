@@ -110,9 +110,9 @@ class _DashboardPageState extends State<DashboardPage> {
                               child: IconButton(
                                 icon: const Icon(Icons.logout, size: 24, color: Colors.white),
                                 onPressed: () {
-                                  controller.logout();
+                                  controller.switchRoom();
                                 },
-                                tooltip: 'Logout',
+                                tooltip: 'switch_room'.tr,
                               ),
                             ),
                             Text(
@@ -180,27 +180,125 @@ class _DashboardPageState extends State<DashboardPage> {
                                 ]
                               ),
                               SizedBox(height: isPhone ? 10 : 20),
-                              if (!controller.isReserved && (AuthService.instance.currentDevice.value?.user?.isPro ?? false)) SpaceRow(
-                                spaceBetween: isPhone ? 10 : 20,
-                                children: [
-                                  for (var min in [15, 30, 45, 60])
-                                    ElevatedButton(
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: TWColors.green_500,
-                                        foregroundColor: Colors.white,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(8),
+                              // Show booking interface if booking is enabled for this display
+                              if (controller.shouldShowBooking)
+                                Obx(() => controller.showBookingOptions.value
+                                  // Show booking options in outlined box
+                                  ? Container(
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(cornerRadius),
+                                        border: Border.all(
+                                          color: TWColors.gray_500.withValues(alpha: 0.3),
+                                          width: 1,
                                         ),
-                                        padding: EdgeInsets.symmetric(
-                                          vertical: isPhone ? 10 : 18,
-                                          horizontal: isPhone ? 16 : 32,
+                                        color: Colors.transparent,
+                                      ),
+                                      child: Padding(
+                                        padding: EdgeInsets.all(isPhone ? 12 : 20),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            // Booking duration options
+                                            Row(
+                                              children: [
+                                                for (var min in [15, 30, 60])
+                                                  Padding(
+                                                    padding: EdgeInsets.only(
+                                                      right: min == 60 ? 0 : (isPhone ? 12 : 16),
+                                                    ),
+                                                    child: Container(
+                                                      decoration: BoxDecoration(
+                                                        borderRadius: BorderRadius.circular(cornerRadius * 0.3),
+                                                        color: TWColors.gray_600.withValues(alpha: 0.3),
+                                                      ),
+                                                      child: Material(
+                                                        color: Colors.transparent,
+                                                        child: InkWell(
+                                                          borderRadius: BorderRadius.circular(cornerRadius * 0.3),
+                                                          onTap: () => controller.bookRoom(min),
+                                                          child: Padding(
+                                                            padding: EdgeInsets.symmetric(
+                                                              vertical: isPhone ? 12 : 16,
+                                                              horizontal: isPhone ? 16 : 24,
+                                                            ),
+                                                            child: Text(
+                                                              '$min min',
+                                                              style: TextStyle(
+                                                                color: Colors.white,
+                                                                fontSize: isPhone ? 18 : 26,
+                                                                fontWeight: FontWeight.w600,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                              ],
+                                            ),
+                                            SizedBox(width: isPhone ? 16 : 24),
+                                            // Cancel button
+                                            Container(
+                                              decoration: BoxDecoration(
+                                                borderRadius: BorderRadius.circular(cornerRadius * 0.3),
+                                                color: TWColors.gray_600.withValues(alpha: 0.3),
+                                              ),
+                                              child: Material(
+                                                color: Colors.transparent,
+                                                child: InkWell(
+                                                  borderRadius: BorderRadius.circular(cornerRadius * 0.3),
+                                                  onTap: () => controller.hideBookingOptions(),
+                                                  child: Padding(
+                                                    padding: EdgeInsets.symmetric(
+                                                      vertical: isPhone ? 12 : 16,
+                                                      horizontal: isPhone ? 16 : 24,
+                                                    ),
+                                                    child: Text(
+                                                      'cancel'.tr,
+                                                      style: TextStyle(
+                                                        color: Colors.white,
+                                                        fontSize: isPhone ? 18 : 26,
+                                                        fontWeight: FontWeight.w600,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                       ),
-                                      onPressed: () => controller.bookRoom(min),
-                                      child: Text('$min min', style: TextStyle(fontSize: isPhone ? 18 : 28)),
+                                    )
+                                  // Show initial "Book now" button
+                                  : Container(
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(cornerRadius),
+                                        color: TWColors.gray_600.withValues(alpha: 0.3),
+                                      ),
+                                      margin: EdgeInsets.only(top: isPhone ? 10 : 20, bottom: isPhone ? 10 : 20),
+                                      child: Material(
+                                        color: Colors.transparent,
+                                        child: InkWell(
+                                          borderRadius: BorderRadius.circular(cornerRadius),
+                                          onTap: () => controller.toggleBookingOptions(),
+                                          child: Padding(
+                                            padding: EdgeInsets.symmetric(
+                                              vertical: isPhone ? 12 : 16,
+                                              horizontal: isPhone ? 20 : 28,
+                                            ),
+                                            child: Text(
+                                              'book_now'.tr,
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontSize: isPhone ? 20 : 28,
+                                                fontWeight: FontWeight.w700,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
                                     ),
-                                ],
-                              ),
+                                ),
                             ],
                           ),
                         ],

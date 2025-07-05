@@ -13,7 +13,7 @@ return new class extends Migration {
         if (config('settings.is_self_hosted')) {
             return;
         }
-        
+
         $connection = Schema::getConnection();
         $driver = $connection->getDriverName();
 
@@ -68,7 +68,7 @@ return new class extends Migration {
         if (config('settings.is_self_hosted')) {
             return;
         }
-        
+
         // Customers table
         Schema::table('lemon_squeezy_customers', function (Blueprint $table) {
             $table->unsignedBigInteger('billable_id')->change();
@@ -84,4 +84,4 @@ return new class extends Migration {
             $table->unsignedBigInteger('billable_id')->change();
         });
     }
-}; 
+};
