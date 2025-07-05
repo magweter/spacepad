@@ -8,7 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 
-class CheckUserOnboarded
+class CheckUserOnboarding
 {
     /**
      * Handle an incoming request.
@@ -17,8 +17,8 @@ class CheckUserOnboarded
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (auth()->user()?->status === UserStatus::ONBOARDING) {
-            return redirect()->route('onboarding');
+        if (auth()->user()->isOnboarded()) {
+            return redirect()->route('dashboard');
         }
 
         return $next($request);

@@ -19,6 +19,7 @@ class GoogleAccount extends Model
         'name',
         'email',
         'avatar',
+        'hosted_domain',
         'status',
         'user_id',
         'google_id',
@@ -42,37 +43,8 @@ class GoogleAccount extends Model
         return $this->hasMany(Calendar::class);
     }
 
-    public function getCalendars(): array
+    public function isBusiness(): bool
     {
-        try {
-            $calendars = app(GoogleService::class)->fetchCalendars($this);
-            return collect($calendars)->map(function ($calendar) {
-                return [
-                    'id' => $calendar->getId(),
-                    'name' => $calendar->getSummary(),
-                ];
-            })->toArray();
-        } catch (\Exception $e) {
-            report($e);
-        }
-
-        return [];
+        return !empty($this->hosted_domain);
     }
-
-    public function getRooms(): array
-    {
-        try {
-            $rooms = app(GoogleService::class)->fetchRooms($this);
-            return collect($rooms)->map(function ($room) {
-                return [
-                    'emailAddress' => $room->getResourceEmail(),
-                    'name' => $room->getResourceName(),
-                ];
-            })->toArray();
-        } catch (\Exception $e) {
-            report($e);
-        }
-
-        return [];
-    }
-} 
+}

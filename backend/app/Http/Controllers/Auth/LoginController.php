@@ -34,7 +34,15 @@ class LoginController extends Controller
      */
     public function store(LoginRequest $request): RedirectResponse
     {
+        if (config('settings.disable_email_login')) {
+            return redirect()->back()->withErrors(['email' => 'Email login is disabled.']);
+        }
+
         $data = $request->validated();
+
+        if (! User::isAllowedLogin($data['email'])) {
+            return redirect()->back()->withErrors(['email' => 'Your organization or email is not allowed to log in.']);
+        }
 
         $user = User::where('email', $data['email'])->first();
         if (!$user) {

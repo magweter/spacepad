@@ -1,6 +1,7 @@
 <?php
 
-use App\Http\Middleware\CheckUserOnboarded;
+use App\Http\Middleware\CheckUserActive;
+use App\Http\Middleware\CheckUserOnboarding;
 use App\Http\Middleware\UpdateLastActivity;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -19,7 +20,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->trustProxies(at: '*');
         $middleware->alias([
             'user.update-last-activity' => UpdateLastActivity::class,
-            'user.onboarded' => CheckUserOnboarded::class,
+            'user.active' => CheckUserActive::class,
+            'user.onboarding' => CheckUserOnboarding::class,
+        ]);
+        $middleware->validateCsrfTokens(except: [
+            'lemon-squeezy/*',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

@@ -1,0 +1,9 @@
+POST {{baseUrl}}/api/v1/instances/activate
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+    "instance_key": "",
+    "license_key": ""
+}

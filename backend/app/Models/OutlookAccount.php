@@ -7,6 +7,7 @@ use App\Traits\HasUlid;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Enums\AccountStatus;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class OutlookAccount extends Model
 {
@@ -17,6 +18,7 @@ class OutlookAccount extends Model
         'name',
         'email',
         'avatar',
+        'tenant_id',
         'status',
         'user_id',
         'outlook_id',
@@ -30,43 +32,13 @@ class OutlookAccount extends Model
         'status' => AccountStatus::class,
     ];
 
-    /**
-     * @throws \Exception
-     */
-    public function getRooms(): array
+    public function isBusiness(): bool
     {
-        try {
-            $rooms = app(OutlookService::class)->fetchRooms($this);
-            return collect($rooms)->map(function (array $room) {
-                return [
-                    'emailAddress' => $room['emailAddress'],
-                    'name' => $room['displayName']
-                ];
-            })->toArray();
-        } catch (\Exception $e) {
-            report($e);
-        }
-
-        return [];
+        return !empty($this->tenant_id);
     }
 
-    /**
-     * @throws \Exception
-     */
-    public function getCalendars(): array
+    public function calendars(): HasMany
     {
-        try {
-            $calendars = app(OutlookService::class)->fetchCalendars($this);
-            return collect($calendars)->map(function (array $calendar) {
-                return [
-                    'id' => $calendar['id'],
-                    'name' => $calendar['name']
-                ];
-            })->toArray();
-        } catch (\Exception $e) {
-            report($e);
-        }
-
-        return [];
+        return $this->hasMany(Calendar::class);
     }
 }

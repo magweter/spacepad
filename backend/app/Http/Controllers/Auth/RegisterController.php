@@ -34,13 +34,22 @@ class RegisterController extends Controller
      */
     public function store(RegisterRequest $request): RedirectResponse
     {
+        if (config('settings.disable_email_login')) {
+            return redirect()->back()->withErrors(['email' => 'Email registration is disabled.']);
+        }
+
         $data = $request->validated();
+
+        if (! User::isAllowedLogin($data['email'])) {
+            return redirect()->back()->withErrors(['email' => 'Your organization or email is not allowed to register.']);
+        }
 
         $user = User::where('email', $data['email'])->first();
         if (!$user) {
             $user = User::factory()->unverified()->create([
                 'name' => $data['name'],
-                'email' => $data['email']
+                'email' => $data['email'],
+                'terms_accepted_at' => ! config('settings.is_self_hosted') ? now() : null,
             ]);
         }
 

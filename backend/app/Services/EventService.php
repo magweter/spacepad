@@ -88,13 +88,19 @@ class EventService
         ];
     }
 
-    private function cleanSubject(string $subject): string
+    private function cleanSubject(?string $subject): string
     {
+        // Ensure variable is set
+        $subject ??= "";
+
         return trim($subject); // Basic cleanup, can be expanded if necessary
     }
 
-    private function cleanBody(string $body): string
+    private function cleanBody(?string $body): string
     {
+        // Ensure variable is set
+        $body ??= "";
+
         // Replace newlines and carriage returns as in JS version
         $body = str_replace("\r", "\n", $body);
         return str_replace("\n", ' ', $body);

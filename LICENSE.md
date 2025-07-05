@@ -1,30 +1,36 @@
-# Sustainable Use License
+Spacepad Community License (Sustainable Use License)
+----------------------------------------------------
 
-Copyright (c) 2024 Spacepad
+Copyright (c) 2025 Spacepad.io
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, except as follows:
+Permission is hereby granted, free of charge, to any individual or organization (the "User") to use, copy, modify, and self-host this software (the “Software”) under the following conditions:
 
-1. The Software may be used for personal, non-commercial purposes.
-2. The Software may be used for internal business purposes within a single organization, provided that:
-   a) The organization does not use the Software to provide a competing service.
-   b) The organization does not use the Software to generate revenue directly or indirectly.
-   c) The organization does not use the Software in a way that would require a commercial license.
+1. **Permitted Use**
+   - You may use and modify the Software for **personal**, **educational**, or **non-commercial personal** purposes.
+   - You may also use the Software in a **limited commercial** or **non-commercial organizational** setting under the following condition:
+     - The deployment includes **no more than 1 active room display** at any time.
+     - The deployment is **self-hosted**.
+   - Use beyond this limit requires a paid Pro license, regardless of commercial or non-commercial status.
 
-3. The Software may be modified, merged, published, distributed, and/or sold, provided that:
-   a) The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-   b) Any modifications must be clearly marked as such.
-   c) The Software may not be used to create a competing product or service.
+2. **Non-Commercial Organizations (e.g. nonprofits, schools)**
+   - Organizations using the Software non-commercially (such as nonprofits, educational institutions, or NGOs) **must obtain a Pro license** for use beyond 1 display.
+   - Eligible non-commercial organizations are entitled to a **50% discount** on licensing fees.
 
-4. Commercial use of the Software requires a separate commercial license.
+3. **Commercial Use Restrictions**
+   - Use of the Software with **more than 1 display**, or to access premium features, requires a valid **Spacepad Pro License**.
+   - You may not offer the Software as a hosted service (SaaS) or embed it in commercial products without written permission.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+4. **Attribution**
+   - You may remove or modify Spacepad branding only with a valid Pro license.
+   - Attribution in the form of a visible link or credit is appreciated but not required for personal use.
 
-For commercial licensing options, please contact support@spacepad.io. 
+5. **No Warranty**
+   - This Software is provided "as is", without warranty of any kind.
+
+6. **Termination**
+   - This license is automatically terminated if these terms are violated.
+   - Continued use beyond these terms requires a Pro license or separate written agreement.
+
+To purchase a license or request a nonprofit discount, visit: https://spacepad.io/pricing  
+
+Contact: support@spacepad.io

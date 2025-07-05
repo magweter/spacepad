@@ -10,7 +10,7 @@ use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class DisplayController extends Controller
 {
-    public function getDisplays(): AnonymousResourceCollection
+    public function index(): AnonymousResourceCollection
     {
         $displays = Display::query()
             ->where('user_id', auth()->user()->user_id)

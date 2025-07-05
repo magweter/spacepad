@@ -93,10 +93,10 @@ class RenewEventSubscriptions extends Command
         try {
             $outlookService->deleteEventSubscription($outlookAccount, $eventSubscription, false);
         } catch (\Exception $e) {
-            $display->update([
-                'status' => DisplayStatus::ERROR,
-            ]);
-            report('Error renewing Outlook subscription for display ' . $display->id . ': ' . $e->getMessage());
+            $outlookAccount->update(['status' => AccountStatus::ERROR]);
+            $display->update(['status' => DisplayStatus::ERROR]);
+            report('Error deleting Outlook subscription for display ' . $display->id . ': ' . $e->getMessage());
+            return;
         }
 
         $this->createOutlookEventSubscription($outlookAccount, $display, $outlookService);
@@ -113,10 +113,10 @@ class RenewEventSubscriptions extends Command
         try {
             $googleService->deleteEventSubscription($googleAccount, $eventSubscription, false);
         } catch (\Exception $e) {
-            $display->update([
-                'status' => DisplayStatus::ERROR,
-            ]);
-            report('Error renewing Google subscription for display ' . $display->id . ': ' . $e->getMessage());
+            $googleAccount->update(['status' => AccountStatus::ERROR]);
+            $display->update(['status' => DisplayStatus::ERROR]);
+            report('Error deleting Google subscription for display ' . $display->id . ': ' . $e->getMessage());
+            return;
         }
 
         $this->createGoogleEventSubscription($googleAccount, $display, $googleService);
@@ -140,9 +140,8 @@ class RenewEventSubscriptions extends Command
 
             $outlookService->createEventSubscriptionByCalendar($outlookAccount, $display, $calendar->calendar_id);
         } catch (\Exception $e) {
-            $display->update([
-                'status' => DisplayStatus::ERROR,
-            ]);
+            $outlookAccount->update(['status' => AccountStatus::ERROR]);
+            $display->update(['status' => DisplayStatus::ERROR]);
             report('Error creating Outlook subscription for display ' . $display->id . ': ' . $e->getMessage());
         }
     }
@@ -165,9 +164,8 @@ class RenewEventSubscriptions extends Command
 
             $googleService->createEventSubscription($googleAccount, $display, $calendar->calendar_id);
         } catch (\Exception $e) {
-            $display->update([
-                'status' => DisplayStatus::ERROR,
-            ]);
+            $googleAccount->update(['status' => AccountStatus::ERROR]);
+            $display->update(['status' => DisplayStatus::ERROR]);
             report('Error creating Google subscription for display ' . $display->id . ': ' . $e->getMessage());
         }
     }

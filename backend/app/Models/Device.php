@@ -8,18 +8,22 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Auth\Authenticatable as AuthenticatableTrait;
 
-class Device extends Model
+class Device extends Model implements Authenticatable
 {
     use HasApiTokens;
     use HasFactory;
     use HasUlid;
     use HasLastActivity;
+    use AuthenticatableTrait;
 
     protected $fillable = [
         'user_id',
         'display_id',
         'name',
+        'uid',
         'last_activity_at'
     ];
 

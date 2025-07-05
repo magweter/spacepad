@@ -15,9 +15,13 @@ services:
       AUTORUN_ENABLED: 'false'
       AUTORUN_LARAVEL_MIGRATION: 'false'
     ports:
-      - "8080:8080"
+      - "8000:8080"
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    depends_on:
+      - mariadb
+      - redis
+      - mailhog
 
   scheduler:
     image: spacepad/app:latest
@@ -29,6 +33,48 @@ services:
       - ./backend:/var/www/html
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    depends_on:
+      - mariadb
+      - redis
+      - mailhog
+
+  mariadb:
+    image: mariadb:lts
+    restart: unless-stopped
+    networks:
+      - app
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: spacepad
+      MYSQL_USER: spacepad
+      MYSQL_PASSWORD: spacepad
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+
+  redis:
+    image: redis:alpine
+    restart: unless-stopped
+    networks:
+      - app
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    restart: unless-stopped
+    networks:
+      - app
+    ports:
+      - "1025:1025"  # SMTP server
+      - "8025:8025"  # Web interface
 
 networks:
   app:
+
+volumes:
+  mariadb_data:
+  redis_data:

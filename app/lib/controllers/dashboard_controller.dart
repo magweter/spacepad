@@ -39,7 +39,7 @@ class DashboardController extends GetxController {
   }
 
   void updateTime() {
-    time.value = DateFormat.Hm().format(DateTime.now());
+    time.value = DateFormat.jm().format(DateTime.now());
   }
 
   String get roomName {
@@ -67,8 +67,8 @@ class DashboardController extends GetxController {
     final currentEventEnd = currentEvent!.end;
 
     return 'meeting_info_title'.trParams({
-      'start': DateFormat('HH:mm').format(currentEventStart),
-      'end': DateFormat('HH:mm').format(currentEventEnd)
+      'start': DateFormat.jm().format(currentEventStart),
+      'end': DateFormat.jm().format(currentEventEnd)
     });
   }
 
@@ -139,6 +139,12 @@ class DashboardController extends GetxController {
     } catch (e) {
       Toast.showError('could_not_load_events'.tr);
     }
+  }
+
+  void logout() {
+    _clock?.cancel();
+    _timer?.cancel();
+    AuthService.instance.signOut();
   }
 
   @override

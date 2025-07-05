@@ -1,31 +1,14 @@
 @extends('layouts.base')
 @section('title', 'Create a new CalDAV Account')
+@section('container_class', 'max-w-5xl')
 @section('content')
-    <div class="mx-auto">
-        <!-- Session Status Alert -->
-        @if(session('status'))
-            <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4">
-                {{ session('status') }}
-            </div>
-        @endif
+    <x-cards.card>
+        {{-- Session Status Alert --}}
+        <x-alerts.alert />
 
-        <!-- Validation Errors Alert -->
-        @if ($errors->any())
-            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4">
-                <strong>Please pay attention to the following errors.</strong>
-                <ul class="mt-2 list-disc list-inside">
-                    @foreach ($errors->all() as $error)
-                        <li>{{ $error }}</li>
-                    @endforeach
-                </ul>
-            </div>
-        @endif
-
-        <div class="sm:flex sm:items-center">
-            <div class="sm:flex-auto">
-                <h1 class="text-base font-semibold leading-6 text-gray-900">Enter your credentials</h1>
-                <p class="mt-2 text-sm text-gray-700">We'll connect to your server to access your calendars.</p>
-            </div>
+        <div>
+            <h1 class="text-base font-semibold leading-6 text-gray-900">Enter your credentials</h1>
+            <p class="mt-2 text-sm text-gray-700">We'll connect to your server to access your calendars.</p>
         </div>
 
         <form action="{{ route('caldav-accounts.store') }}" method="POST" class="mt-6">
@@ -66,5 +49,5 @@
                 </div>
             </div>
         </form>
-    </div>
+    </x-cards.card>
 @endsection

@@ -1,148 +1,96 @@
-# Spacepad
+<p align="center" style="margin-top: 120px">
+  <h1 align="center">Spacepad</h3>
 
-Spacepad is a simple and fun meeting room occupancy display that helps you manage and visualize your meeting spaces effectively. Suitable for both small offices and larger deployments.
+  <p align="center">Spacepad is a simple privacy-focused room display app. Display room availability in real-time, <br>synced with your rooms and calendars — ideal for tablets outside meeting spaces or home-offices. <br>Suitable for both small offices and larger deployments.
+    <br />
+    <br />
+    <a href="https://spacepad.io">Website</a>
+    ·
+    <a href="https://github.com/magweter/spacepad/issues">Report Issue</a>
+    ·
+    <a href="https://github.com/magweter/spacepad/discussions">Suggest Feature</a>
+  </p>
+</p>
 
 ![Spacepad - Screenshot](assets/screenshot.png)
 
 ## Our Mission
 
-Creating modern no-nonsense solutions for every office. Easy to use and affordable. While making meeting room management simple, intuitive, and enjoyable. 
+We’re building focused, fun tools for modern offices — tools that just work, without enterprise BS.
+Spacepad strives to be the perfect all-encompassing room display solution for SMB's.
+<br><br>
+✅ Simple: Easy to deploy and use<br>
+🔐 Privacy-first: Self hosted and open source auditable<br>
+💸 Fair and sustainable: We offer paid features to keep development active<br>
+❤️ Designed with care: Beautiful on tablets, easy on the eye<br>
 
-## Key Features
+## Features
 
-- 🔄 **Real-Time Updates**: See room availability instantly
-- 📅 **Calendar Integration**: Works with Microsoft 365
-- 🎨 **Fun Interface**: Engaging and intuitive display
-- 🚀 **Easy Setup**: Get up and running in minutes
+Spacepad offers a range of features to make viewing occupancy of meeting rooms a breeze. 
 
-## Why Spacepad?
+- **Events display real-time on display**
+- **Outlook Calendar / Google Calendar integration**
+- **Microsoft 365 / Google Workspace integration**
+- **CalDAV Integration (like Nextcloud)**
+- **Modern Cross Platform app**
+- **Self Hosted or Cloud Hosted**
 
-- 🔌 **Simple Integration**: Works with your existing calendar infrastructure
-- 📱 **Cross-Platform**: Access from any mobile device
-- 🌍 **Flexible Display**: Perfect for tablets and displays outside meeting rooms
-- ⚡ **Quick Status**: See room availability at a glance
+> [!TIP]
+> The product is developing rapidly and we're happily accepting feedback and suggestions. Have a look at our [roadmap](#roadmap) on the implementation of new features or open a new [discussion](https://github.com/magweter/spacepad/discussions) to share ideas.
 
-## Quick Start
+## 🔧 Get Started
 
-### Cloud Hosted Solution
-Looking to get started for free with zero effort? Visit [spacepad.io](https://spacepad.io) to try out our cloud-hosted solution. We offer a free 7 day trial.
-Cloud hosting is a great way to support this project for future development.
+### ☁️ Cloud Hosted (Easiest)
 
-### Self-Hosted Option
-We value the open source and self hosted communities. After all, your privacy and data should be protected at all costs.
+Looking to get started quickly? Get started in minutes using our cloud.
 
-To self host this application, you can deploy your own instance using Docker and Traefik out of the box.
-Using other reverse proxies will also work, but might require a bit more configuration.
+1. Visit [spacepad.io](https://spacepad.io)
+2. Create a free account
+3. Set up your first display — the first one is free forever
+4. Add more displays at $6/month each
 
-Get started setting up your own self hosted (production) instance:
+Great for fast deployments with zero maintenance.
 
-```bash
-# Clone the repository
-git clone https://github.com/magweter/spacepad.git
-cd spacepad
+### 🏗️ Self Hosted
 
-# Create the environment config
-cp .env.example .env
-```
+Self hosting Spacepad is the perfect solution for businesses or enthousiasts who want control over their data.
 
-Set the app key for the application:
+As we believe in open source and personal tinkering, we want to support these communities.
 
-```bash
-# Linux
-sed -i "s/^APP_KEY=.*/APP_KEY=$(php -r 'echo "base64:".base64_encode(random_bytes(32));')/" .env
+🙎‍♂️ If you’re a hobbyist or home user, enjoy Spacepad self hosted without limits — completely for free.
 
-# macOS
-sed -i '' "s/^APP_KEY=.*/APP_KEY=$(php -r 'echo "base64:".base64_encode(random_bytes(32));')/" .env
+🏢 If you're a business using Spacepad, we ask you to purchase a self-hosted license. We offer simple, sustainable and affordable flat-tiered pricing. Have a look at [Spacepad Pricing](docs/PRICING.md).
 
-# Windows (PowerShell)
-(Get-Content .env) -replace '^APP_KEY=.*', "APP_KEY=$(php -r 'echo "base64:".base64_encode(random_bytes(32));')" | Set-Content .env
-```
+For full setup instructions, see [Setup Guide](docs/SETUP.md).
 
-Now open the .env file and configure your domain and email.
+## 🛠 Licensing
 
-You can log into the app using three different methods; Email, Microsoft (OAuth) or Google (OAuth).
+Spacepad is dual-licensed:
 
-In order to use the regular email login you should configure an email provider, as it sends a 'magic link' by email. Edit the following variables:
-```env
-MAIL_MAILER=smtp
-MAIL_HOST=
-MAIL_PORT=587
-MAIL_USERNAME=
-MAIL_PASSWORD=
-MAIL_FROM_ADDRESS="hello@example.com"
-```
+- 🧑‍💻 **Community License** ([LICENSE.md](LICENSE.md))  
+  For personal use and self-hosted commercial use with up to 1 display.
 
-Configuring the following providers is optional, but you do require at least one. Leaving the client id of the provider empty will ensure it is not enabled.
+- 🏢 **Pro License** ([LICENSE_PRO.md](LICENSE_PRO.md))  
+  Required for commercial use with multiple displays or Pro features.
 
-Configuring the Outlook provider:
-1. Go to [Azure Portal - App Registrations](https://entra.microsoft.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade/quickStartType~/null/sourceType/Microsoft_AAD_IAM)
-1. Click on 'New registration', add a name for the applicaton e.g. "Spacepad" and click 'register'
-1. You will be taken to the Overview Page, record the "Application (client) ID" as this is the "AZURE_AD_CLIENT_ID="
-1. Click on the 'Authentication' tab and create two new 'web' platforms:
-    - https://your-domain.com/outlook-accounts/callback
-    - https://your-domain.com/auth/microsoft/callback
-1. Save, and click on 'API-permissions'
-1. Click 'Microsoft Graph', click 'Delegated permissions' and search for and select the following permissions `Calendars.Read.Shared`, `Place.Read.All` and `User.Read`.
-1. Save, and click on 'certificates and secrets'
-1. Create a new secret (not certificate) and copy the value
-1. Click on 'overview' and copy the 'client id'. Beware: this is the client ID value you need, not the ID of the secret you just created.
-1. Paste the values in the .env 'AZURE_AD...' variables
+Purchasing a license helps support continued development.
 
-Configuring the Google provider:
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-1. Create a new project or select an existing one
-1. Navigate to "APIs & Services" > "Credentials"
-1. Click "Create Credentials" > "OAuth client ID"
-1. Select "Web application" as the application type
-1. Add authorized redirect URIs:
-    - https://your-domain.com/google-accounts/callback
-    - https://your-domain.com/auth/google/callback
-1. Click "Create"
-1. Enable the required Google APIs:
-   - Go to "APIs & Services" > "Library"
-   - Search for and enable:
-     - Google Calendar API
-     - Google Admin SDK API
-1. Copy the Client ID and Client Secret
-1. Paste the values in your .env file:
-   - GOOGLE_CLIENT_ID=your_client_id
-   - GOOGLE_CLIENT_SECRET=your_client_secret
+## 🤝 Contributing
 
-Now run the application using Docker Compose:
-```bash
-docker compose -f docker-compose.prod.yml up -d
-```
+We love open source and welcome your contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) to get started.
 
-Great! You should now be able to access the application at http://localhost.
+## 📅 Roadmap Highlights
 
-Download the mobile app from the App Store or Play Store and follow the instructions 🚀
-
-### Enterprise Solutions
-We offer specialized support and modifications for enterprise deployments.
-
-Contact us at support@spacepad.io for enterprise licensing and support options.
-
-## Support
-
-Need help? We offer multiple support channels:
-- [Post an issue](https://github.com/magweter/spacepad/issues)
-- [Email Support](mailto:support@spacepad.io) (for cloud hosted plans)
-
-## License
-
-Spacepad is distributed under a dual-license model:
-
-- **Community Edition**: Available under the [Sustainable Use License](LICENSE.md) for non-commercial use
-- **Enterprise Edition**: Commercial license with additional features and support. See [Enterprise License](LICENSE_EE.md) for details.
-
-## Contributing
-
-We welcome contributions! Please check our [Contributing Guide](CONTRIBUTING.md) to get started.
-
-## Roadmap
-
-- [x] CalDav support
-- [ ] Custom display themes (colors & backgrounds)
+- [x] M365 support
+- [x] Self-hosted with Docker
+- [x] Google Workspace support
+- [x] CalDAV support
+- [ ] Booking directly on device
+- [ ] Custom display themes & logos
+- [ ] Showing all events of the day
 - [ ] Amazon Fire Tablet support
-- [ ] Multi-room dashboard view
-- [ ] Bookings rooms via the app
+- [ ] Organizations & management
+- [ ] Web and TV view
+- [ ] Multi-room overview dashboard
+
+Feature requests? We're all ears! Please open a new [discussion](https://github.com/magweter/spacepad/discussions).

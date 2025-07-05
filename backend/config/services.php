@@ -76,4 +76,8 @@ return [
         'cache_enabled' => env('EVENTS_CACHE_ENABLED', true),
     ],
 
+    'clarity' => [
+        'tag_code' => env('CLARITY_TAG_CODE'),
+    ],
+
 ];

@@ -6,6 +6,9 @@ use App\Models\PersonalAccessToken;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Sanctum\Sanctum;
+use LemonSqueezy\Laravel\LemonSqueezy;
+use SocialiteProviders\Manager\SocialiteWasCalled;
+use SocialiteProviders\Microsoft\Provider;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -14,7 +17,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        if (config('settings.is_self_hosted')) {
+            LemonSqueezy::ignoreMigrations();
+        }
     }
 
     /**
@@ -24,8 +29,8 @@ class AppServiceProvider extends ServiceProvider
     {
         Sanctum::usePersonalAccessTokenModel(PersonalAccessToken::class);
 
-        Event::listen(function (\SocialiteProviders\Manager\SocialiteWasCalled $event) {
-            $event->extendSocialite('microsoft', \SocialiteProviders\Microsoft\Provider::class);
+        Event::listen(function (SocialiteWasCalled $event) {
+            $event->extendSocialite('microsoft', Provider::class);
         });
     }
 }

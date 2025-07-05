@@ -69,12 +69,40 @@ class GoogleService
                 'email' => $googleUserInfo->email,
                 'name' => $googleUserInfo->name,
                 'avatar' => $googleUserInfo->picture,
+                'hosted_domain' => $googleUserInfo->hd,
                 'token' => $accessToken['access_token'],
                 'refresh_token' => $accessToken['refresh_token'] ?? null,
                 'token_expires_at' => now()->addSeconds($accessToken['expires_in']),
                 'status' => AccountStatus::CONNECTED,
             ]
         );
+    }
+
+
+    /**
+     * Determine if a Google account is personal or business
+     */
+    public function isGoogleBusiness(GoogleAccount $account): bool
+    {
+        $this->ensureAuthenticated($account);
+
+        try {
+            $googleService = new Oauth2($this->client);
+            $googleUserInfo = $googleService->userinfo->get();
+
+            // Check if it's a Gmail account
+            $isGmail = str_ends_with(strtolower($googleUserInfo->email), '@gmail.com') ||
+                str_ends_with(strtolower($googleUserInfo->email), '@googlemail.com');
+
+            // If it's not Gmail and has a hosted domain, it's a business account
+            return !$isGmail && isset($googleUserInfo->hd);
+        } catch (\Exception $e) {
+            logger()->error('Error checking Google account type', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return false;
+        }
     }
 
     /**
@@ -202,7 +230,7 @@ class GoogleService
             $eventSubscription = EventSubscription::create([
                 'subscription_id' => $response->getId(),
                 'resource' => $calendarId,
-                'expiration' => Carbon::createFromTimestampMs($response->getExpiration())->toAtomString(),
+                'expiration' => Carbon::createFromTimestampMs($response->getExpiration()),
                 'notification_url' => config('services.google.webhook_url'),
                 'display_id' => $display->id,
                 'google_account_id' => $googleAccount->id,
@@ -236,9 +264,9 @@ class GoogleService
         EventSubscription $eventSubscription,
         bool $useApi = true
     ): void {
-        $this->ensureAuthenticated($googleAccount);
-
         if ($useApi) {
+            $this->ensureAuthenticated($googleAccount);
+
             try {
                 $calendarService = new Calendar($this->client);
                 $channel = new Channel();
