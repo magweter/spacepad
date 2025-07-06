@@ -11,6 +11,7 @@ import 'package:tailwind_components/tailwind_components.dart';
 import 'dart:io' show Platform;
 import 'dart:math' show max;
 import 'package:spacepad/services/auth_service.dart';
+import 'package:spacepad/components/action_panel.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -180,115 +181,12 @@ class _DashboardPageState extends State<DashboardPage> {
                                   ),
                                 ]
                               ),
-                              SizedBox(height: isPhone ? 10 : 20),
-                              // Show cancel button if there's an active event, otherwise show booking interface
-                              if (controller.isReserved)
-                                ActionButton(
-                                  text: 'cancel_event',
-                                  onPressed: () => controller.cancelCurrentEvent(),
-                                  backgroundColor: TWColors.gray_600,
-                                  textColor: Colors.white,
-                                  isPhone: isPhone,
-                                  cornerRadius: cornerRadius,
-                                )
-                              else if (controller.shouldShowBooking)
-                                Obx(() => controller.showBookingOptions.value
-                                  // Show booking options in outlined box
-                                  ? Container(
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(cornerRadius),
-                                        border: Border.all(
-                                          color: TWColors.gray_500.withValues(alpha: 0.3),
-                                          width: 1,
-                                        ),
-                                        color: Colors.transparent,
-                                      ),
-                                      child: Padding(
-                                        padding: EdgeInsets.all(isPhone ? 12 : 20),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            // Booking duration options
-                                            Row(
-                                              children: [
-                                                for (var min in [15, 30, 60])
-                                                  Padding(
-                                                    padding: EdgeInsets.only(
-                                                      right: min == 60 ? 0 : (isPhone ? 12 : 16),
-                                                    ),
-                                                    child: Container(
-                                                      decoration: BoxDecoration(
-                                                        borderRadius: BorderRadius.circular(cornerRadius * 0.3),
-                                                        color: TWColors.gray_600.withValues(alpha: 0.3),
-                                                      ),
-                                                      child: Material(
-                                                        color: Colors.transparent,
-                                                        child: InkWell(
-                                                          borderRadius: BorderRadius.circular(cornerRadius * 0.3),
-                                                          onTap: () => controller.bookRoom(min),
-                                                          child: Padding(
-                                                            padding: EdgeInsets.symmetric(
-                                                              vertical: isPhone ? 12 : 16,
-                                                              horizontal: isPhone ? 16 : 24,
-                                                            ),
-                                                            child: Text(
-                                                              '$min min',
-                                                              style: TextStyle(
-                                                                color: Colors.white,
-                                                                fontSize: isPhone ? 18 : 26,
-                                                                fontWeight: FontWeight.w600,
-                                                              ),
-                                                            ),
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ),
-                                              ],
-                                            ),
-                                            SizedBox(width: isPhone ? 16 : 24),
-                                            // Cancel button
-                                            Container(
-                                              decoration: BoxDecoration(
-                                                borderRadius: BorderRadius.circular(cornerRadius * 0.3),
-                                                color: TWColors.gray_600.withValues(alpha: 0.3),
-                                              ),
-                                              child: Material(
-                                                color: Colors.transparent,
-                                                child: InkWell(
-                                                  borderRadius: BorderRadius.circular(cornerRadius * 0.3),
-                                                  onTap: () => controller.hideBookingOptions(),
-                                                  child: Padding(
-                                                    padding: EdgeInsets.symmetric(
-                                                      vertical: isPhone ? 12 : 16,
-                                                      horizontal: isPhone ? 16 : 24,
-                                                    ),
-                                                    child: Text(
-                                                      'cancel'.tr,
-                                                      style: TextStyle(
-                                                        color: Colors.white,
-                                                        fontSize: isPhone ? 18 : 26,
-                                                        fontWeight: FontWeight.w600,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    )
-                                  // Show initial "Book now" button
-                                  : ActionButton(
-                                      text: 'book_now',
-                                      onPressed: () => controller.toggleBookingOptions(),
-                                      backgroundColor: TWColors.gray_600,
-                                      textColor: Colors.white,
-                                      isPhone: isPhone,
-                                      cornerRadius: cornerRadius,
-                                    ),
-                                ),
+                              if (controller.meetingInfo == null) SizedBox(height: isPhone ? 5 : 10),
+                              ActionPanel(
+                                controller: controller,
+                                isPhone: isPhone,
+                                cornerRadius: cornerRadius,
+                              ),
                             ],
                           ),
                         ],

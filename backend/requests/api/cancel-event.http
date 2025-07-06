@@ -1,8 +1,4 @@
-DELETE {{baseUrl}}/api/events/01JZGNZXZVP2J6EFMQ8YW7T31T
+DELETE {{baseUrl}}/api/events/01JZGJWKYNYW3302AXCBRDEQGB
 Authorization: Bearer {{bearerToken}}
 Content-Type: application/json
 Accept: application/json
-
-{
-    "duration": 15
-}

@@ -31,8 +31,8 @@ class AppTranslations extends Translations {
       'room_booked': 'Room booked!',
       'could_not_book_room': 'Could not book room',
       'logout': 'Logout',
-      'switch_room': 'Switch Room',
-      'cancel_event': 'Cancel Event',
+      'switch_room': 'Switch room',
+      'cancel_event': 'Cancel event',
       'event_cancelled': 'Event cancelled',
       'could_not_cancel_event': 'Could not cancel event',
       'url_hint': 'https://your-instance.com',
@@ -44,7 +44,8 @@ class AppTranslations extends Translations {
       'connect_code_explanation': 'To get a connect code, you need to:\n1. Sign up at app.spacepad.io/register, or\n2. Set up your own cloud-hosted environment, read: spacepad.io\nThen go to your dashboard to get the connect code.',
       'invalid_url': 'Please enter a valid URL (e.g., https://your-instance.com)',
       'server_unreachable': 'Could not connect to the server. Please check if the URL is correct and the server is running.',
-      'login_failed': 'Your connect code is incorrect. Please try again.'
+      'login_failed': 'Your connect code is incorrect. Please try again.',
+      'reserved': 'Reserved'
     },
     'nl_NL': {
       'introduction_title': 'Welkom bij Spacepad!',
@@ -74,8 +75,8 @@ class AppTranslations extends Translations {
       'room_booked': 'Ruimte geboekt!',
       'could_not_book_room': 'Kon ruimte niet boeken',
       'logout': 'Uitloggen',
-      'switch_room': 'Wissel Ruimte',
-      'cancel_event': 'Afspraak Annuleren',
+      'switch_room': 'Wissel ruimte',
+      'cancel_event': 'Afspraak annuleren',
       'event_cancelled': 'Afspraak geannuleerd',
       'could_not_cancel_event': 'Kon afspraak niet annuleren',
       'url_hint': 'https://jouw-instance.nl',
@@ -87,7 +88,8 @@ class AppTranslations extends Translations {
       'connect_code_explanation': 'Om een connect code te krijgen moet je:\n1. Je registreren op app.spacepad.io/register, of\n2. Je eigen cloud-hosted omgeving opzetten, zie: spacepad.io\nGa daarna naar je dashboard om de connect code te krijgen.',
       'invalid_url': 'Voer een geldige URL in (bijvoorbeeld https://jouw-instance.nl)',
       'server_unreachable': 'Kon geen verbinding maken met de server. Controleer of de URL correct is en de server draait.',
-      'login_failed': 'Je connect code is incorrect. Probeer het opnieuw.'
+      'login_failed': 'Je connect code is incorrect. Probeer het opnieuw.',
+      'reserved': 'Gereserveerd'
     },
     'es_ES': {
       'introduction_title': '¡Bienvenido a Spacepad!',
@@ -117,8 +119,8 @@ class AppTranslations extends Translations {
       'room_booked': '¡Sala reservada!',
       'could_not_book_room': 'No se pudo reservar la sala',
       'logout': 'Cerrar sesión',
-      'switch_room': 'Cambiar Sala',
-      'cancel_event': 'Cancelar Evento',
+      'switch_room': 'Cambiar sala',
+      'cancel_event': 'Cancelar evento',
       'event_cancelled': 'Evento cancelado',
       'could_not_cancel_event': 'No se pudo cancelar el evento',
       'url_hint': 'https://tu-instancia.com',
@@ -130,7 +132,8 @@ class AppTranslations extends Translations {
       'connect_code_explanation': 'Para obtener un código de conexión, necesitas:\n1. Registrarte en app.spacepad.io/register, o\n2. Configurar tu propio entorno en la nube, lee: spacepad.io\nLuego ve a tu panel para obtener el código de conexión.',
       'invalid_url': 'Por favor, introduce una URL válida (por ejemplo, https://tu-instancia.com)',
       'server_unreachable': 'No se pudo conectar con el servidor. Por favor, verifica que la URL sea correcta y que el servidor esté en funcionamiento.',
-      'login_failed': 'Tu código de conexión es incorrecto. Por favor, inténtalo de nuevo.'
+      'login_failed': 'Tu código de conexión es incorrecto. Por favor, inténtalo de nuevo.',
+      'reserved': 'Reservado'
     },
     'fr_FR': {
       'introduction_title': 'Bienvenue sur Spacepad !',
@@ -160,8 +163,8 @@ class AppTranslations extends Translations {
       'room_booked': 'Salle réservée !',
       'could_not_book_room': 'Impossible de réserver la salle',
       'logout': 'Se déconnecter',
-      'switch_room': 'Changer de Salle',
-      'cancel_event': 'Annuler l\'Événement',
+      'switch_room': 'Changer de salle',
+      'cancel_event': 'Annuler l\'événement',
       'event_cancelled': 'Événement annulé',
       'could_not_cancel_event': 'Impossible d\'annuler l\'événement',
       'url_hint': 'https://votre-instance.com',
@@ -173,7 +176,8 @@ class AppTranslations extends Translations {
       'connect_code_explanation': 'Pour obtenir un code de connexion, vous devez :\n1. Vous inscrire sur app.spacepad.io/register, ou\n2. Configurer votre propre environnement cloud, voir : spacepad.io\nEnsuite, allez sur votre tableau de bord pour obtenir le code de connexion.',
       'invalid_url': 'Veuillez entrer une URL valide (par exemple, https://votre-instance.com)',
       'server_unreachable': 'Impossible de se connecter au serveur. Veuillez vérifier que l\'URL est correcte et que le serveur fonctionne.',
-      'login_failed': 'Votre code de connexion est incorrect. Veuillez réessayer.'
+      'login_failed': 'Votre code de connexion est incorrect. Veuillez réessayer.',
+      'reserved': 'Réservé'
     },
     'de_DE': {
       'introduction_title': 'Willkommen bei Spacepad!',
@@ -204,7 +208,7 @@ class AppTranslations extends Translations {
       'could_not_book_room': 'Raum konnte nicht gebucht werden',
       'logout': 'Abmelden',
       'switch_room': 'Raum wechseln',
-      'cancel_event': 'Termin Stornieren',
+      'cancel_event': 'Termin stornieren',
       'event_cancelled': 'Termin storniert',
       'could_not_cancel_event': 'Termin konnte nicht storniert werden',
       'url_hint': 'https://ihre-instanz.com',
@@ -216,7 +220,8 @@ class AppTranslations extends Translations {
       'connect_code_explanation': 'Um einen Verbindungscode zu erhalten, müssen Sie:\n1. Sich registrieren unter app.spacepad.io/register, oder\n2. Ihre eigene Cloud-Umgebung einrichten, siehe: spacepad.io\nGehen Sie dann zu Ihrem Dashboard, um den Verbindungscode zu erhalten.',
       'invalid_url': 'Bitte geben Sie eine gültige URL ein (z.B. https://ihre-instanz.com)',
       'server_unreachable': 'Verbindung zum Server konnte nicht hergestellt werden. Bitte überprüfen Sie, ob die URL korrekt ist und der Server läuft.',
-      'login_failed': 'Ihr Verbindungscode ist falsch. Bitte versuchen Sie es erneut.'
+      'login_failed': 'Ihr Verbindungscode ist falsch. Bitte versuchen Sie es erneut.',
+      'reserved': 'Reserviert'
     },
   };
 }

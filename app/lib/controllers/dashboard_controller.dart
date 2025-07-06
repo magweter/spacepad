@@ -14,8 +14,8 @@ class DashboardController extends GetxController {
   final RxString time = RxString('');
   
   Timer? _clock;
-  Timer? _timer;
-  Timer? _settingsTimer;
+  Timer? _eventsTimer;
+  Timer? _displayTimer;
 
   @override
   void onInit() {
@@ -34,13 +34,13 @@ class DashboardController extends GetxController {
 
     // Start a timer that aligns with the next second
     Future.delayed(Duration(milliseconds: millisecondsToNextSecond), () {
-      _timer = Timer.periodic(const Duration(seconds: 60), (timer) => fetchEvents());
+      _eventsTimer = Timer.periodic(const Duration(seconds: 60), (timer) => fetchEvents());
     });
 
     _clock = Timer.periodic(const Duration(seconds: 1), (timer) => updateTime());
     
     // Settings refresh timer - every 2.5 minutes
-    _settingsTimer = Timer.periodic(const Duration(minutes: 2, seconds: 30), (timer) => refreshDisplaySettings());
+    _displayTimer = Timer.periodic(const Duration(minutes: 2, seconds: 30), (timer) => refreshDisplaySettings());
   }
 
   void updateTime() {
@@ -141,6 +141,7 @@ class DashboardController extends GetxController {
   Future<void> fetchEvents() async {
     try {
       events.value = await EventService.instance.getEvents();
+      events.value = events.value.where((e) => e.status != 'cancelled').toList();
     } catch (e) {
       Toast.showError('could_not_load_events'.tr);
     }
@@ -148,8 +149,8 @@ class DashboardController extends GetxController {
 
   void switchRoom() {
     _clock?.cancel();
-    _timer?.cancel();
-    _settingsTimer?.cancel();
+    _eventsTimer?.cancel();
+    _displayTimer?.cancel();
     
     Get.offAll(() => const DisplayPage());
   }
@@ -163,7 +164,7 @@ class DashboardController extends GetxController {
     }
   }
 
-    Future<void> bookRoom(int duration, {String? summary}) async {
+    Future<void> bookRoom(int duration, String summary) async {
     try {
       await EventService.instance.bookRoom(duration, summary: summary);
       await fetchEvents();
@@ -218,8 +219,8 @@ class DashboardController extends GetxController {
   @override
   void dispose() {
     _clock?.cancel();
-    _timer?.cancel();
-    _settingsTimer?.cancel();
+    _eventsTimer?.cancel();
+    _displayTimer?.cancel();
 
     super.dispose();
   }

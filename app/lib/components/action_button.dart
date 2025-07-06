@@ -6,9 +6,8 @@ import 'package:tailwind_components/tailwind_components.dart';
 class ActionButton extends StatelessWidget {
   final String text;
   final VoidCallback onPressed;
-  final Color backgroundColor;
-  final Color borderColor;
-  final Color textColor;
+  final Color? borderColor;
+  final Color? textColor;
   final bool isPhone;
   final double cornerRadius;
 
@@ -16,11 +15,10 @@ class ActionButton extends StatelessWidget {
     super.key,
     required this.text,
     required this.onPressed,
-    this.backgroundColor = const Color(0xFF4B5563), // gray_600
-    this.borderColor = Colors.transparent,
-    this.textColor = Colors.white,
     required this.isPhone,
     required this.cornerRadius,
+    this.borderColor,
+    this.textColor,
   });
 
   @override
@@ -28,10 +26,8 @@ class ActionButton extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(cornerRadius),
-        color: backgroundColor.withValues(alpha: 0.3),
-        border: borderColor != Colors.transparent 
-          ? Border.all(color: borderColor.withValues(alpha: 0.3))
-          : null,
+        color: Colors.transparent,
+        border: Border.all(color: borderColor ?? TWColors.gray_500.withAlpha(160), width: 2),
       ),
       margin: EdgeInsets.only(top: isPhone ? 10 : 20, bottom: isPhone ? 10 : 20),
       child: Material(
@@ -47,8 +43,8 @@ class ActionButton extends StatelessWidget {
             child: Text(
               text.tr,
               style: TextStyle(
-                color: textColor,
-                fontSize: isPhone ? 20 : 28,
+                color: textColor ?? TWColors.white,
+                fontSize: isPhone ? 16 : 20,
                 fontWeight: FontWeight.w700,
               ),
             ),

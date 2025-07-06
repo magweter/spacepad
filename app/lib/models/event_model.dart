@@ -1,5 +1,6 @@
 class EventModel {
   String id;
+  String status;
   String summary;
   String? location;
   String? description;
@@ -10,6 +11,7 @@ class EventModel {
 
   EventModel({
     required this.id,
+    required this.status,
     required this.summary,
     this.location,
     this.description,
@@ -22,6 +24,7 @@ class EventModel {
   factory EventModel.fromJson(Map<String, dynamic> data) {
     return EventModel(
       id: data['id'],
+      status: data['status'],
       summary: data['summary'],
       location: data['location'],
       description: data['description'],
@@ -35,6 +38,7 @@ class EventModel {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
+      'status': status,
       'summary': summary,
       'location': location,
       'description': description,

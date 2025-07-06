@@ -88,12 +88,7 @@ class EventService
             throw new Exception('Event not found or not accessible');
         }
 
-        // Only allow cancellation of custom events
-        if (!$event->isCustomEvent()) {
-            throw new Exception('Cannot cancel external calendar events');
-        }
-
-        $event->delete();
+        $event->update(['status' => EventStatus::CANCELLED]);
     }
 
     /**
@@ -321,6 +316,7 @@ class EventService
     {
         return Event::query()
             ->where('display_id', $displayId)
+            ->where('status', '!=', EventStatus::CANCELLED)
             ->where(function ($q) use ($start, $end) {
                 $q->whereBetween('start', [$start, $end])
                   ->orWhereBetween('end', [$start, $end])
@@ -358,6 +354,7 @@ class EventService
                 'user_id' => $display->user_id,
                 'source' => $source,
                 'external_id' => $externalId,
+                'status' => EventStatus::PLANNED
             ]);
 
             $event->start = $ext['start'];
@@ -366,7 +363,6 @@ class EventService
             $event->description = $ext['description'];
             $event->location = $ext['location'];
             $event->timezone = $ext['timezone'];
-            $event->status = EventStatus::PLANNED;
 
             $event->save();
         }
