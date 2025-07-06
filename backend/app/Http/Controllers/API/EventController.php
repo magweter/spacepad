@@ -8,6 +8,7 @@ use App\Models\Calendar;
 use App\Models\Device;
 use App\Models\Display;
 use App\Models\Event;
+use App\Services\DisplayService;
 use App\Services\EventService;
 use App\Services\OutlookService;
 use App\Services\GoogleService;
@@ -20,172 +21,32 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use App\Http\Requests\API\EventBookRequest;
 
-class EventController extends Controller
+class EventController extends ApiController
 {
     public function __construct(
-        protected OutlookService $outlookService,
-        protected GoogleService $googleService,
-        protected CalDAVService $caldavService,
-        protected EventService $eventService
+        protected EventService $eventService,
+        protected DisplayService $displayService,
     ) {
     }
 
     /**
      * @throws Exception
      */
-    public function index(): AnonymousResourceCollection|JsonResponse
+    public function index(): JsonResponse
     {
         /** @var Device $device */
         $device = auth()->user();
-        $display = $device->display()
-            ->with(['calendar', 'user'])
-            ->withCount('eventSubscriptions')
-            ->first();
 
-        // Check if the device is connected to a display
-        if (! $display) {
-            return response()->json(['message' => 'Device is not connected to a display'], 400);
+        $permission = $this->displayService->validateDisplayPermission($device->display_id, $device->id);
+        if (! $permission->permitted) {
+            return $this->error(message: $permission->message, code: $permission->code);
         }
 
-        // Check if the display is active
-        if ($display->isDeactivated()) {
-            return response()->json(['message' => 'Display is deactivated'], 400);
-        }
-
-        return $this->fetchEventsForDisplay($display);
-    }
-
-    /**
-     * @throws Exception
-     */
-    private function fetchEventsRemotely(Display $display): array
-    {
-        $calendar = $display->calendar()
-            ->with(['googleAccount', 'outlookAccount', 'caldavAccount', 'room'])
-            ->first();
-
-        $events = collect();
-
-        // Handle Google integration
-        if ($calendar->google_account_id) {
-            $events = $this->fetchGoogleEvents($calendar, $display);
-        }
-
-        // Handle Outlook integration
-        if ($calendar->outlook_account_id) {
-            $events = $this->fetchOutlookEvents($calendar, $display);
-        }
-
-        // Handle CalDAV integration
-        if ($calendar->caldav_account_id) {
-            $events = $this->fetchCalDAVEvents($calendar, $display);
-        }
-
-        return $events->filter(fn ($event) => ! $event['isAllDay'])->toArray();
-    }
-
-    /**
-     * @param Calendar $calendar
-     * @param Display $display
-     * @return Collection
-     * @throws Exception
-     */
-    private function fetchOutlookEvents(Calendar $calendar, Display $display): Collection
-    {
-        $events = [];
-
-        // Fetch events by user (room)
-        if ($calendar->room) {
-            $events = $this->outlookService->fetchEventsByUser(
-                outlookAccount: $calendar->outlookAccount,
-                emailAddress: $calendar->calendar_id,
-                startDateTime: $display->getStartTime(),
-                endDateTime: $display->getEndTime(),
-            );
-        }
-
-        // Fetch events by calendar
-        if (! $calendar->room) {
-            $events = $this->outlookService->fetchEventsByCalendar(
-                outlookAccount: $calendar->outlookAccount,
-                calendarId: $calendar->calendar_id,
-                startDateTime: $display->getStartTime(),
-                endDateTime: $display->getEndTime(),
-            );
-        }
-
-        return collect($events)->map(fn($e) => $this->eventService->sanitizeOutlookEvent($e));
-    }
-
-    /**
-     * @param Calendar $calendar
-     * @param Display $display
-     * @return Collection
-     * @throws \Exception
-     */
-    private function fetchGoogleEvents(Calendar $calendar, Display $display): Collection
-    {
-        $events = $this->googleService->fetchEvents(
-            googleAccount: $calendar->googleAccount,
-            calendarId: $calendar->calendar_id,
-            startDateTime: $display->getStartTime(),
-            endDateTime: $display->getEndTime(),
-        );
-
-        return collect($events)->map(fn($e) => $this->eventService->sanitizeGoogleEvent($e));
-    }
-
-    /**
-     * @param Calendar $calendar
-     * @param Display $display
-     * @return Collection
-     * @throws Exception
-     */
-    private function fetchCalDAVEvents(Calendar $calendar, Display $display): Collection
-    {
-        $events = $this->caldavService->fetchEvents(
-            caldavAccount: $calendar->caldavAccount,
-            calendarId: $calendar->calendar_id,
-            startDateTime: $display->getStartTime(),
-            endDateTime: $display->getEndTime(),
-        );
-
-        return collect($events)->map(fn($e) => $this->eventService->sanitizeCalDAVEvent($e));
-    }
-
-    /**
-     * @param Display $display
-     * @return AnonymousResourceCollection|JsonResponse
-     * @throws Exception
-     */
-    private function fetchEventsForDisplay(Display $display): AnonymousResourceCollection|JsonResponse
-    {
         try {
-            // Update last sync timestamp
-            $display->updateLastSyncAt();
-
-            // Check for a custom event (booking) that overlaps with the current window
-            $customEvents = $this->eventService->getActiveCustomEvents($display->id);
-            if ($customEvents->isNotEmpty()) {
-                return EventResource::collection($customEvents);
-            }
-
-            // Cache events if caching is enabled and the display has an event subscription
-            $cachingEnabled = config('services.events.cache_enabled') && $display->event_subscriptions_count > 0;
-            if ($cachingEnabled && $customEvents) {
-                $events = cache()->remember(
-                    key: $display->getEventsCacheKey(),
-                    ttl: now()->addMinutes(15),
-                    callback: fn() => $this->fetchEventsRemotely($display)
-                );
-            } else {
-                $events = $this->fetchEventsRemotely($display);
-            }
-
-            return EventResource::collection($events);
-        } catch (Exception $e) {
-            report($e);
-            return response()->json(['message' => $e->getMessage()], 500);
+            $events = $this->eventService->getEventsForDisplay($device->display_id);
+            return $this->success(data: EventResource::collection($events));
+        } catch (\Exception $e) {
+            return $this->error($e->getMessage(), 500);
         }
     }
 
@@ -196,41 +57,24 @@ class EventController extends Controller
     {
         /** @var Device $device */
         $device = auth()->user();
-        $display = $device->display()->with('user')->first();
 
-        // Check if the device is connected to a display
-        if (! $display) {
-            return response()->json(['message' => 'Device is not connected to a display'], 400);
-        }
-
-        // Check if the display is active
-        if ($display->isDeactivated()) {
-            return response()->json(['message' => 'Display is deactivated'], 400);
-        }
-
-        // Check if user has Pro access for booking
-        if (!$display->user->hasPro()) {
-            return response()->json(['message' => 'Booking is a Pro feature. Please upgrade to Pro to use this feature.'], 403);
-        }
-
-        // Check if booking is enabled for this display
-        if (!$display->isBookingEnabled()) {
-            return response()->json(['message' => 'Booking is not enabled for this display'], 403);
+        $permission = $this->displayService->validateDisplayPermission($device->display_id, $device->id, ['pro' => true, 'booking' => true]);
+        if (! $permission->permitted) {
+            return $this->error(message: $permission->message, code: $permission->code);
         }
 
         try {
             $data = $request->validated();
             $event = $this->eventService->bookRoom(
-                $display,
-                $display->user,
-                (int) $data['duration'],
+                $device->display_id,
+                $device->user_id,
+                (int) $request->duration,
                 Arr::get($data, 'summary', __('Reserved'))
             );
-
-            return response()->json(['data' => new EventResource($event)], 201);
+            return $this->success(data: new EventResource($event), code: 201);
         } catch (\Exception $e) {
             $status = $e->getCode() === 403 ? 403 : 400;
-            return response()->json(['message' => $e->getMessage()], $status);
+            return $this->error($e->getMessage(), $status);
         }
     }
 
@@ -241,29 +85,18 @@ class EventController extends Controller
     {
         /** @var Device $device */
         $device = auth()->user();
-        $display = $device->display()->with('user')->first();
 
-        // Check if the device is connected to a display
-        if (!$display) {
-            return response()->json(['message' => 'Device is not connected to a display'], 400);
-        }
-
-        // Check if the display is active
-        if ($display->isDeactivated()) {
-            return response()->json(['message' => 'Display is deactivated'], 400);
-        }
-
-        // Check if user has Pro access for cancellation
-        if (!$display->user->hasPro()) {
-            return response()->json(['message' => 'Cancellation is a Pro feature. Please upgrade to Pro to use this feature.'], 403);
+        $permission = $this->displayService->validateDisplayPermission($device->display_id, $device->id, ['pro' => true]);
+        if (! $permission->permitted) {
+            return $this->error(message: $permission->message, code: $permission->code);
         }
 
         try {
-            $this->eventService->cancelEvent($eventId, $display);
-            return response()->json(['message' => 'Event cancelled successfully'], 200);
+            $this->eventService->cancelEvent($eventId, $device->display_id);
+            return $this->success(message: 'Event cancelled successfully');
         } catch (\Exception $e) {
             $status = $e->getCode() === 403 ? 403 : 400;
-            return response()->json(['message' => $e->getMessage()], $status);
+            return $this->error($e->getMessage(), $status);
         }
     }
 }

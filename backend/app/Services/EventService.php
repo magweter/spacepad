@@ -2,15 +2,214 @@
 
 namespace App\Services;
 
+use App\Enums\EventStatus;
 use App\Models\Display;
 use App\Models\Event;
 use App\Models\User;
+use App\Models\Calendar;
+use Exception;
 use Google\Service\Calendar\Event as GoogleEvent;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
+use App\Enums\EventSource;
 
 class EventService
 {
+    public function __construct(
+        protected OutlookService $outlookService,
+        protected GoogleService $googleService,
+        protected CalDAVService $caldavService,
+    ) {
+    }
+
+    /**
+     * Fetch events for a display, including remote sync if needed.
+     * @throws Exception
+     */
+    public function getEventsForDisplay($display): Collection
+    {
+        $display = Display::query()->findOrFail($display);
+
+        // Update last sync timestamp
+        $display->updateLastSyncAt();
+
+        // Cache events if caching is enabled and the display has an event subscription
+        $cachingEnabled = config('services.events.cache_enabled') && $display->event_subscriptions_count > 0;
+        if ($cachingEnabled) {
+            $events = cache()->remember(
+                key: $display->getEventsCacheKey(),
+                ttl: now()->addMinutes(15),
+                callback: fn() => $this->getAllEvents($display)
+            );
+        } else {
+            $events = $this->getAllEvents($display);
+        }
+
+        return $events;
+    }
+
+    /**
+     * Book a room for a given duration. Handles all business logic.
+     * Throws exception if not allowed.
+     */
+    public function bookRoom(string $displayId, string $userId, int $duration, ?string $summary = null): Event
+    {
+        $start = now();
+        $end = $start->copy()->addMinutes($duration);
+
+        // Check for any conflicting events (both custom and external)
+        if ($this->hasConflictingEvents($displayId, $start, $end)) {
+            throw new Exception('Cannot book room: there are conflicting events during this time period');
+        }
+
+        return Event::create([
+            'display_id' => $displayId,
+            'user_id' => $userId,
+            'status' => EventStatus::PLANNED,
+            'source' => EventSource::CUSTOM,
+            'start' => $start,
+            'end' => $end,
+            'summary' => $summary ?? __('Booked'),
+            'timezone' => config('app.timezone', 'UTC'),
+        ]);
+    }
+
+    /**
+     * Cancel an event. Only allows cancellation of custom bookings.
+     */
+    public function cancelEvent(string $eventId, string $displayId): void
+    {
+        $event = Event::query()
+            ->where('display_id', $displayId)
+            ->find($eventId);
+
+        if (!$event) {
+            throw new Exception('Event not found or not accessible');
+        }
+
+        // Only allow cancellation of custom events
+        if (!$event->isCustomEvent()) {
+            throw new Exception('Cannot cancel external calendar events');
+        }
+
+        $event->delete();
+    }
+
+    /**
+     * @throws Exception
+     */
+    private function getAllEvents(Display $display): Collection
+    {
+        // Make sure external events are up to date
+        $this->syncAllExternalEventsForDisplay($display);
+
+        // Then query all events
+        return Event::query()
+            ->where('display_id', $display->id)
+            ->where('start', '>=', now()->startOfDay())
+            ->where('start', '<', now()->endOfDay())
+            ->orderBy('start')
+            ->get();
+    }
+
+    /**
+     * @throws Exception
+     */
+    private function syncAllExternalEventsForDisplay(Display $display): void
+    {
+        $calendar = $display->calendar()
+            ->with(['googleAccount', 'outlookAccount', 'caldavAccount', 'room'])
+            ->first();
+
+        // Handle Google integration
+        if ($calendar->google_account_id) {
+            $googleEvents = $this->fetchGoogleEvents($calendar, $display);
+            $this->syncExternalEvents($display, EventSource::GOOGLE, $googleEvents);
+        }
+
+        // Handle Outlook integration
+        if ($calendar->outlook_account_id) {
+            $outlookEvents = $this->fetchOutlookEvents($calendar, $display);
+            $this->syncExternalEvents($display, EventSource::OUTLOOK, $outlookEvents);
+        }
+
+        // Handle CalDAV integration
+        if ($calendar->caldav_account_id) {
+            $caldavEvents = $this->fetchCalDAVEvents($calendar, $display);
+            $this->syncExternalEvents($display, EventSource::CALDAV, $caldavEvents);
+        }
+    }
+
+    /**
+     * @param Calendar $calendar
+     * @param Display $display
+     * @return Collection
+     * @throws Exception
+     */
+    private function fetchOutlookEvents(Calendar $calendar, Display $display): Collection
+    {
+        $events = [];
+
+        // Fetch events by user (room)
+        if ($calendar->room) {
+            $events = $this->outlookService->fetchEventsByUser(
+                outlookAccount: $calendar->outlookAccount,
+                emailAddress: $calendar->calendar_id,
+                startDateTime: $display->getStartTime(),
+                endDateTime: $display->getEndTime(),
+            );
+        }
+
+        // Fetch events by calendar
+        if (! $calendar->room) {
+            $events = $this->outlookService->fetchEventsByCalendar(
+                outlookAccount: $calendar->outlookAccount,
+                calendarId: $calendar->calendar_id,
+                startDateTime: $display->getStartTime(),
+                endDateTime: $display->getEndTime(),
+            );
+        }
+
+        return collect($events)->map(fn($e) => $this->sanitizeOutlookEvent($e));
+    }
+
+    /**
+     * @param Calendar $calendar
+     * @param Display $display
+     * @return Collection
+     * @throws \Exception
+     */
+    private function fetchGoogleEvents(Calendar $calendar, Display $display): Collection
+    {
+        $events = $this->googleService->fetchEvents(
+            googleAccount: $calendar->googleAccount,
+            calendarId: $calendar->calendar_id,
+            startDateTime: $display->getStartTime(),
+            endDateTime: $display->getEndTime(),
+        );
+
+        return collect($events)->map(fn($e) => $this->sanitizeGoogleEvent($e));
+    }
+
+    /**
+     * @param Calendar $calendar
+     * @param Display $display
+     * @return Collection
+     * @throws Exception
+     */
+    private function fetchCalDAVEvents(Calendar $calendar, Display $display): Collection
+    {
+        $events = $this->caldavService->fetchEvents(
+            caldavAccount: $calendar->caldavAccount,
+            calendarId: $calendar->calendar_id,
+            startDateTime: $display->getStartTime(),
+            endDateTime: $display->getEndTime(),
+        );
+
+        return collect($events)->map(fn($e) => $this->sanitizeCalDAVEvent($e));
+    }
+
     /**
      * @param array $outlookEvent
      * @return array
@@ -111,31 +310,17 @@ class EventService
     }
 
     /**
-     * Check if there is an active custom booking for a display and time window.
+     * Check if there are any conflicting events for a display in a given time range.
+     *
+     * @param string $displayId
+     * @param Carbon $start
+     * @param Carbon $end
+     * @return bool
      */
-    public static function getActiveCustomEvents($displayId, $now = null): Collection
+    public function hasConflictingEvents(string $displayId, Carbon $start, Carbon $end): bool
     {
-        $now = $now ?: now();
         return Event::query()
             ->where('display_id', $displayId)
-            ->where('start', '<=', $now)
-            ->where('end', '>=', $now)
-            ->orderBy('start')
-            ->get();
-    }
-
-    /**
-     * Book a room for a given duration. Handles all business logic.
-     * Throws exception if not allowed.
-     */
-    public function bookRoom(Display $display, User $user, int $duration, ?string $summary = null): Event
-    {
-        $start = now();
-        $end = $start->copy()->addMinutes($duration);
-
-        // Remove any overlapping custom events for this display
-        Event::query()
-            ->where('display_id', $display->id)
             ->where(function ($q) use ($start, $end) {
                 $q->whereBetween('start', [$start, $end])
                   ->orWhereBetween('end', [$start, $end])
@@ -143,31 +328,54 @@ class EventService
                       $q2->where('start', '<=', $start)->where('end', '>=', $end);
                   });
             })
-            ->delete();
-
-        return Event::create([
-            'display_id' => $display->id,
-            'user_id' => $user->id,
-            'start' => $start,
-            'end' => $end,
-            'summary' => $summary ?? __('Booked'),
-        ]);
+            ->exists();
     }
 
     /**
-     * Cancel an event. Only allows cancellation of custom bookings.
+     * Sync external events to the database for a display and source.
+     *
+     * @param Display $display
+     * @param string $source
+     * @param Collection $externalEvents
      */
-    public function cancelEvent(string $eventId, Display $display): void
+    public function syncExternalEvents(Display $display, string $source, Collection $externalEvents): void
     {
-        $event = Event::where('id', $eventId)
+        $existing = Event::query()
             ->where('display_id', $display->id)
-            ->first();
+            ->where('source', $source)
+            ->get()
+            ->keyBy('external_id');
 
-        if (!$event) {
-            throw new \Exception('Event not found or not accessible');
+        $seenIds = [];
+
+        $externalEvents = $externalEvents->filter(fn ($event) => ! $event['isAllDay']);
+        foreach ($externalEvents as $ext) {
+            $externalId = $ext['id'];
+            $seenIds[] = $externalId;
+
+            $event = $existing->get($externalId) ?? new Event([
+                'display_id' => $display->id,
+                'user_id' => $display->user_id,
+                'source' => $source,
+                'external_id' => $externalId,
+            ]);
+
+            $event->start = $ext['start'];
+            $event->end = $ext['end'];
+            $event->summary = $ext['summary'];
+            $event->description = $ext['description'];
+            $event->location = $ext['location'];
+            $event->timezone = $ext['timezone'];
+            $event->status = EventStatus::PLANNED;
+
+            $event->save();
         }
 
-        // All events in our database are custom bookings
-        $event->delete();
+        // Delete events that no longer exist externally
+        Event::query()
+            ->where('display_id', $display->id)
+            ->where('source', $source)
+            ->whereNotIn('external_id', $seenIds)
+            ->delete();
     }
 }

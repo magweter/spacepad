@@ -15,10 +15,12 @@ Route::prefix('auth')->group(function () {
 
 Route::middleware(['auth:sanctum', 'user.update-last-activity'])->group(function () {
     Route::get('devices/me', [DeviceController::class, 'me']);
-    Route::put('devices/display', [DeviceController::class, 'changeDisplay']);
+    Route::put('devices/display', [DeviceController::class, 'changeDisplay']); # Deprecated > v1.2.0
     Route::get('displays', [DisplayController::class, 'index']);
-    Route::get('events', [EventController::class, 'index']);
+    Route::get('displays/{display}/data', [DisplayController::class, 'getData']);
+    Route::get('events', [EventController::class, 'index']); # Deprecated > v1.2.0
     Route::post('events/book', [EventController::class, 'book']);
+    Route::post('events/{eventId}/checkin', [EventController::class, 'checkin']);
     Route::delete('events/{eventId}', [EventController::class, 'cancel']);
 });
 

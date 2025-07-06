@@ -16,31 +16,17 @@ class EventResource extends JsonResource
      */
     public function toArray($request): array
     {
-        // Support both custom Event model and external event arrays
-        $event = $this->resource;
-        if ($event instanceof Event) {
-            return [
-                'id' => $event->id,
-                'summary' => $event->summary,
-                'location' => null,
-                'description' => null,
-                'start' => $event->start->toAtomString(),
-                'end' => $event->end->toAtomString(),
-                'timezone' => config('app.timezone'),
-                'isAllDay' => false,
-            ];
-        }
-
         $timezone = $this['timezone'] ?? config('app.timezone');
         return [
             'id' => $this['id'],
+            'status' => $this['status'],
             'summary' => $this['summary'],
             'location' => $this['location'],
             'description' => $this['description'],
-            'start' => Carbon::parse($this['start'])->setTimezone($timezone)->toAtomString(),
-            'end' => Carbon::parse($this['end'])->setTimezone($timezone)->toAtomString(),
-            'timezone' => $timezone,
-            'isAllDay' => $this['isAllDay'],
+            'start' => $this['start']->setTimezone($timezone)->toAtomString(),
+            'end' => $this['end']->setTimezone($timezone)->toAtomString(),
+            'checkedInAt' => $this['checked_in_at']?->toAtomString(),
+            'timezone' => $this['timezone'],
         ];
     }
 }

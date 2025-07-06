@@ -1,0 +1,8 @@
+POST {{baseUrl}}/api/events/book
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+    "duration": 15
+}

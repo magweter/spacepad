@@ -168,8 +168,8 @@ class DashboardController extends GetxController {
       await EventService.instance.bookRoom(duration, summary: summary);
       await fetchEvents();
       Toast.showSuccess('room_booked'.tr);
-      } catch (e) {
-        Toast.showError('could_not_book_room'.tr);
+    } catch (e) {
+      Toast.showError('could_not_book_room'.tr);
     }
   }
 

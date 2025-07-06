@@ -2,19 +2,17 @@
 
 namespace App\Http\Controllers\API\Auth;
 
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\API\ApiController;
 use App\Http\Requests\API\Auth\LoginRequest;
 use App\Http\Resources\API\DeviceResource;
-use App\Http\Resources\API\UserResource;
 use App\Models\Device;
-use App\Models\User;
 use App\Services\OutlookService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Validation\ValidationException;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\NotFoundExceptionInterface;
 
-class AuthController extends Controller
+class AuthController extends ApiController
 {
     public function __construct(protected OutlookService $outlookService)
     {
@@ -40,18 +38,21 @@ class AuthController extends Controller
                 'name' => $request->validated()['name'],
             ]);
 
-            return response()->json([
-                'data' => [
+            return $this->success(
+                data: [
                     'token' => $device->createToken('device-token')->plainTextToken,
                     'device' => DeviceResource::make($device),
-                ],
-            ]);
+                ]
+            );
         }
 
-        throw ValidationException::withMessages([
-            'code' => [
-                'incorrect',
-            ],
-        ]);
+        return $this->error(
+            message: 'Code is incorrect.',
+            errors: [
+                'code' => [
+                    'incorrect',
+                ]
+            ]
+        );
     }
 }

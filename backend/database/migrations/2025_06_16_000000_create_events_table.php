@@ -12,10 +12,27 @@ return new class extends Migration
             $table->ulid('id')->primary();
             $table->foreignUlid('display_id')->constrained()->onDelete('cascade');
             $table->foreignUlid('user_id')->constrained()->onDelete('cascade');
+            $table->foreignUlid('calendar_id')->nullable()->constrained()->onDelete('cascade');
+            $table->string('status');
             $table->dateTime('start');
             $table->dateTime('end');
-            $table->string('summary')->nullable();
+            $table->text('summary')->nullable();
+            $table->string('location')->nullable();
+            $table->text('description')->nullable();
+            $table->string('timezone');
+            $table->string('source');
+            $table->string('external_id')->nullable();
+
+            // Check-in functionality
+            $table->timestamp('checked_in_at')->nullable();
+
+            // Audit logging
             $table->timestamps();
+
+            // Indexes for performance
+            $table->index(['display_id', 'start', 'end']);
+            $table->index(['external_id', 'source']);
+            $table->index(['calendar_id', 'start']);
         });
     }
 
@@ -23,4 +40,4 @@ return new class extends Migration
     {
         Schema::dropIfExists('events');
     }
-}; 
+};
