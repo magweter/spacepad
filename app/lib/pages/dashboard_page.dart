@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:spacepad/components/action_button.dart';
 import 'package:spacepad/components/event_line.dart';
 import 'package:spacepad/components/spinner.dart';
 import 'package:spacepad/controllers/dashboard_controller.dart';
@@ -180,8 +181,17 @@ class _DashboardPageState extends State<DashboardPage> {
                                 ]
                               ),
                               SizedBox(height: isPhone ? 10 : 20),
-                              // Show booking interface if booking is enabled for this display
-                              if (controller.shouldShowBooking)
+                              // Show cancel button if there's an active event, otherwise show booking interface
+                              if (controller.isReserved)
+                                ActionButton(
+                                  text: 'cancel_event',
+                                  onPressed: () => controller.cancelCurrentEvent(),
+                                  backgroundColor: TWColors.gray_600,
+                                  textColor: Colors.white,
+                                  isPhone: isPhone,
+                                  cornerRadius: cornerRadius,
+                                )
+                              else if (controller.shouldShowBooking)
                                 Obx(() => controller.showBookingOptions.value
                                   // Show booking options in outlined box
                                   ? Container(
@@ -270,33 +280,13 @@ class _DashboardPageState extends State<DashboardPage> {
                                       ),
                                     )
                                   // Show initial "Book now" button
-                                  : Container(
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(cornerRadius),
-                                        color: TWColors.gray_600.withValues(alpha: 0.3),
-                                      ),
-                                      margin: EdgeInsets.only(top: isPhone ? 10 : 20, bottom: isPhone ? 10 : 20),
-                                      child: Material(
-                                        color: Colors.transparent,
-                                        child: InkWell(
-                                          borderRadius: BorderRadius.circular(cornerRadius),
-                                          onTap: () => controller.toggleBookingOptions(),
-                                          child: Padding(
-                                            padding: EdgeInsets.symmetric(
-                                              vertical: isPhone ? 12 : 16,
-                                              horizontal: isPhone ? 20 : 28,
-                                            ),
-                                            child: Text(
-                                              'book_now'.tr,
-                                              style: TextStyle(
-                                                color: Colors.white,
-                                                fontSize: isPhone ? 20 : 28,
-                                                fontWeight: FontWeight.w700,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
+                                  : ActionButton(
+                                      text: 'book_now',
+                                      onPressed: () => controller.toggleBookingOptions(),
+                                      backgroundColor: TWColors.gray_600,
+                                      textColor: Colors.white,
+                                      isPhone: isPhone,
+                                      cornerRadius: cornerRadius,
                                     ),
                                 ),
                             ],

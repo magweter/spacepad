@@ -233,4 +233,37 @@ class EventController extends Controller
             return response()->json(['message' => $e->getMessage()], $status);
         }
     }
+
+    /**
+     * Cancel an event (Pro feature).
+     */
+    public function cancel(string $eventId): JsonResponse
+    {
+        /** @var Device $device */
+        $device = auth()->user();
+        $display = $device->display()->with('user')->first();
+
+        // Check if the device is connected to a display
+        if (!$display) {
+            return response()->json(['message' => 'Device is not connected to a display'], 400);
+        }
+
+        // Check if the display is active
+        if ($display->isDeactivated()) {
+            return response()->json(['message' => 'Display is deactivated'], 400);
+        }
+
+        // Check if user has Pro access for cancellation
+        if (!$display->user->hasPro()) {
+            return response()->json(['message' => 'Cancellation is a Pro feature. Please upgrade to Pro to use this feature.'], 403);
+        }
+
+        try {
+            $this->eventService->cancelEvent($eventId, $display);
+            return response()->json(['message' => 'Event cancelled successfully'], 200);
+        } catch (\Exception $e) {
+            $status = $e->getCode() === 403 ? 403 : 400;
+            return response()->json(['message' => $e->getMessage()], $status);
+        }
+    }
 }

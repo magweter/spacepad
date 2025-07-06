@@ -153,4 +153,21 @@ class EventService
             'summary' => $summary ?? __('Booked'),
         ]);
     }
+
+    /**
+     * Cancel an event. Only allows cancellation of custom bookings.
+     */
+    public function cancelEvent(string $eventId, Display $display): void
+    {
+        $event = Event::where('id', $eventId)
+            ->where('display_id', $display->id)
+            ->first();
+
+        if (!$event) {
+            throw new \Exception('Event not found or not accessible');
+        }
+
+        // All events in our database are custom bookings
+        $event->delete();
+    }
 }

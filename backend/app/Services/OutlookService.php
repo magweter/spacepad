@@ -84,8 +84,8 @@ class OutlookService
         ]);
 
         $tokenData = $response->json();
-        if (isset($tokenData['error'])) {
-            throw new Exception('Error authenticating with Outlook: ' . $tokenData['error_description']);
+        if (Arr::exists($tokenData, 'error')) {
+            throw new Exception('Error authenticating with Outlook: ' . Arr::get($tokenData, 'error.message'));
         }
 
         // Get the current user information
@@ -159,11 +159,11 @@ class OutlookService
 
         $tokenData = $response->json();
 
-        if (isset($tokenData['error'])) {
+        if (Arr::exists($tokenData, 'error')) {
             $outlookAccount->update([
                 'status' => AccountStatus::ERROR,
             ]);
-            throw new Exception('Error refreshing Outlook token: ' . $tokenData['error_description']);
+            throw new Exception('Error refreshing Outlook token: ' . Arr::get($tokenData, 'error.message'));
         }
 
         $outlookAccount->update([

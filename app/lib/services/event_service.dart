@@ -19,4 +19,8 @@ class EventService {
       if (summary != null) 'summary': summary,
     });
   }
+
+  Future<void> cancelEvent(String eventId) async {
+    await ApiService.delete('events/$eventId');
+  }
 }

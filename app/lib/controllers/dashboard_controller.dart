@@ -15,6 +15,7 @@ class DashboardController extends GetxController {
   
   Timer? _clock;
   Timer? _timer;
+  Timer? _settingsTimer;
 
   @override
   void onInit() {
@@ -37,6 +38,9 @@ class DashboardController extends GetxController {
     });
 
     _clock = Timer.periodic(const Duration(seconds: 1), (timer) => updateTime());
+    
+    // Settings refresh timer - every 2.5 minutes
+    _settingsTimer = Timer.periodic(const Duration(minutes: 2, seconds: 30), (timer) => refreshDisplaySettings());
   }
 
   void updateTime() {
@@ -145,16 +149,39 @@ class DashboardController extends GetxController {
   void switchRoom() {
     _clock?.cancel();
     _timer?.cancel();
+    _settingsTimer?.cancel();
+    
     Get.offAll(() => const DisplayPage());
   }
 
-  Future<void> bookRoom(int duration, {String? summary}) async {
+  Future<void> refreshDisplaySettings() async {
+    try {
+      // Use the /me endpoint to refetch current device with updated settings
+      await AuthService.instance.verify();
+    } catch (e) {
+      // Silent fail - don't show error for settings refresh
+    }
+  }
+
+    Future<void> bookRoom(int duration, {String? summary}) async {
     try {
       await EventService.instance.bookRoom(duration, summary: summary);
       await fetchEvents();
       Toast.showSuccess('room_booked'.tr);
       } catch (e) {
         Toast.showError('could_not_book_room'.tr);
+    }
+  }
+
+  Future<void> cancelCurrentEvent() async {
+    try {
+      if (currentEvent != null) {
+        await EventService.instance.cancelEvent(currentEvent!.id);
+        await fetchEvents();
+        Toast.showSuccess('event_cancelled'.tr);
+      }
+    } catch (e) {
+      Toast.showError('could_not_cancel_event'.tr);
     }
   }
 
@@ -192,6 +219,7 @@ class DashboardController extends GetxController {
   void dispose() {
     _clock?.cancel();
     _timer?.cancel();
+    _settingsTimer?.cancel();
 
     super.dispose();
   }

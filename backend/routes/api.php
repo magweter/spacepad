@@ -19,6 +19,7 @@ Route::middleware(['auth:sanctum', 'user.update-last-activity'])->group(function
     Route::get('displays', [DisplayController::class, 'index']);
     Route::get('events', [EventController::class, 'index']);
     Route::post('events/book', [EventController::class, 'book']);
+    Route::delete('events/{eventId}', [EventController::class, 'cancel']);
 });
 
 Route::post('webhook/outlook', [OutlookWebhookController::class, 'handleNotification']);
