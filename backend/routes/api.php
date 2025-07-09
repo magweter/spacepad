@@ -20,7 +20,7 @@ Route::middleware(['auth:sanctum', 'user.update-last-activity'])->group(function
     Route::get('displays/{display}/data', [DisplayController::class, 'getData']);
     Route::get('events', [EventController::class, 'index']); # Deprecated > v1.2.0
     Route::post('events/book', [EventController::class, 'book']);
-    Route::post('events/{eventId}/checkin', [EventController::class, 'checkin']);
+    Route::post('events/{eventId}/check-in', [EventController::class, 'checkIn']);
     Route::delete('events/{eventId}', [EventController::class, 'cancel']);
 });
 

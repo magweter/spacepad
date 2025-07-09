@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Enums\EventStatus;
 use App\Models\Display;
 use App\Models\Event;
-use App\Models\User;
 use App\Models\Calendar;
 use Exception;
 use Google\Service\Calendar\Event as GoogleEvent;
@@ -33,6 +32,9 @@ class EventService
 
         // Update last sync timestamp
         $display->updateLastSyncAt();
+
+        // Release rooms that have not been checked in
+        $this->processExpiredCheckIns($display);
 
         // Cache events if caching is enabled and the display has an event subscription
         $cachingEnabled = config('services.events.cache_enabled') && $display->event_subscriptions_count > 0;
@@ -373,5 +375,46 @@ class EventService
             ->where('source', $source)
             ->whereNotIn('external_id', $seenIds)
             ->delete();
+    }
+
+    public function checkInToEvent(string $eventId, string $displayId): void
+    {
+        $event = Event::query()
+            ->where('display_id', $displayId)
+            ->find($eventId);
+
+        if (!$event) {
+            throw new Exception('Event not found or not accessible');
+        }
+
+        // Only allow check-in if not already checked in
+        if ($event->checked_in_at) {
+            throw new Exception('Already checked in');
+        }
+
+        $event->checkIn();
+    }
+
+    private function processExpiredCheckIns(Display $display): void
+    {
+        if (! $display->isCheckInEnabled()) {
+            return;
+        }
+
+        $gracePeriod = $display->getCheckInGracePeriod();
+        $events = Event::query()
+            ->select('id')
+            ->where('display_id', $display->id)
+            ->whereNull('checked_in_at')
+            ->where('start', '<', now()->subMinutes($gracePeriod))
+            ->where('status', '!=', EventStatus::CANCELLED)
+            ->get();
+
+        if ($events->isNotEmpty()) {
+            $events->each->update(['status' => EventStatus::CANCELLED]);
+
+            // Clear events cache for display
+            cache()->forget($display->getEventsCacheKey());
+        }
     }
 }

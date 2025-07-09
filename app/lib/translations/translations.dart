@@ -45,7 +45,11 @@ class AppTranslations extends Translations {
       'invalid_url': 'Please enter a valid URL (e.g., https://your-instance.com)',
       'server_unreachable': 'Could not connect to the server. Please check if the URL is correct and the server is running.',
       'login_failed': 'Your connect code is incorrect. Please try again.',
-      'reserved': 'Reserved'
+      'reserved': 'Reserved',
+      'check_in_now': 'Check in for meeting',
+      'check_in': 'Check in',
+      'x_starts_in_x_minutes': '@meeting starts in @minutes min',
+      'check_in_within_x_minutes': 'Check in binnen @minutes min'
     },
     'nl_NL': {
       'introduction_title': 'Welkom bij Spacepad!',
@@ -89,7 +93,11 @@ class AppTranslations extends Translations {
       'invalid_url': 'Voer een geldige URL in (bijvoorbeeld https://jouw-instance.nl)',
       'server_unreachable': 'Kon geen verbinding maken met de server. Controleer of de URL correct is en de server draait.',
       'login_failed': 'Je connect code is incorrect. Probeer het opnieuw.',
-      'reserved': 'Gereserveerd'
+      'reserved': 'Gereserveerd',
+      'check_in_now': 'Check in voor meeting',
+      'check_in': 'Inchecken',
+      'x_starts_in_x_minutes': '@meeting start in @minutes min',
+      'check_in_within_x_minutes': 'Check in binnen @minutes min'
     },
     'es_ES': {
       'introduction_title': '¡Bienvenido a Spacepad!',
@@ -133,7 +141,11 @@ class AppTranslations extends Translations {
       'invalid_url': 'Por favor, introduce una URL válida (por ejemplo, https://tu-instancia.com)',
       'server_unreachable': 'No se pudo conectar con el servidor. Por favor, verifica que la URL sea correcta y que el servidor esté en funcionamiento.',
       'login_failed': 'Tu código de conexión es incorrecto. Por favor, inténtalo de nuevo.',
-      'reserved': 'Reservado'
+      'reserved': 'Reservado',
+      'check_in_now': 'Check in para la reunión',
+      'check_in': 'Registrar',
+      'x_starts_in_x_minutes': '@meeting comienza en @minutes min',
+      'check_in_within_x_minutes': 'Registrar en @minutes min'
     },
     'fr_FR': {
       'introduction_title': 'Bienvenue sur Spacepad !',
@@ -177,7 +189,11 @@ class AppTranslations extends Translations {
       'invalid_url': 'Veuillez entrer une URL valide (par exemple, https://votre-instance.com)',
       'server_unreachable': 'Impossible de se connecter au serveur. Veuillez vérifier que l\'URL est correcte et que le serveur fonctionne.',
       'login_failed': 'Votre code de connexion est incorrect. Veuillez réessayer.',
-      'reserved': 'Réservé'
+      'reserved': 'Réservé',
+      'check_in_now': 'Enregistrez-vous pour la réunion',
+      'check_in': 'Enregistrer',
+      'x_starts_in_x_minutes': '@meeting commence dans @minutes min',
+      'check_in_within_x_minutes': 'Enregistrez-vous dans @minutes min'
     },
     'de_DE': {
       'introduction_title': 'Willkommen bei Spacepad!',
@@ -221,7 +237,11 @@ class AppTranslations extends Translations {
       'invalid_url': 'Bitte geben Sie eine gültige URL ein (z.B. https://ihre-instanz.com)',
       'server_unreachable': 'Verbindung zum Server konnte nicht hergestellt werden. Bitte überprüfen Sie, ob die URL korrekt ist und der Server läuft.',
       'login_failed': 'Ihr Verbindungscode ist falsch. Bitte versuchen Sie es erneut.',
-      'reserved': 'Reserviert'
+      'reserved': 'Reserviert',
+      'check_in_now': 'Check-in für Meeting',
+      'check_in': 'Einchecken',
+      'x_starts_in_x_minutes': '@meeting startet in @minutes Min.',
+      'check_in_within_x_minutes': 'Check-in in @minutes Min.'
     },
   };
 }

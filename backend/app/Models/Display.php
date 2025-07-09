@@ -107,4 +107,24 @@ class Display extends Model
     {
         return DisplaySettings::setBookingEnabled($this, $enabled);
     }
+
+    public function getCheckInMinutes(): int
+    {
+        return DisplaySettings::getCheckInMinutes($this);
+    }
+
+    public function setCheckInMinutes(int $minutes): bool
+    {
+        return DisplaySettings::setCheckInMinutes($this, $minutes);
+    }
+
+    public function getCheckInGracePeriod(): int
+    {
+        return DisplaySettings::getCheckInGracePeriod($this);
+    }
+
+    public function setCheckInGracePeriod(int $minutes): bool
+    {
+        return DisplaySettings::setCheckInGracePeriod($this, $minutes);
+    }
 }

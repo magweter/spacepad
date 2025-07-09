@@ -19,7 +19,7 @@ class ActionPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Cancel button if reserved
-    if (controller.isReserved) {
+    if (controller.isReserved && !controller.isCheckInActive) {
       return ActionButton(
         text: 'cancel_event',
         onPressed: () => controller.cancelCurrentEvent(),
@@ -28,16 +28,19 @@ class ActionPanel extends StatelessWidget {
         cornerRadius: cornerRadius,
       );
     }
-    // Booking interface if booking is enabled
-    if (controller.shouldShowBooking) {
-      return Obx(() => controller.showBookingOptions.value
-        // Show booking options as outlined buttons
-        ? Row(
+    
+    return SpaceRow(
+      mainAxisSize: MainAxisSize.min,
+      spaceBetween: isPhone ? 16 : 24,
+      children: [
+        if (!controller.isReserved) Obx(() => controller.showBookingOptions.value ?
+          Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              for (var min in [15, 30, 60])
+              // Booking options
+              for (var min in controller.availableBookingDurations)
                 Padding(
-                  padding: EdgeInsets.only(right: min == 60 ? 0 : (isPhone ? 12 : 16)),
+                  padding: EdgeInsets.only(right: min == controller.availableBookingDurations.last ? 0 : (isPhone ? 12 : 16)),
                   child: ActionButton(
                     text: '$min min',
                     onPressed: () => controller.bookRoom(min, 'reserved'.tr),
@@ -53,16 +56,22 @@ class ActionPanel extends StatelessWidget {
                 cornerRadius: cornerRadius,
               ),
             ],
-          )
-        // Show initial Book now button as outlined
-        : ActionButton(
+          ) :
+          ActionButton(
             text: 'book_now',
             onPressed: () => controller.toggleBookingOptions(),
             isPhone: isPhone,
             cornerRadius: cornerRadius,
           ),
-      );
-    }
-    return SizedBox.shrink();
+        ),
+        if (controller.isCheckInActive) ActionButton(
+          text: 'check_in',
+          onPressed: () => controller.checkIn(),
+          isPhone: isPhone,
+          cornerRadius: cornerRadius,
+        ),
+        SizedBox.shrink()
+      ]
+    );
   }
 } 

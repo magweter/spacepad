@@ -27,6 +27,7 @@ class EventResource extends JsonResource
             'end' => $this['end']->setTimezone($timezone)->toAtomString(),
             'checkedInAt' => $this['checked_in_at']?->toAtomString(),
             'timezone' => $this['timezone'],
+            'checkInRequired' => $this->checkInRequired(),
         ];
     }
 }

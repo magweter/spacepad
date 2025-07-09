@@ -23,4 +23,8 @@ class EventService {
   Future<void> cancelEvent(String eventId) async {
     await ApiService.delete('events/$eventId');
   }
+
+  Future<void> checkInToEvent(String eventId) async {
+    await ApiService.post('events/$eventId/check-in', {});
+  }
 }

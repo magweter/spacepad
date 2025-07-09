@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\EventSource;
 use App\Traits\HasUlid;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -53,15 +54,7 @@ class Event extends Model
      */
     public function isCustomEvent(): bool
     {
-        return $this->source === 'custom';
-    }
-
-    /**
-     * Check if this is an external (calendar provider) event
-     */
-    public function isExternalEvent(): bool
-    {
-        return in_array($this->source, ['google', 'outlook', 'caldav']);
+        return $this->source === EventSource::CUSTOM;
     }
 
     /**
@@ -84,20 +77,11 @@ class Event extends Model
     }
 
     /**
-     * Check if event needs check-in (active but not checked in)
-     */
-    public function needsCheckIn(): bool
-    {
-        return $this->isActive() && !$this->is_checked_in;
-    }
-
-    /**
      * Check in to this event
      */
     public function checkIn(): void
     {
         $this->update([
-            'is_checked_in' => true,
             'checked_in_at' => now(),
         ]);
     }
@@ -108,5 +92,19 @@ class Event extends Model
     public function getUniqueKey(): string
     {
         return $this->external_id ?? $this->id;
+    }
+
+    /**
+     * Should the app require check-in for this event?
+     */
+    public function checkInRequired(): bool
+    {
+        // Never require check-in for custom events
+        if ($this->isCustomEvent()) {
+            return false;
+        }
+
+        // Only require if event is upcoming, and not checked in
+        return ! $this->checked_in_at;
     }
 }

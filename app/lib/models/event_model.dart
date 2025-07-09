@@ -7,7 +7,8 @@ class EventModel {
   DateTime start;
   DateTime end;
   String? timezone;
-  bool? isAllDay;
+  bool isCheckedIn;
+  bool checkInRequired;
 
   EventModel({
     required this.id,
@@ -18,7 +19,8 @@ class EventModel {
     required this.start,
     required this.end,
     this.timezone,
-    this.isAllDay,
+    this.isCheckedIn = false,
+    this.checkInRequired = false,
   });
 
   factory EventModel.fromJson(Map<String, dynamic> data) {
@@ -31,7 +33,8 @@ class EventModel {
       start: DateTime.parse(data['start']).toLocal(),
       end: DateTime.parse(data['end']).toLocal(),
       timezone: data['timezone'],
-      isAllDay: data['isAllDay'],
+      isCheckedIn: data['checkedInAt'] != null,
+      checkInRequired: data['checkInRequired'] ?? false,
     );
   }
 
@@ -45,7 +48,8 @@ class EventModel {
       'start': start.toIso8601String(),
       'end': end.toIso8601String(),
       'timezone': timezone,
-      'isAllDay': isAllDay,
+      'isCheckedIn': isCheckedIn,
+      'checkInRequired': checkInRequired,
     };
   }
 }

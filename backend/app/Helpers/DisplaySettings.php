@@ -78,4 +78,24 @@ class DisplaySettings
     {
         return self::setSetting($display, 'booking_enabled', $enabled, 'boolean');
     }
+
+    public static function getCheckInMinutes(Display $display): int
+    {
+        return self::getSetting($display, 'check_in_minutes', 15);
+    }
+
+    public static function setCheckInMinutes(Display $display, int $minutes): bool
+    {
+        return self::setSetting($display, 'check_in_minutes', $minutes, 'integer');
+    }
+
+    public static function getCheckInGracePeriod(Display $display): int
+    {
+        return self::getSetting($display, 'check_in_grace_period', 5);
+    }
+
+    public static function setCheckInGracePeriod(Display $display, int $minutes): bool
+    {
+        return self::setSetting($display, 'check_in_grace_period', $minutes, 'integer');
+    }
 } 

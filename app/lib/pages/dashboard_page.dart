@@ -71,7 +71,7 @@ class _DashboardPageState extends State<DashboardPage> {
           Container(
             height: double.infinity,
             width: double.infinity,
-            color: controller.isTransitioning ?
+            color: controller.isTransitioning || controller.isCheckInActive ?
               TWColors.amber_500 :
               (controller.isReserved ? TWColors.rose_600 : TWColors.green_600),
             padding: EdgeInsets.all(isPhone ? 8 : 16),
@@ -171,13 +171,17 @@ class _DashboardPageState extends State<DashboardPage> {
                                       ),
                                     ),
                                   ),
-                                  Text(
-                                    controller.subtitle,
-                                    style: TextStyle(
-                                      color: TWColors.gray_300,
-                                      fontSize: isPhone ? 28 : 36,
-                                      fontWeight: FontWeight.w400
-                                    )
+                                  Flexible(
+                                    child: Text(
+                                      controller.subtitle,
+                                      style: TextStyle(
+                                        color: TWColors.gray_300,
+                                        fontSize: isPhone ? 28 : 36,
+                                        fontWeight: FontWeight.w400
+                                      ),
+                                      softWrap: true,
+                                      overflow: TextOverflow.visible,
+                                    ),
                                   ),
                                 ]
                               ),

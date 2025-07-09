@@ -68,6 +68,18 @@
                     <div class="text-sm text-gray-600">
                         <p>When enabled, users can check in to meetings directly from this display. This feature allows attendees to mark their attendance for meetings.</p>
                     </div>
+                    @php $checkInMinutes = $display->getCheckInMinutes(); @endphp
+                    <div id="checkInMinutesInput" class="mt-4" style="display: {{ $display->isCheckInEnabled() ? 'block' : 'none' }};">
+                        <label for="check_in_minutes" class="block text-sm font-medium text-gray-700">Check-in Minutes (before meeting)</label>
+                        <input type="number" min="1" max="60" name="check_in_minutes" id="check_in_minutes" value="{{ $checkInMinutes }}" class="mt-1 px-3 py-2 block w-32 border rounded-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 sm:text-sm" />
+                        <p class="mt-1 text-xs text-gray-500">How many minutes before the meeting users can check in. Default: 15 minutes.</p>
+                    </div>
+                    @php $gracePeriod = $display->getCheckInGracePeriod(); @endphp
+                    <div id="gracePeriodInput" class="mt-4" style="display: {{ $display->isCheckInEnabled() ? 'block' : 'none' }};">
+                        <label for="check_in_grace_period" class="block text-sm font-medium text-gray-700">Check-in Grace Period (minutes)</label>
+                        <input type="number" min="1" max="30" name="check_in_grace_period" id="check_in_grace_period" value="{{ $gracePeriod }}" class="mt-1 px-3 py-2 block w-32 border rounded-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 sm:text-sm" />
+                        <p class="mt-1 text-xs text-gray-500">How many minutes after the meeting starts users can still check in. Default: 15 minutes.</p>
+                    </div>
                 </div>
 
                 <!-- Booking Settings -->
@@ -142,6 +154,11 @@
     // Add any JavaScript for form handling if needed
     document.getElementById('settingsForm').addEventListener('submit', function(e) {
         // Form will be submitted normally, but we could add validation here if needed
+    });
+    // Show/hide grace period input based on check-in enabled
+    document.getElementById('check_in_enabled').addEventListener('change', function(e) {
+        document.getElementById('gracePeriodInput').style.display = this.checked ? 'block' : 'none';
+        document.getElementById('checkInMinutesInput').style.display = this.checked ? 'block' : 'none';
     });
 </script>
 @endpush 
