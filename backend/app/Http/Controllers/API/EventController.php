@@ -2,23 +2,13 @@
 
 namespace App\Http\Controllers\API;
 
-use App\Http\Controllers\Controller;
 use App\Http\Resources\API\EventResource;
-use App\Models\Calendar;
 use App\Models\Device;
-use App\Models\Display;
-use App\Models\Event;
 use App\Services\DisplayService;
 use App\Services\EventService;
-use App\Services\OutlookService;
-use App\Services\GoogleService;
-use App\Services\CalDAVService;
 use Exception;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
-use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Collection;
 use App\Http\Requests\API\EventBookRequest;
 
 class EventController extends ApiController
@@ -46,7 +36,7 @@ class EventController extends ApiController
             $events = $this->eventService->getEventsForDisplay($device->display_id);
             return $this->success(data: EventResource::collection($events));
         } catch (\Exception $e) {
-            return $this->error($e->getMessage(), 500);
+            return $this->error(message: $e->getMessage(), code: 500);
         }
     }
 
@@ -74,7 +64,7 @@ class EventController extends ApiController
             return $this->success(data: new EventResource($event), code: 201);
         } catch (\Exception $e) {
             $status = $e->getCode() === 403 ? 403 : 400;
-            return $this->error($e->getMessage(), $status);
+            return $this->error(message: $e->getMessage(), code: $status);
         }
     }
 
@@ -96,7 +86,7 @@ class EventController extends ApiController
             return $this->success(message: 'Event cancelled successfully');
         } catch (\Exception $e) {
             $status = $e->getCode() === 403 ? 403 : 400;
-            return $this->error($e->getMessage(), $status);
+            return $this->error(message: $e->getMessage(), code: $status);
         }
     }
 
@@ -118,7 +108,7 @@ class EventController extends ApiController
             return $this->success(message: 'Checked in successfully');
         } catch (\Exception $e) {
             $status = $e->getCode() === 403 ? 403 : 400;
-            return $this->error($e->getMessage(), $status);
+            return $this->error(message: $e->getMessage(), code: $status);
         }
     }
 }

@@ -16,15 +16,15 @@ class DisplayService
     /**
      * Validate if a display is permitted to perform actions.
      *
-     * @param string $displayId
+     * @param string|null $displayId
      * @param string $deviceId
      * @param array $options ['pro' => true, 'booking' => true]
      * @return PermissionResult
      */
-    public function validateDisplayPermission(string $displayId, string $deviceId, array $options = []): PermissionResult
+    public function validateDisplayPermission(?string $displayId, string $deviceId, array $options = []): PermissionResult
     {
         $userId = Device::query()->where('id', $deviceId)->value('user_id');
-        $display = Display::with('user')->where('user_id', $userId)->find($displayId);
+        $display = $displayId ? Display::with('user')->where('user_id', $userId)->find($displayId) : null;
 
         if (!$display) {
             return new PermissionResult(false, 'Display not found', 404);

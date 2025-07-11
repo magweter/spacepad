@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\UsageType;
 use App\Helpers\DisplaySettings;
+use App\Models\Device;
 use App\Models\Display;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -20,12 +21,13 @@ class DisplaySettingsApiTest extends TestCase
         ]);
 
         $display = Display::factory()->create(['user_id' => $user->id]);
+        $device = Device::factory()->create(['user_id' => $user->id, 'display_id' => $display->id]);
 
         // Set some display settings
         DisplaySettings::setCheckInEnabled($display, true);
         DisplaySettings::setBookingEnabled($display, false);
 
-        $response = $this->actingAs($user)
+        $response = $this->actingAs($device)
             ->getJson('/api/displays');
 
         $response->assertStatus(200);
@@ -55,8 +57,9 @@ class DisplaySettingsApiTest extends TestCase
         ]);
 
         $display = Display::factory()->create(['user_id' => $user->id]);
+        $device = Device::factory()->create(['user_id' => $user->id, 'display_id' => $display->id]);
 
-        $response = $this->actingAs($user)
+        $response = $this->actingAs($device)
             ->getJson('/api/displays');
 
         $response->assertStatus(200);
@@ -73,6 +76,7 @@ class DisplaySettingsApiTest extends TestCase
         ]);
 
         $display = Display::factory()->create(['user_id' => $user->id]);
+        Device::factory()->create(['user_id' => $user->id, 'display_id' => $display->id]);
 
         // Set display settings
         DisplaySettings::setCheckInEnabled($display, true);
@@ -84,4 +88,4 @@ class DisplaySettingsApiTest extends TestCase
         $this->assertNotEquals('true', $displaySetting->getRawOriginal('value'));
         $this->assertTrue($displaySetting->value); // Decrypted value should be true
     }
-} 
+}

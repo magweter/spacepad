@@ -28,7 +28,7 @@ class EventService
      */
     public function getEventsForDisplay($display): Collection
     {
-        $display = Display::query()->findOrFail($display);
+        $display = Display::query()->withCount('eventSubscriptions')->findOrFail($display);
 
         // Update last sync timestamp
         $display->updateLastSyncAt();
