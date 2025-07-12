@@ -2,10 +2,12 @@ import 'dart:async';
 
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter/foundation.dart';
 import 'package:spacepad/components/toast.dart';
 import 'package:spacepad/models/event_model.dart';
 import 'package:spacepad/services/event_service.dart';
 import 'package:spacepad/services/auth_service.dart';
+import 'package:spacepad/pages/display_page.dart';
 
 class DashboardController extends GetxController {
   final RxBool loading = RxBool(true);
@@ -13,7 +15,8 @@ class DashboardController extends GetxController {
   final RxString time = RxString('');
   
   Timer? _clock;
-  Timer? _timer;
+  Timer? _eventsTimer;
+  Timer? _displayTimer;
 
   @override
   void onInit() {
@@ -32,10 +35,13 @@ class DashboardController extends GetxController {
 
     // Start a timer that aligns with the next second
     Future.delayed(Duration(milliseconds: millisecondsToNextSecond), () {
-      _timer = Timer.periodic(const Duration(seconds: 60), (timer) => fetchEvents());
+      _eventsTimer = Timer.periodic(const Duration(seconds: 60), (timer) => fetchEvents());
     });
 
     _clock = Timer.periodic(const Duration(seconds: 1), (timer) => updateTime());
+    
+    // Settings refresh timer - every 2.5 minutes
+    _displayTimer = Timer.periodic(const Duration(minutes: 2, seconds: 30), (timer) => refreshDisplaySettings());
   }
 
   void updateTime() {
@@ -47,12 +53,16 @@ class DashboardController extends GetxController {
   }
 
   String get title {
-    if (isTransitioning && !isReserved) {
-      return 'to_be_reserved'.tr;
-    }
-
     if (isReserved) {
       return currentEvent!.summary;
+    }
+
+    if (isCheckInActive) {
+      return 'check_in_now'.tr;
+    }
+
+    if (isTransitioning && !isReserved) {
+      return 'to_be_reserved'.tr;
     }
 
     return 'available'.tr;
@@ -73,7 +83,7 @@ class DashboardController extends GetxController {
   }
 
   String get subtitle {
-    if (isReserved) {
+    if (isReserved && !isCheckInActive) {
       final currentEventEnd = currentEvent!.end;
       final totalMinutesLeft = currentEventEnd.difference(DateTime.now()).inMinutes;
       final hoursLeft = (totalMinutesLeft / 60).floor();
@@ -82,6 +92,23 @@ class DashboardController extends GetxController {
       return totalMinutesLeft < 60 ?
         'x_minutes_left'.trParams({'minutes': minutesLeft.toString()}) :
         'x_hours_x_minutes_left'.trParams({'hours': hoursLeft.toString(), 'minutes': minutesLeft.toString()});
+    }
+
+    if (isCheckInActive && currentEvent != null) {
+      final totalMinutesLeft = currentEvent!.start.add(Duration(minutes: checkInGracePeriod)).difference(DateTime.now()).inMinutes;
+      final hoursLeft = (totalMinutesLeft / 60).floor();
+      final minutesLeft = (totalMinutesLeft - (hoursLeft * 60)).floor() + 1;
+
+      return 'check_in_within_x_minutes'.trParams({'minutes': minutesLeft.toString()});
+    }
+
+    if (isCheckInActive && upcomingEvents.isNotEmpty) {
+      final upcomingMeeting = upcomingEvents.first;
+      final totalMinutesLeft = upcomingMeeting.start.difference(DateTime.now()).inMinutes;
+      final hoursLeft = (totalMinutesLeft / 60).floor();
+      final minutesLeft = (totalMinutesLeft - (hoursLeft * 60)).floor() + 1;
+
+      return 'x_starts_in_x_minutes'.trParams({'meeting': upcomingMeeting.summary, 'minutes': minutesLeft.toString()});
     }
 
     if (upcomingEvents.isNotEmpty) {
@@ -103,6 +130,10 @@ class DashboardController extends GetxController {
   }
 
   bool get isTransitioning {
+    if (checkInEnabled) {
+      return false;
+    }
+
     if (isReserved) {
       final currentEventEnd = currentEvent!.end;
       final minutesLeft = currentEventEnd.difference(DateTime.now()).inMinutes;
@@ -118,6 +149,28 @@ class DashboardController extends GetxController {
     }
 
     return false;
+  }
+
+  // Returns true if there is an event with checkInRequired and we are within its check-in window (before/after start)
+  bool get isCheckInActive {
+    if (!checkInEnabled) {
+      return false;
+    }
+
+    return checkInEvent != null;
+  }
+
+  EventModel? get checkInEvent {
+    final now = DateTime.now();
+    return events.value.firstWhereOrNull((e) {
+      if (e.checkInRequired != true) return false;
+
+      final start = e.start;
+      final windowStart = start.subtract(Duration(minutes: checkInMinutes));
+      final windowEnd = start.add(Duration(minutes: checkInGracePeriod));
+
+      return now.isAfter(windowStart) && now.isBefore(windowEnd);
+    });
   }
 
   EventModel? get currentEvent {
@@ -136,21 +189,109 @@ class DashboardController extends GetxController {
   Future<void> fetchEvents() async {
     try {
       events.value = await EventService.instance.getEvents();
+      events.value = events.value.where((e) => e.status != 'cancelled').toList();
     } catch (e) {
       Toast.showError('could_not_load_events'.tr);
     }
   }
 
-  void logout() {
+  void switchRoom() {
     _clock?.cancel();
-    _timer?.cancel();
-    AuthService.instance.signOut();
+    _eventsTimer?.cancel();
+    _displayTimer?.cancel();
+    
+    Get.offAll(() => const DisplayPage());
+  }
+
+  Future<void> refreshDisplaySettings() async {
+    try {
+      // Use the /me endpoint to refetch current device with updated settings
+      await AuthService.instance.verify();
+    } catch (e) {
+      // Silent fail - don't show error for settings refresh
+    }
+  }
+
+    Future<void> bookRoom(int duration, String summary) async {
+    try {
+      await EventService.instance.bookRoom(duration, summary: summary);
+      await fetchEvents();
+      Toast.showSuccess('room_booked'.tr);
+    } catch (e) {
+      Toast.showError('could_not_book_room'.tr);
+    }
+  }
+
+  Future<void> cancelCurrentEvent() async {
+    try {
+      if (currentEvent != null) {
+        await EventService.instance.cancelEvent(currentEvent!.id);
+        await fetchEvents();
+        Toast.showSuccess('event_cancelled'.tr);
+      }
+    } catch (e) {
+      Toast.showError('could_not_cancel_event'.tr);
+    }
+  }
+
+  // Check if booking should be displayed based on display settings
+  bool get shouldShowBooking {
+    return !isReserved && (AuthService.instance.currentDevice.value?.display?.settings.bookingEnabled ?? false);
+  }
+
+  // Track if booking options are shown
+  final RxBool showBookingOptions = RxBool(false);
+
+  // Show booking options
+  void toggleBookingOptions() {
+    showBookingOptions.value = true;
+  }
+
+  // Hide booking options
+  void hideBookingOptions() {
+    showBookingOptions.value = false;
+  }
+
+  int get checkInGracePeriod {
+    return AuthService.instance.currentDevice.value?.display?.settings.checkInGracePeriod ?? 5;
+  }
+
+  bool get checkInEnabled {
+    return AuthService.instance.currentDevice.value?.display?.settings.checkInEnabled ?? false;
+  }
+
+  int get checkInMinutes {
+    return AuthService.instance.currentDevice.value?.display?.settings.checkInMinutes ?? 15;
+  }
+
+  void checkIn() async {
+    try {
+      await EventService.instance.checkInToEvent(checkInEvent!.id);
+      await fetchEvents();
+      Toast.showSuccess('Checked in!');
+    } catch (e) {
+      Toast.showError('Could not check in');
+    }
+  }
+
+  List<int> get availableBookingDurations {
+    final base = [15, 30, 60];
+    if (isCheckInActive) {
+      return base.where((min) => min <= checkInGracePeriod).toList();
+    }
+    if (upcomingEvents.isNotEmpty) {
+      final nextEvent = upcomingEvents.first;
+      final minutesUntilNext = nextEvent.start.difference(DateTime.now()).inMinutes;
+      return base.where((min) => min <= minutesUntilNext).toList();
+    }
+    return base;
   }
 
   @override
   void dispose() {
     _clock?.cancel();
-    _timer?.cancel();
+    _eventsTimer?.cancel();
+    _displayTimer?.cancel();
 
     super.dispose();
   }

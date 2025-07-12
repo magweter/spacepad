@@ -13,12 +13,15 @@ return new class extends Migration {
         if (config('settings.is_self_hosted')) {
             return;
         }
-        
+
         $connection = Schema::getConnection();
         $driver = $connection->getDriverName();
 
         if ($driver === 'sqlite') {
             // Customers table
+            Schema::table('lemon_squeezy_customers', function (Blueprint $table) {
+                $table->dropUnique('lemon_squeezy_customers_billable_id_billable_type_unique');
+            });
             Schema::table('lemon_squeezy_customers', function (Blueprint $table) {
                 $table->dropColumn('billable_id');
             });
@@ -65,7 +68,7 @@ return new class extends Migration {
         if (config('settings.is_self_hosted')) {
             return;
         }
-        
+
         // Customers table
         Schema::table('lemon_squeezy_customers', function (Blueprint $table) {
             $table->unsignedBigInteger('billable_id')->change();
@@ -81,4 +84,4 @@ return new class extends Migration {
             $table->unsignedBigInteger('billable_id')->change();
         });
     }
-}; 
+};

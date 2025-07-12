@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:spacepad/components/action_button.dart';
 import 'package:spacepad/components/event_line.dart';
 import 'package:spacepad/components/spinner.dart';
 import 'package:spacepad/controllers/dashboard_controller.dart';
@@ -10,6 +11,7 @@ import 'package:tailwind_components/tailwind_components.dart';
 import 'dart:io' show Platform;
 import 'dart:math' show max;
 import 'package:spacepad/services/auth_service.dart';
+import 'package:spacepad/components/action_panel.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -69,7 +71,7 @@ class _DashboardPageState extends State<DashboardPage> {
           Container(
             height: double.infinity,
             width: double.infinity,
-            color: controller.isTransitioning ?
+            color: controller.isTransitioning || controller.isCheckInActive ?
               TWColors.amber_500 :
               (controller.isReserved ? TWColors.rose_600 : TWColors.green_600),
             padding: EdgeInsets.all(isPhone ? 8 : 16),
@@ -110,9 +112,9 @@ class _DashboardPageState extends State<DashboardPage> {
                               child: IconButton(
                                 icon: const Icon(Icons.logout, size: 24, color: Colors.white),
                                 onPressed: () {
-                                  controller.logout();
+                                  controller.switchRoom();
                                 },
-                                tooltip: 'Logout',
+                                tooltip: 'switch_room'.tr,
                               ),
                             ),
                             Text(
@@ -169,17 +171,26 @@ class _DashboardPageState extends State<DashboardPage> {
                                       ),
                                     ),
                                   ),
-                                  Text(
-                                    controller.subtitle,
-                                    style: TextStyle(
-                                      color: TWColors.gray_300,
-                                      fontSize: isPhone ? 28 : 36,
-                                      fontWeight: FontWeight.w400
-                                    )
+                                  Flexible(
+                                    child: Text(
+                                      controller.subtitle,
+                                      style: TextStyle(
+                                        color: TWColors.gray_300,
+                                        fontSize: isPhone ? 28 : 36,
+                                        fontWeight: FontWeight.w400
+                                      ),
+                                      softWrap: true,
+                                      overflow: TextOverflow.visible,
+                                    ),
                                   ),
                                 ]
                               ),
-                              SizedBox(height: isPhone ? 10 : 20)
+                              if (controller.meetingInfo == null) SizedBox(height: isPhone ? 5 : 10),
+                              ActionPanel(
+                                controller: controller,
+                                isPhone: isPhone,
+                                cornerRadius: cornerRadius,
+                              ),
                             ],
                           ),
                         ],

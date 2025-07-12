@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Enums\DisplayStatus;
+use App\Helpers\DisplaySettings;
 
 class Display extends Model
 {
@@ -51,6 +52,11 @@ class Display extends Model
         return $this->hasMany(Device::class);
     }
 
+    public function settings(): HasMany
+    {
+        return $this->hasMany(DisplaySetting::class);
+    }
+
     public function getStartTime(): Carbon
     {
         return now()->startOfDay();
@@ -79,5 +85,46 @@ class Display extends Model
     public function updateLastSyncAt(Carbon|null $date = null): void
     {
         $this->update(['last_sync_at' => $date ?? now()]);
+    }
+
+    // Display settings convenience methods
+    public function isCheckInEnabled(): bool
+    {
+        return DisplaySettings::isCheckInEnabled($this);
+    }
+
+    public function isBookingEnabled(): bool
+    {
+        return DisplaySettings::isBookingEnabled($this);
+    }
+
+    public function setCheckInEnabled(bool $enabled): bool
+    {
+        return DisplaySettings::setCheckInEnabled($this, $enabled);
+    }
+
+    public function setBookingEnabled(bool $enabled): bool
+    {
+        return DisplaySettings::setBookingEnabled($this, $enabled);
+    }
+
+    public function getCheckInMinutes(): int
+    {
+        return DisplaySettings::getCheckInMinutes($this);
+    }
+
+    public function setCheckInMinutes(int $minutes): bool
+    {
+        return DisplaySettings::setCheckInMinutes($this, $minutes);
+    }
+
+    public function getCheckInGracePeriod(): int
+    {
+        return DisplaySettings::getCheckInGracePeriod($this);
+    }
+
+    public function setCheckInGracePeriod(int $minutes): bool
+    {
+        return DisplaySettings::setCheckInGracePeriod($this, $minutes);
     }
 }

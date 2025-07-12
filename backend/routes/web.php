@@ -11,6 +11,7 @@ use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\GoogleAccountsController;
 use App\Http\Controllers\OutlookAccountsController;
 use App\Http\Controllers\DisplayController;
+use App\Http\Controllers\DisplaySettingsController;
 use App\Http\Controllers\OutlookWebhookController;
 use App\Http\Controllers\CalDAVAccountsController;
 use App\Http\Controllers\LicenseController;
@@ -69,6 +70,12 @@ Route::middleware(['auth', 'user.update-last-activity'])->group(function () {
     Route::patch('/displays/{display}/status', [DisplayController::class, 'updateStatus'])
         ->name('displays.updateStatus');
     Route::delete('/displays/{display}', [DisplayController::class, 'delete'])->name('displays.delete');
+
+    // Display settings routes
+    Route::get('/displays/{display}/settings', [DisplaySettingsController::class, 'index'])
+        ->name('displays.settings.index');
+    Route::put('/displays/{display}/settings', [DisplaySettingsController::class, 'update'])
+        ->name('displays.settings.update');
 
     Route::get('/calendars/outlook/{id}', [CalendarController::class, 'outlook'])
         ->name('calendars.outlook');

@@ -12,6 +12,7 @@ use Google\Service\Calendar\Channel;
 use Google\Service\Oauth2;
 use Google\Service\Calendar;
 use Google\Service\Directory;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
 
 class GoogleService
@@ -46,8 +47,8 @@ class GoogleService
     {
         $accessToken = $this->client->fetchAccessTokenWithAuthCode($authCode);
 
-        if (isset($accessToken['error'])) {
-            throw new Exception('Error authenticating with Google: ' . $accessToken['error_description']);
+        if (Arr::exists($accessToken, 'error')) {
+            throw new Exception('Error authenticating with Google: ' . Arr::get($accessToken, 'error.message'));
         }
 
         logger()->info('Received Google access token:', $accessToken);
@@ -135,8 +136,8 @@ class GoogleService
         $this->client->setAccessToken($account->token);
 
         $tokenData = $this->client->fetchAccessTokenWithRefreshToken($account->refresh_token);
-        if (isset($tokenData['error'])) {
-            throw new Exception('Error authenticating with Google: ' . $tokenData['error_description']);
+        if (Arr::exists($tokenData, 'error')) {
+            throw new Exception('Error authenticating with Google: ' . Arr::get($tokenData, 'error.message'));
         }
 
         $account->update([

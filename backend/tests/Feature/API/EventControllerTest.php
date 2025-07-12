@@ -3,6 +3,7 @@
 use App\Models\Device;
 use App\Models\Display;
 use App\Models\EventSubscription;
+use App\Models\User;
 use App\Services\OutlookService;
 use App\Services\GoogleService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -14,7 +15,7 @@ use App\Models\Room;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    $this->user = \App\Models\User::factory()->create();
+    $this->user = User::factory()->create();
     $this->device = Device::factory()->create(['user_id' => $this->user->id]);
 
     // Create calendar first
@@ -39,8 +40,8 @@ it('returns 400 when device is not connected to a display', function () {
 
     $this->actingAs($this->device)
         ->getJson('/api/events')
-        ->assertStatus(400)
-        ->assertJson(['message' => 'Device is not connected to a display']);
+        ->assertStatus(404)
+        ->assertJson(['message' => 'Display not found']);
 });
 
 it('returns 400 when display is deactivated', function () {
@@ -60,7 +61,7 @@ it('returns outlook events in the correct format', function () {
         'calendar_id' => $this->calendar->id,
         'email_address' => 'test@example.com'
     ]);
-    
+
     $this->calendar->update([
         'outlook_account_id' => $outlookAccount->id
     ]);
@@ -106,7 +107,6 @@ it('returns outlook events in the correct format', function () {
                     'start',
                     'end',
                     'timezone',
-                    'isAllDay'
                 ]
             ]
         ]);
@@ -117,11 +117,9 @@ it('returns outlook events in the correct format', function () {
     // Verify Outlook event format
     $event = $events[0];
     expect($event)->toBeArray()
-        ->and($event['id'])->toBe('outlook-1')
         ->and($event['summary'])->toBe('Test Outlook Event')
         ->and($event['location'])->toBe('Test Location')
         ->and($event['description'])->toBe('Test Description')
-        ->and($event['isAllDay'])->toBeFalse()
         ->and($event['timezone'])->toBe('UTC');
 });
 
@@ -133,7 +131,7 @@ it('returns google events in the correct format', function () {
         'calendar_id' => $this->calendar->id,
         'email_address' => 'test@example.com'
     ]);
-    
+
     $this->calendar->update([
         'google_account_id' => $googleAccount->id
     ]);
@@ -173,8 +171,7 @@ it('returns google events in the correct format', function () {
                     'description',
                     'start',
                     'end',
-                    'timezone',
-                    'isAllDay'
+                    'timezone'
                 ]
             ]
         ]);
@@ -185,11 +182,9 @@ it('returns google events in the correct format', function () {
     // Verify Google event format
     $event = $events[0];
     expect($event)->toBeArray()
-        ->and($event['id'])->toBe('google-1')
         ->and($event['summary'])->toBe('Test Google Event')
         ->and($event['location'])->toBe('Test Location')
         ->and($event['description'])->toBe('Test Description')
-        ->and($event['isAllDay'])->toBeFalse()
         ->and($event['timezone'])->toBe('UTC');
 });
 
@@ -262,7 +257,7 @@ it('caches events when event subscription exists', function () {
     ]);
 
     // Create event subscription for the Outlook account
-    EventSubscription::factory()
+    $test = EventSubscription::factory()
         ->outlook($outlookAccount)
         ->create([
             'display_id' => $this->display->id

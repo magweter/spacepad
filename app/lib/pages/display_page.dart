@@ -4,7 +4,9 @@ import 'package:get/get.dart';
 import 'package:spacepad/components/spinner.dart';
 import 'package:spacepad/controllers/display_controller.dart';
 import 'package:spacepad/models/display_model.dart';
+import 'package:spacepad/services/auth_service.dart';
 import 'package:spacepad/theme.dart';
+import 'package:tailwind_components/tailwind_components.dart';
 
 class DisplayPage extends StatelessWidget {
   const DisplayPage({super.key});
@@ -17,7 +19,37 @@ class DisplayPage extends StatelessWidget {
       resizeToAvoidBottomInset: true,
       body: SingleChildScrollView(
         child: SafeArea(
-          child: Container(
+          child: Stack(
+            children: [
+              // Logout button at top right
+              Positioned(
+                top: 0,
+                right: 0,
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: TWColors.red_500.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: TWColors.red_500.withValues(alpha: 0.3)),
+                    ),
+                    child: TextButton(
+                      onPressed: () {
+                        AuthService.instance.signOut();
+                      },
+                      child: Text(
+                        'logout'.tr,
+                        style: const TextStyle(
+                          color: TWColors.red_500,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Container(
               padding: const EdgeInsets.fromLTRB(20, 20, 20, 60),
               alignment: Alignment.center,
               height: MediaQuery.sizeOf(context).height,
@@ -126,7 +158,8 @@ class DisplayPage extends StatelessWidget {
                     ),
                   ]
               ),
-
+              ),
+            ],
           ),
         )
       ),
