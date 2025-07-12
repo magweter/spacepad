@@ -74,7 +74,7 @@ class User extends Authenticatable
 
     public function caldavAccounts(): HasMany
     {
-        return $this->hasMany(CalDAVAccount::class);
+        return $this->hasMany(CalDAVAccount::class, 'caldav_account_id');
     }
 
     public function displays(): HasMany
