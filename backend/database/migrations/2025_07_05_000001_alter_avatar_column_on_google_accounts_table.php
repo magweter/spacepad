@@ -18,4 +18,4 @@ return new class extends Migration {
             $table->string('avatar', 255)->change();
         });
     }
-}; 
+};
