@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:spacepad/components/action_button.dart';
 import 'package:spacepad/components/event_line.dart';
@@ -13,6 +14,7 @@ import 'dart:math' show max;
 import 'package:spacepad/services/auth_service.dart';
 import 'package:spacepad/components/action_panel.dart';
 import 'package:spacepad/components/calendar_modal.dart';
+import 'package:spacepad/translations/translations.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -108,77 +110,18 @@ class _DashboardPageState extends State<DashboardPage> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            if (controller.calendarEnabled)
-                              Padding(
-                                padding: const EdgeInsets.only(right: 12),
-                                child: Material(
-                                  color: Colors.transparent,
-                                  child: InkWell(
-                                    borderRadius: BorderRadius.circular(14),
-                                    onTap: () {
-                                      showDialog(
-                                        context: context,
-                                        builder: (context) => CalendarModal(
-                                          events: controller.events,
-                                          selectedDate: DateTime.now(),
-                                        ),
-                                      );
-                                    },
-                                    child: Ink(
-                                      decoration: BoxDecoration(
-                                        color: TWColors.gray_600.withValues(alpha: 0.3),
-                                        borderRadius: BorderRadius.circular(14),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.black.withAlpha(40),
-                                            blurRadius: 8,
-                                            offset: const Offset(0, 2),
-                                          ),
-                                        ],
-                                      ),
-                                      width: 48,
-                                      height: 48,
-                                      child: Icon(
-                                        Icons.calendar_today,
-                                        size: 28,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            Padding(
-                              padding: const EdgeInsets.only(right: 12),
-                              child: Material(
-                                color: Colors.transparent,
-                                child: InkWell(
-                                  borderRadius: BorderRadius.circular(14),
-                                  onTap: () {
-                                    controller.switchRoom();
-                                  },
-                                  child: Ink(
-                                    decoration: BoxDecoration(
-                                      color: TWColors.gray_600.withValues(alpha: 0.3),
-                                      borderRadius: BorderRadius.circular(14),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black.withAlpha(40),
-                                          blurRadius: 8,
-                                          offset: const Offset(0, 2),
-                                        ),
-                                      ],
-                                    ),
-                                    width: 48,
-                                    height: 48,
-                                    child: Icon(
-                                      Icons.logout,
-                                      size: 28,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ),
+                            Opacity(
+                              opacity: 0.4,
+                              child: IconButton(
+                                icon: const Icon(Icons.logout, size: 24, color: Colors.white),
+                                onPressed: () {
+                                  controller.switchRoom();
+                                },
+                                tooltip: 'switch_room'.tr,
                               ),
                             ),
+
+                            SizedBox(width: 16),
                             Text(
                               controller.roomName,
                               style: TextStyle(
@@ -258,23 +201,88 @@ class _DashboardPageState extends State<DashboardPage> {
                         ],
                       ),
 
-                      if (controller.upcomingEvents.isNotEmpty) Align(
-                          alignment: Alignment.bottomLeft,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(cornerRadius * 0.5),
-                              color: TWColors.gray_600.withValues(alpha: 0.3),
+                      // Fixed Action Bar at Bottom
+                      Align(
+                        alignment: Alignment.bottomCenter,
+                        child: Container(
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.only(
+                              topLeft: Radius.circular(cornerRadius * 0.5),
+                              topRight: Radius.circular(cornerRadius * 0.5),
                             ),
-                            child: Padding(
-                              padding: EdgeInsets.all(isPhone ? 10 : 20),
-                              child: SpaceCol(
-                                spaceBetween: isPhone ? 10 : 15,
-                                children: [
-                                  for (EventModel event in controller.upcomingEvents.take(1)) EventLine(event: event),
-                                ],
-                              ),
+                            color: TWColors.gray_600.withValues(alpha: 0.3),
+                          ),
+                          child: Padding(
+                            padding: EdgeInsets.all(isPhone ? 12 : 20),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                // Upcoming Events Section
+                                Expanded(
+                                  child: controller.upcomingEvents.isNotEmpty
+                                    ? SpaceCol(
+                                        spaceBetween: isPhone ? 8 : 12,
+                                        children: [
+                                          for (EventModel event in controller.upcomingEvents.take(1)) EventLine(event: event),
+                                        ],
+                                      )
+                                    : Text(
+                                        'no_upcoming_events'.tr,
+                                        style: TextStyle(
+                                          color: TWColors.gray_300,
+                                          fontSize: isPhone ? 16 : 18,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                ),
+                                
+                                // Action Buttons Section
+                                if (controller.calendarEnabled)
+                                  Material(
+                                    color: Colors.transparent,
+                                    child: InkWell(
+                                      hoverColor: Colors.transparent,
+                                      splashColor: Colors.transparent,
+                                      highlightColor: Colors.transparent,
+                                      borderRadius: BorderRadius.circular(8),
+                                      onTap: () {
+                                        showDialog(
+                                          context: context,
+                                          builder: (context) => CalendarModal(
+                                            events: controller.events,
+                                            selectedDate: DateTime.now(),
+                                          ),
+                                        );
+                                      },
+                                      child: Padding(
+                                        padding: EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              Icons.calendar_today_outlined,
+                                              size: 24,
+                                              color: Colors.white,
+                                            ),
+                                            SizedBox(width: 12),
+                                            Text(
+                                              'view_schedule'.tr,
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontSize: isPhone ? 14 : 18,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                              ],
                             ),
                           ),
+                        ),
                       ),
                     ],
                   )

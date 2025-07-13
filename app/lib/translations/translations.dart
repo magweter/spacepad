@@ -26,6 +26,7 @@ class AppTranslations extends Translations {
       'for_x_hours_x_minutes': 'for @hours h @minutes min',
       'could_not_load_events': 'Could not load events',
       'could_not_load_displays': 'Could not load displays',
+      'could_not_load_data': 'Could not load data',
       'book_now': 'Book now',
       'cancel': 'Cancel',
       'room_booked': 'Room booked!',
@@ -54,6 +55,7 @@ class AppTranslations extends Translations {
       'could_not_check_in': 'Could not check in',
       'view_schedule': 'View schedule',
       'todays_schedule': 'Today\'s schedule',
+      'no_upcoming_events': 'No upcoming events',
       'no_events_today': 'No events scheduled for today'
     },
     'nl_NL': {
@@ -79,6 +81,7 @@ class AppTranslations extends Translations {
       'for_x_hours_x_minutes': 'voor @hours uur @minutes min',
       'could_not_load_events': 'Het laden van afspraken is niet gelukt',
       'could_not_load_displays': 'Het laden van schermen is niet gelukt',
+      'could_not_load_data': 'Het laden van gegevens is niet gelukt',
       'book_now': 'Nu boeken',
       'cancel': 'Annuleren',
       'room_booked': 'Ruimte geboekt!',
@@ -107,6 +110,7 @@ class AppTranslations extends Translations {
       'could_not_check_in': 'Kon niet inchecken',
       'view_schedule': 'Bekijk dagplanning',
       'todays_schedule': 'Dagplanning',
+      'no_upcoming_events': 'Geen toekomstige afspraken',
       'no_events_today': 'Geen afspraken gepland voor vandaag'
     },
     'es_ES': {
@@ -132,6 +136,7 @@ class AppTranslations extends Translations {
       'for_x_hours_x_minutes': 'por @hours h @minutes min',
       'could_not_load_events': 'No se pudieron cargar los eventos',
       'could_not_load_displays': 'No se pudieron cargar las pantallas',
+      'could_not_load_data': 'No se pudieron cargar los datos',
       'book_now': 'Reservar ahora',
       'cancel': 'Cancelar',
       'room_booked': '¡Sala reservada!',
@@ -160,6 +165,7 @@ class AppTranslations extends Translations {
       'could_not_check_in': 'No se pudo registrar',
       'view_schedule': 'Ver horario',
       'todays_schedule': 'Horario de hoy',
+      'no_upcoming_events': 'No hay eventos próximos',
       'no_events_today': 'No hay eventos programados para hoy'
     },
     'fr_FR': {
@@ -185,6 +191,7 @@ class AppTranslations extends Translations {
       'for_x_hours_x_minutes': 'pour @hours h @minutes min',
       'could_not_load_events': 'Impossible de charger les événements',
       'could_not_load_displays': 'Impossible de charger les écrans',
+      'could_not_load_data': 'Impossible de charger les données',
       'book_now': 'Réserver maintenant',
       'cancel': 'Annuler',
       'room_booked': 'Salle réservée !',
@@ -213,6 +220,7 @@ class AppTranslations extends Translations {
       'could_not_check_in': 'Impossible de s\'enregistrer',
       'view_schedule': 'Voir l\'horaire',
       'todays_schedule': 'Horaire d\'aujourd\'hui',
+      'no_upcoming_events': 'Aucun événement à venir',
       'no_events_today': 'Aucun événement programmé pour aujourd\'hui'
     },
     'de_DE': {
@@ -238,6 +246,7 @@ class AppTranslations extends Translations {
       'for_x_hours_x_minutes': 'für @hours Std. @minutes Min.',
       'could_not_load_events': 'Ereignisse konnten nicht geladen werden',
       'could_not_load_displays': 'Anzeigen konnten nicht geladen werden',
+      'could_not_load_data': 'Daten konnten nicht geladen werden',
       'book_now': 'Jetzt buchen',
       'cancel': 'Abbrechen',
       'room_booked': 'Raum gebucht!',
@@ -266,6 +275,7 @@ class AppTranslations extends Translations {
       'could_not_check_in': 'Konnte nicht einchecken',
       'view_schedule': 'Zeitplan anzeigen',
       'todays_schedule': 'Heutiger zeitplan',
+      'no_upcoming_events': 'Keine anstehenden Termine',
       'no_events_today': 'Keine termine für heute geplant'
     },
   };
