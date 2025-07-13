@@ -44,6 +44,6 @@ class CalDAVAccount extends Model
 
     public function calendars(): HasMany
     {
-        return $this->hasMany(Calendar::class);
+        return $this->hasMany(Calendar::class, 'caldav_account_id');
     }
 }

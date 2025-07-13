@@ -39,6 +39,6 @@ class OutlookAccount extends Model
 
     public function calendars(): HasMany
     {
-        return $this->hasMany(Calendar::class);
+        return $this->hasMany(Calendar::class, 'outlook_account_id');
     }
 }
