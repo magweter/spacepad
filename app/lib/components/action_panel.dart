@@ -19,7 +19,7 @@ class ActionPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Cancel button if reserved
-    if (controller.isReserved && !controller.isCheckInActive) {
+    if (controller.isReserved && !controller.isCheckInActive && controller.bookingEnabled) {
       return ActionButton(
         text: 'cancel_event',
         onPressed: () => controller.cancelCurrentEvent(),
@@ -33,7 +33,7 @@ class ActionPanel extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       spaceBetween: isPhone ? 16 : 24,
       children: [
-        if (!controller.isReserved) Obx(() => controller.showBookingOptions.value ?
+        if (!controller.isReserved && controller.bookingEnabled) Obx(() => controller.showBookingOptions.value ?
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -64,7 +64,7 @@ class ActionPanel extends StatelessWidget {
             cornerRadius: cornerRadius,
           ),
         ),
-        if (controller.isCheckInActive) ActionButton(
+        if (controller.isCheckInActive && controller.checkInEnabled) ActionButton(
           text: 'check_in',
           onPressed: () => controller.checkIn(),
           isPhone: isPhone,

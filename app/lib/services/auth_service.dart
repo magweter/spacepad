@@ -34,11 +34,7 @@ class AuthService {
     await setAuthToken(data['token']);
     currentDevice.value = DeviceModel.fromJson(data['device']);
 
-    await Get.offAll(
-            () => currentDevice.value?.display != null ?
-        const DashboardPage() :
-        const DisplayPage()
-    );
+    await Get.offAll(const DisplayPage());
   }
 
   Future<void> verify() async {
@@ -49,10 +45,10 @@ class AuthService {
 
       currentDevice.value = DeviceModel.fromJson(data);
 
-      await Get.offAll(
-              () => currentDevice.value?.display != null ?
-                const DashboardPage() :
-                const DisplayPage()
+      final displayId = getCurrentDisplayId();
+      await Get.offAll(() => displayId != null ?
+        const DashboardPage() :
+        const DisplayPage()
       );
     } catch(e) {
       if (kDebugMode) print(e);
@@ -73,6 +69,7 @@ class AuthService {
     currentDevice.value = null;
 
     await deleteAuthToken();
+    await removeCurrentDisplayId();
 
     await Get.offAll(() => const LoginPage());
   }
@@ -87,5 +84,17 @@ class AuthService {
 
   Future<bool> deleteAuthToken() {
     return _sharedPrefs.remove('token');
+  }
+
+  String? getCurrentDisplayId() {
+    return _sharedPrefs.getString('display_id');
+  }
+
+  Future<bool> setCurrentDisplayId(String displayId) {
+    return _sharedPrefs.setString('display_id', displayId);
+  }
+
+  Future<bool> removeCurrentDisplayId() {
+    return _sharedPrefs.remove('display_id');
   }
 }

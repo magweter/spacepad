@@ -100,6 +100,24 @@
                     </div>
                 </div>
 
+                <!-- Calendar Settings -->
+                <div class="border border-gray-200 rounded-lg p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <h3 class="text-base font-semibold text-gray-900">Calendar Settings</h3>
+                            <p class="text-sm text-gray-500">Allow users to view today's schedule on this display</p>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="checkbox" id="calendar_enabled" name="calendar_enabled" value="1" 
+                                   {{ $display->isCalendarEnabled() ? 'checked' : '' }}
+                                   class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600">
+                        </div>
+                    </div>
+                    <div class="text-sm text-gray-600">
+                        <p>When enabled, users can view today's schedule in a calendar view directly from this display. This allows users to see all meetings scheduled for the day.</p>
+                    </div>
+                </div>
+
                 <!-- Display Information -->
                 <div class="border border-gray-200 rounded-lg p-6 bg-gray-50">
                     <h3 class="text-base font-semibold text-gray-900 mb-4">Display Information</h3>

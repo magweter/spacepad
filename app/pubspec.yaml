@@ -53,6 +53,7 @@ dependencies:
   marquee: ^2.3.0
   timezone: ^0.10.0
   flutter_udid: ^4.0.0
+  calendar_view: ^1.4.0
 
 dev_dependencies:
   flutter_test:

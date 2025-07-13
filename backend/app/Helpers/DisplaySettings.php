@@ -98,4 +98,14 @@ class DisplaySettings
     {
         return self::setSetting($display, 'check_in_grace_period', $minutes, 'integer');
     }
+
+    public static function isCalendarEnabled(Display $display): bool
+    {
+        return self::getSetting($display, 'calendar_enabled', false);
+    }
+
+    public static function setCalendarEnabled(Display $display, bool $enabled): bool
+    {
+        return self::setSetting($display, 'calendar_enabled', $enabled, 'boolean');
+    }
 } 

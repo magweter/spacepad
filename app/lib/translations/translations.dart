@@ -49,7 +49,12 @@ class AppTranslations extends Translations {
       'check_in_now': 'Check in for meeting',
       'check_in': 'Check in',
       'x_starts_in_x_minutes': '@meeting starts in @minutes min',
-      'check_in_within_x_minutes': 'Check in binnen @minutes min'
+      'check_in_within_x_minutes': 'Check in within @minutes min',
+      'checked_in': 'Successfully checked in!',
+      'could_not_check_in': 'Could not check in',
+      'view_schedule': 'View schedule',
+      'todays_schedule': 'Today\'s schedule',
+      'no_events_today': 'No events scheduled for today'
     },
     'nl_NL': {
       'introduction_title': 'Welkom bij Spacepad!',
@@ -97,7 +102,12 @@ class AppTranslations extends Translations {
       'check_in_now': 'Check in voor meeting',
       'check_in': 'Inchecken',
       'x_starts_in_x_minutes': '@meeting start in @minutes min',
-      'check_in_within_x_minutes': 'Check in binnen @minutes min'
+      'check_in_within_x_minutes': 'Check in binnen @minutes min',
+      'checked_in': 'Succesvol ingecheckt!',
+      'could_not_check_in': 'Kon niet inchecken',
+      'view_schedule': 'Bekijk dagplanning',
+      'todays_schedule': 'Dagplanning',
+      'no_events_today': 'Geen afspraken gepland voor vandaag'
     },
     'es_ES': {
       'introduction_title': '¡Bienvenido a Spacepad!',
@@ -145,7 +155,12 @@ class AppTranslations extends Translations {
       'check_in_now': 'Check in para la reunión',
       'check_in': 'Registrar',
       'x_starts_in_x_minutes': '@meeting comienza en @minutes min',
-      'check_in_within_x_minutes': 'Registrar en @minutes min'
+      'check_in_within_x_minutes': 'Registrar en @minutes min',
+      'checked_in': '¡Registrado!',
+      'could_not_check_in': 'No se pudo registrar',
+      'view_schedule': 'Ver horario',
+      'todays_schedule': 'Horario de hoy',
+      'no_events_today': 'No hay eventos programados para hoy'
     },
     'fr_FR': {
       'introduction_title': 'Bienvenue sur Spacepad !',
@@ -193,7 +208,12 @@ class AppTranslations extends Translations {
       'check_in_now': 'Enregistrez-vous pour la réunion',
       'check_in': 'Enregistrer',
       'x_starts_in_x_minutes': '@meeting commence dans @minutes min',
-      'check_in_within_x_minutes': 'Enregistrez-vous dans @minutes min'
+      'check_in_within_x_minutes': 'Enregistrez-vous dans @minutes min',
+      'checked_in': 'Enregistré !',
+      'could_not_check_in': 'Impossible de s\'enregistrer',
+      'view_schedule': 'Voir l\'horaire',
+      'todays_schedule': 'Horaire d\'aujourd\'hui',
+      'no_events_today': 'Aucun événement programmé pour aujourd\'hui'
     },
     'de_DE': {
       'introduction_title': 'Willkommen bei Spacepad!',
@@ -240,8 +260,13 @@ class AppTranslations extends Translations {
       'reserved': 'Reserviert',
       'check_in_now': 'Check-in für Meeting',
       'check_in': 'Einchecken',
-      'x_starts_in_x_minutes': '@meeting startet in @minutes Min.',
-      'check_in_within_x_minutes': 'Check-in in @minutes Min.'
+      'x_starts_in_x_minutes': '@meeting startet in @minutes min',
+      'check_in_within_x_minutes': 'Check-in in @minutes min',
+      'checked_in': 'Erfolgreich eingecheckt!',
+      'could_not_check_in': 'Konnte nicht einchecken',
+      'view_schedule': 'Zeitplan anzeigen',
+      'todays_schedule': 'Heutiger zeitplan',
+      'no_events_today': 'Keine termine für heute geplant'
     },
   };
 }

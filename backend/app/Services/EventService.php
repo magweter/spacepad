@@ -68,7 +68,7 @@ class EventService
         return Event::create([
             'display_id' => $displayId,
             'user_id' => $userId,
-            'status' => EventStatus::PLANNED,
+            'status' => EventStatus::CONFIRMED,
             'source' => EventSource::CUSTOM,
             'start' => $start,
             'end' => $end,
@@ -356,7 +356,7 @@ class EventService
                 'user_id' => $display->user_id,
                 'source' => $source,
                 'external_id' => $externalId,
-                'status' => EventStatus::PLANNED
+                'status' => EventStatus::CONFIRMED
             ]);
 
             $event->start = $ext['start'];

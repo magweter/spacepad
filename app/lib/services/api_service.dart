@@ -39,9 +39,8 @@ class ApiService {
     } on ApiException catch (e) {
       if (kDebugMode) print('${e.code}: ${e.message}');
 
-      if (e.code == 401 || e.code == 403) {
+      if (e.code == 401) {
         AuthService.instance.signOut();
-
         return;
       }
 

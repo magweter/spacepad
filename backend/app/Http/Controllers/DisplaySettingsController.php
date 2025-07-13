@@ -37,25 +37,27 @@ class DisplaySettingsController extends Controller
         $request->validate([
             'check_in_enabled' => 'boolean',
             'booking_enabled' => 'boolean',
+            'calendar_enabled' => 'boolean',
             'check_in_minutes' => 'nullable|integer|min:1|max:60',
             'check_in_grace_period' => 'nullable|integer|min:1|max:30',
         ]);
 
         $updated = true;
 
-        if ($request->has('check_in_enabled')) {
-            $updated = $updated && DisplaySettings::setCheckInEnabled(
-                $display, 
-                $request->boolean('check_in_enabled')
-            );
-        }
+        $updated = $updated && DisplaySettings::setCheckInEnabled(
+            $display,
+            $request->boolean('check_in_enabled')
+        );
 
-        if ($request->has('booking_enabled')) {
-            $updated = $updated && DisplaySettings::setBookingEnabled(
-                $display, 
-                $request->boolean('booking_enabled')
-            );
-        }
+        $updated = $updated && DisplaySettings::setBookingEnabled(
+            $display,
+            $request->boolean('booking_enabled')
+        );
+
+        $updated = $updated && DisplaySettings::setCalendarEnabled(
+            $display,
+            $request->boolean('calendar_enabled')
+        );
 
         // Only allow updating grace period if check-in is enabled (either in request or already enabled)
         $checkInEnabled = $request->has('check_in_enabled')
@@ -81,4 +83,4 @@ class DisplaySettingsController extends Controller
 
         return redirect()->route('dashboard')->with('success', 'Display settings updated successfully');
     }
-} 
+}

@@ -47,6 +47,9 @@ class DisplayController extends GetxController {
     try {
       await DeviceService.instance.changeDisplay(selectedDisplay.value!.id);
 
+      // Save the selected display ID to local storage
+      await AuthService.instance.setCurrentDisplayId(selectedDisplay.value!.id);
+
       await AuthService.instance.verify();
     } catch (e) {
       Toast.showError('check_connection'.tr);

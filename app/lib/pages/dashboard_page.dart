@@ -12,6 +12,7 @@ import 'dart:io' show Platform;
 import 'dart:math' show max;
 import 'package:spacepad/services/auth_service.dart';
 import 'package:spacepad/components/action_panel.dart';
+import 'package:spacepad/components/calendar_modal.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -107,14 +108,75 @@ class _DashboardPageState extends State<DashboardPage> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Opacity(
-                              opacity: 0.4,
-                              child: IconButton(
-                                icon: const Icon(Icons.logout, size: 24, color: Colors.white),
-                                onPressed: () {
-                                  controller.switchRoom();
-                                },
-                                tooltip: 'switch_room'.tr,
+                            if (controller.calendarEnabled)
+                              Padding(
+                                padding: const EdgeInsets.only(right: 12),
+                                child: Material(
+                                  color: Colors.transparent,
+                                  child: InkWell(
+                                    borderRadius: BorderRadius.circular(14),
+                                    onTap: () {
+                                      showDialog(
+                                        context: context,
+                                        builder: (context) => CalendarModal(
+                                          events: controller.events,
+                                          selectedDate: DateTime.now(),
+                                        ),
+                                      );
+                                    },
+                                    child: Ink(
+                                      decoration: BoxDecoration(
+                                        color: TWColors.gray_600.withValues(alpha: 0.3),
+                                        borderRadius: BorderRadius.circular(14),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withAlpha(40),
+                                            blurRadius: 8,
+                                            offset: const Offset(0, 2),
+                                          ),
+                                        ],
+                                      ),
+                                      width: 48,
+                                      height: 48,
+                                      child: Icon(
+                                        Icons.calendar_today,
+                                        size: 28,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            Padding(
+                              padding: const EdgeInsets.only(right: 12),
+                              child: Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  borderRadius: BorderRadius.circular(14),
+                                  onTap: () {
+                                    controller.switchRoom();
+                                  },
+                                  child: Ink(
+                                    decoration: BoxDecoration(
+                                      color: TWColors.gray_600.withValues(alpha: 0.3),
+                                      borderRadius: BorderRadius.circular(14),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withAlpha(40),
+                                          blurRadius: 8,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ],
+                                    ),
+                                    width: 48,
+                                    height: 48,
+                                    child: Icon(
+                                      Icons.logout,
+                                      size: 28,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
                               ),
                             ),
                             Text(
@@ -186,7 +248,7 @@ class _DashboardPageState extends State<DashboardPage> {
                                 ]
                               ),
                               if (controller.meetingInfo == null) SizedBox(height: isPhone ? 5 : 10),
-                              ActionPanel(
+                              if (controller.bookingEnabled || controller.checkInEnabled) ActionPanel(
                                 controller: controller,
                                 isPhone: isPhone,
                                 cornerRadius: cornerRadius,

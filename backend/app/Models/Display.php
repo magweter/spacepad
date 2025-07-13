@@ -127,4 +127,14 @@ class Display extends Model
     {
         return DisplaySettings::setCheckInGracePeriod($this, $minutes);
     }
+
+    public function isCalendarEnabled(): bool
+    {
+        return DisplaySettings::isCalendarEnabled($this);
+    }
+
+    public function setCalendarEnabled(bool $enabled): bool
+    {
+        return DisplaySettings::setCalendarEnabled($this, $enabled);
+    }
 }

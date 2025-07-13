@@ -4,7 +4,7 @@ namespace App\Http\Requests\API;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class EventBookRequest extends FormRequest
+class BookEventRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -18,4 +18,4 @@ class EventBookRequest extends FormRequest
             'summary' => 'nullable|string|max:255',
         ];
     }
-} 
+}

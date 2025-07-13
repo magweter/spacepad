@@ -8,8 +8,6 @@ use App\Services\DisplayService;
 use App\Services\EventService;
 use Exception;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Arr;
-use App\Http\Requests\API\EventBookRequest;
 
 class EventController extends ApiController
 {
@@ -37,78 +35,6 @@ class EventController extends ApiController
             return $this->success(data: EventResource::collection($events));
         } catch (\Exception $e) {
             return $this->error(message: $e->getMessage(), code: 500);
-        }
-    }
-
-    /**
-     * Book a room for a given duration (Pro feature).
-     */
-    public function book(EventBookRequest $request): JsonResponse
-    {
-        /** @var Device $device */
-        $device = auth()->user();
-
-        $permission = $this->displayService->validateDisplayPermission($device->display_id, $device->id, ['pro' => true, 'booking' => true]);
-        if (! $permission->permitted) {
-            return $this->error(message: $permission->message, code: $permission->code);
-        }
-
-        try {
-            $data = $request->validated();
-            $event = $this->eventService->bookRoom(
-                $device->display_id,
-                $device->user_id,
-                (int) $request->duration,
-                Arr::get($data, 'summary', __('Reserved'))
-            );
-            return $this->success(data: new EventResource($event), code: 201);
-        } catch (\Exception $e) {
-            $status = $e->getCode() === 403 ? 403 : 400;
-            return $this->error(message: $e->getMessage(), code: $status);
-        }
-    }
-
-    /**
-     * Cancel an event (Pro feature).
-     */
-    public function cancel(string $eventId): JsonResponse
-    {
-        /** @var Device $device */
-        $device = auth()->user();
-
-        $permission = $this->displayService->validateDisplayPermission($device->display_id, $device->id, ['pro' => true]);
-        if (! $permission->permitted) {
-            return $this->error(message: $permission->message, code: $permission->code);
-        }
-
-        try {
-            $this->eventService->cancelEvent($eventId, $device->display_id);
-            return $this->success(message: 'Event cancelled successfully');
-        } catch (\Exception $e) {
-            $status = $e->getCode() === 403 ? 403 : 400;
-            return $this->error(message: $e->getMessage(), code: $status);
-        }
-    }
-
-    /**
-     * Check in to an event (Pro feature).
-     */
-    public function checkIn(string $eventId): JsonResponse
-    {
-        /** @var Device $device */
-        $device = auth()->user();
-
-        $permission = $this->displayService->validateDisplayPermission($device->display_id, $device->id, ['pro' => true]);
-        if (! $permission->permitted) {
-            return $this->error(message: $permission->message, code: $permission->code);
-        }
-
-        try {
-            $this->eventService->checkInToEvent($eventId, $device->display_id);
-            return $this->success(message: 'Checked in successfully');
-        } catch (\Exception $e) {
-            $status = $e->getCode() === 403 ? 403 : 400;
-            return $this->error(message: $e->getMessage(), code: $status);
         }
     }
 }

@@ -85,7 +85,7 @@ We love open source and welcome your contributions! See [CONTRIBUTING.md](CONTRI
 - [x] Self-hosted with Docker
 - [x] Google Workspace support
 - [x] CalDAV support
-- [ ] Booking directly on device
+- [x] Booking directly on device
 - [ ] Custom display themes & logos
 - [ ] Showing all events of the day
 - [ ] Amazon Fire Tablet support

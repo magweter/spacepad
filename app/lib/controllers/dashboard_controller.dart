@@ -2,10 +2,10 @@ import 'dart:async';
 
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
-import 'package:flutter/foundation.dart';
 import 'package:spacepad/components/toast.dart';
 import 'package:spacepad/models/event_model.dart';
-import 'package:spacepad/services/event_service.dart';
+import 'package:spacepad/models/display_data_model.dart';
+import 'package:spacepad/services/display_service.dart';
 import 'package:spacepad/services/auth_service.dart';
 import 'package:spacepad/pages/display_page.dart';
 
@@ -13,19 +13,27 @@ class DashboardController extends GetxController {
   final RxBool loading = RxBool(true);
   final RxList<EventModel> events = RxList();
   final RxString time = RxString('');
+  final RxString displayId = RxString('');
   
   Timer? _clock;
-  Timer? _eventsTimer;
-  Timer? _displayTimer;
+  Timer? _dataTimer;
 
   @override
   void onInit() {
     super.onInit();
 
     updateTime();
-    initializeTimers();
+    
+    // Check if display ID is set, redirect to display page if not
+    final displayIdResult = AuthService.instance.getCurrentDisplayId();
+    if (displayIdResult == null) {
+      Get.offAll(() => const DisplayPage());
+    } else {
+      displayId.value = displayIdResult;
+    }
 
-    fetchEvents();
+    initializeTimers();
+    fetchDisplayData();
 
     loading.value = false;
   }
@@ -33,15 +41,12 @@ class DashboardController extends GetxController {
   void initializeTimers() {
     final int millisecondsToNextSecond = DateTime.now().millisecond;
 
-    // Start a timer that aligns with the next second
+    // Start a timer that aligns with the next second for data refresh (every 60 seconds)
     Future.delayed(Duration(milliseconds: millisecondsToNextSecond), () {
-      _eventsTimer = Timer.periodic(const Duration(seconds: 60), (timer) => fetchEvents());
+      _dataTimer = Timer.periodic(const Duration(seconds: 60), (timer) => fetchDisplayData());
     });
 
     _clock = Timer.periodic(const Duration(seconds: 1), (timer) => updateTime());
-    
-    // Settings refresh timer - every 2.5 minutes
-    _displayTimer = Timer.periodic(const Duration(minutes: 2, seconds: 30), (timer) => refreshDisplaySettings());
   }
 
   void updateTime() {
@@ -162,7 +167,7 @@ class DashboardController extends GetxController {
 
   EventModel? get checkInEvent {
     final now = DateTime.now();
-    return events.value.firstWhereOrNull((e) {
+    return events.firstWhereOrNull((e) {
       if (e.checkInRequired != true) return false;
 
       final start = e.start;
@@ -175,47 +180,45 @@ class DashboardController extends GetxController {
 
   EventModel? get currentEvent {
     DateTime now = DateTime.now();
-    return events.value.where((e) => now.isAfter(e.start) && now.isBefore(e.end)).firstOrNull;
+    return events.where((e) => now.isAfter(e.start) && now.isBefore(e.end)).firstOrNull;
   }
 
   List<EventModel> get upcomingEvents {
-    List<EventModel> nextEvents = events.value.where((e) => e.start.isAfter(DateTime.now())).toList();
+    List<EventModel> nextEvents = events.where((e) => e.start.isAfter(DateTime.now())).toList();
 
     nextEvents.sort((a, b) => a.start.compareTo(b.start));
 
     return nextEvents;
   }
 
-  Future<void> fetchEvents() async {
+  Future<void> fetchDisplayData() async {
     try {
-      events.value = await EventService.instance.getEvents();
-      events.value = events.value.where((e) => e.status != 'cancelled').toList();
+      DisplayDataModel displayData = await DisplayService.instance.getDisplayData(displayId.value);
+      
+      // Update events
+      events.value = displayData.events.where((e) => e.status != 'cancelled').toList();
+      
+      // Update display settings in the current device
+      if (AuthService.instance.currentDevice.value != null) {
+        AuthService.instance.currentDevice.value!.display = displayData.display;
+        AuthService.instance.currentDevice.refresh();
+      }
     } catch (e) {
-      Toast.showError('could_not_load_events'.tr);
+      Toast.showError('could_not_load_data'.tr);
     }
   }
 
   void switchRoom() {
     _clock?.cancel();
-    _eventsTimer?.cancel();
-    _displayTimer?.cancel();
+    _dataTimer?.cancel();
     
     Get.offAll(() => const DisplayPage());
   }
 
-  Future<void> refreshDisplaySettings() async {
+  Future<void> bookRoom(int duration, String summary) async {
     try {
-      // Use the /me endpoint to refetch current device with updated settings
-      await AuthService.instance.verify();
-    } catch (e) {
-      // Silent fail - don't show error for settings refresh
-    }
-  }
-
-    Future<void> bookRoom(int duration, String summary) async {
-    try {
-      await EventService.instance.bookRoom(duration, summary: summary);
-      await fetchEvents();
+      await DisplayService.instance.book(displayId.value, duration, summary: summary);
+      await fetchDisplayData();
       Toast.showSuccess('room_booked'.tr);
     } catch (e) {
       Toast.showError('could_not_book_room'.tr);
@@ -225,8 +228,8 @@ class DashboardController extends GetxController {
   Future<void> cancelCurrentEvent() async {
     try {
       if (currentEvent != null) {
-        await EventService.instance.cancelEvent(currentEvent!.id);
-        await fetchEvents();
+        await DisplayService.instance.cancelEvent(displayId.value, currentEvent!.id);
+        await fetchDisplayData();
         Toast.showSuccess('event_cancelled'.tr);
       }
     } catch (e) {
@@ -235,8 +238,12 @@ class DashboardController extends GetxController {
   }
 
   // Check if booking should be displayed based on display settings
-  bool get shouldShowBooking {
-    return !isReserved && (AuthService.instance.currentDevice.value?.display?.settings.bookingEnabled ?? false);
+  bool get bookingEnabled {
+    return AuthService.instance.currentDevice.value?.display?.settings.bookingEnabled ?? false;
+  }
+
+  bool get calendarEnabled {
+    return AuthService.instance.currentDevice.value?.display?.settings.calendarEnabled ?? false;
   }
 
   // Track if booking options are shown
@@ -266,11 +273,11 @@ class DashboardController extends GetxController {
 
   void checkIn() async {
     try {
-      await EventService.instance.checkInToEvent(checkInEvent!.id);
-      await fetchEvents();
-      Toast.showSuccess('Checked in!');
+      await DisplayService.instance.checkInToEvent(displayId.value, checkInEvent!.id);
+      await fetchDisplayData();
+      Toast.showSuccess('checked_in'.tr);
     } catch (e) {
-      Toast.showError('Could not check in');
+      Toast.showError('could_not_check_in'.tr);
     }
   }
 
@@ -290,8 +297,7 @@ class DashboardController extends GetxController {
   @override
   void dispose() {
     _clock?.cancel();
-    _eventsTimer?.cancel();
-    _displayTimer?.cancel();
+    _dataTimer?.cancel();
 
     super.dispose();
   }
