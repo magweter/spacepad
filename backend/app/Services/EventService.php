@@ -412,9 +412,6 @@ class EventService
 
         if ($events->isNotEmpty()) {
             $events->each->update(['status' => EventStatus::CANCELLED]);
-
-            // Clear events cache for display
-            cache()->forget($display->getEventsCacheKey());
         }
     }
 }

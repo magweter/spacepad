@@ -69,7 +69,12 @@ class Display extends Model
 
     public function getEventsCacheKey(): string
     {
-        return "display:$this->id:events";
+        return self::getEventsCacheKeyForDisplay($this->id);
+    }
+
+    public static function getEventsCacheKeyForDisplay(string $displayId): string
+    {
+        return "display:$displayId:events";
     }
 
     public function isDeactivated(): bool

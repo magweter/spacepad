@@ -39,7 +39,7 @@ class CalendarModal extends StatelessWidget {
                   children: [
                     // Title and close icon
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(32, 24, 32, 24),
+                      padding: const EdgeInsets.fromLTRB(26, 20, 26, 20),
                       child: Row(
                         children: [
                           Expanded(
@@ -47,7 +47,7 @@ class CalendarModal extends StatelessWidget {
                               'todays_schedule'.tr,
                               style: TextStyle(
                                 color: AppTheme.platinum,
-                                fontSize: 26,
+                                fontSize: 22,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -138,18 +138,6 @@ class CalendarModal extends StatelessWidget {
                                                 fontSize: 13,
                                                 fontWeight: FontWeight.w400,
                                               ),
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          ],
-                                          if (event.description != null && event.description!.trim().isNotEmpty) ...[
-                                            const SizedBox(height: 8),
-                                            Text(
-                                              event.description!,
-                                              style: TextStyle(
-                                                color: AppTheme.platinum,
-                                                fontSize: 13,
-                                              ),
-                                              maxLines: 3,
                                               overflow: TextOverflow.ellipsis,
                                             ),
                                           ],
