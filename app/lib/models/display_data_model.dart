@@ -2,7 +2,7 @@ import 'display_model.dart';
 import 'event_model.dart';
 
 class DisplayDataModel {
-  DisplayModel display;
+  DisplayModel? display;
   List<EventModel> events;
 
   DisplayDataModel({
@@ -19,9 +19,18 @@ class DisplayDataModel {
     );
   }
 
+  factory DisplayDataModel.fromEventsJson(List data) {
+    return DisplayDataModel(
+      display: null,
+      events: data
+          .map((e) => EventModel.fromJson(e))
+          .toList(),
+    );
+  }
+
   Map<String, dynamic> toJson() {
     return {
-      'display': display.toJson(),
+      'display': display?.toJson(),
       'events': events.map((e) => e.toJson()).toList(),
     };
   }

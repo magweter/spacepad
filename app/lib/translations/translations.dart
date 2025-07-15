@@ -31,7 +31,7 @@ class AppTranslations extends Translations {
       'cancel': 'Cancel',
       'room_booked': 'Room booked!',
       'could_not_book_room': 'Could not book room',
-      'logout': 'Logout',
+      'logout': 'Log out',
       'switch_room': 'Switch room',
       'cancel_event': 'Cancel event',
       'event_cancelled': 'Event cancelled',

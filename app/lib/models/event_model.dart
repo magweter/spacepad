@@ -1,6 +1,8 @@
+import 'event_status.dart';
+
 class EventModel {
   String id;
-  String status;
+  EventStatus status;
   String summary;
   String? location;
   String? description;
@@ -26,7 +28,7 @@ class EventModel {
   factory EventModel.fromJson(Map<String, dynamic> data) {
     return EventModel(
       id: data['id'],
-      status: data['status'],
+      status: eventStatusFromString(data['status']),
       summary: data['summary'],
       location: data['location'],
       description: data['description'],
@@ -41,7 +43,7 @@ class EventModel {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'status': status,
+      'status': eventStatusToString(status),
       'summary': summary,
       'location': location,
       'description': description,

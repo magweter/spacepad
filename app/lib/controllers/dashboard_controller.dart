@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:spacepad/components/toast.dart';
 import 'package:spacepad/models/event_model.dart';
 import 'package:spacepad/models/display_data_model.dart';
+import 'package:spacepad/models/event_status.dart';
 import 'package:spacepad/services/display_service.dart';
 import 'package:spacepad/services/auth_service.dart';
 import 'package:spacepad/pages/display_page.dart';
@@ -193,7 +194,7 @@ class DashboardController extends GetxController {
       DisplayDataModel displayData = await DisplayService.instance.getDisplayData(displayId.value);
       
       // Update events
-      events.value = displayData.events.where((e) => e.status != 'cancelled').toList();
+      events.value = displayData.events.where((e) => e.status != EventStatus.cancelled).toList();
       
       // Update display settings in the current device
       if (AuthService.instance.currentDevice.value != null) {
