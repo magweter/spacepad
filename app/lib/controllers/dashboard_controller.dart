@@ -12,7 +12,7 @@ import 'package:spacepad/pages/display_page.dart';
 class DashboardController extends GetxController {
   final RxBool loading = RxBool(true);
   final RxList<EventModel> events = RxList();
-  final RxString time = RxString('');
+  final Rx<DateTime> time = Rx<DateTime>(DateTime.now());
   final RxString displayId = RxString('');
   
   Timer? _clock;
@@ -50,7 +50,7 @@ class DashboardController extends GetxController {
   }
 
   void updateTime() {
-    time.value = DateFormat.jm().format(DateTime.now());
+    time.value = DateTime.now();
   }
 
   String get roomName {
@@ -73,18 +73,15 @@ class DashboardController extends GetxController {
     return 'available'.tr;
   }
 
-  String? get meetingInfo {
+  /// Returns the start and end DateTime of the current event, or null if not reserved.
+  Map<String, DateTime>? get meetingInfoTimes {
     if (!isReserved) {
       return null;
     }
-
-    final currentEventStart = currentEvent!.start;
-    final currentEventEnd = currentEvent!.end;
-
-    return 'meeting_info_title'.trParams({
-      'start': DateFormat.jm().format(currentEventStart),
-      'end': DateFormat.jm().format(currentEventEnd)
-    });
+    return {
+      'start': currentEvent!.start,
+      'end': currentEvent!.end,
+    };
   }
 
   String get subtitle {

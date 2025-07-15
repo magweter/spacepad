@@ -30,7 +30,8 @@ class CalendarModal extends StatelessWidget {
               filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
               child: Container(
                 decoration: BoxDecoration(
-                  color: Colors.white.withAlpha((0.08 * 255).toInt()), // More visible frosted background
+                  color: Colors.white.withAlpha((0.08 * 255).toInt()),
+                  // More visible frosted background
                   borderRadius: BorderRadius.circular(20),
                 ),
                 padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
@@ -70,12 +71,15 @@ class CalendarModal extends StatelessWidget {
                       child: Padding(
                         padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
                         child: events.isEmpty
-                            ? Center(
-                                child: Text(
-                                  'no_events_today'.tr,
-                                  style: TextStyle(
-                                    color: AppTheme.platinum,
-                                    fontSize: 16,
+                            ? SizedBox(
+                                height: 200,
+                                child: Center(
+                                  child: Text(
+                                    'no_events_today'.tr,
+                                    style: TextStyle(
+                                      color: AppTheme.platinum,
+                                      fontSize: 16,
+                                    ),
                                   ),
                                 ),
                               )
@@ -91,16 +95,19 @@ class CalendarModal extends StatelessWidget {
                                       borderRadius: BorderRadius.circular(14),
                                       boxShadow: [
                                         BoxShadow(
-                                          color: Colors.black.withAlpha((0.1 * 255).toInt()),
+                                          color: Colors.black
+                                              .withAlpha((0.1 * 255).toInt()),
                                           blurRadius: 8,
                                           offset: const Offset(0, 2),
                                         ),
                                       ],
                                     ),
                                     child: Padding(
-                                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 18, vertical: 16),
                                       child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
                                           Row(
                                             children: [
@@ -129,7 +136,9 @@ class CalendarModal extends StatelessWidget {
                                               fontWeight: FontWeight.bold,
                                             ),
                                           ),
-                                          if ((event.location ?? '').trim().isNotEmpty) ...[
+                                          if ((event.location ?? '')
+                                              .trim()
+                                              .isNotEmpty) ...[
                                             const SizedBox(height: 4),
                                             Text(
                                               event.location!,
@@ -158,4 +167,4 @@ class CalendarModal extends StatelessWidget {
       ),
     );
   }
-} 
+}

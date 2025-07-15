@@ -20,7 +20,7 @@ class ApiService {
 
   static Future<String> getBaseUrl() async {
     var sharedPrefs = await SharedPreferences.getInstance();
-    var apiUrl = sharedPrefs.getString('api_url') ?? dotenv.env['API_URL']!;
+    var apiUrl = sharedPrefs.getString('api_url') ?? dotenv.env['API_URL'] ?? 'https://app.spacepad.io';
     return '$apiUrl/api/';
   }
 

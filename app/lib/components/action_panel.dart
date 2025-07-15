@@ -20,13 +20,15 @@ class ActionPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     // Cancel button if reserved
     if (controller.isReserved && !controller.isCheckInActive && controller.bookingEnabled) {
-      return ActionButton(
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [ActionButton(
         text: 'cancel_event',
         onPressed: () => controller.cancelCurrentEvent(),
         textColor: Colors.white,
         isPhone: isPhone,
         cornerRadius: cornerRadius,
-      );
+      ),],);
     }
     
     return SpaceRow(
@@ -37,15 +39,18 @@ class ActionPanel extends StatelessWidget {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Booking options
-              for (var min in controller.availableBookingDurations)
+              // Show all options, but disable and strikethrough if not available
+              for (var min in [15, 30, 60])
                 Padding(
-                  padding: EdgeInsets.only(right: min == controller.availableBookingDurations.last ? 0 : (isPhone ? 12 : 16)),
+                  padding: EdgeInsets.only(right: min == 60 ? 0 : (isPhone ? 12 : 16)),
                   child: ActionButton(
                     text: '$min min',
-                    onPressed: () => controller.bookRoom(min, 'reserved'.tr),
+                    onPressed: controller.availableBookingDurations.contains(min)
+                      ? () => controller.bookRoom(min, 'reserved'.tr)
+                      : null,
                     isPhone: isPhone,
                     cornerRadius: cornerRadius,
+                    disabled: !controller.availableBookingDurations.contains(min),
                   ),
                 ),
               SizedBox(width: isPhone ? 16 : 24),

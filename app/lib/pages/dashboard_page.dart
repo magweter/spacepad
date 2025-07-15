@@ -5,6 +5,7 @@ import 'package:spacepad/components/action_button.dart';
 import 'package:spacepad/components/event_line.dart';
 import 'package:spacepad/components/spinner.dart';
 import 'package:spacepad/controllers/dashboard_controller.dart';
+import 'package:spacepad/date_format_helper.dart';
 import 'package:spacepad/models/event_model.dart';
 import 'package:get/get.dart';
 import 'package:spacepad/theme.dart';
@@ -24,25 +25,25 @@ class DashboardPage extends StatefulWidget {
 }
 
 class _DashboardPageState extends State<DashboardPage> {
-  @override
-  void initState() {
-    super.initState();
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.landscapeLeft,
-      DeviceOrientation.landscapeRight,
-    ]);
-  }
-
-  @override
-  void dispose() {
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-      DeviceOrientation.portraitDown,
-      DeviceOrientation.landscapeLeft,
-      DeviceOrientation.landscapeRight,
-    ]);
-    super.dispose();
-  }
+  // @override
+  // void initState() {
+  //   super.initState();
+  //   SystemChrome.setPreferredOrientations([
+  //     DeviceOrientation.landscapeLeft,
+  //     DeviceOrientation.landscapeRight,
+  //   ]);
+  // }
+  //
+  // @override
+  // void dispose() {
+  //   SystemChrome.setPreferredOrientations([
+  //     DeviceOrientation.portraitUp,
+  //     DeviceOrientation.portraitDown,
+  //     DeviceOrientation.landscapeLeft,
+  //     DeviceOrientation.landscapeRight,
+  //   ]);
+  //   super.dispose();
+  // }
 
   bool _isPhone(BuildContext context) {
     final shortestSide = MediaQuery.of(context).size.shortestSide;
@@ -97,7 +98,7 @@ class _DashboardPageState extends State<DashboardPage> {
                       Align(
                         alignment: Alignment.topLeft,
                         child: Text(
-                          controller.time.value,
+                          formatTime(context, controller.time.value),
                           style: TextStyle(
                             color: TWColors.gray_300,
                             fontSize: isPhone ? 20 : 28,
@@ -141,7 +142,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           SpaceCol(
-                            spaceBetween: controller.meetingInfo != null ? (isPhone ? 5 : 10) : 0,
+                            spaceBetween: controller.meetingInfoTimes != null ? (isPhone ? 5 : 10) : 0,
                             children: [
                               Text(
                                 controller.title,
@@ -154,7 +155,7 @@ class _DashboardPageState extends State<DashboardPage> {
                               SpaceRow(
                                 spaceBetween: isPhone ? 10 : 20,
                                 children: [
-                                  if (controller.meetingInfo != null) Container(
+                                  if (controller.meetingInfoTimes != null) Container(
                                     decoration: BoxDecoration(
                                       borderRadius: BorderRadius.circular(cornerRadius * 0.5),
                                       color: TWColors.gray_600.withValues(alpha: 0.3),
@@ -167,7 +168,10 @@ class _DashboardPageState extends State<DashboardPage> {
                                         isPhone ? 5 : 10,
                                       ),
                                       child: Text(
-                                        controller.meetingInfo!,
+                                        'meeting_info_title'.trParams({
+                                          'start': formatTime(context, controller.meetingInfoTimes!['start']!),
+                                          'end': formatTime(context, controller.meetingInfoTimes!['end']!),
+                                        }),
                                         style: TextStyle(
                                           color: TWColors.white,
                                           fontSize: isPhone ? 24 : 32,
@@ -190,7 +194,7 @@ class _DashboardPageState extends State<DashboardPage> {
                                   ),
                                 ]
                               ),
-                              if (controller.meetingInfo == null) SizedBox(height: isPhone ? 5 : 10),
+                              if (controller.meetingInfoTimes == null) SizedBox(height: isPhone ? 5 : 10),
                               if (controller.bookingEnabled || controller.checkInEnabled) ActionPanel(
                                 controller: controller,
                                 isPhone: isPhone,
