@@ -41,4 +41,4 @@ COPY --chown=www-data:www-data --from=node_builder /app/public/build /var/www/ht
 
 USER www-data
 
-RUN mkdir -p database && touch database/database.sqlite
+RUN mkdir -p storage && touch storage/database.sqlite
