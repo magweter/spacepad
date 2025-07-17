@@ -83,4 +83,47 @@ class DisplaySettingsController extends Controller
 
         return redirect()->route('dashboard')->with('success', 'Display settings updated successfully');
     }
+
+    public function customization(Display $display): View
+    {
+        $this->authorize('update', $display);
+
+        if (!auth()->user()->hasPro()) {
+            return redirect()->route('dashboard')->with('error', 'Display customization is only available for Pro users.');
+        }
+
+        return view('pages.displays.customization', [
+            'display' => $display->load('calendar')
+        ]);
+    }
+
+    public function updateCustomization(Request $request, Display $display): RedirectResponse
+    {
+        $this->authorize('update', $display);
+
+        if (!auth()->user()->hasPro()) {
+            return redirect()->route('dashboard')->with('error', 'Display customization is only available for Pro users.');
+        }
+
+        $request->validate([
+            'text_available' => 'required|string|max:64',
+            'text_transitioning' => 'required|string|max:64',
+            'text_reserved' => 'required|string|max:64',
+            'text_checkin' => 'required|string|max:64',
+            'show_meeting_title' => 'boolean',
+        ]);
+
+        $updated = true;
+        $updated = $updated && DisplaySettings::setAvailableText($display, $request->input('text_available'));
+        $updated = $updated && DisplaySettings::setTransitioningText($display, $request->input('text_transitioning'));
+        $updated = $updated && DisplaySettings::setReservedText($display, $request->input('text_reserved'));
+        $updated = $updated && DisplaySettings::setCheckInText($display, $request->input('text_checkin'));
+        $updated = $updated && DisplaySettings::setShowMeetingTitle($display, $request->boolean('show_meeting_title'));
+        
+        if (!$updated) {
+            return back()->withErrors(['error' => 'Failed to update customization settings']);
+        }
+
+        return redirect()->route('displays.customization', $display)->with('success', 'Customization settings updated successfully');
+    }
 }

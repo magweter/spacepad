@@ -108,4 +108,51 @@ class DisplaySettings
     {
         return self::setSetting($display, 'calendar_enabled', $enabled, 'boolean');
     }
+
+    // Customizable display state texts (shorter keys)
+    public static function getAvailableText(Display $display): string
+    {
+        return self::getSetting($display, 'text_available', 'Available');
+    }
+    public static function setAvailableText(Display $display, string $text): bool
+    {
+        return self::setSetting($display, 'text_available', $text, 'string');
+    }
+
+    public static function getTransitioningText(Display $display): string
+    {
+        return self::getSetting($display, 'text_transitioning', 'Transitioning');
+    }
+    public static function setTransitioningText(Display $display, string $text): bool
+    {
+        return self::setSetting($display, 'text_transitioning', $text, 'string');
+    }
+
+    public static function getReservedText(Display $display): string
+    {
+        return self::getSetting($display, 'text_reserved', 'Reserved');
+    }
+    public static function setReservedText(Display $display, string $text): bool
+    {
+        return self::setSetting($display, 'text_reserved', $text, 'string');
+    }
+
+    public static function getCheckInText(Display $display): string
+    {
+        return self::getSetting($display, 'text_checkin', 'Check-in');
+    }
+    public static function setCheckInText(Display $display, string $text): bool
+    {
+        return self::setSetting($display, 'text_checkin', $text, 'string');
+    }
+
+    // Toggle for showing meeting title
+    public static function getShowMeetingTitle(Display $display): bool
+    {
+        return self::getSetting($display, 'show_meeting_title', true);
+    }
+    public static function setShowMeetingTitle(Display $display, bool $show): bool
+    {
+        return self::setSetting($display, 'show_meeting_title', $show, 'boolean');
+    }
 } 

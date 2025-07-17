@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:get/get.dart';
-import 'package:intl/intl.dart';
 import 'package:spacepad/components/toast.dart';
 import 'package:spacepad/models/event_model.dart';
 import 'package:spacepad/models/display_data_model.dart';
@@ -20,7 +19,7 @@ class DashboardController extends GetxController {
   Timer? _dataTimer;
 
   @override
-  void onInit() {
+  void onInit() async {
     super.onInit();
 
     updateTime();
@@ -29,12 +28,13 @@ class DashboardController extends GetxController {
     final displayIdResult = AuthService.instance.getCurrentDisplayId();
     if (displayIdResult == null) {
       Get.offAll(() => const DisplayPage());
+      return;
     } else {
       displayId.value = displayIdResult;
     }
 
     initializeTimers();
-    fetchDisplayData();
+    await fetchDisplayData();
 
     loading.value = false;
   }
