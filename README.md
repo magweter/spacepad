@@ -32,6 +32,9 @@ Spacepad offers a range of features to make viewing occupancy of meeting rooms a
 - **Outlook Calendar / Google Calendar integration**
 - **Microsoft 365 / Google Workspace integration**
 - **CalDAV Integration (like Nextcloud)**
+- **Ad-hoc on display room booking**
+- **Room check-in and release functionality**
+- **View full schedule of the day on the display**
 - **Modern Cross Platform app**
 - **Self Hosted or Cloud Hosted**
 
@@ -85,9 +88,9 @@ We love open source and welcome your contributions! See [CONTRIBUTING.md](CONTRI
 - [x] Self-hosted with Docker
 - [x] Google Workspace support
 - [x] CalDAV support
-- [ ] Booking directly on device
+- [x] Booking directly on device
+- [x] Showing all events of the day
 - [ ] Custom display themes & logos
-- [ ] Showing all events of the day
 - [ ] Amazon Fire Tablet support
 - [ ] Organizations & management
 - [ ] Web and TV view

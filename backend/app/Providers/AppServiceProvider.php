@@ -9,6 +9,8 @@ use Laravel\Sanctum\Sanctum;
 use LemonSqueezy\Laravel\LemonSqueezy;
 use SocialiteProviders\Manager\SocialiteWasCalled;
 use SocialiteProviders\Microsoft\Provider;
+use App\Models\Event as EventModel;
+use App\Observers\EventObserver;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -28,6 +30,8 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Sanctum::usePersonalAccessTokenModel(PersonalAccessToken::class);
+
+        EventModel::observe(EventObserver::class);
 
         Event::listen(function (SocialiteWasCalled $event) {
             $event->extendSocialite('microsoft', Provider::class);

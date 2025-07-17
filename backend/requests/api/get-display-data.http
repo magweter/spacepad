@@ -1,0 +1,4 @@
+GET {{baseUrl}}/api/displays/01JXT3S52HKWH41138BJ8TEWTX/data
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+Accept: application/json

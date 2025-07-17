@@ -1,0 +1,8 @@
+POST {{baseUrl}}/api/displays/01JXT3S52HKWH41138BJ8TEWTX/book
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+    "duration": 15
+}

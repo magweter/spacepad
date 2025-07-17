@@ -1,47 +1,57 @@
+import 'event_status.dart';
+
 class EventModel {
   String id;
+  EventStatus status;
   String summary;
   String? location;
   String? description;
   DateTime start;
   DateTime end;
   String? timezone;
-  bool? isAllDay;
+  bool isCheckedIn;
+  bool checkInRequired;
 
   EventModel({
     required this.id,
+    required this.status,
     required this.summary,
     this.location,
     this.description,
     required this.start,
     required this.end,
     this.timezone,
-    this.isAllDay,
+    this.isCheckedIn = false,
+    this.checkInRequired = false,
   });
 
   factory EventModel.fromJson(Map<String, dynamic> data) {
     return EventModel(
       id: data['id'],
+      status: eventStatusFromString(data['status']),
       summary: data['summary'],
       location: data['location'],
       description: data['description'],
       start: DateTime.parse(data['start']).toLocal(),
       end: DateTime.parse(data['end']).toLocal(),
       timezone: data['timezone'],
-      isAllDay: data['isAllDay'],
+      isCheckedIn: data['checkedInAt'] != null,
+      checkInRequired: data['checkInRequired'] ?? false,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
       'id': id,
+      'status': eventStatusToString(status),
       'summary': summary,
       'location': location,
       'description': description,
       'start': start.toIso8601String(),
       'end': end.toIso8601String(),
       'timezone': timezone,
-      'isAllDay': isAllDay,
+      'isCheckedIn': isCheckedIn,
+      'checkInRequired': checkInRequired,
     };
   }
 }

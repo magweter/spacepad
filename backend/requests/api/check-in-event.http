@@ -1,0 +1,4 @@
+POST {{baseUrl}}/api/events/01JZR8Z1455S6ZVBYFN0SX7C0A/check-in
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+Accept: application/json

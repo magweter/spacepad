@@ -4,11 +4,8 @@ import 'dart:core';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter_udid/flutter_udid.dart';
 import 'package:get/get.dart';
-import 'package:spacepad/exceptions/api_exception.dart';
 import 'package:spacepad/services/auth_service.dart';
 import 'package:spacepad/components/toast.dart';
-import 'package:http/http.dart' as http;
-import 'package:flutter/material.dart';
 import 'package:spacepad/services/server_service.dart';
 import 'package:spacepad/services/api_service.dart';
 
@@ -91,6 +88,8 @@ class LoginController extends GetxController {
 
         // Set the custom base URL for the API service
         await ApiService.setBaseUrl(trimmedUrl);
+      } else {
+        await ApiService.resetToServerBaseUrl();
       }
 
       final deviceId = await getDeviceId() ?? 'Unknown device';

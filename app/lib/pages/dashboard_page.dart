@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
+import 'package:spacepad/components/action_button.dart';
 import 'package:spacepad/components/event_line.dart';
 import 'package:spacepad/components/spinner.dart';
 import 'package:spacepad/controllers/dashboard_controller.dart';
+import 'package:spacepad/date_format_helper.dart';
 import 'package:spacepad/models/event_model.dart';
 import 'package:get/get.dart';
 import 'package:spacepad/theme.dart';
@@ -10,6 +13,9 @@ import 'package:tailwind_components/tailwind_components.dart';
 import 'dart:io' show Platform;
 import 'dart:math' show max;
 import 'package:spacepad/services/auth_service.dart';
+import 'package:spacepad/components/action_panel.dart';
+import 'package:spacepad/components/calendar_modal.dart';
+import 'package:spacepad/translations/translations.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -19,25 +25,25 @@ class DashboardPage extends StatefulWidget {
 }
 
 class _DashboardPageState extends State<DashboardPage> {
-  @override
-  void initState() {
-    super.initState();
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.landscapeLeft,
-      DeviceOrientation.landscapeRight,
-    ]);
-  }
-
-  @override
-  void dispose() {
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-      DeviceOrientation.portraitDown,
-      DeviceOrientation.landscapeLeft,
-      DeviceOrientation.landscapeRight,
-    ]);
-    super.dispose();
-  }
+  // @override
+  // void initState() {
+  //   super.initState();
+  //   SystemChrome.setPreferredOrientations([
+  //     DeviceOrientation.landscapeLeft,
+  //     DeviceOrientation.landscapeRight,
+  //   ]);
+  // }
+  //
+  // @override
+  // void dispose() {
+  //   SystemChrome.setPreferredOrientations([
+  //     DeviceOrientation.portraitUp,
+  //     DeviceOrientation.portraitDown,
+  //     DeviceOrientation.landscapeLeft,
+  //     DeviceOrientation.landscapeRight,
+  //   ]);
+  //   super.dispose();
+  // }
 
   bool _isPhone(BuildContext context) {
     final shortestSide = MediaQuery.of(context).size.shortestSide;
@@ -69,7 +75,7 @@ class _DashboardPageState extends State<DashboardPage> {
           Container(
             height: double.infinity,
             width: double.infinity,
-            color: controller.isTransitioning ?
+            color: controller.isTransitioning || controller.isCheckInActive ?
               TWColors.amber_500 :
               (controller.isReserved ? TWColors.rose_600 : TWColors.green_600),
             padding: EdgeInsets.all(isPhone ? 8 : 16),
@@ -92,7 +98,7 @@ class _DashboardPageState extends State<DashboardPage> {
                       Align(
                         alignment: Alignment.topLeft,
                         child: Text(
-                          controller.time.value,
+                          formatTime(context, controller.time.value),
                           style: TextStyle(
                             color: TWColors.gray_300,
                             fontSize: isPhone ? 20 : 28,
@@ -110,11 +116,13 @@ class _DashboardPageState extends State<DashboardPage> {
                               child: IconButton(
                                 icon: const Icon(Icons.logout, size: 24, color: Colors.white),
                                 onPressed: () {
-                                  controller.logout();
+                                  controller.switchRoom();
                                 },
-                                tooltip: 'Logout',
+                                tooltip: 'switch_room'.tr,
                               ),
                             ),
+
+                            SizedBox(width: 16),
                             Text(
                               controller.roomName,
                               style: TextStyle(
@@ -134,7 +142,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           SpaceCol(
-                            spaceBetween: controller.meetingInfo != null ? (isPhone ? 5 : 10) : 0,
+                            spaceBetween: controller.meetingInfoTimes != null ? (isPhone ? 5 : 10) : 0,
                             children: [
                               Text(
                                 controller.title,
@@ -147,7 +155,7 @@ class _DashboardPageState extends State<DashboardPage> {
                               SpaceRow(
                                 spaceBetween: isPhone ? 10 : 20,
                                 children: [
-                                  if (controller.meetingInfo != null) Container(
+                                  if (controller.meetingInfoTimes != null) Container(
                                     decoration: BoxDecoration(
                                       borderRadius: BorderRadius.circular(cornerRadius * 0.5),
                                       color: TWColors.gray_600.withValues(alpha: 0.3),
@@ -160,7 +168,10 @@ class _DashboardPageState extends State<DashboardPage> {
                                         isPhone ? 5 : 10,
                                       ),
                                       child: Text(
-                                        controller.meetingInfo!,
+                                        'meeting_info_title'.trParams({
+                                          'start': formatTime(context, controller.meetingInfoTimes!['start']!),
+                                          'end': formatTime(context, controller.meetingInfoTimes!['end']!),
+                                        }),
                                         style: TextStyle(
                                           color: TWColors.white,
                                           fontSize: isPhone ? 24 : 32,
@@ -169,39 +180,113 @@ class _DashboardPageState extends State<DashboardPage> {
                                       ),
                                     ),
                                   ),
-                                  Text(
-                                    controller.subtitle,
-                                    style: TextStyle(
-                                      color: TWColors.gray_300,
-                                      fontSize: isPhone ? 28 : 36,
-                                      fontWeight: FontWeight.w400
-                                    )
+                                  Flexible(
+                                    child: Text(
+                                      controller.subtitle,
+                                      style: TextStyle(
+                                        color: TWColors.gray_300,
+                                        fontSize: isPhone ? 28 : 36,
+                                        fontWeight: FontWeight.w400
+                                      ),
+                                      softWrap: true,
+                                      overflow: TextOverflow.visible,
+                                    ),
                                   ),
                                 ]
                               ),
-                              SizedBox(height: isPhone ? 10 : 20)
+                              if (controller.meetingInfoTimes == null) SizedBox(height: isPhone ? 5 : 10),
+                              if (controller.bookingEnabled || controller.checkInEnabled) ActionPanel(
+                                controller: controller,
+                                isPhone: isPhone,
+                                cornerRadius: cornerRadius,
+                              ),
                             ],
                           ),
                         ],
                       ),
 
-                      if (controller.upcomingEvents.isNotEmpty) Align(
-                          alignment: Alignment.bottomLeft,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(cornerRadius * 0.5),
-                              color: TWColors.gray_600.withValues(alpha: 0.3),
+                      // Fixed Action Bar at Bottom
+                      Align(
+                        alignment: Alignment.bottomCenter,
+                        child: Container(
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.only(
+                              topLeft: Radius.circular(cornerRadius * 0.5),
+                              topRight: Radius.circular(cornerRadius * 0.5),
                             ),
-                            child: Padding(
-                              padding: EdgeInsets.all(isPhone ? 10 : 20),
-                              child: SpaceCol(
-                                spaceBetween: isPhone ? 10 : 15,
-                                children: [
-                                  for (EventModel event in controller.upcomingEvents.take(1)) EventLine(event: event),
-                                ],
-                              ),
+                            color: TWColors.gray_600.withValues(alpha: 0.3),
+                          ),
+                          child: Padding(
+                            padding: EdgeInsets.all(isPhone ? 12 : 20),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                // Upcoming Events Section
+                                Expanded(
+                                  child: controller.upcomingEvents.isNotEmpty
+                                    ? SpaceCol(
+                                        spaceBetween: isPhone ? 8 : 12,
+                                        children: [
+                                          for (EventModel event in controller.upcomingEvents.take(1)) EventLine(event: event),
+                                        ],
+                                      )
+                                    : Text(
+                                        'no_upcoming_events'.tr,
+                                        style: TextStyle(
+                                          color: TWColors.gray_300,
+                                          fontSize: isPhone ? 16 : 18,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                ),
+                                
+                                // Action Buttons Section
+                                if (controller.calendarEnabled)
+                                  Material(
+                                    color: Colors.transparent,
+                                    child: InkWell(
+                                      hoverColor: Colors.transparent,
+                                      splashColor: Colors.transparent,
+                                      highlightColor: Colors.transparent,
+                                      borderRadius: BorderRadius.circular(8),
+                                      onTap: () {
+                                        showDialog(
+                                          context: context,
+                                          builder: (context) => CalendarModal(
+                                            events: controller.events,
+                                            selectedDate: DateTime.now(),
+                                          ),
+                                        );
+                                      },
+                                      child: Padding(
+                                        padding: EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              Icons.calendar_today_outlined,
+                                              size: 24,
+                                              color: Colors.white,
+                                            ),
+                                            SizedBox(width: 12),
+                                            Text(
+                                              'view_schedule'.tr,
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontSize: isPhone ? 14 : 18,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                              ],
                             ),
                           ),
+                        ),
                       ),
                     ],
                   )

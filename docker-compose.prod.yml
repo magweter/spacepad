@@ -36,7 +36,6 @@ services:
       - traefik
     volumes:
       - storage_data:/var/www/html/storage
-      - database_data:/var/www/html/database
       - .env:/var/www/html/.env:ro
     environment:
       PHP_OPCACHE_ENABLE: 1
@@ -56,7 +55,6 @@ services:
     platform: linux/amd64
     volumes:
       - storage_data:/var/www/html/storage
-      - database_data:/var/www/html/database
       - .env:/var/www/html/.env:ro
     environment:
       PHP_OPCACHE_ENABLE: 1

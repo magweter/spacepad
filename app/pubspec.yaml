@@ -1,5 +1,5 @@
 name: spacepad
-description: "A simple and fun meeting room occupancy display."
+description: "A simple and privacy-focused meeting room display."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.2+3
+version: 1.1.2+7
 
 environment:
   sdk: ^3.5.3
@@ -53,6 +53,7 @@ dependencies:
   marquee: ^2.3.0
   timezone: ^0.10.0
   flutter_udid: ^4.0.0
+  calendar_view: ^1.4.0
 
 dev_dependencies:
   flutter_test:
