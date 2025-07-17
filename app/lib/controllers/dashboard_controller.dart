@@ -59,19 +59,20 @@ class DashboardController extends GetxController {
   }
 
   String get title {
+    final settings = AuthService.instance.currentDevice.value?.display?.settings;
     if (isReserved) {
+      if (settings?.showMeetingTitle == false) {
+        return settings?.textReserved ?? 'reserved'.tr;
+      }
       return currentEvent!.summary;
     }
-
     if (isCheckInActive) {
-      return 'check_in_now'.tr;
+      return settings?.textCheckin ?? 'check_in_now'.tr;
     }
-
     if (isTransitioning && !isReserved) {
-      return 'to_be_reserved'.tr;
+      return settings?.textTransitioning ?? 'to_be_reserved'.tr;
     }
-
-    return 'available'.tr;
+    return settings?.textAvailable ?? 'available'.tr;
   }
 
   /// Returns the start and end DateTime of the current event, or null if not reserved.

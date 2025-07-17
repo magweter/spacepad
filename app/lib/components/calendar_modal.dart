@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:spacepad/models/event_model.dart';
 import 'package:spacepad/theme.dart';
 import 'package:get/get.dart';
+import 'package:spacepad/controllers/dashboard_controller.dart';
+import 'package:spacepad/services/auth_service.dart';
 import 'package:intl/intl.dart';
 import 'package:tailwind_components/tailwind_components.dart';
 
@@ -129,7 +131,9 @@ class CalendarModal extends StatelessWidget {
                                           ),
                                           const SizedBox(height: 8),
                                           Text(
-                                            event.summary,
+                                            AuthService.instance.currentDevice.value?.display?.settings.showMeetingTitle == false
+                                              ? 'meeting'.tr
+                                              : event.summary,
                                             style: TextStyle(
                                               color: Colors.white,
                                               fontSize: 17,

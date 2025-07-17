@@ -56,7 +56,8 @@ class AppTranslations extends Translations {
       'view_schedule': 'View schedule',
       'todays_schedule': 'Today\'s schedule',
       'no_upcoming_events': 'No upcoming events',
-      'no_events_today': 'No events scheduled for today'
+      'no_events_today': 'No events scheduled for today',
+      'meeting': 'Meeting'
     },
     'nl_NL': {
       'introduction_title': 'Welkom bij Spacepad!',
@@ -111,7 +112,8 @@ class AppTranslations extends Translations {
       'view_schedule': 'Bekijk dagplanning',
       'todays_schedule': 'Dagplanning',
       'no_upcoming_events': 'Geen toekomstige afspraken',
-      'no_events_today': 'Geen afspraken gepland voor vandaag'
+      'no_events_today': 'Geen afspraken gepland voor vandaag',
+      'meeting': 'Vergadering'
     },
     'es_ES': {
       'introduction_title': '¡Bienvenido a Spacepad!',
@@ -166,7 +168,8 @@ class AppTranslations extends Translations {
       'view_schedule': 'Ver horario',
       'todays_schedule': 'Horario de hoy',
       'no_upcoming_events': 'No hay eventos próximos',
-      'no_events_today': 'No hay eventos programados para hoy'
+      'no_events_today': 'No hay eventos programados para hoy',
+      'meeting': 'Reunión'
     },
     'fr_FR': {
       'introduction_title': 'Bienvenue sur Spacepad !',
@@ -221,7 +224,8 @@ class AppTranslations extends Translations {
       'view_schedule': 'Voir l\'horaire',
       'todays_schedule': 'Horaire d\'aujourd\'hui',
       'no_upcoming_events': 'Aucun événement à venir',
-      'no_events_today': 'Aucun événement programmé pour aujourd\'hui'
+      'no_events_today': 'Aucun événement programmé pour aujourd\'hui',
+      'meeting': 'Réunion'
     },
     'de_DE': {
       'introduction_title': 'Willkommen bei Spacepad!',
@@ -276,7 +280,8 @@ class AppTranslations extends Translations {
       'view_schedule': 'Zeitplan anzeigen',
       'todays_schedule': 'Heutiger zeitplan',
       'no_upcoming_events': 'Keine anstehenden Termine',
-      'no_events_today': 'Keine termine für heute geplant'
+      'no_events_today': 'Keine termine für heute geplant',
+      'meeting': 'Besprechung'
     },
   };
 }
