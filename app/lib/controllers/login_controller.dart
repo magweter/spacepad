@@ -88,6 +88,8 @@ class LoginController extends GetxController {
 
         // Set the custom base URL for the API service
         await ApiService.setBaseUrl(trimmedUrl);
+      } else {
+        await ApiService.resetToServerBaseUrl();
       }
 
       final deviceId = await getDeviceId() ?? 'Unknown device';

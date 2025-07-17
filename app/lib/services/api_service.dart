@@ -18,9 +18,14 @@ class ApiService {
     return sharedPrefs.setString('api_url', apiUrl);
   }
 
+  static Future<bool> resetToServerBaseUrl() async {
+    var apiUrl = dotenv.env['API_URL'] ?? 'https://app.spacepad.io';
+    return await setBaseUrl(apiUrl);
+  }
+
   static Future<String> getBaseUrl() async {
     var sharedPrefs = await SharedPreferences.getInstance();
-    var apiUrl = sharedPrefs.getString('api_url') ?? dotenv.env['API_URL'] ?? 'https://app.spacepad.io';
+    var apiUrl = sharedPrefs.getString('api_url');
     return '$apiUrl/api/';
   }
 
