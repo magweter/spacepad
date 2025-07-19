@@ -36,7 +36,6 @@ class DisplaySettingsApiTest extends TestCase
                 '*' => [
                     'id',
                     'name',
-                    'display_name',
                     'settings' => [
                         'check_in_enabled',
                         'booking_enabled',
