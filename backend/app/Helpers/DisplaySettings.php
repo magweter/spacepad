@@ -12,7 +12,7 @@ class DisplaySettings
         $setting = DisplaySetting::where('display_id', $display->id)
             ->where('key', $key)
             ->first();
-        
+
         return $setting?->value ?? $default;
     }
 
@@ -110,36 +110,36 @@ class DisplaySettings
     }
 
     // Customizable display state texts (shorter keys)
-    public static function getAvailableText(Display $display): string
+    public static function getAvailableText(Display $display): ?string
     {
-        return self::getSetting($display, 'text_available', 'Available');
+        return self::getSetting($display, 'text_available');
     }
     public static function setAvailableText(Display $display, string $text): bool
     {
         return self::setSetting($display, 'text_available', $text, 'string');
     }
 
-    public static function getTransitioningText(Display $display): string
+    public static function getTransitioningText(Display $display): ?string
     {
-        return self::getSetting($display, 'text_transitioning', 'Transitioning');
+        return self::getSetting($display, 'text_transitioning');
     }
     public static function setTransitioningText(Display $display, string $text): bool
     {
         return self::setSetting($display, 'text_transitioning', $text, 'string');
     }
 
-    public static function getReservedText(Display $display): string
+    public static function getReservedText(Display $display): ?string
     {
-        return self::getSetting($display, 'text_reserved', 'Reserved');
+        return self::getSetting($display, 'text_reserved');
     }
     public static function setReservedText(Display $display, string $text): bool
     {
         return self::setSetting($display, 'text_reserved', $text, 'string');
     }
 
-    public static function getCheckInText(Display $display): string
+    public static function getCheckInText(Display $display): ?string
     {
-        return self::getSetting($display, 'text_checkin', 'Check-in');
+        return self::getSetting($display, 'text_checkin');
     }
     public static function setCheckInText(Display $display, string $text): bool
     {
@@ -155,4 +155,4 @@ class DisplaySettings
     {
         return self::setSetting($display, 'show_meeting_title', $show, 'boolean');
     }
-} 
+}

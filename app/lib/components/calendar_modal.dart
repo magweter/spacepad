@@ -131,9 +131,7 @@ class CalendarModal extends StatelessWidget {
                                           ),
                                           const SizedBox(height: 8),
                                           Text(
-                                            AuthService.instance.currentDevice.value?.display?.settings.showMeetingTitle == false
-                                              ? 'meeting'.tr
-                                              : event.summary,
+                                            event.summary,
                                             style: TextStyle(
                                               color: Colors.white,
                                               fontSize: 17,

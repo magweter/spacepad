@@ -34,11 +34,10 @@
             <div class="flex-shrink-0 mt-1">
                 <span class="inline-flex items-center justify-center h-10 w-10 rounded-full bg-indigo-100">
                     <x-icons.settings class="h-6 w-6 text-indigo-500" />
-                    <x-icons.brush class="h-6 w-6 text-indigo-500 ml-1" />
                 </span>
             </div>
             <div class="flex-1">
-                <h3 class="text-md font-semibold text-indigo-900 mb-1">Unlock All Pro Features</h3>
+                <h3 class="text-md font-semibold text-indigo-900 mb-1">Unlock all Pro features</h3>
                 <p class="text-sm text-indigo-800 mb-2">
                     Upgrade to Pro to access advanced display settings, full customization, and powerful features for growing teams and offices!
                 </p>
@@ -50,7 +49,6 @@
                     <li>Hide or show meeting titles for privacy</li>
                     <li>Advanced check-in and booking controls</li>
                 </ul>
-                <a href="#displays-table" class="text-indigo-700 underline hover:text-indigo-900 text-sm">See where to find these features</a>
             </div>
             <div class="flex-shrink-0 ml-4 mt-2">
                 <x-lemon-button :href="$checkout" class="text-sm inline-flex items-center px-4 py-2 rounded-md bg-indigo-600 text-white font-semibold shadow hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition">

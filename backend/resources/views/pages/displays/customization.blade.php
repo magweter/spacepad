@@ -31,9 +31,6 @@
 
         {{-- Session Status Alert --}}
         <x-alerts.alert :errors="$errors" />
-        @if(session('success'))
-            <div class="mb-4 p-3 bg-green-50 border border-green-200 text-green-800 rounded">{{ session('success') }}</div>
-        @endif
 
         <form id="customizationForm" action="{{ route('displays.customization.update', $display) }}" method="POST">
             @csrf
@@ -43,19 +40,19 @@
                     <h3 class="text-base font-semibold text-gray-900 mb-4">State Texts</h3>
                     <div class="mb-4">
                         <label for="text_available" class="block text-sm font-medium text-gray-700">Available State Text</label>
-                        <input type="text" name="text_available" id="text_available" maxlength="64" value="{{ old('text_available', \App\Helpers\DisplaySettings::getAvailableText($display)) }}" class="mt-1 px-3 py-2 block w-full border rounded-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 sm:text-sm" required />
+                        <input type="text" name="text_available" id="text_available" maxlength="64" placeholder="All yours!" value="{{ old('text_available', \App\Helpers\DisplaySettings::getAvailableText($display)) }}" class="mt-1 px-3 py-2 block w-full border rounded-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 sm:text-sm" />
                     </div>
                     <div class="mb-4">
                         <label for="text_transitioning" class="block text-sm font-medium text-gray-700">Transitioning State Text</label>
-                        <input type="text" name="text_transitioning" id="text_transitioning" maxlength="64" value="{{ old('text_transitioning', \App\Helpers\DisplaySettings::getTransitioningText($display)) }}" class="mt-1 px-3 py-2 block w-full border rounded-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 sm:text-sm" required />
+                        <input type="text" name="text_transitioning" id="text_transitioning" maxlength="64" placeholder="Keep it short!" value="{{ old('text_transitioning', \App\Helpers\DisplaySettings::getTransitioningText($display)) }}" class="mt-1 px-3 py-2 block w-full border rounded-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 sm:text-sm" />
                     </div>
                     <div class="mb-4">
                         <label for="text_reserved" class="block text-sm font-medium text-gray-700">Reserved State Text</label>
-                        <input type="text" name="text_reserved" id="text_reserved" maxlength="64" value="{{ old('text_reserved', \App\Helpers\DisplaySettings::getReservedText($display)) }}" class="mt-1 px-3 py-2 block w-full border rounded-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 sm:text-sm" required />
+                        <input type="text" name="text_reserved" id="text_reserved" maxlength="64" placeholder="Meeting" value="{{ old('text_reserved', \App\Helpers\DisplaySettings::getReservedText($display)) }}" class="mt-1 px-3 py-2 block w-full border rounded-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 sm:text-sm" />
                     </div>
                     <div class="mb-4">
                         <label for="text_checkin" class="block text-sm font-medium text-gray-700">Check-in State Text</label>
-                        <input type="text" name="text_checkin" id="text_checkin" maxlength="64" value="{{ old('text_checkin', \App\Helpers\DisplaySettings::getCheckInText($display)) }}" class="mt-1 px-3 py-2 block w-full border rounded-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 sm:text-sm" required />
+                        <input type="text" name="text_checkin" id="text_checkin" maxlength="64" placeholder="Check in for meeting" value="{{ old('text_checkin', \App\Helpers\DisplaySettings::getCheckInText($display)) }}" class="mt-1 px-3 py-2 block w-full border rounded-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 sm:text-sm" />
                     </div>
                 </div>
                 <div class="border border-gray-200 rounded-lg p-6">
@@ -78,4 +75,4 @@
         </form>
     </x-cards.card>
     @endif
-@endsection 
+@endsection

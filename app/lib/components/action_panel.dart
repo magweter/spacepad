@@ -46,7 +46,7 @@ class ActionPanel extends StatelessWidget {
                   child: ActionButton(
                     text: '$min min',
                     onPressed: controller.availableBookingDurations.contains(min)
-                      ? () => controller.bookRoom(min, 'reserved'.tr)
+                      ? () => controller.bookRoom(min)
                       : null,
                     isPhone: isPhone,
                     cornerRadius: cornerRadius,
