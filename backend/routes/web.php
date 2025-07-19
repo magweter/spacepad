@@ -77,6 +77,12 @@ Route::middleware(['auth', 'user.update-last-activity'])->group(function () {
     Route::put('/displays/{display}/settings', [DisplaySettingsController::class, 'update'])
         ->name('displays.settings.update');
 
+    // Display customization routes
+    Route::get('/displays/{display}/customization', [DisplaySettingsController::class, 'customization'])
+        ->name('displays.customization');
+    Route::put('/displays/{display}/customization', [DisplaySettingsController::class, 'updateCustomization'])
+        ->name('displays.customization.update');
+
     Route::get('/calendars/outlook/{id}', [CalendarController::class, 'outlook'])
         ->name('calendars.outlook');
     Route::get('/calendars/google/{id}', [CalendarController::class, 'google'])

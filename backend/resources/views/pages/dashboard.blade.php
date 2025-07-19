@@ -30,35 +30,32 @@
 
     {{-- Commercial Banner --}}
     @if(! auth()->user()->hasPro())
-        <x-cards.card class="mb-4">
-            <div class="sm:flex sm:items-center sm:justify-between">
-                <div>
-                    <h3 class="text-lg font-semibold text-gray-900">Get access to all features</h3>
-                    <div class="mt-1 text-sm text-gray-500 leading-5">
-                        <p>
-                            @if($isSelfHosted)
-                                Spacepad strives to be fair and sustainable. Features for businesses and power-users like using multiple displays, rooms and customization are therefore paid. <br>
-                                Support development by purchasing a Pro license — it's just $6 per display. The first display is always free.
-                            @else
-                                Spacepad strives to be fair and sustainable. Features for businesses and power-users like using multiple displays, rooms and customization are therefore paid. <br>
-                                Try out Pro 14 days for free — after that it's just $6 per display. The first display is always free.
-                            @endif
-                        </p>
-                    </div>
-                </div>
-                <div class="mt-5 sm:mt-0 sm:ml-6 sm:flex sm:shrink-0 sm:items-center">
-                    @if($isSelfHosted)
-                        <button type="button" x-data @click="$dispatch('open-modal', 'license-key')" class="inline-flex items-center rounded-md bg-orange px-3 py-2 text-sm font-semibold text-white shadow-xs hover:bg-orange-400">
-                            Try Pro for 14 days
-                        </button>
-                    @else
-                        <x-lemon-button :href="$checkout" class="inline-flex items-center rounded-md bg-orange px-3 py-2 text-sm font-semibold text-white shadow-xs hover:bg-orange-400">
-                            Try Pro for 14 days
-                        </x-lemon-button>
-                    @endif
-                </div>
+        <div class="mb-4 rounded-lg bg-indigo-50 border border-indigo-200 p-4 flex items-start gap-4">
+            <div class="flex-shrink-0 mt-1">
+                <span class="inline-flex items-center justify-center h-10 w-10 rounded-full bg-indigo-100">
+                    <x-icons.settings class="h-6 w-6 text-indigo-500" />
+                </span>
             </div>
-        </x-cards.card>
+            <div class="flex-1">
+                <h3 class="text-md font-semibold text-indigo-900 mb-1">Unlock all Pro features</h3>
+                <p class="text-sm text-indigo-800 mb-2">
+                    Upgrade to Pro to access advanced display settings, full customization, and powerful features for growing teams and offices!
+                </p>
+                <ul class="text-sm text-indigo-700 mb-2 list-disc list-inside">
+                    <li>Use multiple displays</li>
+                    <li>Connect and manage rooms/resources</li>
+                    <li>Connect multiple calendar accounts</li>
+                    <li>Change state texts (Available, Reserved, etc.)</li>
+                    <li>Hide or show meeting titles for privacy</li>
+                    <li>Advanced check-in and booking controls</li>
+                </ul>
+            </div>
+            <div class="flex-shrink-0 ml-4 mt-2">
+                <x-lemon-button :href="$checkout" class="text-sm inline-flex items-center px-4 py-2 rounded-md bg-indigo-600 text-white font-semibold shadow hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition">
+                    Upgrade to Pro
+                </x-lemon-button>
+            </div>
+        </div>
     @endif
 
     <div class="grid gap-4 grid-cols-12 min-h-[600px]">
@@ -148,7 +145,7 @@
                                 </th>
                             </tr>
                             </thead>
-                            <tbody class="divide-y divide-gray-200">
+                            <tbody class="divide-y divide-gray-200" id="displays-table">
                             @forelse($displays as $display)
                                 <tr>
                                     <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0">
@@ -236,9 +233,19 @@
                                                 </button>
                                             </form>
                                             @if(auth()->user()->hasPro())
+                                                <a href="{{ route('displays.customization', $display) }}" class="inline-flex items-center rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-indigo-600 shadow-sm ring-1 ring-inset ring-indigo-300 hover:bg-indigo-50" title="Customize display (Pro)">
+                                                    <x-icons.brush class="h-4 w-4" />
+                                                </a>
                                                 <a href="{{ route('displays.settings.index', $display) }}" class="inline-flex items-center rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-blue-600 shadow-sm ring-1 ring-inset ring-blue-300 hover:bg-blue-50" title="Display settings (Pro)">
                                                     <x-icons.settings class="h-4 w-4" />
                                                 </a>
+                                            @else
+                                                <span class="inline-flex items-center rounded-md bg-gray-100 px-2.5 py-1.5 text-sm font-semibold text-gray-400 shadow-sm ring-1 ring-inset ring-gray-200 cursor-not-allowed" title="Upgrade to Pro to unlock customization">
+                                                    <x-icons.brush class="h-4 w-4" />
+                                                </span>
+                                                <span class="inline-flex items-center rounded-md bg-gray-100 px-2.5 py-1.5 text-sm font-semibold text-gray-400 shadow-sm ring-1 ring-inset ring-gray-200 cursor-not-allowed" title="Upgrade to Pro to unlock settings">
+                                                    <x-icons.settings class="h-4 w-4" />
+                                                </span>
                                             @endif
                                             <form action="{{ route('displays.delete', $display) }}" method="POST" class="inline">
                                                 @csrf
