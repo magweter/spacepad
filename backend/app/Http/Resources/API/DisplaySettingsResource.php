@@ -20,6 +20,11 @@ class DisplaySettingsResource extends JsonResource
             'calendar_enabled' => $this->isCalendarEnabled(),
             'check_in_minutes' => $this->getCheckInMinutes(),
             'check_in_grace_period' => $this->getCheckInGracePeriod(),
+            'text_available' => $this->getAvailableText(),
+            'text_transitioning' => $this->getTransitioningText(),
+            'text_reserved' => $this->getReservedText(),
+            'text_checkin' => $this->getCheckInText(),
+            'show_meeting_title' => $this->getShowMeetingTitle(),
         ];
     }
 }

@@ -60,11 +60,6 @@ class DisplayController extends Controller
             return redirect()->back()->with('error', 'You require an active Pro license to create multiple displays.');
         }
 
-        // Check on access to features and subscription
-        if (! auth()->user()->hasPro() && isset($validatedData['room'])) {
-            return redirect()->back()->with('error', 'You require an active Pro license to be able to use resources.');
-        }
-
         // Validate the existence of the appropriate account based on provider
         match ($provider) {
             'outlook' => OutlookAccount::findOrFail($accountId),

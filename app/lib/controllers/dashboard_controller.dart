@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:get/get.dart';
-import 'package:intl/intl.dart';
 import 'package:spacepad/components/toast.dart';
 import 'package:spacepad/models/event_model.dart';
 import 'package:spacepad/models/display_data_model.dart';
@@ -9,18 +8,26 @@ import 'package:spacepad/models/event_status.dart';
 import 'package:spacepad/services/display_service.dart';
 import 'package:spacepad/services/auth_service.dart';
 import 'package:spacepad/pages/display_page.dart';
+import 'package:spacepad/models/device_model.dart';
+import 'package:spacepad/models/display_model.dart';
+import 'package:spacepad/models/display_settings_model.dart';
 
 class DashboardController extends GetxController {
   final RxBool loading = RxBool(true);
   final RxList<EventModel> events = RxList();
   final Rx<DateTime> time = Rx<DateTime>(DateTime.now());
   final RxString displayId = RxString('');
+
+  // Global variables for device, display, and settings
+  DeviceModel? globalCurrentDevice;
+  DisplayModel? globalDisplay;
+  DisplaySettingsModel? globalSettings;
   
   Timer? _clock;
   Timer? _dataTimer;
 
   @override
-  void onInit() {
+  void onInit() async {
     super.onInit();
 
     updateTime();
@@ -29,12 +36,13 @@ class DashboardController extends GetxController {
     final displayIdResult = AuthService.instance.getCurrentDisplayId();
     if (displayIdResult == null) {
       Get.offAll(() => const DisplayPage());
+      return;
     } else {
       displayId.value = displayIdResult;
     }
 
     initializeTimers();
-    fetchDisplayData();
+    await fetchDisplayData();
 
     loading.value = false;
   }
@@ -55,23 +63,20 @@ class DashboardController extends GetxController {
   }
 
   String get roomName {
-    return AuthService.instance.currentDevice.value?.display?.name ?? 'meeting_room'.tr;
+    return globalDisplay?.name ?? 'meeting_room'.tr;
   }
 
   String get title {
     if (isReserved) {
       return currentEvent!.summary;
     }
-
     if (isCheckInActive) {
-      return 'check_in_now'.tr;
+      return globalSettings?.textCheckin ?? 'check_in_now'.tr;
     }
-
     if (isTransitioning && !isReserved) {
-      return 'to_be_reserved'.tr;
+      return globalSettings?.textTransitioning ?? 'to_be_reserved'.tr;
     }
-
-    return 'available'.tr;
+    return globalSettings?.textAvailable ?? 'available'.tr;
   }
 
   /// Returns the start and end DateTime of the current event, or null if not reserved.
@@ -193,14 +198,24 @@ class DashboardController extends GetxController {
     try {
       DisplayDataModel displayData = await DisplayService.instance.getDisplayData(displayId.value);
       
-      // Update events
-      events.value = displayData.events.where((e) => e.status != EventStatus.cancelled).toList();
-      
-      // Update display settings in the current device
+      // Update global device, display, and settings
       if (AuthService.instance.currentDevice.value != null) {
-        AuthService.instance.currentDevice.value!.display = displayData.display;
+        globalCurrentDevice = AuthService.instance.currentDevice.value;
+        globalCurrentDevice!.display = displayData.display;
+        globalDisplay = globalCurrentDevice!.display;
+        globalSettings = globalDisplay?.settings;
+
         AuthService.instance.currentDevice.refresh();
       }
+
+      // Update events
+      events.value = displayData.events
+          .where((e) => e.status != EventStatus.cancelled)
+          .map((e) {
+            e.summary = getDisplayableSummary(e);
+            return e;
+          })
+          .toList();
     } catch (e) {
       Toast.showError('could_not_load_data'.tr);
     }
@@ -213,8 +228,9 @@ class DashboardController extends GetxController {
     Get.offAll(() => const DisplayPage());
   }
 
-  Future<void> bookRoom(int duration, String summary) async {
+  Future<void> bookRoom(int duration) async {
     try {
+      final summary = 'reserved'.tr;
       await DisplayService.instance.book(displayId.value, duration, summary: summary);
       await fetchDisplayData();
       Toast.showSuccess('room_booked'.tr);
@@ -237,11 +253,11 @@ class DashboardController extends GetxController {
 
   // Check if booking should be displayed based on display settings
   bool get bookingEnabled {
-    return AuthService.instance.currentDevice.value?.display?.settings.bookingEnabled ?? false;
+    return globalSettings?.bookingEnabled ?? false;
   }
 
   bool get calendarEnabled {
-    return AuthService.instance.currentDevice.value?.display?.settings.calendarEnabled ?? false;
+    return globalSettings?.calendarEnabled ?? false;
   }
 
   // Track if booking options are shown
@@ -258,15 +274,15 @@ class DashboardController extends GetxController {
   }
 
   int get checkInGracePeriod {
-    return AuthService.instance.currentDevice.value?.display?.settings.checkInGracePeriod ?? 5;
+    return globalSettings?.checkInGracePeriod ?? 5;
   }
 
   bool get checkInEnabled {
-    return AuthService.instance.currentDevice.value?.display?.settings.checkInEnabled ?? false;
+    return globalSettings?.checkInEnabled ?? false;
   }
 
   int get checkInMinutes {
-    return AuthService.instance.currentDevice.value?.display?.settings.checkInMinutes ?? 15;
+    return globalSettings?.checkInMinutes ?? 15;
   }
 
   void checkIn() async {
@@ -290,6 +306,18 @@ class DashboardController extends GetxController {
       return base.where((min) => min <= minutesUntilNext).toList();
     }
     return base;
+  }
+
+  /// Returns the summary to display for an event, respecting showMeetingTitle
+  String getDisplayableSummary(EventModel event) {
+    if (globalSettings?.showMeetingTitle == false) {
+      return getReservedText();
+    }
+    return event.summary;
+  }
+
+  String getReservedText() {
+    return globalSettings?.textReserved ?? 'reserved'.tr;
   }
 
   @override

@@ -142,4 +142,29 @@ class Display extends Model
     {
         return DisplaySettings::setCalendarEnabled($this, $enabled);
     }
+
+    public function getAvailableText(): ?string
+    {
+        return DisplaySettings::getAvailableText($this);
+    }
+
+    public function getTransitioningText(): ?string
+    {
+        return DisplaySettings::getTransitioningText($this);
+    }
+
+    public function getReservedText(): ?string
+    {
+        return DisplaySettings::getReservedText($this);
+    }
+
+    public function getCheckInText(): ?string
+    {
+        return DisplaySettings::getCheckInText($this);
+    }
+
+    public function getShowMeetingTitle(): bool
+    {
+        return DisplaySettings::getShowMeetingTitle($this);
+    }
 }
