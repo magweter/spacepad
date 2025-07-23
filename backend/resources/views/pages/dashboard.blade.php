@@ -29,7 +29,7 @@
     <x-modals.license-key />
 
     {{-- Commercial Banner --}}
-    @if(! auth()->user()->hasPro())
+    @if(! auth()->user()->hasPro() && auth()->user()->hasAnyDisplay())
         <div class="mb-4 rounded-lg bg-indigo-50 border border-indigo-200 p-4 flex items-start gap-4">
             <div class="flex-shrink-0 mt-1">
                 <span class="inline-flex items-center justify-center h-10 w-10 rounded-full bg-indigo-100">
@@ -37,23 +37,24 @@
                 </span>
             </div>
             <div class="flex-1">
-                <h3 class="text-md font-semibold text-indigo-900 mb-1">Unlock all Pro features</h3>
-                <p class="text-sm text-indigo-800 mb-2">
-                    Upgrade to Pro to access advanced display settings, full customization, and powerful features for growing teams and offices!
+                <h3 class="text-md font-semibold text-indigo-900 mb-1">Unlock all features</h3>
+                <p class="text-sm text-indigo-800 mb-1">
+                    Upgrade to Pro to create multiple displays, book on-display, customize or hide meeting titles, enable check-in and more!
                 </p>
-                <ul class="text-sm text-indigo-700 mb-2 list-disc list-inside">
-                    <li>Use multiple displays</li>
-                    <li>Connect and manage rooms/resources</li>
-                    <li>Connect multiple calendar accounts</li>
-                    <li>Change state texts (Available, Reserved, etc.)</li>
-                    <li>Hide or show meeting titles for privacy</li>
-                    <li>Advanced check-in and booking controls</li>
-                </ul>
+                <p class="text-sm text-indigo-700 mb-0">
+                    <a href="https://spacepad.io/#features" target="_blank" class="underline hover:text-indigo-900 inline-block">See all Pro features</a> or <a href="https://spacepad.io/#pricing" target="_blank" class="underline hover:text-indigo-900 inline-block">see pricing</a>.
+                </p>
             </div>
             <div class="flex-shrink-0 ml-4 mt-2">
-                <x-lemon-button :href="$checkout" class="text-sm inline-flex items-center px-4 py-2 rounded-md bg-indigo-600 text-white font-semibold shadow hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition">
-                    Upgrade to Pro
-                </x-lemon-button>
+                @if($isSelfHosted)
+                    <button type="button" x-data @click="$dispatch('open-modal', 'license-key')" class="inline-flex items-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-xs hover:bg-indigo-700">
+                        Try Pro 14 days for free
+                    </button>
+                @else
+                    <x-lemon-button :href="$checkout" class="inline-flex items-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-xs hover:bg-indigo-700">
+                        Try Pro 14 days for free
+                    </x-lemon-button>
+                @endif
             </div>
         </div>
     @endif
@@ -73,16 +74,11 @@
                         </button>
                     @endif
                     @if(auth()->user()->can('create', \App\Models\Display::class))
-                        @if(! $isSelfHosted && auth()->user()->shouldUpgrade())
-                            <x-lemon-button :href="$checkout" class="inline-flex items-center rounded-md bg-oxford px-3 py-2 text-center text-sm font-semibold text-white">
+                        @if(auth()->user()->shouldUpgrade())
+                            <span class="inline-flex items-center rounded-md bg-gray-100 px-3 py-2 text-center text-sm font-semibold text-gray-400 shadow-sm ring-1 ring-inset ring-gray-200 cursor-not-allowed" title="Upgrade to Pro to create more displays">
                                 <x-icons.plus class="h-5 w-5 mr-1" />
                                 Create new display <span class="ml-2 inline-flex items-center rounded-md bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600">Pro</span>
-                            </x-lemon-button>
-                        @elseif($isSelfHosted && auth()->user()->shouldUpgrade())
-                            <button type="button" x-data @click="$dispatch('open-modal', 'license-key')" class="inline-flex items-center rounded-md bg-oxford px-3 py-2 text-center text-sm font-semibold text-white">
-                                <x-icons.plus class="h-5 w-5 mr-1" />
-                                Create new display <span class="ml-2 inline-flex items-center rounded-md bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600">Pro</span>
-                            </button>
+                            </span>
                         @else
                             <a href="{{ route('displays.create') }}" class="inline-flex items-center rounded-md bg-oxford px-3 py-2 text-center text-sm font-semibold text-white">
                                 <x-icons.plus class="h-5 w-5 mr-1" />
@@ -266,9 +262,19 @@
                                                 You are almost ready!<br>Next, set up a new display.
                                             </h3>
                                             <p class="mb-6 text-sm text-gray-500 max-w-sm">Pick the calendar or room you would like to synchronize. You are able to connect multiple tablets to one display.</p>
-                                            <a href="{{ route('displays.create') }}" class="inline-flex items-center rounded-md bg-oxford px-3 py-2 text-center text-sm font-semibold text-white">
-                                                <x-icons.plus class="h-5 w-5 mr-1" /> Create new display
-                                            </a>
+                                            @if(! $isSelfHosted && auth()->user()->shouldUpgrade())
+                                                <span class="inline-flex items-center rounded-md bg-gray-100 px-3 py-2 text-center text-sm font-semibold text-gray-400 shadow-sm ring-1 ring-inset ring-gray-200 cursor-not-allowed" title="Upgrade to Pro to create more displays">
+                                                    <x-icons.plus class="h-5 w-5 mr-1" /> Create new display <span class="ml-2 inline-flex items-center rounded-md bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600">Pro</span>
+                                                </span>
+                                            @elseif($isSelfHosted && auth()->user()->shouldUpgrade())
+                                                <span class="inline-flex items-center rounded-md bg-gray-100 px-3 py-2 text-center text-sm font-semibold text-gray-400 shadow-sm ring-1 ring-inset ring-gray-200 cursor-not-allowed" title="Upgrade to Pro to create more displays">
+                                                    <x-icons.plus class="h-5 w-5 mr-1" /> Create new display <span class="ml-2 inline-flex items-center rounded-md bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600">Pro</span>
+                                                </span>
+                                            @else
+                                                <a href="{{ route('displays.create') }}" class="inline-flex items-center rounded-md bg-oxford px-3 py-2 text-center text-sm font-semibold text-white">
+                                                    <x-icons.plus class="h-5 w-5 mr-1" /> Create new display
+                                                </a>
+                                            @endif
                                         </div>
                                     </td>
                                 </tr>

@@ -9,7 +9,7 @@ Edit docker compose volumes section (for both app and scheduler), and change the
 ```yml
 volumes:
     - storage_data:/var/www/html/storage
-    - ./database.sqlite:/var/www/html/database/database.sqlite
+    - ./database.sqlite:/var/www/html/storage/database.sqlite
     - .env:/var/www/html/.env:ro
 ```
 

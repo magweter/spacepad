@@ -7,7 +7,7 @@
 | Community | Free (1 display)      | Calendar sync, real-time display |
 | Pro       | $6/month/display      | Unlimited displays, Pro features |
 
-> 14-day free trial included. No credit card required.
+> 14-day free Pro trial available when registered.
 
 ---
 
