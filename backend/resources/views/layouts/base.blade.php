@@ -13,6 +13,11 @@
                     @endif
                 </a>
                 <div class="ml-4 flex items-center space-x-4">
+                    @if(auth()->user()->isAdmin() && !config('settings.is_self_hosted'))
+                        <a href="{{ route('admin.index') }}" class="rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300 hover:text-black">
+                            Admin
+                        </a>
+                    @endif
                     @if(auth()->user()->hasPro())
                         <a href="mailto:support@spacepad.io" class="hidden md:block rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300 hover:text-black">
                             Need help?

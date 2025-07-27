@@ -16,6 +16,7 @@ use App\Http\Controllers\OutlookWebhookController;
 use App\Http\Controllers\CalDAVAccountsController;
 use App\Http\Controllers\LicenseController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\AdminController;
 
 Route::get('/login', [LoginController::class, 'create'])
     ->middleware('guest')
@@ -95,4 +96,6 @@ Route::middleware(['auth', 'user.update-last-activity'])->group(function () {
         ->name('rooms.google');
 
     Route::post('/license/validate', [LicenseController::class, 'validateLicense'])->name('license.validate');
+    
+    Route::get('/admin', [AdminController::class, 'index'])->name('admin.index');
 });
