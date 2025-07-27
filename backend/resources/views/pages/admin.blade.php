@@ -13,7 +13,7 @@
                 <div class="ml-5 w-0 flex-1">
                     <dl>
                         <dt class="text-sm font-medium text-gray-500 truncate">Active Displays</dt>
-                        <dd class="mt-1 text-2xl font-semibold text-gray-900">{{ $activeDisplays }}</dd>
+                        <dd class="mt-1 text-2xl font-semibold text-gray-900">{{ $activeDisplaysCount }}</dd>
                     </dl>
                 </div>
             </div>
@@ -123,7 +123,7 @@
                     </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-200">
-                    @forelse($activeUsers as $user)
+                    @forelse($activeDisplays as $user)
                         <tr>
                             <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0">{{ $user->name }}</td>
                             <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{ $user->email }}</td>
@@ -140,4 +140,4 @@
             </div>
         </div>
     </div>
-@endsection 
+@endsection
