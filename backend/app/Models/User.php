@@ -36,6 +36,7 @@ class User extends Authenticatable
         'last_activity_at',
         'is_unlimited',
         'terms_accepted_at',
+        'is_admin',
     ];
 
     /**
@@ -60,6 +61,7 @@ class User extends Authenticatable
         'is_unlimited' => 'boolean',
         'usage_type' => UsageType::class,
         'terms_accepted_at' => 'datetime',
+        'is_admin' => 'boolean',
     ];
 
     public function outlookAccounts(): HasMany
@@ -195,5 +197,13 @@ class User extends Authenticatable
             }
         }
         return false;
+    }
+
+    /**
+     * Check if the user is an admin
+     */
+    public function isAdmin(): bool
+    {
+        return (bool) $this->is_admin;
     }
 }
