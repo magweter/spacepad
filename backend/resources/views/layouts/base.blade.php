@@ -19,6 +19,9 @@
                         </a>
                     @endif
                     @if(auth()->user()->hasPro())
+                        <button type="button" onclick="window.dispatchEvent(new CustomEvent('open-modal', { detail: 'manage-subscription' }))" class="rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300 hover:text-black">
+                            Manage subscription
+                        </button>
                         <a href="mailto:support@spacepad.io" class="hidden md:block rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300 hover:text-black">
                             Need help?
                         </a>
@@ -52,4 +55,6 @@
     <main class="mx-auto @yield('container_class', 'container') px-4 sm:px-6 pb-16">
         @yield('content')
     </main>
+
+    @include('components.modals.manage-subscription')
 @endsection
