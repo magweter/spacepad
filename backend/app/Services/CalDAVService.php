@@ -114,6 +114,15 @@ XML;
                 foreach ($vcalendar->select('VEVENT') as $vevent) {
                     $start = $vevent->DTSTART->getDateTime();
                     $end = $vevent->DTEND->getDateTime();
+                    
+                    // Ensure datetimes are in UTC
+                    if ($start->getTimezone()->getName() !== 'UTC') {
+                        $start = $start->setTimezone(new \DateTimeZone('UTC'));
+                    }
+                    if ($end->getTimezone()->getName() !== 'UTC') {
+                        $end = $end->setTimezone(new \DateTimeZone('UTC'));
+                    }
+
                     $events[] = [
                         'id' => (string) $vevent->UID,
                         'summary' => (string) $vevent->SUMMARY,
