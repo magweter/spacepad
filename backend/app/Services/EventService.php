@@ -283,7 +283,7 @@ class EventService
             'description' => $this->cleanBody($caldavEvent['description']),
             'start' => $caldavEvent['start'],
             'end' => $caldavEvent['end'],
-            'timezone' => 'UTC', // CalDAV events are typically in UTC
+            'timezone' => $caldavEvent['timezone'],
             'isAllDay' => $caldavEvent['isAllDay']
         ];
     }
