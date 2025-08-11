@@ -107,7 +107,7 @@ XML;
             $body = $response['body'];
             $events = [];
 
-            preg_match_all('/<cal:calendar-data[^>]*>(.*?)<\/cal:calendar-data>/s', $body, $matches);
+            preg_match_all('/<(?:cal|C):calendar-data[^>]*>(.*?)<\/(?:cal|C):calendar-data>/s', $body, $matches);
 
             foreach ($matches[1] as $icalData) {
                 $vcalendar = Reader::read($icalData);
