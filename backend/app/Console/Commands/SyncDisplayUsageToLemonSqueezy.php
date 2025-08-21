@@ -131,11 +131,53 @@ class SyncDisplayUsageToLemonSqueezy extends Command
 
         $subscriptionData = $subscriptionResponse->json();
         
-        if (!isset($subscriptionData['data']['attributes']['subscription_items'])) {
-            throw new \Exception('Subscription items not found in API response');
-        }
+        // Log the response structure for debugging
+        Log::info('Lemon Squeezy subscription response', [
+            'user_id' => $user->id,
+            'subscription_id' => $subscription->lemon_squeezy_id,
+            'response_structure' => array_keys($subscriptionData['data'] ?? []),
+            'attributes_keys' => array_keys($subscriptionData['data']['attributes'] ?? [])
+        ]);
         
-        $subscriptionItems = $subscriptionData['data']['attributes']['subscription_items'];
+        // Check if subscription_items is in the attributes
+        if (isset($subscriptionData['data']['attributes']['subscription_items'])) {
+            $subscriptionItems = $subscriptionData['data']['attributes']['subscription_items'];
+        }
+        // Check if subscription_items is in the relationships
+        elseif (isset($subscriptionData['data']['relationships']['subscription_items']['data'])) {
+            $subscriptionItems = $subscriptionData['data']['relationships']['subscription_items']['data'];
+        }
+        // Check if subscription_items is in the included data
+        elseif (isset($subscriptionData['included'])) {
+            $subscriptionItems = collect($subscriptionData['included'])
+                ->filter(fn($item) => $item['type'] === 'subscription-items')
+                ->toArray();
+        }
+        else {
+            // Try to fetch subscription items directly
+            Log::info('Attempting to fetch subscription items directly', [
+                'user_id' => $user->id,
+                'subscription_id' => $subscription->lemon_squeezy_id
+            ]);
+            
+            $subscriptionItemsResponse = Http::withToken($apiKey)
+                ->withHeaders([
+                    'Accept' => 'application/vnd.api+json',
+                ])
+                ->get('https://api.lemonsqueezy.com/v1/subscription-items?filter[subscription_id]=' . $subscription->lemon_squeezy_id);
+
+            if (!$subscriptionItemsResponse->successful()) {
+                throw new \Exception('Failed to fetch subscription items from Lemon Squeezy: ' . $subscriptionItemsResponse->body());
+            }
+
+            $subscriptionItemsData = $subscriptionItemsResponse->json();
+            
+            if (!isset($subscriptionItemsData['data']) || empty($subscriptionItemsData['data'])) {
+                throw new \Exception('No subscription items found for subscription. Response: ' . json_encode($subscriptionItemsData));
+            }
+            
+            $subscriptionItems = $subscriptionItemsData['data'];
+        }
 
         if (empty($subscriptionItems)) {
             throw new \Exception('No subscription items found for metered usage');
@@ -143,10 +185,20 @@ class SyncDisplayUsageToLemonSqueezy extends Command
 
         // Find the first subscription item (assuming single item per subscription)
         $subscriptionItem = $subscriptionItems[0];
-        $subscriptionItemId = $subscriptionItem['id'] ?? null;
         
-        if (!$subscriptionItemId) {
-            throw new \Exception('Subscription item ID not found in response');
+        // Handle different response structures
+        if (isset($subscriptionItem['id'])) {
+            // Direct ID in the item
+            $subscriptionItemId = $subscriptionItem['id'];
+        } elseif (isset($subscriptionItem['attributes']['id'])) {
+            // ID in attributes
+            $subscriptionItemId = $subscriptionItem['attributes']['id'];
+        } else {
+            Log::error('Unexpected subscription item structure', [
+                'user_id' => $user->id,
+                'subscription_item' => $subscriptionItem
+            ]);
+            throw new \Exception('Subscription item ID not found in response structure: ' . json_encode($subscriptionItem));
         }
 
         // Report usage to Lemon Squeezy
