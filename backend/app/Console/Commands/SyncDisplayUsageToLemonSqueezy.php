@@ -201,18 +201,26 @@ class SyncDisplayUsageToLemonSqueezy extends Command
             throw new \Exception('Subscription item ID not found in response structure: ' . json_encode($subscriptionItem));
         }
 
-        // Report usage to Lemon Squeezy
+        // Report usage to Lemon Squeezy using the usage-records API endpoint
         $response = Http::withToken($apiKey)
             ->withHeaders([
                 'Accept' => 'application/vnd.api+json',
                 'Content-Type' => 'application/vnd.api+json',
             ])
-            ->post('https://api.lemonsqueezy.com/v1/subscription-items/' . $subscriptionItemId . '/usage-records', [
+            ->post('https://api.lemonsqueezy.com/v1/usage-records', [
                 'data' => [
-                    'type' => 'subscription-item-usage-records',
+                    'type' => 'usage-records',
                     'attributes' => [
                         'quantity' => $displayCount,
                         'action' => 'set', // Set the usage count for the current period
+                    ],
+                    'relationships' => [
+                        'subscription-item' => [
+                            'data' => [
+                                'type' => 'subscription-items',
+                                'id' => $subscriptionItemId
+                            ]
+                        ]
                     ]
                 ]
             ]);
