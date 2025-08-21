@@ -143,11 +143,11 @@ it('returns google events in the correct format', function () {
     $googleEvent->setDescription('Test Description');
     $googleEvent->setLocation('Test Location');
     $googleEvent->setStart(new \Google\Service\Calendar\EventDateTime([
-        'dateTime' => now()->addHours(3)->toIso8601String(),
+        'dateTime' => now()->addHour()->toIso8601String(),
         'timeZone' => 'UTC'
     ]));
     $googleEvent->setEnd(new \Google\Service\Calendar\EventDateTime([
-        'dateTime' => now()->addHours(4)->toIso8601String(),
+        'dateTime' => now()->addHours(2)->toIso8601String(),
         'timeZone' => 'UTC'
     ]));
 
@@ -155,6 +155,12 @@ it('returns google events in the correct format', function () {
     $googleService = Mockery::mock(GoogleService::class);
     $googleService->shouldReceive('fetchEvents')
         ->once()
+        ->with(
+            Mockery::type(GoogleAccount::class),
+            'test@example.com',
+            Mockery::type(\Carbon\Carbon::class),
+            Mockery::type(\Carbon\Carbon::class)
+        )
         ->andReturn([$googleEvent]);
 
     $this->app->instance(GoogleService::class, $googleService);
