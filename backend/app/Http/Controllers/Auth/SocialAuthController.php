@@ -9,6 +9,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Validation\ValidationException;
 use Laravel\Socialite\Facades\Socialite;
 use Illuminate\Support\Str;
+use Spatie\GoogleTagManager\GoogleTagManagerFacade as GoogleTagManager;
 
 abstract class SocialAuthController extends AuthController
 {
