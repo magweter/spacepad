@@ -18,7 +18,7 @@
 @section('content')
     @php
         $isSelfHosted = config('settings.is_self_hosted');
-        $checkout = auth()->user()->getCheckoutUrl(route('dashboard'));
+        $checkout = auth()->user()->getCheckoutUrl(route('billing.thanks'));
         $showLicenseModal = $isSelfHosted && !auth()->user()->hasPro();
     @endphp
 

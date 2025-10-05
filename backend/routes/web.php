@@ -45,7 +45,7 @@ Route::prefix('auth')->group(function () {
     Route::get('/google/callback', [GoogleController::class, 'callback']);
 });
 
-Route::middleware(['auth', 'user.update-last-activity'])->group(function () {
+Route::middleware(['auth', 'user.update-last-activity', 'gtm'])->group(function () {
     Route::get('/', DashboardController::class)->name('dashboard')->middleware('user.active');
     Route::get('/onboarding', [OnboardingController::class, 'index'])->name('onboarding')->middleware('user.onboarding');
     Route::post('/onboarding/usage-type', [OnboardingController::class, 'updateUsageType'])->name('onboarding.usage-type');
@@ -96,6 +96,13 @@ Route::middleware(['auth', 'user.update-last-activity'])->group(function () {
         ->name('rooms.google');
 
     Route::post('/license/validate', [LicenseController::class, 'validateLicense'])->name('license.validate');
+
+    Route::get('/billing/thanks', function () {
+        \Spatie\GoogleTagManager\GoogleTagManagerFacade::flashPush([
+            'event' => 'purchase',
+        ]);
+        return redirect()->route('dashboard');
+    })->name('billing.thanks');
     
     Route::get('/admin', [AdminController::class, 'index'])->name('admin.index');
 });

@@ -15,6 +15,7 @@ use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use MagicLink\Actions\LoginAction;
 use MagicLink\MagicLink;
+use Spatie\GoogleTagManager\GoogleTagManagerFacade as GoogleTagManager;
 
 class RegisterController extends Controller
 {
@@ -50,6 +51,11 @@ class RegisterController extends Controller
                 'name' => $data['name'],
                 'email' => $data['email'],
                 'terms_accepted_at' => ! config('settings.is_self_hosted') ? now() : null,
+            ]);
+
+            GoogleTagManager::flashPush([
+                'event' => 'registration_completed',
+                'user_email' => $user->email,
             ]);
         }
 
