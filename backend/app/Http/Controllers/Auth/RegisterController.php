@@ -54,8 +54,7 @@ class RegisterController extends Controller
             ]);
 
             GoogleTagManager::flashPush([
-                'event' => 'registration_completed',
-                'user_email' => $user->email,
+                'event' => 'sign_up',
             ]);
         }
 

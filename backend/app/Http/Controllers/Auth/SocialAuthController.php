@@ -127,6 +127,10 @@ abstract class SocialAuthController extends AuthController
             // if there still is no match, create a new user
             if (empty($user)) {
                 $user = $this->createUser($socialUser->getName(), $socialUser->getEmail());
+
+                GoogleTagManager::flashPush([
+                    'event' => 'sign_up',
+                ]);
                 event(new UserRegistered($user));
             }
 
