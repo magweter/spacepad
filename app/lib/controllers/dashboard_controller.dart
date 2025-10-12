@@ -11,6 +11,7 @@ import 'package:spacepad/pages/display_page.dart';
 import 'package:spacepad/models/device_model.dart';
 import 'package:spacepad/models/display_model.dart';
 import 'package:spacepad/models/display_settings_model.dart';
+import 'package:spacepad/services/font_service.dart';
 
 class DashboardController extends GetxController {
   final RxBool loading = RxBool(true);
@@ -22,6 +23,9 @@ class DashboardController extends GetxController {
   DeviceModel? globalCurrentDevice;
   DisplayModel? globalDisplay;
   DisplaySettingsModel? globalSettings;
+  
+  // Reactive font family for UI updates
+  final RxString currentFontFamily = RxString('Inter');
   
   Timer? _clock;
   Timer? _dataTimer;
@@ -43,6 +47,9 @@ class DashboardController extends GetxController {
 
     initializeTimers();
     await fetchDisplayData();
+    
+    // Preload fonts for better performance
+    await FontService.instance.preloadFonts();
 
     loading.value = false;
   }
@@ -204,6 +211,19 @@ class DashboardController extends GetxController {
         globalCurrentDevice!.display = displayData.display;
         globalDisplay = globalCurrentDevice!.display;
         globalSettings = globalDisplay?.settings;
+        
+        // Debug: Print font family received from API
+        print('DashboardController: Received font family: ${globalSettings?.fontFamily}');
+        
+        // Update reactive font family to trigger UI rebuild
+        final newFontFamily = globalSettings?.fontFamily ?? 'Inter';
+        if (currentFontFamily.value != newFontFamily) {
+          print('DashboardController: Font family changed from ${currentFontFamily.value} to $newFontFamily');
+          currentFontFamily.value = newFontFamily;
+          
+          // Reload the font when settings change
+          await FontService.instance.reloadFont(newFontFamily);
+        }
 
         AuthService.instance.currentDevice.refresh();
       }

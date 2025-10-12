@@ -105,4 +105,8 @@ Route::middleware(['auth', 'user.update-last-activity', 'gtm'])->group(function 
     })->name('billing.thanks');
     
     Route::get('/admin', [AdminController::class, 'index'])->name('admin.index');
+    
+    // Display image serving route
+    Route::get('/displays/{display}/images/{type}', [DisplaySettingsController::class, 'serveImage'])
+        ->name('displays.images');
 });

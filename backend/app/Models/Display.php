@@ -163,8 +163,23 @@ class Display extends Model
         return DisplaySettings::getCheckInText($this);
     }
 
+    public function getLogoUrl(): ?string
+    {
+        return app(\App\Services\ImageService::class)->getLogoUrl($this);
+    }
+
+    public function getBackgroundImageUrl(): ?string
+    {
+        return app(\App\Services\ImageService::class)->getBackgroundImageUrl($this);
+    }
+
     public function getShowMeetingTitle(): bool
     {
         return DisplaySettings::getShowMeetingTitle($this);
+    }
+
+    public function getFontFamily(): string
+    {
+        return DisplaySettings::getFontFamily($this);
     }
 }

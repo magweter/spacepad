@@ -11,6 +11,7 @@ use App\Models\Device;
 use App\Models\Display;
 use App\Services\DisplayService;
 use App\Services\EventService;
+use App\Services\ImageService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Arr;
 
@@ -19,6 +20,7 @@ class DisplayController extends ApiController
     public function __construct(
         protected EventService $eventService,
         protected DisplayService $displayService,
+        protected ImageService $imageService,
     ) {
     }
 
@@ -126,6 +128,28 @@ class DisplayController extends ApiController
         } catch (\Exception $e) {
             $status = $e->getCode() === 403 ? 403 : 400;
             return $this->error(message: $e->getMessage(), code: $status);
+        }
+    }
+
+    /**
+     * Serve display images (logo or background) for mobile app
+     */
+    public function serveImage(string $displayId, string $type)
+    {
+        /** @var Device $device */
+        $device = auth()->user();
+
+        // Validate that the device has access to this display
+        $permission = $this->displayService->validateDisplayPermission($displayId, $device->id);
+        if (!$permission->permitted) {
+            abort(403, 'Access denied');
+        }
+
+        try {
+            $display = $this->displayService->getDisplay($displayId);
+            return $this->imageService->serveImage($display, $type);
+        } catch (\Exception $e) {
+            abort(404, 'Image not found');
         }
     }
 }

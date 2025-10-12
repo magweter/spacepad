@@ -79,6 +79,49 @@ class DisplaySettings
         return self::setSetting($display, 'booking_enabled', $enabled, 'boolean');
     }
 
+    // Logo settings
+    public static function getLogo(Display $display): ?string
+    {
+        return self::getSetting($display, 'logo');
+    }
+
+    public static function setLogo(Display $display, string $logoPath): bool
+    {
+        return self::setSetting($display, 'logo', $logoPath, 'string');
+    }
+
+    public static function removeLogo(Display $display): bool
+    {
+        return self::deleteSetting($display, 'logo');
+    }
+
+    // Background image settings
+    public static function getBackgroundImage(Display $display): ?string
+    {
+        return self::getSetting($display, 'background_image');
+    }
+
+    public static function setBackgroundImage(Display $display, string $backgroundPath): bool
+    {
+        return self::setSetting($display, 'background_image', $backgroundPath, 'string');
+    }
+
+    public static function removeBackgroundImage(Display $display): bool
+    {
+        return self::deleteSetting($display, 'background_image');
+    }
+
+    // Font family settings
+    public static function getFontFamily(Display $display): string
+    {
+        return self::getSetting($display, 'font_family', 'Inter');
+    }
+
+    public static function setFontFamily(Display $display, string $fontFamily): bool
+    {
+        return self::setSetting($display, 'font_family', $fontFamily, 'string');
+    }
+
     public static function getCheckInMinutes(Display $display): int
     {
         return self::getSetting($display, 'check_in_minutes', 15);

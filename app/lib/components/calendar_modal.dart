@@ -1,12 +1,10 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:spacepad/models/event_model.dart';
 import 'package:spacepad/theme.dart';
 import 'package:get/get.dart';
-import 'package:spacepad/controllers/dashboard_controller.dart';
-import 'package:spacepad/services/auth_service.dart';
 import 'package:intl/intl.dart';
 import 'package:tailwind_components/tailwind_components.dart';
+import 'package:spacepad/components/frosted_panel.dart';
 
 class CalendarModal extends StatelessWidget {
   final List<EventModel> events;
@@ -26,18 +24,11 @@ class CalendarModal extends StatelessWidget {
       child: Center(
         child: SizedBox(
           width: 800, // Make modal narrower
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white.withAlpha((0.08 * 255).toInt()),
-                  // More visible frosted background
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
-                child: Column(
+          child: FrostedPanel(
+            borderRadius: 20,
+            blurIntensity: 18,
+            padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
+            child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     // Title and close icon
@@ -165,8 +156,6 @@ class CalendarModal extends StatelessWidget {
               ),
             ),
           ),
-        ),
-      ),
-    );
+        );
   }
 }

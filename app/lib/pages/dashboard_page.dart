@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
-import 'package:spacepad/components/action_button.dart';
 import 'package:spacepad/components/event_line.dart';
 import 'package:spacepad/components/spinner.dart';
 import 'package:spacepad/controllers/dashboard_controller.dart';
@@ -10,12 +9,13 @@ import 'package:spacepad/models/event_model.dart';
 import 'package:get/get.dart';
 import 'package:spacepad/theme.dart';
 import 'package:tailwind_components/tailwind_components.dart';
-import 'dart:io' show Platform;
 import 'dart:math' show max;
-import 'package:spacepad/services/auth_service.dart';
 import 'package:spacepad/components/action_panel.dart';
 import 'package:spacepad/components/calendar_modal.dart';
-import 'package:spacepad/translations/translations.dart';
+import 'package:spacepad/components/authenticated_image.dart';
+import 'package:spacepad/components/authenticated_background.dart';
+import 'package:spacepad/services/font_service.dart';
+import 'package:spacepad/components/frosted_panel.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -78,14 +78,10 @@ class _DashboardPageState extends State<DashboardPage> {
             color: controller.isTransitioning || controller.isCheckInActive ?
               TWColors.amber_500 :
               (controller.isReserved ? TWColors.rose_600 : TWColors.green_600),
-            padding: EdgeInsets.all(isPhone ? 8 : 16),
-            child: Container(
-                height: double.infinity,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(cornerRadius),
-                    color: Colors.black
-                ),
+            padding: EdgeInsets.all(isPhone ? 12 : 18),
+                child: AuthenticatedBackground(
+                  imageUrl: controller.globalSettings?.backgroundImageUrl,
+                  borderRadius: BorderRadius.circular(cornerRadius),
                 child: Padding(
                   padding: EdgeInsets.fromLTRB(
                     isPhone ? 20 : 40,
@@ -97,14 +93,15 @@ class _DashboardPageState extends State<DashboardPage> {
                     children: [
                       Align(
                         alignment: Alignment.topLeft,
-                        child: Text(
+                        child: Obx(() => Text(
                           formatTime(context, controller.time.value),
-                          style: TextStyle(
-                            color: TWColors.gray_300,
+                          style: FontService.instance.getTextStyle(
+                            fontFamily: controller.currentFontFamily.value,
                             fontSize: isPhone ? 20 : 28,
-                            fontWeight: FontWeight.w900
+                            fontWeight: FontWeight.w500,
+                            color: TWColors.white,
                           )
-                        )
+                        ))
                       ),
                       Align(
                         alignment: Alignment.topRight,
@@ -112,7 +109,7 @@ class _DashboardPageState extends State<DashboardPage> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Opacity(
-                              opacity: 0.4,
+                              opacity: 0.6,
                               child: IconButton(
                                 icon: const Icon(Icons.logout, size: 24, color: Colors.white),
                                 onPressed: () {
@@ -121,16 +118,16 @@ class _DashboardPageState extends State<DashboardPage> {
                                 tooltip: 'switch_room'.tr,
                               ),
                             ),
-
-                            SizedBox(width: 16),
-                            Text(
+                            SizedBox(width: 5),
+                            Obx(() => Text(
                               controller.roomName,
-                              style: TextStyle(
-                                color: TWColors.gray_300,
+                              style: FontService.instance.getTextStyle(
+                                fontFamily: controller.currentFontFamily.value,
                                 fontSize: isPhone ? 20 : 28,
-                                fontWeight: FontWeight.w700
+                                fontWeight: FontWeight.w500,
+                                color: TWColors.white,
                               )
-                            ),
+                            )),
                           ],
                         ),
                       ),
@@ -144,53 +141,71 @@ class _DashboardPageState extends State<DashboardPage> {
                           SpaceCol(
                             spaceBetween: controller.meetingInfoTimes != null ? (isPhone ? 5 : 10) : 0,
                             children: [
-                              Text(
+                              if (controller.globalSettings?.logoUrl != null)
+                                Container(
+                                  margin: EdgeInsets.only(bottom: isPhone ? 20 : 25),
+                                  child: AuthenticatedImage(
+                                    imageUrl: controller.globalSettings!.logoUrl!,
+                                    height: isPhone ? 24 : 32,
+                                    fit: BoxFit.contain,
+                                    placeholder: Container(
+                                      height: isPhone ? 24 : 32,
+                                      child: Center(
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          valueColor: AlwaysStoppedAnimation<Color>(TWColors.gray_300),
+                                        ),
+                                      ),
+                                    ),
+                                    errorWidget: SizedBox.shrink(), // Hide logo if it fails to load
+                                  ),
+                                ),
+                              Obx(() => Text(
                                 controller.title,
-                                style: TextStyle(
+                                style: FontService.instance.getTextStyle(
+                                  fontFamily: controller.currentFontFamily.value,
+                                  fontSize: isPhone ? 30 : 50,
+                                  fontWeight: FontWeight.w700,
                                   color: Colors.white,
-                                  fontSize: isPhone ? 30 : 56,
-                                  fontWeight: FontWeight.w900
                                 )
-                              ),
+                              )),
                               SpaceRow(
                                 spaceBetween: isPhone ? 10 : 20,
                                 children: [
-                                  if (controller.meetingInfoTimes != null) Container(
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(cornerRadius * 0.5),
-                                      color: TWColors.gray_600.withValues(alpha: 0.3),
+                                  if (controller.meetingInfoTimes != null) FrostedPanel(
+                                    borderRadius: cornerRadius,
+                                    blurIntensity: 18,
+                                    padding: EdgeInsets.fromLTRB(
+                                      isPhone ? 10 : 20,
+                                      isPhone ? 5 : 10,
+                                      isPhone ? 10 : 20,
+                                      isPhone ? 5 : 10,
                                     ),
-                                    child: Padding(
-                                      padding: EdgeInsets.fromLTRB(
-                                        isPhone ? 10 : 20,
-                                        isPhone ? 5 : 10,
-                                        isPhone ? 10 : 20,
-                                        isPhone ? 5 : 10,
-                                      ),
-                                      child: Text(
-                                        'meeting_info_title'.trParams({
-                                          'start': formatTime(context, controller.meetingInfoTimes!['start']!),
-                                          'end': formatTime(context, controller.meetingInfoTimes!['end']!),
-                                        }),
-                                        style: TextStyle(
-                                          color: TWColors.white,
-                                          fontSize: isPhone ? 24 : 32,
-                                          fontWeight: FontWeight.w400
-                                        )
-                                      ),
-                                    ),
+                                    child: Obx(() => Text(
+                                      'meeting_info_title'.trParams({
+                                        'start': formatTime(context, controller.meetingInfoTimes!['start']!),
+                                        'end': formatTime(context, controller.meetingInfoTimes!['end']!),
+                                      }),
+                                      style: FontService.instance.getTextStyle(
+                                        fontFamily: controller.currentFontFamily.value,
+                                        fontSize: isPhone ? 24 : 32,
+                                        fontWeight: FontWeight.w400,
+                                        color: TWColors.white,
+                                      )
+                                    )),
                                   ),
                                   Flexible(
-                                    child: Text(
+                                    child: Obx(() => Text(
                                       controller.subtitle,
-                                      style: TextStyle(
-                                        color: TWColors.gray_300,
+                                      style: FontService.instance.getTextStyle(
+                                        fontFamily: controller.currentFontFamily.value,
                                         fontSize: isPhone ? 28 : 36,
-                                        fontWeight: FontWeight.w400
+                                        fontWeight: FontWeight.w400,
+                                        color: TWColors.gray_300,
                                       ),
                                       softWrap: true,
                                       overflow: TextOverflow.visible,
-                                    ),
+                                    )),
                                   ),
                                 ]
                               ),
@@ -208,18 +223,11 @@ class _DashboardPageState extends State<DashboardPage> {
                       // Fixed Action Bar at Bottom
                       Align(
                         alignment: Alignment.bottomCenter,
-                        child: Container(
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.only(
-                              topLeft: Radius.circular(cornerRadius * 0.5),
-                              topRight: Radius.circular(cornerRadius * 0.5),
-                            ),
-                            color: TWColors.gray_600.withValues(alpha: 0.3),
-                          ),
-                          child: Padding(
-                            padding: EdgeInsets.all(isPhone ? 12 : 20),
-                            child: Row(
+                        child: FrostedPanel(
+                          borderRadius: cornerRadius,
+                          blurIntensity: 18,
+                          padding: EdgeInsets.all(isPhone ? 12 : 20),
+                          child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 // Upcoming Events Section
@@ -234,7 +242,7 @@ class _DashboardPageState extends State<DashboardPage> {
                                     : Text(
                                         'no_upcoming_events'.tr,
                                         style: TextStyle(
-                                          color: TWColors.gray_300,
+                                          color: TWColors.white,
                                           fontSize: isPhone ? 16 : 18,
                                           fontWeight: FontWeight.w500,
                                         ),
@@ -287,9 +295,8 @@ class _DashboardPageState extends State<DashboardPage> {
                             ),
                           ),
                         ),
-                      ),
                     ],
-                  )
+                  ),
                 ),
               )
           ),
