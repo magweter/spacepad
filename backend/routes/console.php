@@ -4,6 +4,7 @@ use App\Console\Commands\CleanupExpiredEvents;
 use App\Console\Commands\RenewEventSubscriptions;
 use App\Console\Commands\SendHeartbeat;
 use App\Console\Commands\SyncDisplayUsageToLemonSqueezy;
+use App\Console\Commands\UpdateLemonSqueezySubscriptions;
 use App\Console\Commands\ValidateLicense;
 use App\Services\InstanceService;
 use Illuminate\Support\Facades\Schedule;
@@ -30,7 +31,7 @@ Schedule::command(CleanupExpiredEvents::class)
     ->hourly()
     ->withoutOverlapping();
 
-Schedule::command(SyncDisplayUsageToLemonSqueezy::class)
+Schedule::command(UpdateLemonSqueezySubscriptions::class)
     ->when(fn() => ! config('settings.is_self_hosted'))
     ->hourly()
     ->withoutOverlapping();
