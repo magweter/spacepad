@@ -24,9 +24,13 @@ COPY resources ./resources
 RUN pnpm install && pnpm run build
 
 # Set our base image
-FROM serversideup/php:8.4-unit as base
+FROM serversideup/php:8.4-unit AS base
 
-FROM base as production
+# Switch to root before installing our PHP extensions
+USER root
+RUN install-php-extensions opentelemetry
+
+FROM base AS production
 
 # Add build arguments for git information
 ARG GIT_TAG
