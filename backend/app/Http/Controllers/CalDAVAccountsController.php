@@ -57,8 +57,6 @@ class CalDAVAccountsController extends Controller
 
     public function delete(CalDAVAccount $caldavAccount): RedirectResponse
     {
-        $this->authorize('delete', $caldavAccount);
-
         $caldavAccount->delete();
 
         return redirect()

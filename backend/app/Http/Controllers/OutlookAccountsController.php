@@ -39,8 +39,6 @@ class OutlookAccountsController extends Controller
 
     public function delete(OutlookAccount $outlookAccount): RedirectResponse
     {
-        $this->authorize('delete', $outlookAccount);
-
         if ($outlookAccount->calendars()->exists()) {
             return redirect()->route('dashboard')->with('error', 'Cannot disconnect this account because it is used by one or more displays.');
         }

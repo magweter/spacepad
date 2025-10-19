@@ -41,8 +41,6 @@ class GoogleAccountsController extends Controller
 
     public function delete(GoogleAccount $googleAccount): RedirectResponse
     {
-        $this->authorize('delete', $googleAccount);
-
         if ($googleAccount->calendars()->exists()) {
             return redirect()->route('dashboard')->with('error', 'Cannot disconnect this account because it is used by one or more displays.');
         }
