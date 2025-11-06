@@ -143,13 +143,13 @@ class _DashboardPageState extends State<DashboardPage> {
                             children: [
                               if (controller.globalSettings?.logoUrl != null)
                                 Container(
-                                  margin: EdgeInsets.only(bottom: isPhone ? 20 : 25),
+                                  margin: EdgeInsets.only(bottom: isPhone ? 20 : 10),
                                   child: AuthenticatedImage(
                                     imageUrl: controller.globalSettings!.logoUrl!,
-                                    height: isPhone ? 24 : 32,
+                                    height: isPhone ? 24 : 36,
                                     fit: BoxFit.contain,
                                     placeholder: Container(
-                                      height: isPhone ? 24 : 32,
+                                      height: isPhone ? 24 : 36,
                                       child: Center(
                                         child: CircularProgressIndicator(
                                           strokeWidth: 2,

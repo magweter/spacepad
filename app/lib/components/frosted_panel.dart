@@ -30,7 +30,7 @@ class FrostedPanel extends StatelessWidget {
       blurIntensity: 0, // No blur for gray panels
       backgroundColor: hasBackgroundImage 
           ? TWColors.black.withValues(alpha: 0.8)
-          : TWColors.black.withValues(alpha: 0.4),
+          : TWColors.black.withValues(alpha: 0.1),
       padding: padding,
       child: child,
     );
@@ -40,7 +40,7 @@ class FrostedPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final panel = Container(
       decoration: BoxDecoration(
-        color: backgroundColor,
+        color: Colors.white.withAlpha((0.1 * 255).toInt()),
         borderRadius: BorderRadius.circular(borderRadius),
       ),
       padding: padding,

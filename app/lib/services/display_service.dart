@@ -6,8 +6,6 @@ class DisplayService {
   DisplayService._();
   static final DisplayService instance = DisplayService._();
 
-  bool? _newRouteAvailable;
-
   Future<List<DisplayModel>> getDisplays() async {
     Map body = await ApiService.get('displays');
 
@@ -24,20 +22,13 @@ class DisplayService {
   }
 
   Future<DisplayDataModel> getDisplayData(String displayId) async {
-    // If we already know which route to use, use it
-    if (_newRouteAvailable == false) {
-      return _getDisplayDataOld(displayId);
-    }
-
     try {
-      final data = await _getDisplayDataNew(displayId);
-      _newRouteAvailable = true;
-      return data;
+      return await _getDisplayDataNew(displayId);
     } catch (e) {
       if (_isRouteNotFoundError(e)) {
-        _newRouteAvailable = false;
         return _getDisplayDataOld(displayId);
       }
+
       rethrow;
     }
   }
