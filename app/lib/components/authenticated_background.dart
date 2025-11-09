@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:spacepad/services/auth_service.dart';
@@ -64,10 +65,15 @@ class _AuthenticatedBackgroundState extends State<AuthenticatedBackground> {
         headers['Authorization'] = 'Bearer ${AuthService.instance.getAuthToken()}';
       }
 
-      // Make authenticated request
+      // Make authenticated request with timeout
       final response = await http.get(
         Uri.parse(widget.imageUrl!),
         headers: headers,
+      ).timeout(
+        const Duration(seconds: 15),
+        onTimeout: () {
+          throw TimeoutException('Image load timeout after 15 seconds');
+        },
       );
 
       if (response.statusCode == 200) {
@@ -82,6 +88,13 @@ class _AuthenticatedBackgroundState extends State<AuthenticatedBackground> {
       } else {
         throw Exception('Failed to load image: ${response.statusCode}');
       }
+    } on TimeoutException {
+      if (mounted) {
+        setState(() {
+          _hasError = true;
+        });
+      }
+      return;
     } catch (e) {
       if (mounted) {
         setState(() {

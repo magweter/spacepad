@@ -38,7 +38,6 @@ ARG GIT_COMMIT
 
 # Set environment variable with tag or commit hash
 ENV SPACEPAD_VERSION=${GIT_TAG:-${GIT_COMMIT}}
-ENV OTEL_PHP_AUTOLOAD_ENABLED=false
 
 COPY --chown=www-data:www-data . /var/www/html
 COPY --chown=www-data:www-data --from=php_builder /app/vendor /var/www/html/vendor

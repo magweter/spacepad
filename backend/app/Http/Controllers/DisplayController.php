@@ -135,7 +135,7 @@ class DisplayController extends Controller
         if (isset($validatedData['room'])) {
             $roomData = explode(',', $validatedData['room']);
             $calendarId = $roomData[0];
-            $calendarName = $this->extractCalendarName($roomData[1]);
+            $calendarName = $this->extractCalendarName($roomData[1] ?? '');
 
             $calendar = Calendar::firstOrCreate([
                 'calendar_id' => $calendarId,
@@ -161,7 +161,7 @@ class DisplayController extends Controller
         }
 
         $calendarData = explode(',', $validatedData['calendar']);
-        $calendarName = $this->extractCalendarName($calendarData[1]);
+        $calendarName = $this->extractCalendarName($calendarData[1] ?? '');
         
         return Calendar::firstOrCreate([
             'calendar_id' => $calendarData[0],

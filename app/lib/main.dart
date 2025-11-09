@@ -22,10 +22,11 @@ const List<Locale> supportedLocales = [
   Locale('sv'),
 ];
 
-// Helper function to validate if a locale is supported
+// Helper function to validate if a locale is exactly supported
 bool isLocaleSupported(Locale locale) {
   return supportedLocales.any((supportedLocale) => 
-    supportedLocale.languageCode == locale.languageCode);
+    supportedLocale.languageCode == locale.languageCode &&
+    supportedLocale.countryCode == locale.countryCode);
 }
 
 // Helper function to get the best matching locale
@@ -34,12 +35,15 @@ Locale getBestMatchingLocale(Locale? requestedLocale) {
     return const Locale('en');
   }
   
-  // First try exact match
-  if (isLocaleSupported(requestedLocale)) {
-    return requestedLocale;
+  // First try exact match (both language and country code match)
+  for (final supportedLocale in supportedLocales) {
+    if (supportedLocale.languageCode == requestedLocale.languageCode &&
+        supportedLocale.countryCode == requestedLocale.countryCode) {
+      return supportedLocale;
+    }
   }
   
-  // Try to find a locale with the same language code
+  // Try to find a locale with the same language code (return supported locale, not original)
   for (final supportedLocale in supportedLocales) {
     if (supportedLocale.languageCode == requestedLocale.languageCode) {
       return supportedLocale;
@@ -84,13 +88,16 @@ class App extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Resolve locale consistently using the same logic as in main()
+    final resolvedLocale = getBestMatchingLocale(Get.locale);
+    
     return GetMaterialApp(
       themeMode: ThemeMode.light,
       theme: AppTheme.data,
       initialRoute: '/',
       transitionDuration: Duration.zero,
       translations: AppTranslations(),
-      locale: Get.locale,
+      locale: resolvedLocale,
       fallbackLocale: const Locale('en'),
       supportedLocales: supportedLocales,
       localizationsDelegates: const [

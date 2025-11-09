@@ -212,13 +212,9 @@ class DashboardController extends GetxController {
         globalDisplay = globalCurrentDevice!.display;
         globalSettings = globalDisplay?.settings;
         
-        // Debug: Print font family received from API
-        print('DashboardController: Received font family: ${globalSettings?.fontFamily}');
-        
         // Update reactive font family to trigger UI rebuild
         final newFontFamily = globalSettings?.fontFamily ?? 'Inter';
         if (currentFontFamily.value != newFontFamily) {
-          print('DashboardController: Font family changed from ${currentFontFamily.value} to $newFontFamily');
           currentFontFamily.value = newFontFamily;
           
           // Reload the font when settings change

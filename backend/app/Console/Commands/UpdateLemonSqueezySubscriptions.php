@@ -103,8 +103,10 @@ class UpdateLemonSqueezySubscriptions extends Command
 
         // Get the user's active subscription
         $subscription = $user->subscriptions()
-            ->where('ends_at', null)
-            ->orWhere('ends_at', '>', now())
+            ->where(function($query) {
+                $query->whereNull('ends_at')
+                      ->orWhere('ends_at', '>', now());
+            })
             ->first();
 
         if (!$subscription) {
@@ -191,8 +193,10 @@ class UpdateLemonSqueezySubscriptions extends Command
 
         // Get the user's active subscription
         $subscription = $user->subscriptions()
-            ->where('ends_at', null)
-            ->orWhere('ends_at', '>', now())
+            ->where(function($query) {
+                $query->where('ends_at', null)
+                      ->orWhere('ends_at', '>', now());
+            })
             ->first();
 
         if (!$subscription) {

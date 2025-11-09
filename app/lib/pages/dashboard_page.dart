@@ -141,25 +141,30 @@ class _DashboardPageState extends State<DashboardPage> {
                           SpaceCol(
                             spaceBetween: controller.meetingInfoTimes != null ? (isPhone ? 5 : 10) : 0,
                             children: [
-                              if (controller.globalSettings?.logoUrl != null)
-                                Container(
-                                  margin: EdgeInsets.only(bottom: isPhone ? 20 : 10),
-                                  child: AuthenticatedImage(
-                                    imageUrl: controller.globalSettings!.logoUrl!,
-                                    height: isPhone ? 24 : 36,
-                                    fit: BoxFit.contain,
-                                    placeholder: Container(
+                              Obx(() {
+                                final logoUrl = controller.globalSettings?.logoUrl;
+                                if (logoUrl != null) {
+                                  return Container(
+                                    margin: EdgeInsets.only(bottom: isPhone ? 20 : 10),
+                                    child: AuthenticatedImage(
+                                      imageUrl: logoUrl,
                                       height: isPhone ? 24 : 36,
-                                      child: Center(
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          valueColor: AlwaysStoppedAnimation<Color>(TWColors.gray_300),
+                                      fit: BoxFit.contain,
+                                      placeholder: Container(
+                                        height: isPhone ? 24 : 36,
+                                        child: Center(
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            valueColor: AlwaysStoppedAnimation<Color>(TWColors.gray_300),
+                                          ),
                                         ),
                                       ),
+                                      errorWidget: SizedBox.shrink(), // Hide logo if it fails to load
                                     ),
-                                    errorWidget: SizedBox.shrink(), // Hide logo if it fails to load
-                                  ),
-                                ),
+                                  );
+                                }
+                                return SizedBox.shrink();
+                              }),
                               Obx(() => Text(
                                 controller.title,
                                 style: FontService.instance.getTextStyle(
@@ -183,8 +188,8 @@ class _DashboardPageState extends State<DashboardPage> {
                                     ),
                                     child: Obx(() => Text(
                                       'meeting_info_title'.trParams({
-                                        'start': formatTime(context, controller.meetingInfoTimes!['start']!),
-                                        'end': formatTime(context, controller.meetingInfoTimes!['end']!),
+                                        'start': formatTime(context, controller.meetingInfoTimes?['start'] ?? DateTime.now()),
+                                        'end': formatTime(context, controller.meetingInfoTimes?['end'] ?? DateTime.now()),
                                       }),
                                       style: FontService.instance.getTextStyle(
                                         fontFamily: controller.currentFontFamily.value,
