@@ -12,14 +12,16 @@
         "google/apiclient": "^2.18",
         "guzzlehttp/guzzle": "^7.9",
         "josiasmontag/laravel-recaptchav3": "^1.0",
-        "keepsuit/laravel-opentelemetry": "^1.9",
-        "open-telemetry/opentelemetry-logger-monolog": "^1.0",
         "laravel/framework": "^12.0",
         "laravel/sanctum": "^4.0",
         "laravel/socialite": "^5.16",
         "laravel/tinker": "^2.9",
         "lemonsqueezy/laravel": "^1.8",
         "microsoft/microsoft-graph": "^2.23",
+        "open-telemetry/exporter-otlp": "*",
+        "open-telemetry/opentelemetry-auto-laravel": "*",
+        "open-telemetry/opentelemetry-logger-monolog": "^1.0",
+        "open-telemetry/sdk": "*",
         "predis/predis": "^3.0",
         "sabre/dav": "^4.7",
         "sabre/vobject": "^4.5",
@@ -80,6 +82,9 @@
         "optimize-autoloader": true,
         "preferred-install": "dist",
         "sort-packages": true,
+        "platform": {
+            "ext-opentelemetry": "1.0.0"
+        },
         "allow-plugins": {
             "pestphp/pest-plugin": true,
             "php-http/discovery": true,
