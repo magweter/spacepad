@@ -135,6 +135,7 @@ class DisplayController extends Controller
         if (isset($validatedData['room'])) {
             $roomData = explode(',', $validatedData['room']);
             $calendarId = $roomData[0];
+            $calendarName = $this->extractCalendarName($roomData[1] ?? '');
 
             $calendar = Calendar::firstOrCreate([
                 'calendar_id' => $calendarId,
@@ -143,7 +144,7 @@ class DisplayController extends Controller
                 'calendar_id' => $calendarId,
                 'user_id' => auth()->id(),
                 "{$provider}_account_id" => $accountId,
-                'name' => $roomData[1],
+                'name' => $calendarName,
             ]);
 
             Room::firstOrCreate([
@@ -153,13 +154,15 @@ class DisplayController extends Controller
                 'email_address' => $calendarId,
                 'user_id' => auth()->id(),
                 'calendar_id' => $calendar->id,
-                'name' => $roomData[1],
+                'name' => $calendarName,
             ]);
 
             return $calendar;
         }
 
         $calendarData = explode(',', $validatedData['calendar']);
+        $calendarName = $this->extractCalendarName($calendarData[1] ?? '');
+        
         return Calendar::firstOrCreate([
             'calendar_id' => $calendarData[0],
             'user_id' => auth()->id(),
@@ -167,7 +170,22 @@ class DisplayController extends Controller
             'user_id' => auth()->id(),
             "{$provider}_account_id" => $accountId,
             'calendar_id' => $calendarData[0],
-            'name' => $calendarData[1],
+            'name' => $calendarName,
         ]);
+    }
+
+    /**
+     * Extract calendar name from a value that might be a URL or a plain name.
+     * Truncates to 255 characters to fit the database column.
+     */
+    private function extractCalendarName(string $value): string
+    {
+        // If empty, return a default name
+        if (empty($value)) {
+            return 'Calendar';
+        }
+
+        // Truncate to 255 characters to fit the database column
+        return mb_substr($value, 0, 255);
     }
 }

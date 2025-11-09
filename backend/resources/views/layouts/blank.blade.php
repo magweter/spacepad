@@ -19,6 +19,8 @@
         <meta name="robots" content="noindex, nofollow">
         <title>{{ config('app.name') }}</title>
 
+        @includeWhen(config('googletagmanager.enabled') && config('googletagmanager.id'), 'googletagmanager::head')
+
         @vite(['resources/css/app.css', 'resources/js/app.js'])
 
         {!! RecaptchaV3::initJs() !!}
@@ -28,6 +30,7 @@
         @includeWhen(config('services.clarity.tag_code'), 'components.scripts.clarity')
     </head>
     <body class="h-full @yield('body-classes')">
+        @includeWhen(config('googletagmanager.enabled') && config('googletagmanager.id'), 'googletagmanager::body')
         @stack('modals')
         <div class="min-h-full bg-gray-50">
             @yield('page')

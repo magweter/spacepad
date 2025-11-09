@@ -25,6 +25,9 @@ class DisplaySettingsResource extends JsonResource
             'text_reserved' => $this->getReservedText(),
             'text_checkin' => $this->getCheckInText(),
             'show_meeting_title' => $this->getShowMeetingTitle(),
+            'logo_url' => $this->getLogoUrl(),
+            'background_image_url' => $this->getBackgroundImageUrl(),
+            'font_family' => $this->getFontFamily(),
         ];
     }
 }

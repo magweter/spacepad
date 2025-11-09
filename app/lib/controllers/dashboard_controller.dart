@@ -11,6 +11,7 @@ import 'package:spacepad/pages/display_page.dart';
 import 'package:spacepad/models/device_model.dart';
 import 'package:spacepad/models/display_model.dart';
 import 'package:spacepad/models/display_settings_model.dart';
+import 'package:spacepad/services/font_service.dart';
 
 class DashboardController extends GetxController {
   final RxBool loading = RxBool(true);
@@ -22,6 +23,9 @@ class DashboardController extends GetxController {
   DeviceModel? globalCurrentDevice;
   DisplayModel? globalDisplay;
   DisplaySettingsModel? globalSettings;
+  
+  // Reactive font family for UI updates
+  final RxString currentFontFamily = RxString('Inter');
   
   Timer? _clock;
   Timer? _dataTimer;
@@ -43,6 +47,9 @@ class DashboardController extends GetxController {
 
     initializeTimers();
     await fetchDisplayData();
+    
+    // Preload fonts for better performance
+    await FontService.instance.preloadFonts();
 
     loading.value = false;
   }
@@ -204,6 +211,15 @@ class DashboardController extends GetxController {
         globalCurrentDevice!.display = displayData.display;
         globalDisplay = globalCurrentDevice!.display;
         globalSettings = globalDisplay?.settings;
+        
+        // Update reactive font family to trigger UI rebuild
+        final newFontFamily = globalSettings?.fontFamily ?? 'Inter';
+        if (currentFontFamily.value != newFontFamily) {
+          currentFontFamily.value = newFontFamily;
+          
+          // Reload the font when settings change
+          await FontService.instance.reloadFont(newFontFamily);
+        }
 
         AuthService.instance.currentDevice.refresh();
       }
@@ -234,6 +250,10 @@ class DashboardController extends GetxController {
       await DisplayService.instance.book(displayId.value, duration, summary: summary);
       await fetchDisplayData();
       Toast.showSuccess('room_booked'.tr);
+      
+      // Cancel the booking options timer since user took action
+      _bookingOptionsTimer?.cancel();
+      showBookingOptions.value = false;
     } catch (e) {
       Toast.showError('could_not_book_room'.tr);
     }
@@ -262,15 +282,27 @@ class DashboardController extends GetxController {
 
   // Track if booking options are shown
   final RxBool showBookingOptions = RxBool(false);
+  
+  // Timer for booking options timeout
+  Timer? _bookingOptionsTimer;
 
-  // Show booking options
+  // Show booking options with 10-second timeout
   void toggleBookingOptions() {
     showBookingOptions.value = true;
+    
+    // Cancel any existing timer
+    _bookingOptionsTimer?.cancel();
+    
+    // Set a 10-second timeout to automatically hide booking options
+    _bookingOptionsTimer = Timer(const Duration(seconds: 10), () {
+      showBookingOptions.value = false;
+    });
   }
 
   // Hide booking options
   void hideBookingOptions() {
     showBookingOptions.value = false;
+    _bookingOptionsTimer?.cancel();
   }
 
   int get checkInGracePeriod {
@@ -324,6 +356,7 @@ class DashboardController extends GetxController {
   void dispose() {
     _clock?.cancel();
     _dataTimer?.cancel();
+    _bookingOptionsTimer?.cancel();
 
     super.dispose();
   }

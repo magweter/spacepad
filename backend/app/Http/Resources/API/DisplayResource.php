@@ -16,7 +16,7 @@ class DisplayResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'name' => $this->name,
+            'name' => $this->display_name,
             'settings' => DisplaySettingsResource::make($this),
         ];
     }

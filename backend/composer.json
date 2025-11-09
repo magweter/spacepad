@@ -18,12 +18,17 @@
         "laravel/tinker": "^2.9",
         "lemonsqueezy/laravel": "^1.8",
         "microsoft/microsoft-graph": "^2.23",
+        "open-telemetry/exporter-otlp": "^1.3",
+        "open-telemetry/opentelemetry-auto-laravel": "*",
+        "open-telemetry/opentelemetry-logger-monolog": "^1.0",
+        "open-telemetry/sdk": "^1.9",
         "predis/predis": "^3.0",
         "sabre/dav": "^4.7",
         "sabre/vobject": "^4.5",
         "sentry/sentry-laravel": "^4.13",
         "socialiteproviders/microsoft": "^4.6",
-        "spatie/laravel-data": "^4.15"
+        "spatie/laravel-data": "^4.15",
+        "spatie/laravel-googletagmanager": "*"
     },
     "require-dev": {
         "laravel/pail": "^1.1",
@@ -77,6 +82,9 @@
         "optimize-autoloader": true,
         "preferred-install": "dist",
         "sort-packages": true,
+        "platform": {
+            "ext-opentelemetry": "1.0.0"
+        },
         "allow-plugins": {
             "pestphp/pest-plugin": true,
             "php-http/discovery": true,

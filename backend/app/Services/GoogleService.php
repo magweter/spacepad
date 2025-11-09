@@ -46,9 +46,8 @@ class GoogleService
     public function authenticateGoogleAccount(string $authCode): void
     {
         $accessToken = $this->client->fetchAccessTokenWithAuthCode($authCode);
-
         if (Arr::exists($accessToken, 'error')) {
-            throw new Exception('Error authenticating with Google: ' . Arr::get($accessToken, 'error.message'));
+            throw new Exception('Error authenticating with Google: ' . Arr::get($accessToken, 'error'));
         }
 
         logger()->info('Received Google access token:', $accessToken);
@@ -137,7 +136,7 @@ class GoogleService
 
         $tokenData = $this->client->fetchAccessTokenWithRefreshToken($account->refresh_token);
         if (Arr::exists($tokenData, 'error')) {
-            throw new Exception('Error authenticating with Google: ' . Arr::get($tokenData, 'error.message'));
+            throw new Exception('Error authenticating with Google: ' . Arr::get($tokenData, 'error'));
         }
 
         $account->update([

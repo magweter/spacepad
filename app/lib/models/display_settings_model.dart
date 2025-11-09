@@ -9,6 +9,9 @@ class DisplaySettingsModel {
   String? textReserved;
   String? textCheckin;
   bool showMeetingTitle;
+  String? logoUrl;
+  String? backgroundImageUrl;
+  String fontFamily;
 
   DisplaySettingsModel({
     required this.checkInEnabled,
@@ -21,6 +24,9 @@ class DisplaySettingsModel {
     this.textReserved,
     this.textCheckin,
     required this.showMeetingTitle,
+    this.logoUrl,
+    this.backgroundImageUrl,
+    required this.fontFamily,
   });
 
   factory DisplaySettingsModel.fromJson(Map data) {
@@ -35,6 +41,9 @@ class DisplaySettingsModel {
       textReserved: data['text_reserved'],
       textCheckin: data['text_checkin'],
       showMeetingTitle: data['show_meeting_title'] ?? true,
+      logoUrl: data['logo_url'],
+      backgroundImageUrl: data['background_image_url'],
+      fontFamily: data['font_family'] ?? 'Inter',
     );
   }
 
@@ -50,6 +59,9 @@ class DisplaySettingsModel {
       'text_reserved': textReserved,
       'text_checkin': textCheckin,
       'show_meeting_title': showMeetingTitle,
+      'logo_url': logoUrl,
+      'background_image_url': backgroundImageUrl,
+      'font_family': fontFamily,
     };
   }
 } 

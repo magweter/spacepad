@@ -18,7 +18,7 @@
 @section('content')
     @php
         $isSelfHosted = config('settings.is_self_hosted');
-        $checkout = auth()->user()->getCheckoutUrl(route('dashboard'));
+        $checkout = auth()->user()->getCheckoutUrl(route('billing.thanks'));
         $showLicenseModal = $isSelfHosted && !auth()->user()->hasPro();
     @endphp
 
@@ -39,7 +39,7 @@
             <div class="flex-1">
                 <h3 class="text-md font-semibold text-indigo-900 mb-1">Unlock all features</h3>
                 <p class="text-sm text-indigo-800 mb-1">
-                    Upgrade to Pro to create multiple displays, book on-display, customize or hide meeting titles, enable check-in and more!
+                    Upgrade to Pro to create multiple displays, book on-display, customize or hide meeting titles, use logos and backgrounds, enable check-in and more!
                 </p>
                 <p class="text-sm text-indigo-700 mb-0">
                     <a href="https://spacepad.io/#features" target="_blank" class="underline hover:text-indigo-900 inline-block">See all Pro features</a> or <a href="https://spacepad.io/#pricing" target="_blank" class="underline hover:text-indigo-900 inline-block">see pricing</a>.

@@ -104,8 +104,8 @@ class EventService
         // Then query all events
         return Event::query()
             ->where('display_id', $display->id)
-            ->where('start', '>=', now()->startOfDay())
-            ->where('start', '<', now()->endOfDay())
+            ->where('start', '>=', $display->getStartTime())
+            ->where('start', '<', $display->getEndTime())
             ->orderBy('start')
             ->get();
     }
@@ -359,8 +359,10 @@ class EventService
                 'status' => EventStatus::CONFIRMED
             ]);
 
-            $event->start = $ext['start'];
-            $event->end = $ext['end'];
+            // Parse datetime strings and convert to UTC for storage
+            // Carbon will automatically parse the timezone from the string and convert to UTC
+            $event->start = Carbon::parse($ext['start'])->utc();
+            $event->end = Carbon::parse($ext['end'])->utc();
             $event->summary = $ext['summary'];
             $event->description = $ext['description'];
             $event->location = $ext['location'];

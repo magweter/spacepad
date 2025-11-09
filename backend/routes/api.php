@@ -24,6 +24,9 @@ Route::middleware(['auth:sanctum', 'user.update-last-activity'])->group(function
     Route::delete('displays/{display}/events/{eventId}', [DisplayController::class, 'cancel']);
 
     Route::get('events', [EventController::class, 'index']); # Deprecated > v1.2.0
+    
+    // Display image serving for mobile app
+    Route::get('displays/{display}/images/{type}', [DisplayController::class, 'serveImage']);
 });
 
 Route::post('webhook/outlook', [OutlookWebhookController::class, 'handleNotification']);

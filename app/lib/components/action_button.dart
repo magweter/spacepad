@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:spacepad/theme.dart';
 import 'package:tailwind_components/tailwind_components.dart';
+import 'package:spacepad/components/frosted_panel.dart';
 
 class ActionButton extends StatelessWidget {
   final String text;
@@ -29,44 +29,46 @@ class ActionButton extends StatelessWidget {
     return Opacity(
       opacity: disabled ? 0.5 : 1.0,
       child: Container(
+        margin: EdgeInsets.only(top: isPhone ? 10 : 20, bottom: isPhone ? 10 : 20),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(cornerRadius),
-          color: Colors.transparent,
-          border: Border.all(color: effectiveBorderColor, width: 2),
         ),
-        margin: EdgeInsets.only(top: isPhone ? 10 : 20, bottom: isPhone ? 10 : 20),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(cornerRadius),
-            onTap: disabled ? null : onPressed,
-            child: Stack(
-              children: [
-                Padding(
-                  padding: EdgeInsets.symmetric(
-                    vertical: isPhone ? 12 : 16,
-                    horizontal: isPhone ? 20 : 28,
-                  ),
-                  child: Center(
-                    child: Text(
-                      text.tr,
-                      style: TextStyle(
-                        color: textColor ?? TWColors.white,
-                        fontSize: isPhone ? 16 : 20,
-                        fontWeight: FontWeight.w700,
+        child: FrostedPanel(
+          borderRadius: cornerRadius,
+          blurIntensity: 18,
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(cornerRadius),
+              onTap: disabled ? null : onPressed,
+              child: Stack(
+                children: [
+                  Padding(
+                    padding: EdgeInsets.symmetric(
+                      vertical: isPhone ? 12 : 16,
+                      horizontal: isPhone ? 20 : 28,
+                    ),
+                    child: Center(
+                      child: Text(
+                        text.tr,
+                        style: TextStyle(
+                          color: textColor ?? TWColors.white,
+                          fontSize: isPhone ? 16 : 20,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
                   ),
-                ),
-                if (disabled)
-                  Positioned.fill(
-                    child: CustomPaint(
-                      painter: _DiagonalStrikethroughPainter(
-                        color: effectiveBorderColor,
+                  if (disabled)
+                    Positioned.fill(
+                      child: CustomPaint(
+                        painter: _DiagonalStrikethroughPainter(
+                          color: effectiveBorderColor,
+                        ),
                       ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

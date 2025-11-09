@@ -9,6 +9,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Validation\ValidationException;
 use Laravel\Socialite\Facades\Socialite;
 use Illuminate\Support\Str;
+use Spatie\GoogleTagManager\GoogleTagManagerFacade as GoogleTagManager;
 
 abstract class SocialAuthController extends AuthController
 {
@@ -127,6 +128,10 @@ abstract class SocialAuthController extends AuthController
             // if there still is no match, create a new user
             if (empty($user)) {
                 $user = $this->createUser($socialUser->getName(), $socialUser->getEmail());
+
+                GoogleTagManager::flashPush([
+                    'event' => 'sign_up',
+                ]);
                 event(new UserRegistered($user));
             }
 

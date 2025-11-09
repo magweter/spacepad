@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Helpers\DisplaySettings;
 use App\Models\Display;
+use App\Services\ImageService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
@@ -12,6 +13,10 @@ use App\Http\Requests\UpdateDisplayCustomizationRequest;
 
 class DisplaySettingsController extends Controller
 {
+    public function __construct(
+        protected ImageService $imageService
+    ) {
+    }
     public function index(Display $display): View
     {
         $this->authorize('update', $display);
@@ -82,6 +87,9 @@ class DisplaySettingsController extends Controller
             return back()->withErrors(['error' => 'Failed to update settings']);
         }
 
+        // Touch the display to update its updated_at timestamp
+        $display->touch();
+
         return redirect()->route('dashboard')->with('success', 'Display settings updated successfully');
     }
 
@@ -138,10 +146,71 @@ class DisplaySettingsController extends Controller
         // Handle show_meeting_title (always set, default to false if not present)
         $updated = $updated && DisplaySettings::setShowMeetingTitle($display, $request->boolean('show_meeting_title'));
 
+        // Handle font_family
+        if ($request->has('font_family')) {
+            $updated = $updated && DisplaySettings::setFontFamily($display, $request->input('font_family'));
+        }
+
+        // Handle logo upload/removal
+        if ($request->boolean('remove_logo')) {
+            $this->imageService->removeLogoFile($display);
+            $updated = $updated && DisplaySettings::removeLogo($display);
+        } elseif ($request->hasFile('logo')) {
+            $logoPath = $this->imageService->storeLogoFile($request->file('logo'), $display);
+            if ($logoPath) {
+                $this->imageService->removeLogoFile($display); // Remove old logo if exists
+                $updated = $updated && DisplaySettings::setLogo($display, $logoPath);
+            } else {
+                $updated = false;
+            }
+        }
+
+        // Handle background image upload/removal/default selection
+        if ($request->boolean('remove_background_image')) {
+            $this->imageService->removeBackgroundImageFile($display);
+            $updated = $updated && DisplaySettings::removeBackgroundImage($display);
+        } elseif ($request->hasFile('background_image')) {
+            // Custom uploaded background
+            $backgroundPath = $this->imageService->storeBackgroundImageFile($request->file('background_image'), $display);
+            if ($backgroundPath) {
+                $this->imageService->removeBackgroundImageFile($display); // Remove old background if exists
+                $updated = $updated && DisplaySettings::setBackgroundImage($display, $backgroundPath);
+            } else {
+                $updated = false;
+            }
+        } elseif ($request->filled('default_background')) {
+            // Default background selected
+            $defaultKey = $request->input('default_background');
+            if (isset(\App\Services\ImageService::DEFAULT_BACKGROUNDS[$defaultKey])) {
+                // Remove old custom uploaded background if exists
+                $currentBackground = DisplaySettings::getBackgroundImage($display);
+                if ($currentBackground && !isset(\App\Services\ImageService::DEFAULT_BACKGROUNDS[$currentBackground])) {
+                    $this->imageService->removeBackgroundImageFile($display);
+                }
+                // Store the default background key
+                $updated = $updated && DisplaySettings::setBackgroundImage($display, $defaultKey);
+            }
+        }
+
         if (!$updated) {
             return back()->withErrors(['error' => 'Failed to update customization settings']);
         }
 
-        return redirect()->route('displays.customization', $display)->with('success', 'Customization settings updated successfully');
+        // Touch the display to update its updated_at timestamp for cache busting
+        $display->touch();
+
+        return redirect()->route('displays.customization', $display)->with('success', 'Customization settings updated successfully. Changes may take up to 1 minute to appear on your display.');
+    }
+
+
+    /**
+     * Serve display images (logo or background)
+     */
+    public function serveImage(Display $display, string $type)
+    {
+        // Use the policy to check access for both User and Device models
+        $this->authorize('view', $display);
+        
+        return $this->imageService->serveImage($display, $type);
     }
 }
