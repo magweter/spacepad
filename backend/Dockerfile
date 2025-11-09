@@ -6,8 +6,8 @@ COPY composer.json composer.lock ./
 
 COPY ./ /app
 
-RUN composer install --no-cache --no-scripts --no-autoloader --ansi --no-interaction --ignore-platform-reqs \
-    && composer dump-autoload -o
+RUN composer install --no-cache --no-dev --no-scripts --no-autoloader --ansi --no-interaction --ignore-platform-reqs \
+    && composer dump-autoload -o --ignore-platform-reqs --no-scripts
 
 # Node.js builder stage
 FROM node:20-alpine AS node_builder
@@ -28,7 +28,7 @@ FROM serversideup/php:8.4-unit AS base
 
 # Switch to root before installing our PHP extensions
 USER root
-RUN install-php-extensions opentelemetry
+RUN install-php-extensions opentelemetry protobuf
 
 FROM base AS production
 
