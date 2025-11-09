@@ -17,14 +17,16 @@ class EventResource extends JsonResource
     public function toArray($request): array
     {
         $timezone = $this['timezone'] ?? config('app.timezone');
+        // Convert from UTC (database) to the event's timezone
+        // setTimezone() properly converts the time, unlike shiftTimezone() which only changes the label
         return [
             'id' => $this['id'],
             'status' => $this['status'],
             'summary' => $this['summary'],
             'location' => $this['location'],
             'description' => $this['description'],
-            'start' => $this['start']->shiftTimezone($timezone)->toAtomString(),
-            'end' => $this['end']->shiftTimezone($timezone)->toAtomString(),
+            'start' => $this['start']->setTimezone($timezone)->toAtomString(),
+            'end' => $this['end']->setTimezone($timezone)->toAtomString(),
             'checkedInAt' => $this['checked_in_at']?->toAtomString(),
             'timezone' => $this['timezone'],
             'checkInRequired' => $this->checkInRequired(),
