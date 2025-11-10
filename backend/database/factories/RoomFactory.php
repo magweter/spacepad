@@ -27,8 +27,8 @@ class RoomFactory extends Factory
     {
         return [
             'user_id' => User::factory(),
-            'name' => fake()->word(),
-            'email_address' => fake()->unique()->safeEmail(),
+            'name' => $this->faker->word(),
+            'email_address' => $this->faker->unique()->safeEmail(),
             'calendar_id' => null,
         ];
     }
