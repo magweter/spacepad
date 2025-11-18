@@ -56,15 +56,6 @@ class RegisterController extends Controller
             GoogleTagManager::flashPush([
                 'event' => 'sign_up',
             ]);
-            if (config('services.google_conversion.send_to')) {
-                GoogleTagManager::flashPush([
-                    'event' => 'conversion',
-                    'send_to' => config('services.google_conversion.send_to'),
-                    'value' => 1.0,
-                    'currency' => 'EUR',
-                    'transaction_id' => '',
-                ]);
-            }
         }
 
         $loginUrl = MagicLink::create(new LoginAction($user))->url;

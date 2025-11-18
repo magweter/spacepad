@@ -101,6 +101,15 @@ Route::middleware(['auth', 'user.update-last-activity', 'gtm'])->group(function 
         \Spatie\GoogleTagManager\GoogleTagManagerFacade::flashPush([
             'event' => 'purchase',
         ]);
+        if (config('services.google_conversion.send_to')) {
+            \Spatie\GoogleTagManager\GoogleTagManagerFacade::flashPush([
+                'event' => 'conversion',
+                'send_to' => config('services.google_conversion.send_to'),
+                'value' => config('services.google_conversion.value'),
+                'currency' => config('services.google_conversion.currency'),
+                'transaction_id' => '',
+            ]);
+        }
         return redirect()->route('dashboard');
     })->name('billing.thanks');
     

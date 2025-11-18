@@ -82,6 +82,8 @@ return [
 
     'google_conversion' => [
         'send_to' => env('GOOGLE_CONVERSION_SEND_TO'),
+        'value' => env('GOOGLE_CONVERSION_VALUE', 1.0),
+        'currency' => env('GOOGLE_CONVERSION_CURRENCY', 'EUR'),
     ],
 
 ];
