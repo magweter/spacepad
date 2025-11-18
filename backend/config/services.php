@@ -80,4 +80,8 @@ return [
         'tag_code' => env('CLARITY_TAG_CODE'),
     ],
 
+    'google_conversion' => [
+        'send_to' => env('GOOGLE_CONVERSION_SEND_TO'),
+    ],
+
 ];
