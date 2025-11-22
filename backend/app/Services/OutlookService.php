@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\AccountStatus;
+use App\Enums\PermissionType;
 use App\Models\Display;
 use App\Models\EventSubscription;
 use App\Models\OutlookAccount;
@@ -13,7 +14,8 @@ use Illuminate\Support\Facades\Http;
 
 class OutlookService
 {
-    const OAUTH_SCOPES = 'openid email profile offline_access User.Read Calendars.Read.Shared Place.Read.All';
+    const OAUTH_SCOPES_READ = 'openid email profile offline_access User.Read Calendars.Read.Shared Place.Read.All';
+    const OAUTH_SCOPES_WRITE = 'openid email profile offline_access User.Read Calendars.ReadWrite Calendars.Read.Shared Place.Read.All';
     protected mixed $clientId;
     protected mixed $clientSecret;
     protected mixed $redirectUri;
@@ -44,18 +46,26 @@ class OutlookService
     /**
      * Generate Outlook OAuth URL for authentication.
      *
+     * @param string|PermissionType $permissionType 'read' or 'write', or PermissionType enum
      * @return string
      */
-    public function getAuthUrl(): string
+    public function getAuthUrl(string|PermissionType $permissionType = PermissionType::READ): string
     {
         $oauthEndpoint = "https://login.microsoftonline.com/{$this->tenantId}/oauth2/v2.0/authorize";
+
+        // Convert string to enum if needed
+        if (is_string($permissionType)) {
+            $permissionType = PermissionType::from($permissionType);
+        }
+
+        $scopes = $permissionType === PermissionType::WRITE ? self::OAUTH_SCOPES_WRITE : self::OAUTH_SCOPES_READ;
 
         $params = [
             'client_id' => $this->clientId,
             'response_type' => 'code',
             'redirect_uri' => $this->redirectUri,
             'response_mode' => 'query',
-            'scope' => self::OAUTH_SCOPES,
+            'scope' => $scopes,
             'state' => csrf_token(),
         ];
 
@@ -66,17 +76,25 @@ class OutlookService
      * Handle Outlook OAuth callback and store tokens in the database.
      *
      * @param string $authCode
+     * @param string|PermissionType $permissionType 'read' or 'write', or PermissionType enum
      * @return void
      * @throws \Exception
      */
-    public function authenticateOutlookAccount(string $authCode): void
+    public function authenticateOutlookAccount(string $authCode, string|PermissionType $permissionType = PermissionType::READ): void
     {
         $oauthTokenEndpoint = "https://login.microsoftonline.com/{$this->tenantId}/oauth2/v2.0/token";
+
+        // Convert string to enum if needed
+        if (is_string($permissionType)) {
+            $permissionType = PermissionType::from($permissionType);
+        }
+
+        $scopes = $permissionType === PermissionType::WRITE ? self::OAUTH_SCOPES_WRITE : self::OAUTH_SCOPES_READ;
 
         // Exchange authorization code for tokens
         $response = Http::asForm()->post($oauthTokenEndpoint, [
             'client_id' => $this->clientId,
-            'scope' => self::OAUTH_SCOPES,
+            'scope' => $scopes,
             'code' => $authCode,
             'redirect_uri' => $this->redirectUri,
             'grant_type' => 'authorization_code',
@@ -108,6 +126,7 @@ class OutlookService
                 'email' => $user['mail'] ?? $user['userPrincipalName'],
                 'name' => $user['displayName'],
                 'tenant_id' => $tenantId,
+                'permission_type' => $permissionType->value,
                 'token' => $tokenData['access_token'],
                 'refresh_token' => $tokenData['refresh_token'] ?? null,
                 'token_expires_at' => now()->addSeconds($tokenData['expires_in']),
@@ -149,9 +168,11 @@ class OutlookService
     {
         $oauthTokenEndpoint = "https://login.microsoftonline.com/{$this->tenantId}/oauth2/v2.0/token";
 
+        $scopes = $outlookAccount->permission_type === PermissionType::WRITE ? self::OAUTH_SCOPES_WRITE : self::OAUTH_SCOPES_READ;
+
         $response = Http::asForm()->post($oauthTokenEndpoint, [
             'client_id' => $this->clientId,
-            'scope' => self::OAUTH_SCOPES,
+            'scope' => $scopes,
             'refresh_token' => $outlookAccount->refresh_token,
             'grant_type' => 'refresh_token',
             'client_secret' => $this->clientSecret,

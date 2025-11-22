@@ -293,11 +293,13 @@
             <div>
                 <div class="flex flex-col md:flex-row gap-4">
                     @if(config('services.microsoft.enabled'))
-                        <a href="{{ route('outlook-accounts.auth') }}"
-                           class="grow flex items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white p-4 shadow-sm hover:border-blue-500 hover:shadow-md transition-all duration-200">
+                        <button 
+                            type="button"
+                            onclick="window.dispatchEvent(new CustomEvent('open-permission-modal', { detail: { provider: 'outlook' } }))"
+                            class="grow flex items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white p-4 shadow-sm hover:border-blue-500 hover:shadow-md transition-all duration-200">
                             <x-icons.microsoft class="h-6 w-6" />
                             <span class="font-medium text-gray-900">Microsoft</span>
-                        </a>
+                        </button>
                     @endif
 
                     @if(config('services.google.enabled'))
@@ -327,7 +329,7 @@
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-1 gap-4">
                 @foreach($outlookAccounts as $outlookAccount)
-                    <div class="relative flex items-center space-x-3 rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 hover:border-gray-400">
+                    <div class="relative flex items-center space-x-4 rounded-lg border border-gray-300 bg-white px-5 py-4 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 hover:border-gray-400">
                         @if($outlookAccount->calendars->isEmpty())
                             <form action="{{ route('outlook-accounts.delete', $outlookAccount) }}" method="POST" class="absolute top-4.5 right-2 z-10">
                                 @csrf
@@ -343,23 +345,30 @@
                                 </span>
                             </span>
                         @endif
-                        <div class="flex-shrink-0">
-                            <x-icons.microsoft class="h-10 w-10" />
+                        <div class="flex-shrink-0 px-1">
+                            <x-icons.microsoft class="h-12 w-12" />
                         </div>
                         <div class="min-w-0 flex-1">
                             <span class="absolute inset-0" aria-hidden="true"></span>
-                            <div class="flex items-center gap-2">
+                            <div class="flex items-center gap-2 flex-wrap">
                                 <p class="text-md font-medium text-gray-900">{{ $outlookAccount->name }}</p>
-                                <p class="mt-0.5 whitespace-nowrap rounded-md bg-green-50 px-1.5 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600">Connected</p>
                             </div>
-                            <p class="truncate text-sm text-gray-500 flex items-center gap-2 mt-1">
+                            <div class="truncate text-sm text-gray-500 flex items-center gap-2 flex-wrap">
                                 <span>{{ $outlookAccount->email }}</span>
-                            </p>
+                            </div>
+                            <div class="truncate text-sm text-gray-500 flex items-center gap-2 mt-1 flex-wrap">
+                                <p class="mt-0.5 whitespace-nowrap rounded-md bg-green-50 px-1.5 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600">Connected</p>
+                                @if($outlookAccount->permission_type)
+                                    <p class="mt-0.5 whitespace-nowrap rounded-md px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset {{ $outlookAccount->permission_type === \App\Enums\PermissionType::WRITE ? 'bg-blue-50 text-blue-700 ring-blue-600/20' : 'bg-gray-50 text-gray-700 ring-gray-600/20' }}">
+                                        {{ $outlookAccount->permission_type->label() }}
+                                    </p>
+                                @endif
+                            </div>
                         </div>
                     </div>
                 @endforeach
                 @foreach($googleAccounts as $googleAccount)
-                    <div class="relative flex items-center space-x-3 rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 hover:border-gray-400">
+                    <div class="relative flex items-center space-x-4 rounded-lg border border-gray-300 bg-white px-5 py-4 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 hover:border-gray-400">
                         @if($googleAccount->calendars->isEmpty())
                             <form action="{{ route('google-accounts.delete', $googleAccount) }}" method="POST" class="absolute top-4.5 right-2 z-10">
                                 @csrf
@@ -375,23 +384,30 @@
                                 </span>
                             </span>
                         @endif
-                        <div class="flex-shrink-0">
-                            <x-icons.google class="h-10 w-10" />
+                        <div class="flex-shrink-0 px-1">
+                            <x-icons.google class="h-12 w-12" />
                         </div>
                         <div class="min-w-0 flex-1">
                             <span class="absolute inset-0" aria-hidden="true"></span>
-                            <div class="flex items-center gap-2">
+                            <div class="flex items-center gap-2 flex-wrap">
                                 <p class="text-md font-medium text-gray-900">{{ $googleAccount->name }}</p>
-                                <p class="mt-0.5 whitespace-nowrap rounded-md bg-green-50 px-1.5 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600">Connected</p>
                             </div>
-                            <p class="truncate text-sm text-gray-500 flex items-center gap-2 mt-1">
+                            <div class="truncate text-sm text-gray-500 flex items-center gap-2 flex-wrap">
                                 <span>{{ $googleAccount->email }}</span>
-                            </p>
+                            </div>
+                            <div class="truncate text-sm text-gray-500 flex items-center gap-2 mt-1 flex-wrap">
+                                <p class="mt-0.5 whitespace-nowrap rounded-md bg-green-50 px-1.5 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600">Connected</p>
+                                @if($googleAccount->permission_type)
+                                    <p class="mt-0.5 whitespace-nowrap rounded-md px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset {{ $googleAccount->permission_type === \App\Enums\PermissionType::WRITE ? 'bg-blue-50 text-blue-700 ring-blue-600/20' : 'bg-gray-50 text-gray-700 ring-gray-600/20' }}">
+                                        {{ $googleAccount->permission_type->label() }}
+                                    </p>
+                                @endif
+                            </div>
                         </div>
                     </div>
                 @endforeach
                 @foreach($caldavAccounts as $caldavAccount)
-                    <div class="relative flex items-center space-x-3 rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 hover:border-gray-400">
+                    <div class="relative flex items-center space-x-4 rounded-lg border border-gray-300 bg-white px-5 py-4 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 hover:border-gray-400">
                         @if($caldavAccount->calendars->isEmpty())
                             <form action="{{ route('caldav-accounts.delete', $caldavAccount) }}" method="POST" class="absolute top-4.5 right-2 z-10">
                                 @csrf
@@ -407,18 +423,25 @@
                                 </span>
                             </span>
                         @endif
-                        <div class="flex-shrink-0">
-                            <x-icons.calendar class="h-10 w-10" />
+                        <div class="flex-shrink-0 px-1">
+                            <x-icons.calendar class="h-12 w-12" />
                         </div>
                         <div class="min-w-0 flex-1">
                             <span class="absolute inset-0" aria-hidden="true"></span>
-                            <div class="flex items-center gap-2">
+                            <div class="flex items-center gap-2 flex-wrap">
                                 <p class="text-md font-medium text-gray-900">{{ $caldavAccount->name }}</p>
-                                <p class="mt-0.5 whitespace-nowrap rounded-md bg-green-50 px-1.5 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600">Connected</p>
                             </div>
-                            <p class="truncate text-sm text-gray-500 flex items-center gap-2 mt-1">
+                            <div class="truncate text-sm text-gray-500 flex items-center gap-2 flex-wrap">
                                 <span>{{ $caldavAccount->email }}</span>
-                            </p>
+                            </div>
+                            <div class="truncate text-sm text-gray-500 flex items-center gap-2 mt-1 flex-wrap">
+                                <p class="mt-0.5 whitespace-nowrap rounded-md bg-green-50 px-1.5 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600">Connected</p>
+                                @if($caldavAccount->permission_type)
+                                    <p class="mt-0.5 whitespace-nowrap rounded-md px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset {{ $caldavAccount->permission_type === \App\Enums\PermissionType::WRITE ? 'bg-blue-50 text-blue-700 ring-blue-600/20' : 'bg-gray-50 text-gray-700 ring-gray-600/20' }}">
+                                        {{ $caldavAccount->permission_type->label() }}
+                                    </p>
+                                @endif
+                            </div>
                         </div>
                     </div>
                 @endforeach
@@ -451,4 +474,8 @@
             }
         });
     </script>
+@endpush
+
+@push('modals')
+    <x-modals.select-permission provider="outlook" />
 @endpush

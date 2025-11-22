@@ -91,11 +91,13 @@
                     </div>
                     <div class="flex flex-col gap-y-4 mt-8 w-full">
                         @if(config('services.microsoft.enabled'))
-                            <a href="{{ route('outlook-accounts.auth') }}"
-                               class="flex items-center justify-center gap-3 rounded-lg border border-gray-200 bg-white p-4 shadow-sm hover:border-blue-500 hover:shadow-md transition-all duration-200">
+                            <button 
+                                type="button"
+                                onclick="window.dispatchEvent(new CustomEvent('open-permission-modal', { detail: { provider: 'outlook' } }))"
+                                class="flex items-center justify-center gap-3 rounded-lg border border-gray-200 bg-white p-4 shadow-sm hover:border-blue-500 hover:shadow-md transition-all duration-200">
                                 <x-icons.microsoft class="h-6 w-6" />
                                 <span class="font-medium text-gray-900">Connect a Microsoft account</span>
-                            </a>
+                            </button>
                         @endif
 
                         @if(config('services.google.enabled'))
@@ -120,3 +122,7 @@
     </div>
 </div>
 @endsection
+
+@push('modals')
+    <x-modals.select-permission provider="outlook" />
+@endpush

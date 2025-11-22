@@ -90,10 +90,9 @@ We love open source and welcome your contributions! See [CONTRIBUTING.md](CONTRI
 - [x] CalDAV support
 - [x] Booking directly on device
 - [x] Showing all events of the day
-- [ ] Custom display themes & logos
+- [x] Custom display themes & logos
+- [ ] Multi-room overview dashboard
 - [ ] Amazon Fire Tablet support
 - [ ] Organizations & management
-- [ ] Web and TV view
-- [ ] Multi-room overview dashboard
 
 Feature requests? We're all ears! Please open a new [discussion](https://github.com/magweter/spacepad/discussions).

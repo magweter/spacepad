@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\AccountStatus;
+use App\Enums\PermissionType;
 use App\Traits\HasUlid;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -22,6 +23,7 @@ class CalDAVAccount extends Model
         'email',
         'avatar',
         'status',
+        'permission_type',
         'user_id',
         'url',
         'username',
@@ -34,6 +36,7 @@ class CalDAVAccount extends Model
 
     protected $casts = [
         'status' => AccountStatus::class,
+        'permission_type' => PermissionType::class,
         'password' => 'encrypted',
     ];
 
