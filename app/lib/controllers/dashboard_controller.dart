@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:get/get.dart';
 import 'package:spacepad/components/toast.dart';
@@ -12,6 +13,8 @@ import 'package:spacepad/models/device_model.dart';
 import 'package:spacepad/models/display_model.dart';
 import 'package:spacepad/models/display_settings_model.dart';
 import 'package:spacepad/services/font_service.dart';
+import 'package:flutter/material.dart';
+import 'package:spacepad/components/custom_booking_modal.dart';
 
 class DashboardController extends GetxController {
   final RxBool loading = RxBool(true);
@@ -29,6 +32,11 @@ class DashboardController extends GetxController {
   
   Timer? _clock;
   Timer? _dataTimer;
+  
+  // Track refresh state to prevent spamming
+  final RxBool isRefreshing = RxBool(false);
+  DateTime? _lastRefreshTime;
+  static const int _refreshCooldownSeconds = 3;
 
   @override
   void onInit() async {
@@ -244,16 +252,61 @@ class DashboardController extends GetxController {
     Get.offAll(() => const DisplayPage());
   }
 
-  // Manually refresh display data
+  // Manually refresh display data with cooldown to prevent spamming
   Future<void> refreshDisplayData() async {
-    await fetchDisplayData();
-    Toast.showSuccess('display_data_refreshed'.tr); 
+    // Check if we're already refreshing
+    if (isRefreshing.value) {
+      return;
+    }
+    
+    // Check cooldown period
+    if (_lastRefreshTime != null) {
+      final secondsSinceLastRefresh = DateTime.now().difference(_lastRefreshTime!).inSeconds;
+      if (secondsSinceLastRefresh < _refreshCooldownSeconds) {
+        return;
+      }
+    }
+    
+    isRefreshing.value = true;
+    _lastRefreshTime = DateTime.now();
+    
+    try {
+      await fetchDisplayData();
+      Toast.showSuccess('display_data_refreshed'.tr);
+    } finally {
+      isRefreshing.value = false;
+    }
   }
 
   Future<void> bookRoom(int duration) async {
     try {
       final summary = 'reserved'.tr;
       await DisplayService.instance.book(displayId.value, duration, summary: summary);
+      await fetchDisplayData();
+      Toast.showSuccess('room_booked'.tr);
+      
+      // Cancel the booking options timer since user took action
+      _bookingOptionsTimer?.cancel();
+      showBookingOptions.value = false;
+    } catch (e) {
+      Toast.showError('could_not_book_room'.tr);
+    }
+  }
+
+  void showCustomBookingModal(BuildContext context, bool isPhone, double cornerRadius) {
+    showDialog(
+      context: context,
+      builder: (context) => CustomBookingModal(
+        controller: this,
+        isPhone: isPhone,
+        cornerRadius: cornerRadius,
+      ),
+    );
+  }
+
+  Future<void> bookCustom(String title, DateTime startTime, DateTime endTime) async {
+    try {
+      await DisplayService.instance.bookCustom(displayId.value, title, startTime, endTime);
       await fetchDisplayData();
       Toast.showSuccess('room_booked'.tr);
       
@@ -301,15 +354,15 @@ class DashboardController extends GetxController {
   // Timer for long press detection (3 seconds)
   Timer? _longPressTimer;
 
-  // Show booking options with 10-second timeout
+  // Show booking options with 30-second timeout
   void toggleBookingOptions() {
     showBookingOptions.value = true;
     
     // Cancel any existing timer
     _bookingOptionsTimer?.cancel();
     
-    // Set a 10-second timeout to automatically hide booking options
-    _bookingOptionsTimer = Timer(const Duration(seconds: 10), () {
+    // Set a 30-second timeout to automatically hide booking options
+    _bookingOptionsTimer = Timer(const Duration(seconds: 30), () {
       showBookingOptions.value = false;
     });
   }

@@ -21,6 +21,15 @@ class DisplayService {
     });
   }
 
+  Future<void> bookCustom(String displayId, String title, DateTime startTime, DateTime endTime) async {
+    // Convert local DateTime to UTC before sending to backend
+    await ApiService.post('displays/$displayId/book', {
+      'start': startTime.toUtc().toIso8601String(),
+      'end': endTime.toUtc().toIso8601String(),
+      'summary': title,
+    });
+  }
+
   Future<DisplayDataModel> getDisplayData(String displayId) async {
     try {
       return await _getDisplayDataNew(displayId);

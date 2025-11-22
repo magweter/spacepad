@@ -55,10 +55,15 @@ class EventService
      * Book a room for a given duration. Handles all business logic.
      * Throws exception if not allowed.
      */
-    public function bookRoom(string $displayId, string $userId, int $duration, ?string $summary = null): Event
+    public function bookRoom(string $displayId, string $userId, string $summary, ?int $duration = null, ?Carbon $start = null, ?Carbon $end = null): Event
     {
-        $start = now();
-        $end = $start->copy()->addMinutes($duration);
+        // If duration is provided, calculate start and end from now
+        if ($duration !== null) {
+            $start = now();
+            $end = $start->copy()->addMinutes($duration);
+        } elseif ($start === null || $end === null) {
+            throw new Exception('Either duration or both start and end times must be provided');
+        }
 
         // Check for any conflicting events (both custom and external)
         if ($this->hasConflictingEvents($displayId, $start, $end)) {
@@ -72,7 +77,7 @@ class EventService
             'source' => EventSource::CUSTOM,
             'start' => $start,
             'end' => $end,
-            'summary' => $summary ?? __('Booked'),
+            'summary' => $summary,
             'timezone' => config('app.timezone', 'UTC'),
         ]);
     }
@@ -320,10 +325,15 @@ class EventService
             ->where('display_id', $displayId)
             ->where('status', '!=', EventStatus::CANCELLED)
             ->where(function ($q) use ($start, $end) {
-                $q->whereBetween('start', [$start, $end])
-                  ->orWhereBetween('end', [$start, $end])
+                // Check if an existing event starts within the new booking period (exclusive of end time)
+                $q->where('start', '>=', $start)->where('start', '<', $end)
+                  // Check if an existing event ends within the new booking period (exclusive of start time)
                   ->orWhere(function ($q2) use ($start, $end) {
-                      $q2->where('start', '<=', $start)->where('end', '>=', $end);
+                      $q2->where('end', '>', $start)->where('end', '<=', $end);
+                  })
+                  // Check if an existing event completely contains the new booking (exclusive boundaries)
+                  ->orWhere(function ($q2) use ($start, $end) {
+                      $q2->where('start', '<', $start)->where('end', '>', $end);
                   });
             })
             ->exists();
