@@ -57,7 +57,10 @@ class AppTranslations extends Translations {
       'todays_schedule': 'Today\'s schedule',
       'no_upcoming_events': 'No upcoming events',
       'no_events_today': 'No events scheduled for today',
-      'meeting': 'Meeting'
+      'meeting': 'Meeting',
+      'admin_actions_enabled': 'Admin actions enabled for @seconds seconds',
+      'refresh_data': 'Refresh data',
+      'display_data_refreshed': 'Display data successfully refreshed, you should now see actual data'
     },
     'nl_NL': {
       'introduction_title': 'Welkom bij Spacepad!',
@@ -113,7 +116,10 @@ class AppTranslations extends Translations {
       'todays_schedule': 'Dagplanning',
       'no_upcoming_events': 'Geen toekomstige afspraken',
       'no_events_today': 'Geen afspraken gepland voor vandaag',
-      'meeting': 'Vergadering'
+      'meeting': 'Vergadering',
+      'admin_actions_enabled': 'Beheeracties ingeschakeld voor @seconds seconden',
+      'refresh_data': 'Gegevens vernieuwen',
+      'display_data_refreshed': 'Schermgegevens succesvol vernieuwd, u zou nu actuele gegevens moeten zien'
     },
     'es_ES': {
       'introduction_title': '¡Bienvenido a Spacepad!',
@@ -169,7 +175,10 @@ class AppTranslations extends Translations {
       'todays_schedule': 'Horario de hoy',
       'no_upcoming_events': 'No hay eventos próximos',
       'no_events_today': 'No hay eventos programados para hoy',
-      'meeting': 'Reunión'
+      'meeting': 'Reunión',
+      'admin_actions_enabled': 'Acciones de administrador habilitadas por @seconds segundos',
+      'refresh_data': 'Actualizar datos',
+      'display_data_refreshed': 'Datos de la pantalla actualizados correctamente, ahora debería ver datos actuales'
     },
     'fr_FR': {
       'introduction_title': 'Bienvenue sur Spacepad !',
@@ -225,7 +234,10 @@ class AppTranslations extends Translations {
       'todays_schedule': 'Horaire d\'aujourd\'hui',
       'no_upcoming_events': 'Aucun événement à venir',
       'no_events_today': 'Aucun événement programmé pour aujourd\'hui',
-      'meeting': 'Réunion'
+      'meeting': 'Réunion',
+      'admin_actions_enabled': 'Actions d\'administration activées pendant @seconds secondes',
+      'refresh_data': 'Actualiser les données',
+      'display_data_refreshed': 'Données de l\'écran actualisées avec succès, vous devriez maintenant voir les données réelles'
     },
     'de_DE': {
       'introduction_title': 'Willkommen bei Spacepad!',
@@ -281,7 +293,10 @@ class AppTranslations extends Translations {
       'todays_schedule': 'Heutiger zeitplan',
       'no_upcoming_events': 'Keine anstehenden termine',
       'no_events_today': 'Keine termine für heute geplant',
-      'meeting': 'Besprechung'
+      'meeting': 'Besprechung',
+      'admin_actions_enabled': 'Administratoraktionen für @seconds Sekunden aktiviert',
+      'refresh_data': 'Daten aktualisieren',
+      'display_data_refreshed': 'Anzeigedaten erfolgreich aktualisiert, Sie sollten jetzt aktuelle Daten sehen'
     },
     'sv_SE': {
       'introduction_title': 'Välkommen till Spacepad!',
@@ -337,7 +352,10 @@ class AppTranslations extends Translations {
       'todays_schedule': 'Dagens schema',
       'no_upcoming_events': 'Inga kommande händelser',
       'no_events_today': 'Inga händelser schemalagda för idag',
-      'meeting': 'Möte'
+      'meeting': 'Möte',
+      'admin_actions_enabled': 'Administratörsåtgärder aktiverade i @seconds sekunder',
+      'refresh_data': 'Uppdatera data',
+      'display_data_refreshed': 'Skärmdata uppdaterades framgångsrikt, du bör nu se aktuella data'
     },
   };
 }
