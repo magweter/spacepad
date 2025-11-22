@@ -285,6 +285,47 @@
                 </div>
             </div>
         </x-cards.card>
+
+        <x-cards.card class="col-span-12 xl:col-span-4 space-y-6">
+            <div class="sm:flex sm:items-center mb-4">
+                <div class="sm:flex-auto">
+                    <h2 class="text-lg font-semibold leading-6 text-gray-900">Panels</h2>
+                    <p class="mt-1 text-sm text-gray-500">Web-based displays showing multiple rooms.</p>
+                </div>
+                <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
+                    <a href="{{ route('panels.index') }}" class="inline-flex items-center rounded-md bg-oxford px-3 py-2 text-center text-sm font-semibold text-white">
+                        <x-icons.plus class="h-5 w-5 mr-1" />
+                        Manage panels
+                    </a>
+                </div>
+            </div>
+
+            @if($panels->isEmpty())
+                <div class="text-center py-8">
+                    <p class="text-sm text-gray-500">No panels yet.</p>
+                    <a href="{{ route('panels.create') }}" class="mt-2 text-sm text-oxford hover:text-oxford-600">Create one →</a>
+                </div>
+            @else
+                <div class="space-y-3">
+                    @foreach($panels->take(5) as $panel)
+                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div>
+                                <p class="text-sm font-medium text-gray-900">{{ $panel->name }}</p>
+                                <p class="text-xs text-gray-500">{{ $panel->displays_count }} {{ Str::plural('display', $panel->displays_count) }} · {{ $panel->display_mode->label() }}</p>
+                            </div>
+                            <a href="{{ route('panels.show', $panel) }}" target="_blank" class="text-oxford hover:text-oxford-600" title="View panel">
+                                <x-icons.eye class="h-5 w-5" />
+                            </a>
+                        </div>
+                    @endforeach
+                    @if($panels->count() > 5)
+                        <a href="{{ route('panels.index') }}" class="block text-center text-sm text-oxford hover:text-oxford-600 mt-2">
+                            View all {{ $panels->count() }} panels →
+                        </a>
+                    @endif
+                </div>
+            @endif
+        </x-cards.card>
         <x-cards.card class="col-span-12 xl:col-span-4 space-y-6">
             <div>
                 <h2 class="text-lg font-semibold leading-6 text-gray-900">Accounts</h2>

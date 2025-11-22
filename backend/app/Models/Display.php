@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Enums\DisplayStatus;
 use App\Helpers\DisplaySettings;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Display extends Model
 {
@@ -40,6 +41,12 @@ class Display extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function panels(): BelongsToMany
+    {
+        return $this->belongsToMany(Panel::class, 'panel_displays')
+            ->withPivot('order');
     }
 
     public function eventSubscriptions(): HasMany

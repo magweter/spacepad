@@ -3,7 +3,9 @@
 namespace App\Providers;
 
 use App\Models\Display;
+use App\Models\Panel;
 use App\Policies\DisplayPolicy;
+use App\Policies\PanelPolicy;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 
 class AuthServiceProvider extends ServiceProvider
@@ -15,6 +17,7 @@ class AuthServiceProvider extends ServiceProvider
      */
     protected $policies = [
         Display::class => DisplayPolicy::class,
+        Panel::class => PanelPolicy::class,
     ];
 
     /**

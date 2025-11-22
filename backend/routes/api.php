@@ -5,6 +5,8 @@ use App\Http\Controllers\API\Cloud\InstanceController;
 use App\Http\Controllers\API\DeviceController;
 use App\Http\Controllers\API\DisplayController;
 use App\Http\Controllers\API\EventController;
+use App\Http\Controllers\API\PanelController;
+use App\Http\Controllers\API\PanelDisplayController;
 use App\Http\Controllers\GoogleWebhookController;
 use App\Http\Controllers\OutlookWebhookController;
 use Illuminate\Support\Facades\Route;
@@ -27,6 +29,13 @@ Route::middleware(['auth:sanctum', 'user.update-last-activity'])->group(function
     
     // Display image serving for mobile app
     Route::get('displays/{display}/images/{type}', [DisplayController::class, 'serveImage']);
+
+    // Panel routes
+    Route::get('panels', [PanelController::class, 'index']);
+    Route::get('panels/{panel}', [PanelController::class, 'show']);
+    Route::post('panels/{panel}/displays', [PanelDisplayController::class, 'attachDisplay']);
+    Route::delete('panels/{panel}/displays/{display}', [PanelDisplayController::class, 'detachDisplay']);
+    Route::post('panels/{panel}/displays/reorder', [PanelDisplayController::class, 'reorderDisplays']);
 });
 
 Route::post('webhook/outlook', [OutlookWebhookController::class, 'handleNotification']);

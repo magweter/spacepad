@@ -21,12 +21,17 @@ class DashboardController extends Controller
     {
         $connectCode = auth()->user()->getConnectCode();
         $user = auth()->user()->load(['outlookAccounts', 'googleAccounts', 'caldavAccounts', 'displays']);
+        $panels = \App\Models\Panel::where('user_id', $user->id)
+            ->withCount('displays')
+            ->orderBy('created_at', 'desc')
+            ->get();
 
         return view('pages.dashboard', [
             'outlookAccounts' => $user->outlookAccounts,
             'googleAccounts' => $user->googleAccounts,
             'caldavAccounts' => $user->caldavAccounts,
             'displays' => $user->displays,
+            'panels' => $panels,
             'connectCode' => $connectCode,
         ]);
     }

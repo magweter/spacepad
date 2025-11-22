@@ -89,6 +89,11 @@ class User extends Authenticatable
         return $this->hasMany(Room::class);
     }
 
+    public function panels(): HasMany
+    {
+        return $this->hasMany(Panel::class);
+    }
+
     public function hasAnyDisplay(): bool
     {
         return $this->displays()->count() > 0;
