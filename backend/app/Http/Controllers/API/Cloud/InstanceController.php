@@ -21,21 +21,37 @@ class InstanceController extends ApiController
 
     public function heartbeat(InstanceHeartbeatRequest $request): JsonResponse
     {
-        Instance::updateOrCreate(
-            ['instance_key' => $request['instance_key']],
-            [
-                'instance_key' => $request['instance_key'],
-                'license_key' => $request['license_key'],
-                'license_valid' => $request['license_valid'],
-                'license_expires_at' => $request['license_expires_at'],
-                'is_self_hosted' => $request['is_self_hosted'],
-                'displays_count' => $request['displays_count'],
-                'rooms_count' => $request['rooms_count'],
-                'users' => $request['users'],
-                'version' => $request['version'],
-                'last_heartbeat_at' => now(),
-            ]
-        );
+        // First, try to find an existing instance with the same instance_key
+        $existingInstance = Instance::query()
+            ->where('instance_key', $request['instance_key'])
+            ->latest();
+        
+        // Second, try to find an existing instance with the same user data by comparing JSON strings directly
+        // Direct JSON comparison works for both SQLite (TEXT) and MySQL (JSON type)
+        $existingInstance = $existingInstance ?? Instance::query()
+            ->whereRaw('users = ?', [$request['users']])
+            ->latest();
+
+        $instanceData = [
+            'instance_key' => $request['instance_key'],
+            'license_key' => $request['license_key'],
+            'license_valid' => $request['license_valid'],
+            'license_expires_at' => $request['license_expires_at'],
+            'is_self_hosted' => $request['is_self_hosted'],
+            'displays_count' => $request['displays_count'],
+            'rooms_count' => $request['rooms_count'],
+            'users' => $request['users'],
+            'version' => $request['version'],
+            'last_heartbeat_at' => now(),
+        ];
+
+        // If found, update that instance instead of creating a new one
+        if ($existingInstance !== null) {
+            $existingInstance->update($instanceData);
+        } else {
+            // No existing instance, create a new instance
+            Instance::create($instanceData);
+        }
 
         return $this->success(
             message: 'Heartbeat received'

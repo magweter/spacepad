@@ -56,6 +56,13 @@ jobs:
             type=sha,format=short
             type=raw,value=${{ github.ref_name }}-${{ github.sha }},enable=${{ github.ref != 'refs/heads/main' }}
 
+      - name: Get git tag
+        id: git_tag
+        run: |
+          GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || echo "")
+          echo "tag=${GIT_TAG}" >> $GITHUB_OUTPUT
+          echo "Found tag: ${GIT_TAG}"
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
@@ -64,5 +71,8 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            GIT_TAG=${{ steps.git_tag.outputs.tag }}
+            GIT_COMMIT=${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max 
