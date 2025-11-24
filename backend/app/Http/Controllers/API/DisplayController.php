@@ -14,6 +14,7 @@ use App\Services\EventService;
 use App\Services\ImageService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Carbon;
 
 class DisplayController extends ApiController
 {
@@ -74,12 +75,21 @@ class DisplayController extends ApiController
 
         try {
             $data = $request->validated();
+            
+            // Parse start and end times if provided, otherwise use duration
+            $start = isset($data['start']) ? Carbon::parse($data['start'])->utc() : null;
+            $end = isset($data['end']) ? Carbon::parse($data['end'])->utc() : null;
+            $duration = isset($data['duration']) ? (int) $data['duration'] : null;
+            
             $event = $this->eventService->bookRoom(
-                $displayId,
-                $device->user_id,
-                (int) $request->duration,
-                Arr::get($data, 'summary', __('Reserved'))
+                displayId: $displayId,
+                userId: $device->user_id,
+                summary: Arr::get($data, 'summary', __('Reserved')),
+                duration: $duration,
+                start: $start,
+                end: $end
             );
+            
             return $this->success(data: new EventResource($event), code: 201);
         } catch (\Exception $e) {
             $status = $e->getCode() === 403 ? 403 : 400;

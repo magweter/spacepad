@@ -44,6 +44,7 @@ class DisplaySettingsController extends Controller
             'check_in_enabled' => 'boolean',
             'booking_enabled' => 'boolean',
             'calendar_enabled' => 'boolean',
+            'hide_admin_actions' => 'boolean',
             'check_in_minutes' => 'nullable|integer|min:1|max:60',
             'check_in_grace_period' => 'nullable|integer|min:1|max:30',
         ]);
@@ -63,6 +64,11 @@ class DisplaySettingsController extends Controller
         $updated = $updated && DisplaySettings::setCalendarEnabled(
             $display,
             $request->boolean('calendar_enabled')
+        );
+
+        $updated = $updated && DisplaySettings::setAdminActionsHidden(
+            $display,
+            $request->boolean('hide_admin_actions')
         );
 
         // Only allow updating grace period if check-in is enabled (either in request or already enabled)

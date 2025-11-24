@@ -57,7 +57,19 @@ class AppTranslations extends Translations {
       'todays_schedule': 'Today\'s schedule',
       'no_upcoming_events': 'No upcoming events',
       'no_events_today': 'No events scheduled for today',
-      'meeting': 'Meeting'
+      'meeting': 'Meeting',
+      'admin_actions_enabled': 'Admin actions enabled for @seconds seconds',
+      'refresh_data': 'Refresh data',
+      'display_data_refreshed': 'Display data successfully refreshed. The display should now use the most recent settings and an updated view of the events',
+      'refresh_cooldown': 'Please wait @seconds seconds before refreshing again',
+      'custom': 'Custom',
+      'custom_booking': 'Custom booking',
+      'meeting_title': 'Meeting title',
+      'start_time': 'Start time',
+      'end_time': 'End time',
+      'now': 'Now',
+      'max': 'Max',
+      'book': 'Book'
     },
     'nl_NL': {
       'introduction_title': 'Welkom bij Spacepad!',
@@ -113,7 +125,19 @@ class AppTranslations extends Translations {
       'todays_schedule': 'Dagplanning',
       'no_upcoming_events': 'Geen toekomstige afspraken',
       'no_events_today': 'Geen afspraken gepland voor vandaag',
-      'meeting': 'Vergadering'
+      'meeting': 'Vergadering',
+      'admin_actions_enabled': 'Beheeracties ingeschakeld voor @seconds seconden',
+      'refresh_data': 'Gegevens vernieuwen',
+      'display_data_refreshed': 'Schermgegevens succesvol vernieuwd. Het scherm zou nu de meest recente instellingen en een bijgewerkt overzicht van de gebeurtenissen moeten gebruiken',
+      'refresh_cooldown': 'Wacht a.u.b. @seconds seconden voordat u opnieuw vernieuwt',
+      'custom': 'Aangepast',
+      'custom_booking': 'Aangepaste boeking',
+      'meeting_title': 'Vergaderingstitel',
+      'start_time': 'Starttijd',
+      'end_time': 'Eindtijd',
+      'now': 'Nu',
+      'max': 'Max',
+      'book': 'Boek'
     },
     'es_ES': {
       'introduction_title': '¡Bienvenido a Spacepad!',
@@ -169,7 +193,19 @@ class AppTranslations extends Translations {
       'todays_schedule': 'Horario de hoy',
       'no_upcoming_events': 'No hay eventos próximos',
       'no_events_today': 'No hay eventos programados para hoy',
-      'meeting': 'Reunión'
+      'meeting': 'Reunión',
+      'admin_actions_enabled': 'Acciones de administrador habilitadas por @seconds segundos',
+      'refresh_data': 'Actualizar datos',
+      'display_data_refreshed': 'Datos de la pantalla actualizados correctamente. La pantalla ahora debería usar la configuración más reciente y una vista actualizada de los eventos',
+      'refresh_cooldown': 'Espere @seconds segundos antes de actualizar nuevamente',
+      'custom': 'Personalizada',
+      'custom_booking': 'Reserva personalizada',
+      'meeting_title': 'Título de la reunión',
+      'start_time': 'Hora de inicio',
+      'end_time': 'Hora de finalización',
+      'now': 'Ahora',
+      'max': 'Máx',
+      'book': 'Reservar'
     },
     'fr_FR': {
       'introduction_title': 'Bienvenue sur Spacepad !',
@@ -225,7 +261,19 @@ class AppTranslations extends Translations {
       'todays_schedule': 'Horaire d\'aujourd\'hui',
       'no_upcoming_events': 'Aucun événement à venir',
       'no_events_today': 'Aucun événement programmé pour aujourd\'hui',
-      'meeting': 'Réunion'
+      'meeting': 'Réunion',
+      'admin_actions_enabled': 'Actions d\'administration activées pendant @seconds secondes',
+      'refresh_data': 'Actualiser les données',
+      'display_data_refreshed': 'Données de l\'écran actualisées avec succès. L\'écran devrait maintenant utiliser les paramètres les plus récents et une vue mise à jour des événements',
+      'refresh_cooldown': 'Veuillez attendre @seconds secondes avant d\'actualiser à nouveau',
+      'custom': 'Personnalisée',
+      'custom_booking': 'Réservation personnalisée',
+      'meeting_title': 'Titre de la réunion',
+      'start_time': 'Heure de début',
+      'end_time': 'Heure de fin',
+      'now': 'Maintenant',
+      'max': 'Max',
+      'book': 'Réserver'
     },
     'de_DE': {
       'introduction_title': 'Willkommen bei Spacepad!',
@@ -281,7 +329,19 @@ class AppTranslations extends Translations {
       'todays_schedule': 'Heutiger zeitplan',
       'no_upcoming_events': 'Keine anstehenden termine',
       'no_events_today': 'Keine termine für heute geplant',
-      'meeting': 'Besprechung'
+      'meeting': 'Besprechung',
+      'admin_actions_enabled': 'Administratoraktionen für @seconds Sekunden aktiviert',
+      'refresh_data': 'Daten aktualisieren',
+      'display_data_refreshed': 'Anzeigedaten erfolgreich aktualisiert. Die Anzeige sollte nun die neuesten Einstellungen und eine aktualisierte Ansicht der Ereignisse verwenden',
+      'refresh_cooldown': 'Bitte warten Sie @seconds Sekunden, bevor Sie erneut aktualisieren',
+      'custom': 'Benutzerdefiniert',
+      'custom_booking': 'Benutzerdefinierte Buchung',
+      'meeting_title': 'Besprechungstitel',
+      'start_time': 'Startzeit',
+      'end_time': 'Endzeit',
+      'now': 'Jetzt',
+      'max': 'Max',
+      'book': 'Buchen'
     },
     'sv_SE': {
       'introduction_title': 'Välkommen till Spacepad!',
@@ -337,7 +397,19 @@ class AppTranslations extends Translations {
       'todays_schedule': 'Dagens schema',
       'no_upcoming_events': 'Inga kommande händelser',
       'no_events_today': 'Inga händelser schemalagda för idag',
-      'meeting': 'Möte'
+      'meeting': 'Möte',
+      'admin_actions_enabled': 'Administratörsåtgärder aktiverade i @seconds sekunder',
+      'refresh_data': 'Uppdatera data',
+      'display_data_refreshed': 'Skärmdata uppdaterades framgångsrikt. Skärmen bör nu använda de senaste inställningarna och en uppdaterad vy över händelserna',
+      'refresh_cooldown': 'Vänta @seconds sekunder innan du uppdaterar igen',
+      'custom': 'Anpassad',
+      'custom_booking': 'Anpassad bokning',
+      'meeting_title': 'Mötetitel',
+      'start_time': 'Starttid',
+      'end_time': 'Sluttid',
+      'now': 'Nu',
+      'max': 'Max',
+      'book': 'Boka'
     },
   };
 }

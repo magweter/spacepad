@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:spacepad/components/action_button.dart';
-import 'package:spacepad/theme.dart';
 import 'package:tailwind_components/tailwind_components.dart';
 
 class ActionPanel extends StatelessWidget {
@@ -53,6 +52,15 @@ class ActionPanel extends StatelessWidget {
                     disabled: !controller.availableBookingDurations.contains(min),
                   ),
                 ),
+              SizedBox(width: isPhone ? 12 : 16),
+              ActionButton(
+                text: 'custom',
+                onPressed: () {
+                  controller.showCustomBookingModal(context, isPhone, cornerRadius);
+                },
+                isPhone: isPhone,
+                cornerRadius: cornerRadius,
+              ),
               SizedBox(width: isPhone ? 16 : 24),
               ActionButton(
                 text: 'cancel',

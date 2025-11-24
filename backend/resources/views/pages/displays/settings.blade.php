@@ -118,6 +118,25 @@
                     </div>
                 </div>
 
+                <!-- Admin Actions Settings -->
+                <div class="border border-gray-200 rounded-lg p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <h3 class="text-base font-semibold text-gray-900">Admin Actions</h3>
+                            <p class="text-sm text-gray-500">Hide administrative actions (like switch room and logout) on this display</p>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="checkbox" id="hide_admin_actions" name="hide_admin_actions" value="1" 
+                                   {{ $display->isAdminActionsHidden() ? 'checked' : '' }}
+                                   class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600">
+                        </div>
+                    </div>
+                    <div class="text-sm text-gray-600">
+                        <p>When enabled, administrative actions such as the switch room button will be hidden on this display. This is useful for public-facing displays where you don't want users to be able to switch rooms.</p>
+                        <p class="mt-2"><strong>Hidden Access:</strong> When admin actions are hidden, administrators can still access them by long-pressing the room name in the top-right corner. The admin actions will appear temporarily for 30 seconds, then automatically hide again.</p>
+                    </div>
+                </div>
+
                 <!-- Display Information -->
                 <div class="border border-gray-200 rounded-lg p-6 bg-gray-50">
                     <h3 class="text-base font-semibold text-gray-900 mb-4">Display Information</h3>

@@ -14,7 +14,9 @@ class BookEventRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'duration' => 'required|in:15,30,45,60',
+            'duration' => 'required_without:start|in:15,30,45,60',
+            'start' => 'required_without:duration|date',
+            'end' => 'required_with:start|date|after:start',
             'summary' => 'nullable|string|max:255',
         ];
     }
