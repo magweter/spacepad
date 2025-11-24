@@ -80,7 +80,7 @@ class _DashboardPageState extends State<DashboardPage> {
               (controller.isReserved ? TWColors.rose_600 : TWColors.green_600),
             padding: EdgeInsets.all(isPhone ? 12 : 18),
                 child: AuthenticatedBackground(
-                  imageUrl: controller.globalSettings?.backgroundImageUrl,
+                  imageUrl: controller.globalSettings.value?.backgroundImageUrl,
                   borderRadius: BorderRadius.circular(cornerRadius),
                 child: Padding(
                   padding: EdgeInsets.fromLTRB(
@@ -142,7 +142,7 @@ class _DashboardPageState extends State<DashboardPage> {
                             spaceBetween: controller.meetingInfoTimes != null ? (isPhone ? 5 : 10) : 0,
                             children: [
                               Obx(() {
-                                final logoUrl = controller.globalSettings?.logoUrl;
+                                final logoUrl = controller.globalSettings.value?.logoUrl;
                                 if (logoUrl != null) {
                                   return Container(
                                     margin: EdgeInsets.only(bottom: isPhone ? 20 : 10),

@@ -359,7 +359,7 @@
                             <div class="truncate text-sm text-gray-500 flex items-center gap-2 mt-1 flex-wrap">
                                 <p class="mt-0.5 whitespace-nowrap rounded-md bg-green-50 px-1.5 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600">Connected</p>
                                 @if($outlookAccount->permission_type)
-                                    <p class="mt-0.5 whitespace-nowrap rounded-md px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset {{ $outlookAccount->permission_type === \App\Enums\PermissionType::WRITE ? 'bg-blue-50 text-blue-700 ring-blue-600/20' : 'bg-gray-50 text-gray-700 ring-gray-600/20' }}">
+                                    <p class="mt-0.5 whitespace-nowrap rounded-md px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset {{ $outlookAccount->permission_type === \App\Enums\PermissionType::WRITE ? 'bg-blue-50 text-blue-700 ring-blue-600' : 'bg-gray-50 text-gray-700 ring-gray-600' }}">
                                         {{ $outlookAccount->permission_type->label() }}
                                     </p>
                                 @endif
@@ -398,7 +398,7 @@
                             <div class="truncate text-sm text-gray-500 flex items-center gap-2 mt-1 flex-wrap">
                                 <p class="mt-0.5 whitespace-nowrap rounded-md bg-green-50 px-1.5 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600">Connected</p>
                                 @if($googleAccount->permission_type)
-                                    <p class="mt-0.5 whitespace-nowrap rounded-md px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset {{ $googleAccount->permission_type === \App\Enums\PermissionType::WRITE ? 'bg-blue-50 text-blue-700 ring-blue-600/20' : 'bg-gray-50 text-gray-700 ring-gray-600/20' }}">
+                                    <p class="mt-0.5 whitespace-nowrap rounded-md px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset {{ $googleAccount->permission_type === \App\Enums\PermissionType::WRITE ? 'bg-blue-50 text-blue-700 ring-blue-600' : 'bg-gray-50 text-gray-700 ring-gray-600' }}">
                                         {{ $googleAccount->permission_type->label() }}
                                     </p>
                                 @endif
@@ -437,7 +437,7 @@
                             <div class="truncate text-sm text-gray-500 flex items-center gap-2 mt-1 flex-wrap">
                                 <p class="mt-0.5 whitespace-nowrap rounded-md bg-green-50 px-1.5 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600">Connected</p>
                                 @if($caldavAccount->permission_type)
-                                    <p class="mt-0.5 whitespace-nowrap rounded-md px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset {{ $caldavAccount->permission_type === \App\Enums\PermissionType::WRITE ? 'bg-blue-50 text-blue-700 ring-blue-600/20' : 'bg-gray-50 text-gray-700 ring-gray-600/20' }}">
+                                    <p class="mt-0.5 whitespace-nowrap rounded-md px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset {{ $caldavAccount->permission_type === \App\Enums\PermissionType::WRITE ? 'bg-blue-50 text-blue-700 ring-blue-600' : 'bg-gray-50 text-gray-700 ring-gray-600' }}">
                                         {{ $caldavAccount->permission_type->label() }}
                                     </p>
                                 @endif

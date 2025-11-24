@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\AccountStatus;
 use App\Enums\PermissionType;
+use App\Models\Calendar;
 use App\Models\Display;
 use App\Models\EventSubscription;
 use App\Models\OutlookAccount;
@@ -15,7 +16,7 @@ use Illuminate\Support\Facades\Http;
 class OutlookService
 {
     const OAUTH_SCOPES_READ = 'openid email profile offline_access User.Read Calendars.Read.Shared Place.Read.All';
-    const OAUTH_SCOPES_WRITE = 'openid email profile offline_access User.Read Calendars.ReadWrite Calendars.Read.Shared Place.Read.All';
+    const OAUTH_SCOPES_WRITE = 'openid email profile offline_access User.Read Calendars.ReadWrite.Shared Calendars.Read.Shared Place.Read.All';
     protected mixed $clientId;
     protected mixed $clientSecret;
     protected mixed $redirectUri;
@@ -296,6 +297,96 @@ class OutlookService
         ])->get('https://graph.microsoft.com/v1.0/places/microsoft.graph.room');
 
         return Arr::get($response->json(), 'value');
+    }
+
+    /**
+     * Create an event in Outlook calendar.
+     *
+     * @param OutlookAccount $outlookAccount
+     * @param Calendar $calendar
+     * @param string $summary
+     * @param Carbon $start
+     * @param Carbon $end
+     * @return array|null
+     * @throws \Exception
+     */
+    public function createEvent(
+        OutlookAccount $outlookAccount,
+        Calendar $calendar,
+        string $summary,
+        Carbon $start,
+        Carbon $end
+    ): ?array {
+        $this->ensureAuthenticated($outlookAccount);
+
+        $eventData = [
+            'subject' => $summary,
+            'start' => [
+                'dateTime' => $start->toIso8601String(),
+                'timeZone' => $start->timezone->getName(),
+            ],
+            'end' => [
+                'dateTime' => $end->toIso8601String(),
+                'timeZone' => $end->timezone->getName(),
+            ],
+        ];
+
+        // Determine the endpoint based on whether it's a room or calendar
+        if ($calendar->room) {
+            // For rooms, use the user's calendar
+            $endpoint = "https://graph.microsoft.com/v1.0/users/{$calendar->calendar_id}/calendar/events";
+        } else {
+            // For calendars, use the calendar ID
+            $endpoint = "https://graph.microsoft.com/v1.0/me/calendars/{$calendar->calendar_id}/events";
+        }
+
+        $response = Http::acceptJson()
+            ->withHeaders([
+                'Authorization' => 'Bearer ' . $outlookAccount->token,
+            ])
+            ->post($endpoint, $eventData);
+
+        if (!$response->successful()) {
+            throw new Exception('Failed to create Outlook event: ' . $response->body());
+        }
+
+        return $response->json();
+    }
+
+    /**
+     * Delete an event from Outlook calendar.
+     *
+     * @param OutlookAccount $outlookAccount
+     * @param Calendar $calendar
+     * @param string $eventId
+     * @return void
+     * @throws \Exception
+     */
+    public function deleteEvent(
+        OutlookAccount $outlookAccount,
+        Calendar $calendar,
+        string $eventId
+    ): void {
+        $this->ensureAuthenticated($outlookAccount);
+
+        // Determine the endpoint based on whether it's a room or calendar
+        if ($calendar->room) {
+            // For rooms, use the user's calendar
+            $endpoint = "https://graph.microsoft.com/v1.0/users/{$calendar->calendar_id}/calendar/events/{$eventId}";
+        } else {
+            // For calendars, use the calendar ID
+            $endpoint = "https://graph.microsoft.com/v1.0/me/calendars/{$calendar->calendar_id}/events/{$eventId}";
+        }
+
+        $response = Http::acceptJson()
+            ->withHeaders([
+                'Authorization' => 'Bearer ' . $outlookAccount->token,
+            ])
+            ->delete($endpoint);
+
+        if (!$response->successful()) {
+            throw new Exception('Failed to delete Outlook event: ' . $response->body());
+        }
     }
 
     /**

@@ -193,6 +193,74 @@ class GoogleService
     }
 
     /**
+     * Create an event in Google Calendar.
+     *
+     * @param GoogleAccount $googleAccount
+     * @param string $calendarId
+     * @param string $summary
+     * @param Carbon $start
+     * @param Carbon $end
+     * @return GoogleEvent|null
+     * @throws Exception
+     */
+    public function createEvent(
+        GoogleAccount $googleAccount,
+        string $calendarId,
+        string $summary,
+        Carbon $start,
+        Carbon $end
+    ): ?GoogleEvent {
+        $this->ensureAuthenticated($googleAccount);
+
+        $calendarService = new Calendar($this->client);
+
+        $event = new GoogleEvent();
+        $event->setSummary($summary);
+
+        $startDateTime = new \Google\Service\Calendar\EventDateTime();
+        $startDateTime->setDateTime($start->toRfc3339String());
+        $startDateTime->setTimeZone($start->timezone->getName());
+        $event->setStart($startDateTime);
+
+        $endDateTime = new \Google\Service\Calendar\EventDateTime();
+        $endDateTime->setDateTime($end->toRfc3339String());
+        $endDateTime->setTimeZone($end->timezone->getName());
+        $event->setEnd($endDateTime);
+
+        try {
+            $createdEvent = $calendarService->events->insert($calendarId, $event);
+            return $createdEvent;
+        } catch (\Exception $e) {
+            throw new Exception('Failed to create Google event: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Delete an event from Google Calendar.
+     *
+     * @param GoogleAccount $googleAccount
+     * @param string $calendarId
+     * @param string $eventId
+     * @return void
+     * @throws Exception
+     */
+    public function deleteEvent(
+        GoogleAccount $googleAccount,
+        string $calendarId,
+        string $eventId
+    ): void {
+        $this->ensureAuthenticated($googleAccount);
+
+        $calendarService = new Calendar($this->client);
+
+        try {
+            $calendarService->events->delete($calendarId, $eventId);
+        } catch (\Exception $e) {
+            throw new Exception('Failed to delete Google event: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Create a webhook subscription for Google Calendar events.
      *
      * @param GoogleAccount $googleAccount
