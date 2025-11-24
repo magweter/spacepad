@@ -18,6 +18,7 @@ class DisplaySettingsResource extends JsonResource
             'check_in_enabled' => $this->isCheckInEnabled(),
             'booking_enabled' => $this->isBookingEnabled(),
             'calendar_enabled' => $this->isCalendarEnabled(),
+            'hide_admin_actions' => $this->isAdminActionsHidden(),
             'check_in_minutes' => $this->getCheckInMinutes(),
             'check_in_grace_period' => $this->getCheckInGracePeriod(),
             'text_available' => $this->getAvailableText(),

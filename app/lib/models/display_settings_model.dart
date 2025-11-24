@@ -4,6 +4,7 @@ class DisplaySettingsModel {
   int checkInGracePeriod;
   int checkInMinutes;
   bool calendarEnabled;
+  bool hideAdminActions;
   String? textAvailable;
   String? textTransitioning;
   String? textReserved;
@@ -19,6 +20,7 @@ class DisplaySettingsModel {
     required this.checkInGracePeriod,
     required this.checkInMinutes,
     required this.calendarEnabled,
+    required this.hideAdminActions,
     this.textAvailable,
     this.textTransitioning,
     this.textReserved,
@@ -36,6 +38,7 @@ class DisplaySettingsModel {
       checkInGracePeriod: data['check_in_grace_period'] ?? 5,
       checkInMinutes: data['check_in_minutes'] ?? 15,
       calendarEnabled: data['calendar_enabled'] ?? false,
+      hideAdminActions: data['hide_admin_actions'] ?? false,
       textAvailable: data['text_available'],
       textTransitioning: data['text_transitioning'],
       textReserved: data['text_reserved'],
@@ -54,6 +57,7 @@ class DisplaySettingsModel {
       'check_in_grace_period': checkInGracePeriod,
       'check_in_minutes': checkInMinutes,
       'calendar_enabled': calendarEnabled,
+      'hide_admin_actions': hideAdminActions,
       'text_available': textAvailable,
       'text_transitioning': textTransitioning,
       'text_reserved': textReserved,

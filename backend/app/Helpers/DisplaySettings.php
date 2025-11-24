@@ -198,4 +198,15 @@ class DisplaySettings
     {
         return self::setSetting($display, 'show_meeting_title', $show, 'boolean');
     }
+
+    // Admin actions visibility
+    public static function isAdminActionsHidden(Display $display): bool
+    {
+        return self::getSetting($display, 'hide_admin_actions', false);
+    }
+
+    public static function setAdminActionsHidden(Display $display, bool $hidden): bool
+    {
+        return self::setSetting($display, 'hide_admin_actions', $hidden, 'boolean');
+    }
 }

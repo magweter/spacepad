@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:get/get.dart';
 import 'package:spacepad/components/toast.dart';
@@ -12,6 +13,8 @@ import 'package:spacepad/models/device_model.dart';
 import 'package:spacepad/models/display_model.dart';
 import 'package:spacepad/models/display_settings_model.dart';
 import 'package:spacepad/services/font_service.dart';
+import 'package:flutter/material.dart';
+import 'package:spacepad/components/custom_booking_modal.dart';
 
 class DashboardController extends GetxController {
   final RxBool loading = RxBool(true);
@@ -29,6 +32,11 @@ class DashboardController extends GetxController {
   
   Timer? _clock;
   Timer? _dataTimer;
+  
+  // Track refresh state to prevent spamming
+  final RxBool isRefreshing = RxBool(false);
+  DateTime? _lastRefreshTime;
+  static const int _refreshCooldownSeconds = 3;
 
   @override
   void onInit() async {
@@ -244,6 +252,32 @@ class DashboardController extends GetxController {
     Get.offAll(() => const DisplayPage());
   }
 
+  // Manually refresh display data with cooldown to prevent spamming
+  Future<void> refreshDisplayData() async {
+    // Check if we're already refreshing
+    if (isRefreshing.value) {
+      return;
+    }
+    
+    // Check cooldown period
+    if (_lastRefreshTime != null) {
+      final secondsSinceLastRefresh = DateTime.now().difference(_lastRefreshTime!).inSeconds;
+      if (secondsSinceLastRefresh < _refreshCooldownSeconds) {
+        return;
+      }
+    }
+    
+    isRefreshing.value = true;
+    _lastRefreshTime = DateTime.now();
+    
+    try {
+      await fetchDisplayData();
+      Toast.showSuccess('display_data_refreshed'.tr);
+    } finally {
+      isRefreshing.value = false;
+    }
+  }
+
   Future<void> bookRoom(int duration) async {
     if (isBooking.value) return; // Prevent multiple simultaneous bookings
     
@@ -265,6 +299,35 @@ class DashboardController extends GetxController {
       bookingDuration.value = null; // Clear the tracked duration
     }
   }
+
+  void showCustomBookingModal(BuildContext context, bool isPhone, double cornerRadius) {
+    showDialog(
+      context: context,
+      builder: (context) => CustomBookingModal(
+        controller: this,
+        isPhone: isPhone,
+        cornerRadius: cornerRadius,
+      ),
+    );
+  }
+
+  Future<void> bookCustom(String title, DateTime startTime, DateTime endTime) async {
+    try {
+      await DisplayService.instance.bookCustom(displayId.value, title, startTime, endTime);
+      await fetchDisplayData();
+      Toast.showSuccess('room_booked'.tr);
+      
+      // Cancel the booking options timer since user took action
+      _bookingOptionsTimer?.cancel();
+      showBookingOptions.value = false;
+    } catch (e) {
+      Toast.showError('could_not_book_room'.tr);
+    } finally {
+      isBooking.value = false;
+      bookingDuration.value = null; // Clear the tracked duration
+    }
+  }
+
 
   Future<void> cancelCurrentEvent() async {
     if (isCancelling.value) return; // Prevent multiple simultaneous cancellations
@@ -303,15 +366,24 @@ class DashboardController extends GetxController {
   // Timer for booking options timeout
   Timer? _bookingOptionsTimer;
 
-  // Show booking options with 10-second timeout
+  // Track if admin actions are temporarily visible
+  final RxBool showAdminActionsTemporarily = RxBool(false);
+  
+  // Timer for admin actions timeout
+  Timer? _adminActionsTimer;
+  
+  // Timer for long press detection (3 seconds)
+  Timer? _longPressTimer;
+
+  // Show booking options with 30-second timeout
   void toggleBookingOptions() {
     showBookingOptions.value = true;
     
     // Cancel any existing timer
     _bookingOptionsTimer?.cancel();
     
-    // Set a 10-second timeout to automatically hide booking options
-    _bookingOptionsTimer = Timer(const Duration(seconds: 10), () {
+    // Set a 30-second timeout to automatically hide booking options
+    _bookingOptionsTimer = Timer(const Duration(seconds: 30), () {
       showBookingOptions.value = false;
     });
   }
@@ -321,13 +393,36 @@ class DashboardController extends GetxController {
     showBookingOptions.value = false;
     _bookingOptionsTimer?.cancel();
   }
+  // Start long press timer (3 seconds)
+  void startLongPressTimer() {
+    // Cancel any existing timer
+    _longPressTimer?.cancel();
+    
+    // Set a 3-second timer to trigger reveal
+    _longPressTimer = Timer(const Duration(seconds: 3), () {
+      revealAdminActionsTemporarily();
+    });
+  }
 
-  // Show custom booking modal
-  void showCustomBookingModal() {
-    // TODO: Implement custom booking modal
-    // For now, just show a message that custom booking is not yet implemented
-    // This will be implemented when the backend supports custom start/end times
-    Toast.showError('Custom booking is not yet available');
+  // Cancel long press timer
+  void cancelLongPressTimer() {
+    _longPressTimer?.cancel();
+  }
+
+  // Show admin actions temporarily (30 seconds)
+  void revealAdminActionsTemporarily() {
+    showAdminActionsTemporarily.value = true;
+    
+    // Show notification with duration
+    Toast.showSuccess('admin_actions_enabled'.trParams({'seconds': '30'}));
+    
+    // Cancel any existing timer
+    _adminActionsTimer?.cancel();
+    
+    // Set a 30-second timeout to automatically hide admin actions
+    _adminActionsTimer = Timer(const Duration(seconds: 30), () {
+      showAdminActionsTemporarily.value = false;
+    });
   }
 
   int get checkInGracePeriod {
@@ -382,6 +477,8 @@ class DashboardController extends GetxController {
     _clock?.cancel();
     _dataTimer?.cancel();
     _bookingOptionsTimer?.cancel();
+    _adminActionsTimer?.cancel();
+    _longPressTimer?.cancel();
 
     super.dispose();
   }

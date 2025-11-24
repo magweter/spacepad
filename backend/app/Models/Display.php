@@ -182,4 +182,9 @@ class Display extends Model
     {
         return DisplaySettings::getFontFamily($this);
     }
+
+    public function isAdminActionsHidden(): bool
+    {
+        return DisplaySettings::isAdminActionsHidden($this);
+    }
 }

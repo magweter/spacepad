@@ -16,6 +16,7 @@ import 'package:spacepad/components/authenticated_image.dart';
 import 'package:spacepad/components/authenticated_background.dart';
 import 'package:spacepad/services/font_service.dart';
 import 'package:spacepad/components/frosted_panel.dart';
+import 'package:spacepad/components/admin_actions.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -25,26 +26,6 @@ class DashboardPage extends StatefulWidget {
 }
 
 class _DashboardPageState extends State<DashboardPage> {
-  // @override
-  // void initState() {
-  //   super.initState();
-  //   SystemChrome.setPreferredOrientations([
-  //     DeviceOrientation.landscapeLeft,
-  //     DeviceOrientation.landscapeRight,
-  //   ]);
-  // }
-  //
-  // @override
-  // void dispose() {
-  //   SystemChrome.setPreferredOrientations([
-  //     DeviceOrientation.portraitUp,
-  //     DeviceOrientation.portraitDown,
-  //     DeviceOrientation.landscapeLeft,
-  //     DeviceOrientation.landscapeRight,
-  //   ]);
-  //   super.dispose();
-  // }
-
   bool _isPhone(BuildContext context) {
     final shortestSide = MediaQuery.of(context).size.shortestSide;
     // Consider devices with shortestSide < 600 as phones only
@@ -105,31 +86,44 @@ class _DashboardPageState extends State<DashboardPage> {
                       ),
                       Align(
                         alignment: Alignment.topRight,
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Opacity(
-                              opacity: 0.6,
-                              child: IconButton(
-                                icon: const Icon(Icons.logout, size: 24, color: Colors.white),
-                                onPressed: () {
-                                  controller.switchRoom();
-                                },
-                                tooltip: 'switch_room'.tr,
+                        child: Obx(() {
+                          final hideAdminActions = controller.globalSettings.value?.hideAdminActions ?? false;
+                          final showTemporarily = controller.showAdminActionsTemporarily.value;
+                          final shouldShowAdminActions = !hideAdminActions || showTemporarily;
+                          return Row(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              // Admin actions component (refresh and logout buttons)
+                              if (shouldShowAdminActions) AdminActions(
+                                controller: controller,
+                                isPhone: isPhone,
                               ),
-                            ),
-                            SizedBox(width: 5),
-                            Obx(() => Text(
-                              controller.roomName,
-                              style: FontService.instance.getTextStyle(
-                                fontFamily: controller.currentFontFamily.value,
-                                fontSize: isPhone ? 20 : 28,
-                                fontWeight: FontWeight.w500,
-                                color: TWColors.white,
-                              )
-                            )),
-                          ],
-                        ),
+                              if (shouldShowAdminActions) SizedBox(width: 15),
+                              GestureDetector(
+                                onLongPressStart: (details) {
+                                  if (hideAdminActions) {
+                                    controller.startLongPressTimer();
+                                  }
+                                },
+                                onLongPressEnd: (details) {
+                                  if (hideAdminActions) {
+                                    controller.cancelLongPressTimer();
+                                  }
+                                },
+                                child: Text(
+                                  controller.roomName,
+                                  style: FontService.instance.getTextStyle(
+                                    fontFamily: controller.currentFontFamily.value,
+                                    fontSize: isPhone ? 20 : 28,
+                                    fontWeight: FontWeight.w500,
+                                    color: TWColors.white,
+                                  )
+                                ),
+                              ),
+                            ],
+                          );
+                        }),
                       ),
 
                       SpaceCol(

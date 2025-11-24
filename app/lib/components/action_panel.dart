@@ -60,7 +60,7 @@ class ActionPanel extends StatelessWidget {
               SizedBox(width: isPhone ? 12 : 16),
               ActionButton(
                 text: 'custom',
-                onPressed: isBooking ? null : () => controller.showCustomBookingModal(),
+                onPressed: isBooking ? null : () => controller.showCustomBookingModal(context, isPhone, cornerRadius),
                 isPhone: isPhone,
                 cornerRadius: cornerRadius,
                 disabled: isBooking,
