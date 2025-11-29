@@ -53,7 +53,7 @@ class ActionPanel extends StatelessWidget {
                       : null,
                     isPhone: isPhone,
                     cornerRadius: cornerRadius,
-                    disabled: !controller.availableBookingDurations.contains(min),
+                    disabled: !controller.availableBookingDurations.contains(min) || (isBooking && bookingDuration != min),
                     isLoading: isBooking && bookingDuration == min, // Only show loading on the clicked button
                   ),
                 ),

@@ -33,6 +33,7 @@ class DisplayController extends ApiController
         $displays = Display::query()
             ->where('user_id', $device->user_id)
             ->whereIn('status', [DisplayStatus::READY, DisplayStatus::ACTIVE])
+            ->with('settings')
             ->get();
 
         return $this->success(data: DisplayResource::collection($displays));

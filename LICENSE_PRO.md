@@ -6,12 +6,8 @@ Copyright (c) 2025 Spacepad.io
 This license grants you (the "Licensee") the right to use Spacepad in commercial deployments beyond what is permitted in the Community License.
 
 1. **Scope of License**
-   - You may deploy Spacepad in a commercial environment with the amount of displays specified by your purchased plan (Starter, Business, or Enterprise). For details of these plans see [pricing](docs/PRICING.md).
-   - You may use all included Pro features such as:
-     - Booking rooms directly on the display
-     - Custom themes and branding
-     - Organization and role-based features
-     - Priority support
+   - You may deploy Spacepad in a commercial environment with the amount of displays specified by your purchased plan. For details of these plans see [pricing](https://spacepad.io/pricing).
+   - You may use all included Pro features.
 
 2. **Conditions**
    - This license is **non-transferable** and limited to your organization or client.
