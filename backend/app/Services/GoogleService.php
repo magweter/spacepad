@@ -12,8 +12,10 @@ use Google\Service\Calendar\Channel;
 use Google\Service\Oauth2;
 use Google\Service\Calendar;
 use Google\Service\Directory;
+use Google\Service\Calendar\Event as GoogleEvent;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
+use App\Enums\PermissionType;
 
 class GoogleService
 {
@@ -25,13 +27,6 @@ class GoogleService
         $this->client->setClientId(config('services.google.client_id'));
         $this->client->setClientSecret(config('services.google.client_secret'));
         $this->client->setRedirectUri(config('services.google.calendar_redirect'));
-        $this->client->setScopes([
-            Oauth2::USERINFO_EMAIL,
-            Oauth2::USERINFO_PROFILE,
-            Calendar::CALENDAR_READONLY,
-            Calendar::CALENDAR_EVENTS_READONLY,
-            Directory::ADMIN_DIRECTORY_RESOURCE_CALENDAR_READONLY,
-        ]);
         $this->client->setAccessType('offline');
         $this->client->setPrompt('consent');
     }
@@ -40,10 +35,11 @@ class GoogleService
      * Handle Google OAuth callback and store tokens in the database.
      *
      * @param string $authCode
+     * @param PermissionType $permissionType
      * @return void
      * @throws Exception
      */
-    public function authenticateGoogleAccount(string $authCode): void
+    public function authenticateGoogleAccount(string $authCode, PermissionType $permissionType = PermissionType::READ): void
     {
         $accessToken = $this->client->fetchAccessTokenWithAuthCode($authCode);
         if (Arr::exists($accessToken, 'error')) {
@@ -74,6 +70,7 @@ class GoogleService
                 'refresh_token' => $accessToken['refresh_token'] ?? null,
                 'token_expires_at' => now()->addSeconds($accessToken['expires_in']),
                 'status' => AccountStatus::CONNECTED,
+                'permission_type' => $permissionType,
             ]
         );
     }
@@ -108,10 +105,27 @@ class GoogleService
     /**
      * Generate Google OAuth URL for authentication.
      *
+     * @param PermissionType $permissionType
      * @return string
      */
-    public function getAuthUrl(): string
+    public function getAuthUrl(PermissionType $permissionType = PermissionType::READ): string
     {
+        $scopes = [
+            Oauth2::USERINFO_EMAIL,
+            Oauth2::USERINFO_PROFILE,
+            Directory::ADMIN_DIRECTORY_RESOURCE_CALENDAR_READONLY,
+        ];
+
+        if ($permissionType === PermissionType::WRITE) {
+            $scopes[] = Calendar::CALENDAR_EVENTS;
+            $scopes[] = Calendar::CALENDAR_READONLY;
+        } else {
+            $scopes[] = Calendar::CALENDAR_EVENTS_READONLY;
+            $scopes[] = Calendar::CALENDAR_READONLY;
+        }
+
+        $this->client->setScopes($scopes);
+
         return $this->client->createAuthUrl();
     }
 
@@ -175,8 +189,7 @@ class GoogleService
         string $calendarId,
         Carbon $startDateTime,
         Carbon $endDateTime
-    ): array
-    {
+    ): array {
         $this->ensureAuthenticated($googleAccount);
 
         $calendarService = new Calendar($this->client);

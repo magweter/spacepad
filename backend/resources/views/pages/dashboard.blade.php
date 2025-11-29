@@ -303,11 +303,13 @@
                     @endif
 
                     @if(config('services.google.enabled'))
-                        <a href="{{ route('google-accounts.auth') }}"
-                           class="grow flex items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white p-4 shadow-sm hover:border-blue-500 hover:shadow-md transition-all duration-200">
+                        <button 
+                            type="button"
+                            onclick="window.dispatchEvent(new CustomEvent('open-permission-modal', { detail: { provider: 'google' } }))"
+                            class="grow flex items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white p-4 shadow-sm hover:border-blue-500 hover:shadow-md transition-all duration-200">
                             <x-icons.google class="h-6 w-6" />
                             <span class="font-medium text-gray-900">Google</span>
-                        </a>
+                        </button>
                     @endif
 
                     @if(config('services.caldav.enabled'))
@@ -478,4 +480,5 @@
 
 @push('modals')
     <x-modals.select-permission provider="outlook" />
+    <x-modals.select-permission provider="google" />
 @endpush

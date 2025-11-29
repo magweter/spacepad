@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\PermissionType;
 use App\Models\GoogleAccount;
 use App\Services\GoogleService;
 use Google\Service\Exception;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
+use Illuminate\Validation\Rules\Enum;
 
 class GoogleAccountsController extends Controller
 {
@@ -19,9 +19,17 @@ class GoogleAccountsController extends Controller
         $this->googleService = $googleService;
     }
 
-    public function auth(): RedirectResponse
+    public function auth(Request $request): RedirectResponse
     {
-        return redirect($this->googleService->getAuthUrl());
+        $request->validate([
+            'permission_type' => ['required', new Enum(PermissionType::class)],
+        ]);
+
+        // Store permission type in session before redirecting to OAuth
+        session(['google_permission_type' => $request->permission_type]);
+
+        $permissionType = PermissionType::from($request->permission_type);
+        return redirect($this->googleService->getAuthUrl($permissionType));
     }
 
     /**
@@ -34,7 +42,12 @@ class GoogleAccountsController extends Controller
         }
 
         $authCode = request('code');
-        $this->googleService->authenticateGoogleAccount($authCode);
+        $permissionType = PermissionType::from(session('google_permission_type', PermissionType::READ->value));
+
+        // Clear the session value after retrieving it
+        session()->forget('google_permission_type');
+
+        $this->googleService->authenticateGoogleAccount($authCode, $permissionType);
 
         return redirect()->route('dashboard');
     }

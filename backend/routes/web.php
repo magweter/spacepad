@@ -51,13 +51,12 @@ Route::middleware(['auth', 'user.update-last-activity', 'gtm'])->group(function 
     Route::post('/onboarding/usage-type', [OnboardingController::class, 'updateUsageType'])->name('onboarding.usage-type');
     Route::post('/onboarding/terms', [OnboardingController::class, 'acceptTerms'])->name('onboarding.terms');
 
-    Route::get('/outlook-accounts/select-permission', [OutlookAccountsController::class, 'selectPermission'])->name('outlook-accounts.select-permission');
     Route::post('/outlook-accounts/auth', [OutlookAccountsController::class, 'auth'])->name('outlook-accounts.auth');
     Route::get('/outlook-accounts/callback', [OutlookAccountsController::class, 'callback']);
     Route::get('/outlook-accounts/calendars', [OutlookAccountsController::class, 'getCalendars']);
     Route::delete('/outlook-accounts/{outlookAccount}', [OutlookAccountsController::class, 'delete'])->name('outlook-accounts.delete');
 
-    Route::get('/google-accounts/auth', [GoogleAccountsController::class, 'auth'])->name('google-accounts.auth');
+    Route::post('/google-accounts/auth', [GoogleAccountsController::class, 'auth'])->name('google-accounts.auth');
     Route::get('/google-accounts/callback', [GoogleAccountsController::class, 'callback']);
     Route::get('/google-accounts/calendars', [GoogleAccountsController::class, 'getCalendars']);
     Route::delete('/google-accounts/{googleAccount}', [GoogleAccountsController::class, 'delete'])->name('google-accounts.delete');
@@ -113,9 +112,9 @@ Route::middleware(['auth', 'user.update-last-activity', 'gtm'])->group(function 
         }
         return redirect()->route('dashboard');
     })->name('billing.thanks');
-    
+
     Route::get('/admin', [AdminController::class, 'index'])->name('admin.index');
-    
+
     // Display image serving route
     Route::get('/displays/{display}/images/{type}', [DisplaySettingsController::class, 'serveImage'])
         ->name('displays.images');

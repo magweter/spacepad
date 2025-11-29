@@ -47,17 +47,12 @@ class OutlookService
     /**
      * Generate Outlook OAuth URL for authentication.
      *
-     * @param string|PermissionType $permissionType 'read' or 'write', or PermissionType enum
+     * @param PermissionType $permissionType 'read' or 'write', or PermissionType enum
      * @return string
      */
-    public function getAuthUrl(string|PermissionType $permissionType = PermissionType::READ): string
+    public function getAuthUrl(PermissionType $permissionType = PermissionType::READ): string
     {
         $oauthEndpoint = "https://login.microsoftonline.com/{$this->tenantId}/oauth2/v2.0/authorize";
-
-        // Convert string to enum if needed
-        if (is_string($permissionType)) {
-            $permissionType = PermissionType::from($permissionType);
-        }
 
         $scopes = $permissionType === PermissionType::WRITE ? self::OAUTH_SCOPES_WRITE : self::OAUTH_SCOPES_READ;
 
@@ -210,8 +205,7 @@ class OutlookService
         string $emailAddress,
         Carbon $startDateTime,
         Carbon $endDateTime,
-    ): array
-    {
+    ): array {
         $this->ensureAuthenticated($outlookAccount);
 
         $params = [
@@ -243,8 +237,7 @@ class OutlookService
         string $calendarId,
         Carbon $startDateTime,
         Carbon $endDateTime,
-    ): array
-    {
+    ): array {
         $this->ensureAuthenticated($outlookAccount);
 
         $params = [
@@ -402,8 +395,7 @@ class OutlookService
         OutlookAccount $outlookAccount,
         Display $display,
         string $emailAddress
-    ): ?EventSubscription
-    {
+    ): ?EventSubscription {
         return $this->createEventSubscription($outlookAccount, $display, "/users/$emailAddress/events");
     }
 
@@ -420,8 +412,7 @@ class OutlookService
         OutlookAccount $outlookAccount,
         Display $display,
         string $calendarId
-    ): ?EventSubscription
-    {
+    ): ?EventSubscription {
         return $this->createEventSubscription($outlookAccount, $display, "/me/calendars/$calendarId/events");
     }
 
@@ -438,8 +429,7 @@ class OutlookService
         OutlookAccount $outlookAccount,
         Display $display,
         string $resource
-    ): ?EventSubscription
-    {
+    ): ?EventSubscription {
         $this->ensureAuthenticated($outlookAccount);
 
         $data = [
@@ -461,7 +451,7 @@ class OutlookService
         $responseBody = $response->json();
         if (
             $response->failed() ||
-            ! Arr::has($responseBody, ['id', 'resource', 'expirationDateTime', 'notificationUrl'])
+            !Arr::has($responseBody, ['id', 'resource', 'expirationDateTime', 'notificationUrl'])
         ) {
             logger()->error('Creating outlook subscription failed', [
                 'statuscode' => $response->status(),
@@ -499,8 +489,7 @@ class OutlookService
         OutlookAccount $outlookAccount,
         EventSubscription $eventSubscription,
         bool $useApi = true
-    ): void
-    {
+    ): void {
         // Delete the subscription on Microsoft Graph
         if ($useApi) {
             $this->ensureAuthenticated($outlookAccount);

@@ -19,11 +19,6 @@ class OutlookAccountsController extends Controller
         $this->outlookService = $outlookService;
     }
 
-    public function selectPermission()
-    {
-        return view('pages.outlook-accounts.select-permission');
-    }
-
     public function auth(Request $request): RedirectResponse
     {
         $request->validate([
@@ -33,7 +28,8 @@ class OutlookAccountsController extends Controller
         // Store permission type in session before redirecting to OAuth
         session(['outlook_permission_type' => $request->permission_type]);
 
-        return redirect($this->outlookService->getAuthUrl($request->permission_type));
+        $permissionType = PermissionType::from($request->permission_type);
+        return redirect($this->outlookService->getAuthUrl($permissionType));
     }
 
     /**
@@ -47,10 +43,10 @@ class OutlookAccountsController extends Controller
 
         $authCode = request('code');
         $permissionType = PermissionType::from(session('outlook_permission_type', PermissionType::READ->value));
-        
+
         // Clear the session value after retrieving it
         session()->forget('outlook_permission_type');
-        
+
         $this->outlookService->authenticateOutlookAccount($authCode, $permissionType);
 
         return redirect()->route('dashboard');
