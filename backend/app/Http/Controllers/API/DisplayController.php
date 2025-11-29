@@ -57,7 +57,8 @@ class DisplayController extends ApiController
                 'events' => $events,
             ]));
         } catch (\Exception $e) {
-            return $this->error($e->getMessage(), 500);
+            report($e);
+            return $this->error(message: $e->getMessage(), code: 500);
         }
     }
 
@@ -93,6 +94,7 @@ class DisplayController extends ApiController
             
             return $this->success(data: new EventResource($event), code: 201);
         } catch (\Exception $e) {
+            report($e);
             $status = $e->getCode() === 403 ? 403 : 400;
             return $this->error(message: $e->getMessage(), code: $status);
         }
