@@ -279,7 +279,11 @@ class DashboardController extends GetxController {
   }
 
   Future<void> bookRoom(int duration) async {
+    if (isBooking.value) return; // Prevent multiple simultaneous bookings
+    
     try {
+      isBooking.value = true;
+      bookingDuration.value = duration; // Track which button was clicked
       final summary = 'reserved'.tr;
       await DisplayService.instance.book(displayId.value, duration, summary: summary);
       await fetchDisplayData();
@@ -290,6 +294,9 @@ class DashboardController extends GetxController {
       showBookingOptions.value = false;
     } catch (e) {
       Toast.showError('could_not_book_room'.tr);
+    } finally {
+      isBooking.value = false;
+      bookingDuration.value = null; // Clear the tracked duration
     }
   }
 
@@ -315,11 +322,18 @@ class DashboardController extends GetxController {
       showBookingOptions.value = false;
     } catch (e) {
       Toast.showError('could_not_book_room'.tr);
+    } finally {
+      isBooking.value = false;
+      bookingDuration.value = null; // Clear the tracked duration
     }
   }
 
+
   Future<void> cancelCurrentEvent() async {
+    if (isCancelling.value) return; // Prevent multiple simultaneous cancellations
+    
     try {
+      isCancelling.value = true;
       if (currentEvent != null) {
         await DisplayService.instance.cancelEvent(displayId.value, currentEvent!.id);
         await fetchDisplayData();
@@ -327,6 +341,8 @@ class DashboardController extends GetxController {
       }
     } catch (e) {
       Toast.showError('could_not_cancel_event'.tr);
+    } finally {
+      isCancelling.value = false;
     }
   }
 
@@ -341,6 +357,11 @@ class DashboardController extends GetxController {
 
   // Track if booking options are shown
   final RxBool showBookingOptions = RxBool(false);
+  
+  // Loading states for actions
+  final RxBool isBooking = RxBool(false);
+  final Rx<int?> bookingDuration = Rx<int?>(null); // Track which duration button was clicked
+  final RxBool isCancelling = RxBool(false);
   
   // Timer for booking options timeout
   Timer? _bookingOptionsTimer;
@@ -372,7 +393,6 @@ class DashboardController extends GetxController {
     showBookingOptions.value = false;
     _bookingOptionsTimer?.cancel();
   }
-
   // Start long press timer (3 seconds)
   void startLongPressTimer() {
     // Cancel any existing timer

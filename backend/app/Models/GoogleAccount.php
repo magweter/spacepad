@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Services\GoogleService;
 use App\Traits\HasUlid;
 use App\Enums\AccountStatus;
+use App\Enums\PermissionType;
 
 class GoogleAccount extends Model
 {
@@ -21,6 +22,7 @@ class GoogleAccount extends Model
         'avatar',
         'hosted_domain',
         'status',
+        'permission_type',
         'user_id',
         'google_id',
         'token',
@@ -31,6 +33,7 @@ class GoogleAccount extends Model
     protected $casts = [
         'token_expires_at' => 'datetime',
         'status' => AccountStatus::class,
+        'permission_type' => PermissionType::class,
     ];
 
     public function user(): BelongsTo

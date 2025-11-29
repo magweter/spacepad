@@ -62,6 +62,8 @@ Configuring the Outlook provider:
     - https://your-domain.com/auth/microsoft/callback
 1. Save, and click on 'API-permissions'
 1. Click 'Microsoft Graph', click 'Delegated permissions' and search for and select the following permissions `Calendars.Read.Shared`, `Place.Read.All` and `User.Read`.
+   > [!NOTE]
+   > If you want users to be able to write events back to their calendar (e.g., when booking rooms directly from the tablet display), you also need to add the `Calendars.ReadWrite.Shared` permission. This allows the application to create and modify calendar events on behalf of users.
 1. Save, and click on 'certificates and secrets'
 1. Create a new secret (not certificate) and copy the value
 1. Click on 'overview' and copy the 'client id'. Beware: this is the client ID value you need, not the ID of the secret you just created.
@@ -98,6 +100,9 @@ To run the application standalone (e.g. to use your own proxy):
 ```bash
 docker compose up -d
 ```
+
+> [!TIP]
+> If you're using Nginx or Apache as your reverse proxy, see the [Reverse Proxy Guide](REVERSE_PROXY.md) for complete configuration instructions.
 
 Great! You should now be able to access the application at http://localhost or without proxy at http://localhost:8080.
 

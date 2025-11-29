@@ -19,22 +19,26 @@ class ActionPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     // Cancel button if reserved
     if (controller.isReserved && !controller.isCheckInActive && controller.bookingEnabled) {
-      return Row(
+      return Obx(() => Row(
         mainAxisSize: MainAxisSize.min,
         children: [ActionButton(
         text: 'cancel_event',
-        onPressed: () => controller.cancelCurrentEvent(),
+        onPressed: controller.isCancelling.value ? null : () => controller.cancelCurrentEvent(),
         textColor: Colors.white,
         isPhone: isPhone,
         cornerRadius: cornerRadius,
-      ),],);
+        isLoading: controller.isCancelling.value,
+      ),],));
     }
     
     return SpaceRow(
       mainAxisSize: MainAxisSize.min,
       spaceBetween: isPhone ? 16 : 24,
       children: [
-        if (!controller.isReserved && controller.bookingEnabled) Obx(() => controller.showBookingOptions.value ?
+        if (!controller.isReserved && controller.bookingEnabled) Obx(() {
+          final isBooking = controller.isBooking.value;
+          final bookingDuration = controller.bookingDuration.value;
+          return controller.showBookingOptions.value ?
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -44,39 +48,42 @@ class ActionPanel extends StatelessWidget {
                   padding: EdgeInsets.only(right: min == 60 ? 0 : (isPhone ? 12 : 16)),
                   child: ActionButton(
                     text: '$min min',
-                    onPressed: controller.availableBookingDurations.contains(min)
+                    onPressed: (controller.availableBookingDurations.contains(min) && !isBooking)
                       ? () => controller.bookRoom(min)
                       : null,
                     isPhone: isPhone,
                     cornerRadius: cornerRadius,
-                    disabled: !controller.availableBookingDurations.contains(min),
+                    disabled: !controller.availableBookingDurations.contains(min) || (isBooking && bookingDuration != min),
+                    isLoading: isBooking && bookingDuration == min, // Only show loading on the clicked button
                   ),
                 ),
               SizedBox(width: isPhone ? 12 : 16),
               ActionButton(
                 text: 'custom',
-                onPressed: () {
-                  controller.showCustomBookingModal(context, isPhone, cornerRadius);
-                },
+                onPressed: isBooking ? null : () => controller.showCustomBookingModal(context, isPhone, cornerRadius),
                 isPhone: isPhone,
                 cornerRadius: cornerRadius,
+                disabled: isBooking,
+                isLoading: isBooking && bookingDuration == null, // Show loading if custom booking is in progress
               ),
               SizedBox(width: isPhone ? 16 : 24),
               ActionButton(
                 text: 'cancel',
-                onPressed: () => controller.hideBookingOptions(),
+                onPressed: isBooking ? null : () => controller.hideBookingOptions(),
                 isPhone: isPhone,
                 cornerRadius: cornerRadius,
+                disabled: isBooking,
               ),
             ],
           ) :
           ActionButton(
             text: 'book_now',
-            onPressed: () => controller.toggleBookingOptions(),
+            onPressed: isBooking ? null : () => controller.toggleBookingOptions(),
             isPhone: isPhone,
             cornerRadius: cornerRadius,
-          ),
-        ),
+            isLoading: isBooking && bookingDuration == null, // Only show loading if no specific duration button was clicked
+          );
+        }),
         if (controller.isCheckInActive && controller.checkInEnabled) ActionButton(
           text: 'check_in',
           onPressed: () => controller.checkIn(),

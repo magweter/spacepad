@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\PermissionType;
 use App\Models\OutlookAccount;
 use App\Services\OutlookService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rules\Enum;
 
 class OutlookAccountsController extends Controller
 {
@@ -17,9 +19,17 @@ class OutlookAccountsController extends Controller
         $this->outlookService = $outlookService;
     }
 
-    public function auth(): RedirectResponse
+    public function auth(Request $request): RedirectResponse
     {
-        return redirect($this->outlookService->getAuthUrl());
+        $request->validate([
+            'permission_type' => ['required', new Enum(PermissionType::class)],
+        ]);
+
+        // Store permission type in session before redirecting to OAuth
+        session(['outlook_permission_type' => $request->permission_type]);
+
+        $permissionType = PermissionType::from($request->permission_type);
+        return redirect($this->outlookService->getAuthUrl($permissionType));
     }
 
     /**
@@ -32,7 +42,12 @@ class OutlookAccountsController extends Controller
         }
 
         $authCode = request('code');
-        $this->outlookService->authenticateOutlookAccount($authCode);
+        $permissionType = PermissionType::from(session('outlook_permission_type', PermissionType::READ->value));
+
+        // Clear the session value after retrieving it
+        session()->forget('outlook_permission_type');
+
+        $this->outlookService->authenticateOutlookAccount($authCode, $permissionType);
 
         return redirect()->route('dashboard');
     }

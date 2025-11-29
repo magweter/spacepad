@@ -9,6 +9,13 @@ class DisplaySettings
 {
     public static function getSetting(Display $display, string $key, mixed $default = null): mixed
     {
+        // If settings relationship is already loaded, use it to avoid N+1 queries
+        if ($display->relationLoaded('settings')) {
+            $setting = $display->settings->firstWhere('key', $key);
+            return $setting?->value ?? $default;
+        }
+
+        // Fallback to querying if relationship is not loaded (backward compatibility)
         $setting = DisplaySetting::where('display_id', $display->id)
             ->where('key', $key)
             ->first();
@@ -50,6 +57,14 @@ class DisplaySettings
 
     public static function getAllSettings(Display $display): array
     {
+        // If settings relationship is already loaded, use it to avoid N+1 queries
+        if ($display->relationLoaded('settings')) {
+            return $display->settings->mapWithKeys(function ($setting) {
+                return [$setting->key => $setting->value];
+            })->toArray();
+        }
+
+        // Fallback to querying if relationship is not loaded (backward compatibility)
         return DisplaySetting::where('display_id', $display->id)
             ->get()
             ->mapWithKeys(function ($setting) {

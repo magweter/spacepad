@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Enums\AccountStatus;
+use App\Enums\PermissionType;
+use App\Models\Calendar;
 use App\Models\Display;
 use App\Models\EventSubscription;
 use App\Models\OutlookAccount;
@@ -13,7 +15,8 @@ use Illuminate\Support\Facades\Http;
 
 class OutlookService
 {
-    const OAUTH_SCOPES = 'openid email profile offline_access User.Read Calendars.Read.Shared Place.Read.All';
+    const OAUTH_SCOPES_READ = 'openid email profile offline_access User.Read Calendars.Read.Shared Place.Read.All';
+    const OAUTH_SCOPES_WRITE = 'openid email profile offline_access User.Read Calendars.ReadWrite.Shared Calendars.Read.Shared Place.Read.All';
     protected mixed $clientId;
     protected mixed $clientSecret;
     protected mixed $redirectUri;
@@ -44,18 +47,21 @@ class OutlookService
     /**
      * Generate Outlook OAuth URL for authentication.
      *
+     * @param PermissionType $permissionType 'read' or 'write', or PermissionType enum
      * @return string
      */
-    public function getAuthUrl(): string
+    public function getAuthUrl(PermissionType $permissionType = PermissionType::READ): string
     {
         $oauthEndpoint = "https://login.microsoftonline.com/{$this->tenantId}/oauth2/v2.0/authorize";
+
+        $scopes = $permissionType === PermissionType::WRITE ? self::OAUTH_SCOPES_WRITE : self::OAUTH_SCOPES_READ;
 
         $params = [
             'client_id' => $this->clientId,
             'response_type' => 'code',
             'redirect_uri' => $this->redirectUri,
             'response_mode' => 'query',
-            'scope' => self::OAUTH_SCOPES,
+            'scope' => $scopes,
             'state' => csrf_token(),
         ];
 
@@ -66,17 +72,25 @@ class OutlookService
      * Handle Outlook OAuth callback and store tokens in the database.
      *
      * @param string $authCode
+     * @param string|PermissionType $permissionType 'read' or 'write', or PermissionType enum
      * @return void
      * @throws \Exception
      */
-    public function authenticateOutlookAccount(string $authCode): void
+    public function authenticateOutlookAccount(string $authCode, string|PermissionType $permissionType = PermissionType::READ): void
     {
         $oauthTokenEndpoint = "https://login.microsoftonline.com/{$this->tenantId}/oauth2/v2.0/token";
+
+        // Convert string to enum if needed
+        if (is_string($permissionType)) {
+            $permissionType = PermissionType::from($permissionType);
+        }
+
+        $scopes = $permissionType === PermissionType::WRITE ? self::OAUTH_SCOPES_WRITE : self::OAUTH_SCOPES_READ;
 
         // Exchange authorization code for tokens
         $response = Http::asForm()->post($oauthTokenEndpoint, [
             'client_id' => $this->clientId,
-            'scope' => self::OAUTH_SCOPES,
+            'scope' => $scopes,
             'code' => $authCode,
             'redirect_uri' => $this->redirectUri,
             'grant_type' => 'authorization_code',
@@ -108,6 +122,7 @@ class OutlookService
                 'email' => $user['mail'] ?? $user['userPrincipalName'],
                 'name' => $user['displayName'],
                 'tenant_id' => $tenantId,
+                'permission_type' => $permissionType->value,
                 'token' => $tokenData['access_token'],
                 'refresh_token' => $tokenData['refresh_token'] ?? null,
                 'token_expires_at' => now()->addSeconds($tokenData['expires_in']),
@@ -149,9 +164,11 @@ class OutlookService
     {
         $oauthTokenEndpoint = "https://login.microsoftonline.com/{$this->tenantId}/oauth2/v2.0/token";
 
+        $scopes = $outlookAccount->permission_type === PermissionType::WRITE ? self::OAUTH_SCOPES_WRITE : self::OAUTH_SCOPES_READ;
+
         $response = Http::asForm()->post($oauthTokenEndpoint, [
             'client_id' => $this->clientId,
-            'scope' => self::OAUTH_SCOPES,
+            'scope' => $scopes,
             'refresh_token' => $outlookAccount->refresh_token,
             'grant_type' => 'refresh_token',
             'client_secret' => $this->clientSecret,
@@ -188,8 +205,7 @@ class OutlookService
         string $emailAddress,
         Carbon $startDateTime,
         Carbon $endDateTime,
-    ): array
-    {
+    ): array {
         $this->ensureAuthenticated($outlookAccount);
 
         $params = [
@@ -221,8 +237,7 @@ class OutlookService
         string $calendarId,
         Carbon $startDateTime,
         Carbon $endDateTime,
-    ): array
-    {
+    ): array {
         $this->ensureAuthenticated($outlookAccount);
 
         $params = [
@@ -278,6 +293,96 @@ class OutlookService
     }
 
     /**
+     * Create an event in Outlook calendar.
+     *
+     * @param OutlookAccount $outlookAccount
+     * @param Calendar $calendar
+     * @param string $summary
+     * @param Carbon $start
+     * @param Carbon $end
+     * @return array|null
+     * @throws \Exception
+     */
+    public function createEvent(
+        OutlookAccount $outlookAccount,
+        Calendar $calendar,
+        string $summary,
+        Carbon $start,
+        Carbon $end
+    ): ?array {
+        $this->ensureAuthenticated($outlookAccount);
+
+        $eventData = [
+            'subject' => $summary,
+            'start' => [
+                'dateTime' => $start->toIso8601String(),
+                'timeZone' => $start->timezone->getName(),
+            ],
+            'end' => [
+                'dateTime' => $end->toIso8601String(),
+                'timeZone' => $end->timezone->getName(),
+            ],
+        ];
+
+        // Determine the endpoint based on whether it's a room or calendar
+        if ($calendar->room) {
+            // For rooms, use the user's calendar
+            $endpoint = "https://graph.microsoft.com/v1.0/users/{$calendar->calendar_id}/calendar/events";
+        } else {
+            // For calendars, use the calendar ID
+            $endpoint = "https://graph.microsoft.com/v1.0/me/calendars/{$calendar->calendar_id}/events";
+        }
+
+        $response = Http::acceptJson()
+            ->withHeaders([
+                'Authorization' => 'Bearer ' . $outlookAccount->token,
+            ])
+            ->post($endpoint, $eventData);
+
+        if (!$response->successful()) {
+            throw new Exception('Failed to create Outlook event: ' . $response->body());
+        }
+
+        return $response->json();
+    }
+
+    /**
+     * Delete an event from Outlook calendar.
+     *
+     * @param OutlookAccount $outlookAccount
+     * @param Calendar $calendar
+     * @param string $eventId
+     * @return void
+     * @throws \Exception
+     */
+    public function deleteEvent(
+        OutlookAccount $outlookAccount,
+        Calendar $calendar,
+        string $eventId
+    ): void {
+        $this->ensureAuthenticated($outlookAccount);
+
+        // Determine the endpoint based on whether it's a room or calendar
+        if ($calendar->room) {
+            // For rooms, use the user's calendar
+            $endpoint = "https://graph.microsoft.com/v1.0/users/{$calendar->calendar_id}/calendar/events/{$eventId}";
+        } else {
+            // For calendars, use the calendar ID
+            $endpoint = "https://graph.microsoft.com/v1.0/me/calendars/{$calendar->calendar_id}/events/{$eventId}";
+        }
+
+        $response = Http::acceptJson()
+            ->withHeaders([
+                'Authorization' => 'Bearer ' . $outlookAccount->token,
+            ])
+            ->delete($endpoint);
+
+        if (!$response->successful()) {
+            throw new Exception('Failed to delete Outlook event: ' . $response->body());
+        }
+    }
+
+    /**
      * Create an event subscription for Outlook calendar events.
      *
      * @param OutlookAccount $outlookAccount
@@ -290,8 +395,7 @@ class OutlookService
         OutlookAccount $outlookAccount,
         Display $display,
         string $emailAddress
-    ): ?EventSubscription
-    {
+    ): ?EventSubscription {
         return $this->createEventSubscription($outlookAccount, $display, "/users/$emailAddress/events");
     }
 
@@ -308,8 +412,7 @@ class OutlookService
         OutlookAccount $outlookAccount,
         Display $display,
         string $calendarId
-    ): ?EventSubscription
-    {
+    ): ?EventSubscription {
         return $this->createEventSubscription($outlookAccount, $display, "/me/calendars/$calendarId/events");
     }
 
@@ -326,8 +429,7 @@ class OutlookService
         OutlookAccount $outlookAccount,
         Display $display,
         string $resource
-    ): ?EventSubscription
-    {
+    ): ?EventSubscription {
         $this->ensureAuthenticated($outlookAccount);
 
         $data = [
@@ -349,7 +451,7 @@ class OutlookService
         $responseBody = $response->json();
         if (
             $response->failed() ||
-            ! Arr::has($responseBody, ['id', 'resource', 'expirationDateTime', 'notificationUrl'])
+            !Arr::has($responseBody, ['id', 'resource', 'expirationDateTime', 'notificationUrl'])
         ) {
             logger()->error('Creating outlook subscription failed', [
                 'statuscode' => $response->status(),
@@ -387,8 +489,7 @@ class OutlookService
         OutlookAccount $outlookAccount,
         EventSubscription $eventSubscription,
         bool $useApi = true
-    ): void
-    {
+    ): void {
         // Delete the subscription on Microsoft Graph
         if ($useApi) {
             $this->ensureAuthenticated($outlookAccount);

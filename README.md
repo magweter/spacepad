@@ -62,7 +62,7 @@ As we believe in open source and personal tinkering, we want to support these co
 
 🙎‍♂️ If you’re a hobbyist or home user, enjoy Spacepad self hosted without limits — completely for free.
 
-🏢 If you're a business using Spacepad, we ask you to purchase a self-hosted license. We offer simple, sustainable and affordable flat-tiered pricing. Have a look at [Spacepad Pricing](docs/PRICING.md).
+🏢 If you're a business using Spacepad, we ask you to purchase a self-hosted license. We offer simple, sustainable and affordable flat-tiered pricing. Have a look at [Spacepad Pricing](https://spacepad.io/pricing).
 
 For full setup instructions, see [Setup Guide](docs/SETUP.md).
 
@@ -90,10 +90,9 @@ We love open source and welcome your contributions! See [CONTRIBUTING.md](CONTRI
 - [x] CalDAV support
 - [x] Booking directly on device
 - [x] Showing all events of the day
-- [ ] Custom display themes & logos
+- [x] Custom display themes & logos
+- [ ] Multi-room overview dashboard
 - [ ] Amazon Fire Tablet support
 - [ ] Organizations & management
-- [ ] Web and TV view
-- [ ] Multi-room overview dashboard
 
 Feature requests? We're all ears! Please open a new [discussion](https://github.com/magweter/spacepad/discussions).

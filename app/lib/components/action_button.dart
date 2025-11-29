@@ -11,6 +11,7 @@ class ActionButton extends StatelessWidget {
   final bool isPhone;
   final double cornerRadius;
   final bool disabled;
+  final bool isLoading;
 
   const ActionButton({
     super.key,
@@ -21,13 +22,15 @@ class ActionButton extends StatelessWidget {
     this.borderColor,
     this.textColor,
     this.disabled = false,
+    this.isLoading = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final Color effectiveBorderColor = borderColor ?? TWColors.gray_500.withAlpha(160);
+    final bool isDisabled = disabled || isLoading;
     return Opacity(
-      opacity: disabled ? 0.5 : 1.0,
+      opacity: isDisabled ? 0.5 : 1.0,
       child: Container(
         margin: EdgeInsets.only(top: isPhone ? 10 : 20, bottom: isPhone ? 10 : 20),
         decoration: BoxDecoration(
@@ -40,7 +43,7 @@ class ActionButton extends StatelessWidget {
             color: Colors.transparent,
             child: InkWell(
               borderRadius: BorderRadius.circular(cornerRadius),
-              onTap: disabled ? null : onPressed,
+              onTap: isDisabled ? null : onPressed,
               child: Stack(
                 children: [
                   Padding(
@@ -49,17 +52,28 @@ class ActionButton extends StatelessWidget {
                       horizontal: isPhone ? 20 : 28,
                     ),
                     child: Center(
-                      child: Text(
-                        text.tr,
-                        style: TextStyle(
-                          color: textColor ?? TWColors.white,
-                          fontSize: isPhone ? 16 : 20,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
+                      child: isLoading
+                          ? SizedBox(
+                              width: isPhone ? 20 : 24,
+                              height: isPhone ? 20 : 24,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  textColor ?? TWColors.white,
+                                ),
+                              ),
+                            )
+                          : Text(
+                              text.tr,
+                              style: TextStyle(
+                                color: textColor ?? TWColors.white,
+                                fontSize: isPhone ? 16 : 20,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
                     ),
                   ),
-                  if (disabled)
+                  if (disabled && !isLoading)
                     Positioned.fill(
                       child: CustomPaint(
                         painter: _DiagonalStrikethroughPainter(

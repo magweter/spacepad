@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Enums\EventStatus;
+use App\Enums\EventSource;
+use App\Enums\PermissionType;
 use App\Models\Display;
 use App\Models\Event;
 use App\Models\Calendar;
@@ -11,7 +13,7 @@ use Google\Service\Calendar\Event as GoogleEvent;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
-use App\Enums\EventSource;
+use Illuminate\Support\Facades\Cache;
 
 class EventService
 {
@@ -53,6 +55,8 @@ class EventService
 
     /**
      * Book a room for a given duration. Handles all business logic.
+     * If the connected account has write permissions, creates the event via API.
+     * Otherwise, creates a custom event locally.
      * Throws exception if not allowed.
      */
     public function bookRoom(string $displayId, string $userId, string $summary, ?int $duration = null, ?Carbon $start = null, ?Carbon $end = null): Event
@@ -70,6 +74,97 @@ class EventService
             throw new Exception('Cannot book room: there are conflicting events during this time period');
         }
 
+        $display = Display::query()
+            ->with(['calendar.outlookAccount', 'calendar.googleAccount', 'calendar.caldavAccount', 'calendar.room'])
+            ->findOrFail($displayId);
+        $calendar = $display->calendar;
+
+        // Check if we have write permissions and can create via API
+        if ($calendar) {
+            $hasWritePermissions = false;
+            $account = null;
+
+            // Check Outlook account
+            if ($calendar->outlook_account_id && $calendar->outlookAccount) {
+                $account = $calendar->outlookAccount;
+                $hasWritePermissions = $account->permission_type === PermissionType::WRITE;
+            }
+            // Check Google account
+            elseif ($calendar->google_account_id && $calendar->googleAccount) {
+                $account = $calendar->googleAccount;
+                $hasWritePermissions = $account->permission_type === PermissionType::WRITE;
+            }
+            // Check CalDAV account
+            elseif ($calendar->caldav_account_id && $calendar->caldavAccount) {
+                $account = $calendar->caldavAccount;
+                $hasWritePermissions = $account->permission_type === PermissionType::WRITE;
+            }
+
+            // If we have write permissions, create event via API
+            if ($hasWritePermissions && $account) {
+                try {
+                    $externalEventId = null;
+
+                    // Create event via Outlook API
+                    if ($calendar->outlook_account_id) {
+                        $eventData = $this->outlookService->createEvent(
+                            $calendar->outlookAccount,
+                            $calendar,
+                            $summary ?? __('Reserved'),
+                            $start,
+                            $end
+                        );
+                        $externalEventId = $eventData['id'] ?? null;
+                    }
+                    // Create event via Google API
+                    elseif ($calendar->google_account_id) {
+                        $googleEvent = $this->googleService->createEvent(
+                            $calendar->googleAccount,
+                            $calendar->calendar_id,
+                            $summary ?? __('Reserved'),
+                            $start,
+                            $end
+                        );
+                        $externalEventId = $googleEvent?->getId();
+                    }
+                    // Create event via CalDAV API
+                    elseif ($calendar->caldav_account_id) {
+                        $externalEventId = $this->caldavService->createEvent(
+                            $calendar->caldavAccount,
+                            $calendar->calendar_id,
+                            $summary ?? __('Reserved'),
+                            $start,
+                            $end
+                        );
+                    }
+
+                    // Clear cache to force refetch
+                    Cache::forget($display->getEventsCacheKey());
+
+                    // Refetch events to sync the new event
+                    $this->syncAllExternalEventsForDisplay($display);
+
+                    // Find the newly created event by external_id
+                    // The times might differ slightly due to timezone conversions, so we match by external_id first
+                    $event = Event::query()
+                        ->where('display_id', $displayId)
+                        ->where('external_id', $externalEventId)
+                        ->first();
+
+                    if ($event) {
+                        return $event;
+                    }
+                } catch (\Exception $e) {
+                    // If API creation fails, fall back to custom event
+                    logger()->warning('Failed to create event via API, falling back to custom event', [
+                        'error' => $e->getMessage(),
+                        'display_id' => $displayId,
+                    ]);
+                }
+            }
+        }
+
+        // Fall back to creating a custom event (no write permissions or API creation failed)
         return Event::create([
             'display_id' => $displayId,
             'user_id' => $userId,
@@ -77,24 +172,99 @@ class EventService
             'source' => EventSource::CUSTOM,
             'start' => $start,
             'end' => $end,
-            'summary' => $summary,
+            'summary' => $summary ?? __('Reserved'),
             'timezone' => config('app.timezone', 'UTC'),
         ]);
     }
 
     /**
-     * Cancel an event. Only allows cancellation of custom bookings.
+     * Cancel an event. If the event was created via API and account has write permissions,
+     * deletes it from the external calendar. Otherwise, marks it as cancelled.
      */
     public function cancelEvent(string $eventId, string $displayId): void
     {
         $event = Event::query()
             ->where('display_id', $displayId)
+            ->with(['display.calendar.outlookAccount', 'display.calendar.googleAccount', 'display.calendar.caldavAccount', 'display.calendar.room'])
             ->find($eventId);
 
         if (!$event) {
             throw new Exception('Event not found or not accessible');
         }
 
+        $display = $event->display;
+        $calendar = $display->calendar;
+
+        // If event has external_id and calendar has write permissions, delete via API
+        if ($event->external_id && $calendar) {
+            $hasWritePermissions = false;
+            $account = null;
+
+            // Check Outlook account
+            if ($calendar->outlook_account_id && $calendar->outlookAccount) {
+                $account = $calendar->outlookAccount;
+                $hasWritePermissions = $account->permission_type === PermissionType::WRITE;
+            }
+            // Check Google account
+            elseif ($calendar->google_account_id && $calendar->googleAccount) {
+                $account = $calendar->googleAccount;
+                $hasWritePermissions = $account->permission_type === PermissionType::WRITE;
+            }
+            // Check CalDAV account
+            elseif ($calendar->caldav_account_id && $calendar->caldavAccount) {
+                $account = $calendar->caldavAccount;
+                $hasWritePermissions = $account->permission_type === PermissionType::WRITE;
+            }
+
+            // If we have write permissions, delete event via API
+            if ($hasWritePermissions && $account) {
+                try {
+                    // Delete event via Outlook API
+                    if ($calendar->outlook_account_id) {
+                        $this->outlookService->deleteEvent(
+                            $calendar->outlookAccount,
+                            $calendar,
+                            $event->external_id
+                        );
+                    }
+                    // Delete event via Google API
+                    elseif ($calendar->google_account_id) {
+                        $this->googleService->deleteEvent(
+                            $calendar->googleAccount,
+                            $calendar->calendar_id,
+                            $event->external_id
+                        );
+                    }
+                    // Delete event via CalDAV API
+                    elseif ($calendar->caldav_account_id) {
+                        $this->caldavService->deleteEvent(
+                            $calendar->caldavAccount,
+                            $calendar->calendar_id,
+                            $event->external_id
+                        );
+                    }
+
+                    // Clear cache to force refetch
+                    Cache::forget($display->getEventsCacheKey());
+
+                    // Refetch events to sync the deletion
+                    $this->syncAllExternalEventsForDisplay($display);
+
+                    // Delete the event from database (it will be removed by sync if still exists externally)
+                    $event->delete();
+                    return;
+                } catch (\Exception $e) {
+                    // If API deletion fails, fall back to marking as cancelled
+                    logger()->warning('Failed to delete event via API, marking as cancelled', [
+                        'error' => $e->getMessage(),
+                        'event_id' => $eventId,
+                        'display_id' => $displayId,
+                    ]);
+                }
+            }
+        }
+
+        // Fall back to marking as cancelled (for custom events or if API deletion failed)
         $event->update(['status' => EventStatus::CANCELLED]);
     }
 
