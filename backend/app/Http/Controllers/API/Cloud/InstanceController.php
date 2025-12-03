@@ -24,13 +24,15 @@ class InstanceController extends ApiController
         // First, try to find an existing instance with the same instance_key
         $existingInstance = Instance::query()
             ->where('instance_key', $request['instance_key'])
-            ->latest();
+            ->latest()
+            ->first();
         
         // Second, try to find an existing instance with the same user data by comparing JSON strings directly
         // Direct JSON comparison works for both SQLite (TEXT) and MySQL (JSON type)
         $existingInstance = $existingInstance ?? Instance::query()
             ->whereRaw('users = ?', [$request['users']])
-            ->latest();
+            ->latest()
+            ->first();
 
         $instanceData = [
             'instance_key' => $request['instance_key'],

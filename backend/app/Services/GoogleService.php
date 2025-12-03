@@ -6,11 +6,12 @@ use App\Enums\AccountStatus;
 use App\Models\GoogleAccount;
 use App\Models\Display;
 use App\Models\EventSubscription;
+use App\Models\Calendar;
 use Exception;
 use Google\Client;
 use Google\Service\Calendar\Channel;
 use Google\Service\Oauth2;
-use Google\Service\Calendar;
+use Google\Service\Calendar as GoogleCalendar;
 use Google\Service\Directory;
 use Google\Service\Calendar\Event as GoogleEvent;
 use Illuminate\Support\Arr;
@@ -117,11 +118,11 @@ class GoogleService
         ];
 
         if ($permissionType === PermissionType::WRITE) {
-            $scopes[] = Calendar::CALENDAR_EVENTS;
-            $scopes[] = Calendar::CALENDAR_READONLY;
+            $scopes[] = GoogleCalendar::CALENDAR_EVENTS;
+            $scopes[] = GoogleCalendar::CALENDAR_READONLY;
         } else {
-            $scopes[] = Calendar::CALENDAR_EVENTS_READONLY;
-            $scopes[] = Calendar::CALENDAR_READONLY;
+            $scopes[] = GoogleCalendar::CALENDAR_EVENTS_READONLY;
+            $scopes[] = GoogleCalendar::CALENDAR_READONLY;
         }
 
         $this->client->setScopes($scopes);
@@ -164,7 +165,7 @@ class GoogleService
     {
         $this->ensureAuthenticated($account);
 
-        $service = new Calendar($this->client);
+        $service = new GoogleCalendar($this->client);
         $calendarList = $service->calendarList->listCalendarList();
 
         return $calendarList->getItems();
@@ -192,7 +193,7 @@ class GoogleService
     ): array {
         $this->ensureAuthenticated($googleAccount);
 
-        $calendarService = new Calendar($this->client);
+        $calendarService = new GoogleCalendar($this->client);
         $events = $calendarService->events->listEvents($calendarId, [
             'timeMin' => $startDateTime->toRfc3339String(),
             'timeMax' => $endDateTime->toRfc3339String(),
@@ -209,7 +210,7 @@ class GoogleService
      * Create an event in Google Calendar.
      *
      * @param GoogleAccount $googleAccount
-     * @param string $calendarId
+     * @param Calendar $calendar
      * @param string $summary
      * @param Carbon $start
      * @param Carbon $end
@@ -218,14 +219,14 @@ class GoogleService
      */
     public function createEvent(
         GoogleAccount $googleAccount,
-        string $calendarId,
+        Calendar $calendar,
         string $summary,
         Carbon $start,
         Carbon $end
     ): ?GoogleEvent {
         $this->ensureAuthenticated($googleAccount);
 
-        $calendarService = new Calendar($this->client);
+        $calendarService = new GoogleCalendar($this->client);
 
         $event = new GoogleEvent();
         $event->setSummary($summary);
@@ -240,8 +241,20 @@ class GoogleService
         $endDateTime->setTimeZone($end->timezone->getName());
         $event->setEnd($endDateTime);
 
+        $calendarId = $calendar->room ? 'primary' : $calendar->calendar_id;
+
+        // For room resources, create event on user's primary calendar and add room as attendee
+        // Room resource calendars are read-only and cannot be written to directly
+        if ($calendar->room) {
+            $attendee = new \Google\Service\Calendar\EventAttendee();
+            $attendee->setEmail($calendar->calendar_id);
+            $event->setAttendees([$attendee]);
+        }
+
         try {
-            $createdEvent = $calendarService->events->insert($calendarId, $event);
+            $createdEvent = $calendarService->events->insert($calendarId, $event, [
+                'sendUpdates' => 'none'
+            ]);
             return $createdEvent;
         } catch (\Exception $e) {
             throw new Exception('Failed to create Google event: ' . $e->getMessage());
@@ -252,24 +265,60 @@ class GoogleService
      * Delete an event from Google Calendar.
      *
      * @param GoogleAccount $googleAccount
-     * @param string $calendarId
+     * @param Calendar $calendar
      * @param string $eventId
      * @return void
      * @throws Exception
      */
     public function deleteEvent(
         GoogleAccount $googleAccount,
-        string $calendarId,
+        Calendar $calendar,
         string $eventId
     ): void {
         $this->ensureAuthenticated($googleAccount);
 
-        $calendarService = new Calendar($this->client);
+        $calendarService = new GoogleCalendar($this->client);
 
         try {
-            $calendarService->events->delete($calendarId, $eventId);
+            if ($calendar->room) {
+                $this->deleteRoomEvent($calendarService, $calendar, $eventId);
+            } else {
+                $calendarService->events->delete($calendar->calendar_id, $eventId, [
+                    'sendUpdates' => 'none'
+                ]);
+            }
         } catch (\Exception $e) {
             throw new Exception('Failed to delete Google event: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Delete an event for a room resource.
+     * For room resources, events are created on the user's primary calendar,
+     * but the eventId we receive is from the room's calendar (from fetchEvents).
+     *
+     * @param GoogleCalendar $calendarService
+     * @param Calendar $calendar
+     * @param string $eventId
+     * @return void
+     * @throws Exception
+     */
+    private function deleteRoomEvent(
+        GoogleCalendar $calendarService,
+        Calendar $calendar,
+        string $eventId
+    ): void {
+        // Try deleting from primary calendar first (where we created it)
+        try {
+            $calendarService->events->delete('primary', $eventId, [
+                'sendUpdates' => 'none'
+            ]);
+        } catch (\Exception $e) {
+            // If that fails, try deleting from the room calendar
+            // The event might have a different ID on the room calendar
+            $calendarService->events->delete($calendar->calendar_id, $eventId, [
+                'sendUpdates' => 'none'
+            ]);
         }
     }
 
@@ -289,7 +338,7 @@ class GoogleService
     ): ?EventSubscription {
         $this->ensureAuthenticated($googleAccount);
 
-        $calendarService = new Calendar($this->client);
+        $calendarService = new GoogleCalendar($this->client);
 
         try {
             $channel = new Channel();
@@ -349,7 +398,7 @@ class GoogleService
             $this->ensureAuthenticated($googleAccount);
 
             try {
-                $calendarService = new Calendar($this->client);
+                $calendarService = new GoogleCalendar($this->client);
                 $channel = new Channel();
                 $channel->setId($eventSubscription->subscription_id);
                 $channel->setResourceId($eventSubscription->resource);

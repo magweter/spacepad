@@ -31,7 +31,8 @@ class AuthController extends ApiController
         // Check if the code is a valid connect code
         if ($connectedUserId !== null) {
             $device = Device::firstOrCreate([
-                'uid' => $request->validated()['uid']
+                'user_id' => $connectedUserId,
+                'uid' => $request->validated()['uid'],
             ],[
                 'user_id' => $connectedUserId,
                 'uid' => $request->validated()['uid'],

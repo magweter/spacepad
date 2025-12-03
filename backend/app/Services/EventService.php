@@ -120,7 +120,7 @@ class EventService
                     elseif ($calendar->google_account_id) {
                         $googleEvent = $this->googleService->createEvent(
                             $calendar->googleAccount,
-                            $calendar->calendar_id,
+                            $calendar,
                             $summary ?? __('Reserved'),
                             $start,
                             $end
@@ -231,7 +231,7 @@ class EventService
                     elseif ($calendar->google_account_id) {
                         $this->googleService->deleteEvent(
                             $calendar->googleAccount,
-                            $calendar->calendar_id,
+                            $calendar,
                             $event->external_id
                         );
                     }
