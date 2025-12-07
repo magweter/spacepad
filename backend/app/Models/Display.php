@@ -103,6 +103,16 @@ class Display extends Model
         return DisplaySettings::isBookingEnabled($this);
     }
 
+    public function hasCustomBooking(): bool
+    {
+        // Check if booking is enabled in settings
+        if (! DisplaySettings::isBookingEnabled($this)) {
+            return false;
+        }
+
+        return true;
+    }
+
     public function setCheckInEnabled(bool $enabled): bool
     {
         return DisplaySettings::setCheckInEnabled($this, $enabled);

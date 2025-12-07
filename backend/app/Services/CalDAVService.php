@@ -28,7 +28,7 @@ class CalDAVService
     private function configureClient(CalDAVAccount $account): void
     {
         $this->client = new Client([
-            'baseUri' => Str::endsWith($account->url, '/') ? $account->url : rtrim($account->url, '/'),
+            'baseUri' => rtrim($account->url, '/'),
             'userName' => $account->username,
             'password' => $account->password,
         ]);
@@ -175,8 +175,9 @@ XML;
         $filename = $uid . '.ics';
 
         try {
-            // PUT the event to the calendar
-            $response = $this->client->request('PUT', $calendarId . '/' . $filename, $vcalendar->serialize(), [
+            // PUT the event to the calendar - trim trailing slash from calendarId to avoid double slashes
+            $path = rtrim($calendarId, '/') . '/' . $filename;
+            $response = $this->client->request('PUT', $path, $vcalendar->serialize(), [
                 'Content-Type' => 'text/calendar; charset=utf-8',
             ]);
 
@@ -210,8 +211,9 @@ XML;
         $filename = $eventId . '.ics';
 
         try {
-            // DELETE the event from the calendar
-            $response = $this->client->request('DELETE', $calendarId . '/' . $filename);
+            // DELETE the event from the calendar - trim trailing slash from calendarId to avoid double slashes
+            $path = rtrim($calendarId, '/') . '/' . $filename;
+            $response = $this->client->request('DELETE', $path);
 
             if ($response['statusCode'] < 200 || $response['statusCode'] >= 300) {
                 throw new \Exception("Failed to delete CalDAV event: Status code {$response['statusCode']}");

@@ -4,13 +4,13 @@ PODS:
   - Flutter (1.0.0)
   - flutter_udid (0.0.1):
     - Flutter
-    - SAMKeychain
+    - KeychainAccess
+  - KeychainAccess (4.2.2)
   - package_info_plus (0.4.5):
     - Flutter
   - path_provider_foundation (0.0.1):
     - Flutter
     - FlutterMacOS
-  - SAMKeychain (1.5.3)
   - shared_preferences_foundation (0.0.1):
     - Flutter
     - FlutterMacOS
@@ -28,7 +28,7 @@ DEPENDENCIES:
 
 SPEC REPOS:
   trunk:
-    - SAMKeychain
+    - KeychainAccess
 
 EXTERNAL SOURCES:
   device_info_plus:
@@ -49,12 +49,12 @@ EXTERNAL SOURCES:
 SPEC CHECKSUMS:
   device_info_plus: bf2e3232933866d73fe290f2942f2156cdd10342
   Flutter: e0871f40cf51350855a761d2e70bf5af5b9b5de7
-  flutter_udid: b2417673f287ee62817a1de3d1643f47b9f508ab
+  flutter_udid: 8bd93f87dee925989788ae646418a63c73a15407
+  KeychainAccess: c0c4f7f38f6fc7bbe58f5702e25f7bd2f65abf51
   package_info_plus: c0502532a26c7662a62a356cebe2692ec5fe4ec4
   path_provider_foundation: 2b6b4c569c0fb62ec74538f866245ac84301af46
-  SAMKeychain: 483e1c9f32984d50ca961e26818a534283b4cd5c
   shared_preferences_foundation: fcdcbc04712aee1108ac7fda236f363274528f78
-  wakelock_plus: 373cfe59b235a6dd5837d0fb88791d2f13a90d56
+  wakelock_plus: 76957ab028e12bfa4e66813c99e46637f367fc7e
 
 PODFILE CHECKSUM: 4305caec6b40dde0ae97be1573c53de1882a07e5
 

@@ -23,6 +23,7 @@ class GoogleAccount extends Model
         'hosted_domain',
         'status',
         'permission_type',
+        'service_account_file_path',
         'user_id',
         'google_id',
         'token',

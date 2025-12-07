@@ -16,6 +16,8 @@ use Google\Service\Directory;
 use Google\Service\Calendar\Event as GoogleEvent;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Storage;
 use App\Enums\PermissionType;
 
 class GoogleService
@@ -37,10 +39,10 @@ class GoogleService
      *
      * @param string $authCode
      * @param PermissionType $permissionType
-     * @return void
+     * @return GoogleAccount
      * @throws Exception
      */
-    public function authenticateGoogleAccount(string $authCode, PermissionType $permissionType = PermissionType::READ): void
+    public function authenticateGoogleAccount(string $authCode, PermissionType $permissionType = PermissionType::READ): GoogleAccount
     {
         $accessToken = $this->client->fetchAccessTokenWithAuthCode($authCode);
         if (Arr::exists($accessToken, 'error')) {
@@ -56,7 +58,7 @@ class GoogleService
         $googleUserInfo = $googleService->userinfo->get();
 
         // Save the user's Google account and tokens in the database
-        GoogleAccount::updateOrCreate(
+        return GoogleAccount::updateOrCreate(
             [
                 'user_id' => auth()->id(),
                 'google_id' => $googleUserInfo->id,
@@ -224,10 +226,6 @@ class GoogleService
         Carbon $start,
         Carbon $end
     ): ?GoogleEvent {
-        $this->ensureAuthenticated($googleAccount);
-
-        $calendarService = new GoogleCalendar($this->client);
-
         $event = new GoogleEvent();
         $event->setSummary($summary);
 
@@ -241,10 +239,19 @@ class GoogleService
         $endDateTime->setTimeZone($end->timezone->getName());
         $event->setEnd($endDateTime);
 
+        // For workspace accounts with room resources and service account, write directly to room calendar
+        if ($calendar->room && $googleAccount->isBusiness() && $googleAccount->service_account_file_path) {
+            return $this->createRoomEventWithServiceAccount($googleAccount, $calendar, $event);
+        }
+
+        // Fall back to user OAuth method (only for personal accounts or non-room calendars)
+        $this->ensureAuthenticated($googleAccount);
+        $calendarService = new GoogleCalendar($this->client);
+
         $calendarId = $calendar->room ? 'primary' : $calendar->calendar_id;
 
-        // For room resources, create event on user's primary calendar and add room as attendee
-        // Room resource calendars are read-only and cannot be written to directly
+        // For room resources (personal accounts only), create event on user's primary calendar and add room as attendee
+        // Room resource calendars are read-only and cannot be written to directly without service account
         if ($calendar->room) {
             $attendee = new \Google\Service\Calendar\EventAttendee();
             $attendee->setEmail($calendar->calendar_id);
@@ -275,8 +282,14 @@ class GoogleService
         Calendar $calendar,
         string $eventId
     ): void {
-        $this->ensureAuthenticated($googleAccount);
+        // For workspace accounts with room resources and service account, delete directly from room calendar
+        if ($calendar->room && $googleAccount->isBusiness() && $googleAccount->service_account_file_path) {
+            $this->deleteRoomEventWithServiceAccount($googleAccount, $calendar, $eventId);
+            return;
+        }
 
+        // Fall back to user OAuth method (only for personal accounts or non-room calendars)
+        $this->ensureAuthenticated($googleAccount);
         $calendarService = new GoogleCalendar($this->client);
 
         try {
@@ -418,5 +431,109 @@ class GoogleService
 
         // Log the deletion for debugging
         logger()->info('Google subscription deleted', ['subscriptionId' => $eventSubscription->id]);
+    }
+
+    /**
+     * Create a Google Calendar client authenticated with service account.
+     *
+     * @param GoogleAccount $googleAccount
+     * @return Client
+     * @throws Exception
+     */
+    private function getServiceAccountClient(GoogleAccount $googleAccount): Client
+    {
+        if (!$googleAccount->service_account_file_path) {
+            throw new Exception('Service account file path not set for Google account.');
+        }
+
+        if (!Storage::exists($googleAccount->service_account_file_path)) {
+            throw new Exception('Service account file not found: ' . $googleAccount->service_account_file_path);
+        }
+
+        // Read and decrypt the encrypted service account file
+        $encryptedContent = Storage::get($googleAccount->service_account_file_path);
+        $decryptedContent = Crypt::decryptString($encryptedContent);
+        
+        // Parse the JSON content
+        $serviceAccountData = json_decode($decryptedContent, true);
+        if (!$serviceAccountData) {
+            throw new Exception('Invalid service account JSON file.');
+        }
+
+        $client = new Client();
+        // setAuthConfig() can accept either a file path or an array
+        // Using array avoids creating temporary files with sensitive data
+        $client->setAuthConfig($serviceAccountData);
+        
+        $scopes = [
+            GoogleCalendar::CALENDAR_READONLY,
+            GoogleCalendar::CALENDAR_EVENTS,
+        ];
+        
+        $client->setScopes($scopes);
+        
+        // For domain-wide delegation, impersonate the user who owns the Google account
+        // This allows the service account to access resources on behalf of the user
+        if ($googleAccount->email) {
+            $client->setSubject($googleAccount->email);
+        }
+
+        return $client;
+    }
+
+    /**
+     * Create an event directly on a room resource calendar using service account.
+     * This allows booking rooms without using a user's calendar for workspace accounts.
+     *
+     * @param GoogleAccount $googleAccount
+     * @param Calendar $calendar
+     * @param GoogleEvent $event
+     * @return GoogleEvent
+     * @throws Exception
+     */
+    private function createRoomEventWithServiceAccount(
+        GoogleAccount $googleAccount,
+        Calendar $calendar,
+        GoogleEvent $event
+    ): GoogleEvent {
+        $client = $this->getServiceAccountClient($googleAccount);
+        $calendarService = new GoogleCalendar($client);
+
+        try {
+            // With service account and proper permissions, we can write directly to room calendars
+            $createdEvent = $calendarService->events->insert($calendar->calendar_id, $event, [
+                'sendUpdates' => 'none'
+            ]);
+            return $createdEvent;
+        } catch (\Exception $e) {
+            throw new Exception('Failed to create Google room event with service account: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Delete an event directly from a room resource calendar using service account.
+     *
+     * @param GoogleAccount $googleAccount
+     * @param Calendar $calendar
+     * @param string $eventId
+     * @return void
+     * @throws Exception
+     */
+    private function deleteRoomEventWithServiceAccount(
+        GoogleAccount $googleAccount,
+        Calendar $calendar,
+        string $eventId
+    ): void {
+        $client = $this->getServiceAccountClient($googleAccount);
+        $calendarService = new GoogleCalendar($client);
+
+        try {
+            // With service account and proper permissions, we can delete directly from room calendars
+            $calendarService->events->delete($calendar->calendar_id, $eventId, [
+                'sendUpdates' => 'none'
+            ]);
+        } catch (\Exception $e) {
+            throw new Exception('Failed to delete Google room event with service account: ' . $e->getMessage());
+        }
     }
 }

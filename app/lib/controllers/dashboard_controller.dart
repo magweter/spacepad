@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:get/get.dart';
 import 'package:spacepad/components/toast.dart';
@@ -312,6 +311,7 @@ class DashboardController extends GetxController {
   }
 
   Future<void> bookCustom(String title, DateTime startTime, DateTime endTime) async {
+    isBooking.value = true;
     try {
       await DisplayService.instance.bookCustom(displayId.value, title, startTime, endTime);
       await fetchDisplayData();
@@ -349,6 +349,11 @@ class DashboardController extends GetxController {
   // Check if booking should be displayed based on display settings
   bool get bookingEnabled {
     return globalSettings.value?.bookingEnabled ?? false;
+  }
+
+  // Check if custom booking is available (server capability)
+  bool get hasCustomBooking {
+    return globalSettings.value?.hasCustomBooking ?? false;
   }
 
   bool get calendarEnabled {

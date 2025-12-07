@@ -29,8 +29,17 @@ class InstanceController extends ApiController
         
         // Second, try to find an existing instance with the same user data by comparing JSON strings directly
         // Direct JSON comparison works for both SQLite (TEXT) and MySQL (JSON type)
+        // Always convert users to JSON string for comparison, regardless of input type
+        $usersValue = $request['users'];
+        $usersJson = is_string($usersValue) 
+            ? $usersValue 
+            : json_encode($usersValue, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        
+        // Ensure it's always a string (not array) for database comparison
+        $usersJson = (string) $usersJson;
+        
         $existingInstance = $existingInstance ?? Instance::query()
-            ->whereRaw('users = ?', [$request['users']])
+            ->whereRaw('users = ?', [$usersJson])
             ->latest()
             ->first();
 

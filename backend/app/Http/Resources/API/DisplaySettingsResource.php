@@ -29,6 +29,9 @@ class DisplaySettingsResource extends JsonResource
             'logo_url' => $this->getLogoUrl(),
             'background_image_url' => $this->getBackgroundImageUrl(),
             'font_family' => $this->getFontFamily(),
+
+            // Feature flags
+            'has_custom_booking' => $this->hasCustomBooking(),
         ];
     }
 }

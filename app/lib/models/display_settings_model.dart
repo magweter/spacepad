@@ -1,6 +1,7 @@
 class DisplaySettingsModel {
   bool checkInEnabled;
   bool bookingEnabled;
+  bool hasCustomBooking;
   int checkInGracePeriod;
   int checkInMinutes;
   bool calendarEnabled;
@@ -17,6 +18,7 @@ class DisplaySettingsModel {
   DisplaySettingsModel({
     required this.checkInEnabled,
     required this.bookingEnabled,
+    required this.hasCustomBooking,
     required this.checkInGracePeriod,
     required this.checkInMinutes,
     required this.calendarEnabled,
@@ -35,6 +37,7 @@ class DisplaySettingsModel {
     return DisplaySettingsModel(
       checkInEnabled: data['check_in_enabled'] ?? false,
       bookingEnabled: data['booking_enabled'] ?? false,
+      hasCustomBooking: data['has_custom_booking'] ?? false,
       checkInGracePeriod: data['check_in_grace_period'] ?? 5,
       checkInMinutes: data['check_in_minutes'] ?? 15,
       calendarEnabled: data['calendar_enabled'] ?? false,
@@ -54,6 +57,7 @@ class DisplaySettingsModel {
     return {
       'check_in_enabled': checkInEnabled,
       'booking_enabled': bookingEnabled,
+      'has_custom_booking': hasCustomBooking,
       'check_in_grace_period': checkInGracePeriod,
       'check_in_minutes': checkInMinutes,
       'calendar_enabled': calendarEnabled,

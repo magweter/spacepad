@@ -58,7 +58,7 @@ class DisplayController extends ApiController
             ]));
         } catch (\Exception $e) {
             report($e);
-            return $this->error(message: $e->getMessage(), code: 500);
+            return $this->error(message: 'Something went wrong while fetching display data. Please try again later.', code: 500);
         }
     }
 
@@ -96,7 +96,7 @@ class DisplayController extends ApiController
         } catch (\Exception $e) {
             report($e);
             $status = $e->getCode() === 403 ? 403 : 400;
-            return $this->error(message: $e->getMessage(), code: $status);
+            return $this->error(message: 'Room could not be booked. There may be conflicting events during this time period. Please try a different time or duration.', code: $status);
         }
     }
 
@@ -118,7 +118,7 @@ class DisplayController extends ApiController
             return $this->success(message: 'Checked in successfully');
         } catch (\Exception $e) {
             $status = $e->getCode() === 403 ? 403 : 400;
-            return $this->error(message: $e->getMessage(), code: $status);
+            return $this->error(message: 'Could not check in to event. Please try again later.', code: $status);
         }
     }
 
@@ -140,7 +140,7 @@ class DisplayController extends ApiController
             return $this->success(message: 'Event cancelled successfully');
         } catch (\Exception $e) {
             $status = $e->getCode() === 403 ? 403 : 400;
-            return $this->error(message: $e->getMessage(), code: $status);
+            return $this->error(message: 'Event could not be cancelled. Please try again later.', code: $status);
         }
     }
 

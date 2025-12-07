@@ -25,6 +25,35 @@
     {{-- Session Status Alert --}}
     <x-alerts.alert :errors="$errors" />
 
+    {{-- Service Account Warnings --}}
+    @foreach($googleAccounts as $googleAccount)
+        @if($googleAccount->isBusiness() && !$googleAccount->service_account_file_path)
+            <div class="mb-4 rounded-md bg-yellow-50 ring-1 ring-inset ring-yellow-600 p-4 flex items-start gap-4" x-data>
+                <div class="flex-shrink-0 mt-1">
+                    <span class="inline-flex items-center justify-center h-10 w-10 rounded-full bg-yellow-100">
+                        <svg class="h-6 w-6 text-yellow-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M12 9v2m0 4h.01M5.07 20A9.938 9.938 0 0 1 2 12C2 6.48 6.48 2 12 2c5.52 0 10 4.48 10 10a9.938 9.938 0 0 1-3.07 8" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </span>
+                </div>
+                <div class="flex-1">
+                    <h3 class="text-md font-semibold text-yellow-900 mb-1">Service Account Required</h3>
+                    <p class="text-sm text-yellow-800 mb-1">
+                        The Google Workspace account <strong>{{ $googleAccount->name }}</strong> ({{ $googleAccount->email }}) currently has read-only access. Without a service account, room bookings will not show up in the calendar.
+                    </p>
+                </div>
+                <div class="flex-shrink-0 ml-4 mt-2">
+                    <button 
+                        type="button"
+                        @click="$dispatch('open-service-account-modal', { googleAccountId: '{{ $googleAccount->id }}' })"
+                        class="inline-flex items-center rounded-md bg-yellow-600 px-3 py-2 text-sm font-semibold text-white shadow-xs hover:bg-yellow-700">
+                        Set up service account
+                    </button>
+                </div>
+            </div>
+        @endif
+    @endforeach
+
     {{-- License Key Modal --}}
     <x-modals.license-key />
 
@@ -259,7 +288,7 @@
                                         <div class="flex flex-col items-center justify-center">
                                             <x-icons.display class="h-12 w-12 text-orange mb-3" />
                                             <h3 class="mb-2 text-md font-semibold text-gray-900">
-                                                You are almost ready!<br>Next, set up a new display.
+                                                One more step and you're set up
                                             </h3>
                                             <p class="mb-6 text-sm text-gray-500 max-w-sm">Pick the calendar or room you would like to synchronize. You are able to connect multiple tablets to one display.</p>
                                             @if(! $isSelfHosted && auth()->user()->shouldUpgrade())
@@ -360,6 +389,9 @@
                             </div>
                             <div class="truncate text-sm text-gray-500 flex items-center gap-2 mt-1 flex-wrap">
                                 <p class="mt-0.5 whitespace-nowrap rounded-md bg-green-50 px-1.5 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600">Connected</p>
+                                <p class="mt-0.5 whitespace-nowrap rounded-md px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset {{ $outlookAccount->isBusiness() ? 'bg-purple-50 text-purple-700 ring-purple-600' : 'bg-gray-50 text-gray-700 ring-gray-600' }}">
+                                    {{ $outlookAccount->isBusiness() ? 'Microsoft 365' : 'Personal' }}
+                                </p>
                                 @if($outlookAccount->permission_type)
                                     <p class="mt-0.5 whitespace-nowrap rounded-md px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset {{ $outlookAccount->permission_type === \App\Enums\PermissionType::WRITE ? 'bg-blue-50 text-blue-700 ring-blue-600' : 'bg-gray-50 text-gray-700 ring-gray-600' }}">
                                         {{ $outlookAccount->permission_type->label() }}
@@ -399,6 +431,9 @@
                             </div>
                             <div class="truncate text-sm text-gray-500 flex items-center gap-2 mt-1 flex-wrap">
                                 <p class="mt-0.5 whitespace-nowrap rounded-md bg-green-50 px-1.5 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600">Connected</p>
+                                <p class="mt-0.5 whitespace-nowrap rounded-md px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset {{ $googleAccount->isBusiness() ? 'bg-purple-50 text-purple-700 ring-purple-600' : 'bg-gray-50 text-gray-700 ring-gray-600' }}">
+                                    {{ $googleAccount->isBusiness() ? 'Workspace' : 'Personal' }}
+                                </p>
                                 @if($googleAccount->permission_type)
                                     <p class="mt-0.5 whitespace-nowrap rounded-md px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset {{ $googleAccount->permission_type === \App\Enums\PermissionType::WRITE ? 'bg-blue-50 text-blue-700 ring-blue-600' : 'bg-gray-50 text-gray-700 ring-gray-600' }}">
                                         {{ $googleAccount->permission_type->label() }}
@@ -475,10 +510,20 @@
                 closeConnectModal();
             }
         });
+
+        // Show service account modal if needed
+        @if(session('show_service_account_modal'))
+            window.addEventListener('DOMContentLoaded', function() {
+                window.dispatchEvent(new CustomEvent('open-service-account-modal', {
+                    detail: { googleAccountId: '{{ session('google_account_id') }}' }
+                }));
+            });
+        @endif
     </script>
 @endpush
 
 @push('modals')
     <x-modals.select-permission provider="outlook" />
     <x-modals.select-permission provider="google" />
+    <x-modals.google-service-account />
 @endpush

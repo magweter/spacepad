@@ -32,19 +32,26 @@ class _CustomBookingModalState extends State<CustomBookingModal> {
   void initState() {
     super.initState();
     final now = DateTime.now();
+    
+    // Clamp start time to now if in the past
     _startTime = now;
     
     // Calculate default end time: 1 hour from now, or until next meeting if available
     final upcomingEvents = widget.controller.upcomingEvents;
     if (upcomingEvents.isNotEmpty) {
       _nextMeetingStart = upcomingEvents.first.start;
-      final oneHourFromNow = now.add(const Duration(hours: 1));
-      _endTime = _nextMeetingStart!.isBefore(oneHourFromNow) 
-          ? _nextMeetingStart! 
-          : oneHourFromNow;
+      final oneHourFromStart = _startTime.add(const Duration(hours: 1));
+      _endTime = (_nextMeetingStart != null && _nextMeetingStart!.isBefore(oneHourFromStart))
+          ? _nextMeetingStart!
+          : oneHourFromStart;
     } else {
-      _endTime = now.add(const Duration(hours: 1));
+      _endTime = _startTime.add(const Duration(hours: 1));
     }
+    
+    // Ensure end time is strictly after start time
+    _endTime = _endTime.isBefore(_startTime) || _endTime.isAtSameMomentAs(_startTime)
+        ? _startTime.add(const Duration(minutes: 1))
+        : _endTime;
     
     _titleController = TextEditingController(text: 'reserved'.tr);
   }
@@ -123,18 +130,46 @@ class _CustomBookingModalState extends State<CustomBookingModal> {
 
   void _setStartTimeToNow() {
     setState(() {
-      _startTime = DateTime.now();
-      // Ensure end time is after start time
-      if (_endTime.isBefore(_startTime) || _endTime.isAtSameMomentAs(_startTime)) {
-        _endTime = _startTime.add(const Duration(hours: 1));
+      final now = DateTime.now();
+      // Clamp start time to now if in the past
+      _startTime = now;
+      
+      // Ensure end time is strictly after start time
+      final oneHourFromStart = _startTime.add(const Duration(hours: 1));
+      if (_nextMeetingStart != null && _nextMeetingStart!.isBefore(oneHourFromStart)) {
+        _endTime = _nextMeetingStart!.isAfter(_startTime) 
+            ? _nextMeetingStart! 
+            : _startTime.add(const Duration(minutes: 1));
+      } else {
+        _endTime = _endTime.isBefore(_startTime) || _endTime.isAtSameMomentAs(_startTime)
+            ? oneHourFromStart
+            : _endTime;
       }
+      
+      // Final check: ensure end time is strictly after start time
+      _endTime = _endTime.isBefore(_startTime) || _endTime.isAtSameMomentAs(_startTime)
+          ? _startTime.add(const Duration(minutes: 1))
+          : _endTime;
     });
   }
 
   void _setEndTimeToMax() {
     if (_nextMeetingStart != null) {
       setState(() {
-        _endTime = _nextMeetingStart!;
+        final now = DateTime.now();
+        // Clamp start time to now if in the past
+        _startTime = _startTime.isBefore(now) ? now : _startTime;
+        
+        // Set end time to next meeting start, but ensure it's strictly after start time
+        final oneHourFromStart = _startTime.add(const Duration(hours: 1));
+        _endTime = (_nextMeetingStart != null && _nextMeetingStart!.isBefore(oneHourFromStart))
+            ? _nextMeetingStart!
+            : oneHourFromStart;
+        
+        // Ensure end time is strictly after start time
+        _endTime = _endTime.isBefore(_startTime) || _endTime.isAtSameMomentAs(_startTime)
+            ? _startTime.add(const Duration(minutes: 1))
+            : _endTime;
       });
     }
   }
@@ -144,10 +179,29 @@ class _CustomBookingModalState extends State<CustomBookingModal> {
       return;
     }
     
+    // Clamp and normalize times before sending to backend
+    final now = DateTime.now();
+    
+    // Clamp start time to now if in the past
+    final clampedStartTime = _startTime.isBefore(now) ? now : _startTime;
+    
+    // Preserve next meeting clipping behavior if applicable
+    final oneHourFromStart = clampedStartTime.add(const Duration(hours: 1));
+    final endTimeWithClipping = (_nextMeetingStart != null && _nextMeetingStart!.isBefore(oneHourFromStart))
+        ? _nextMeetingStart!
+        : oneHourFromStart;
+    
+    // Ensure end time is strictly after start time (at least 1 minute after)
+    // Use max of endTimeWithClipping or minimum valid end time
+    final minValidEndTime = clampedStartTime.add(const Duration(minutes: 1));
+    final finalEndTime = endTimeWithClipping.isBefore(minValidEndTime) || endTimeWithClipping.isAtSameMomentAs(minValidEndTime)
+        ? minValidEndTime
+        : endTimeWithClipping;
+    
     widget.controller.bookCustom(
       _titleController.text.trim(),
-      _startTime,
-      _endTime,
+      clampedStartTime,
+      finalEndTime,
     );
     
     Navigator.of(context).pop();

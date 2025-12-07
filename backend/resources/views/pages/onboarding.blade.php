@@ -143,4 +143,18 @@
 @push('modals')
     <x-modals.select-permission provider="outlook" />
     <x-modals.select-permission provider="google" />
+    <x-modals.google-service-account />
+@endpush
+
+@push('scripts')
+    <script>
+        // Show service account modal if needed
+        @if(session('show_service_account_modal'))
+            window.addEventListener('DOMContentLoaded', function() {
+                window.dispatchEvent(new CustomEvent('open-service-account-modal', {
+                    detail: { googleAccountId: '{{ session('google_account_id') }}' }
+                }));
+            });
+        @endif
+    </script>
 @endpush

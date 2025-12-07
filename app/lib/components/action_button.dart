@@ -51,9 +51,28 @@ class ActionButton extends StatelessWidget {
                       vertical: isPhone ? 12 : 16,
                       horizontal: isPhone ? 20 : 28,
                     ),
-                    child: Center(
-                      child: isLoading
-                          ? SizedBox(
+                    child: SizedBox(
+                      height: isPhone ? 22 : 26, // Fixed height to match text line height
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          // Keep text in layout to maintain button width, but make it invisible when loading
+                          Opacity(
+                            opacity: isLoading ? 0 : 1,
+                            child: Text(
+                              text.tr,
+                              style: TextStyle(
+                                color: textColor ?? TWColors.white,
+                                fontSize: isPhone ? 16 : 20,
+                                fontWeight: FontWeight.w700,
+                                height: 1.0, // Ensure consistent line height
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                          // Show loading indicator on top when loading
+                          if (isLoading)
+                            SizedBox(
                               width: isPhone ? 20 : 24,
                               height: isPhone ? 20 : 24,
                               child: CircularProgressIndicator(
@@ -62,15 +81,9 @@ class ActionButton extends StatelessWidget {
                                   textColor ?? TWColors.white,
                                 ),
                               ),
-                            )
-                          : Text(
-                              text.tr,
-                              style: TextStyle(
-                                color: textColor ?? TWColors.white,
-                                fontSize: isPhone ? 16 : 20,
-                                fontWeight: FontWeight.w700,
-                              ),
                             ),
+                        ],
+                      ),
                     ),
                   ),
                   if (disabled && !isLoading)

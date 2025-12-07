@@ -57,15 +57,17 @@ class ActionPanel extends StatelessWidget {
                     isLoading: isBooking && bookingDuration == min, // Only show loading on the clicked button
                   ),
                 ),
-              SizedBox(width: isPhone ? 12 : 16),
-              ActionButton(
-                text: 'custom',
-                onPressed: isBooking ? null : () => controller.showCustomBookingModal(context, isPhone, cornerRadius),
-                isPhone: isPhone,
-                cornerRadius: cornerRadius,
-                disabled: isBooking,
-                isLoading: isBooking && bookingDuration == null, // Show loading if custom booking is in progress
-              ),
+              if (controller.hasCustomBooking) ...[
+                SizedBox(width: isPhone ? 12 : 16),
+                ActionButton(
+                  text: 'custom',
+                  onPressed: isBooking ? null : () => controller.showCustomBookingModal(context, isPhone, cornerRadius),
+                  isPhone: isPhone,
+                  cornerRadius: cornerRadius,
+                  disabled: isBooking,
+                  isLoading: isBooking && bookingDuration == null, // Show loading if custom booking is in progress
+                ),
+              ],
               SizedBox(width: isPhone ? 16 : 24),
               ActionButton(
                 text: 'cancel',
