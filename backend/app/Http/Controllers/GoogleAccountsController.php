@@ -26,15 +26,29 @@ class GoogleAccountsController extends Controller
     public function setBookingMethod(Request $request): RedirectResponse
     {
         $request->validate([
+            'google_account_id' => [
+                'required',
+                Rule::exists('google_accounts', 'id')->where('user_id', auth()->id()),
+            ],
             'booking_method' => ['required', Rule::in(['service_account', 'user_account'])],
         ]);
 
-        // Store booking method in session - will be saved to account after OAuth callback
-        session(['google_booking_method' => $request->booking_method]);
+        $googleAccount = GoogleAccount::where('id', $request->google_account_id)
+            ->where('user_id', auth()->id())
+            ->firstOrFail();
 
-        // Permission type should already be in session, proceed to OAuth
-        $permissionType = PermissionType::from(session('google_permission_type', PermissionType::READ->value));
-        return redirect($this->googleService->getAuthUrl($permissionType));
+        $googleAccount->update([
+            'booking_method' => GoogleBookingMethod::from($request->booking_method),
+        ]);
+
+        // If service account method selected, redirect to upload service account file
+        if ($request->booking_method === 'service_account') {
+            return redirect()->route('dashboard')
+                ->with('open-service-account-modal', $googleAccount->id)
+                ->with('success', 'Booking method set. Please upload your service account file.');
+        }
+
+        return redirect()->route('dashboard')->with('success', 'Booking method has been set successfully.');
     }
 
     public function auth(Request $request): RedirectResponse
@@ -48,12 +62,7 @@ class GoogleAccountsController extends Controller
         // Store permission type in session
         session(['google_permission_type' => $request->permission_type]);
 
-        // If write permission is selected, we need booking method first
-        if ($permissionType === PermissionType::WRITE && !session()->has('google_booking_method')) {
-            return redirect()->back()->with('open-google-booking-method-modal', true);
-        }
-
-        // Booking method should already be in session from setBookingMethod, proceed to OAuth
+        // Proceed to OAuth - booking method will be set after connection
         return redirect($this->googleService->getAuthUrl($permissionType));
     }
 
@@ -141,13 +150,33 @@ class GoogleAccountsController extends Controller
 
         $authCode = request('code');
         $permissionType = PermissionType::from(session('google_permission_type', PermissionType::READ->value));
-        $bookingMethod = GoogleBookingMethod::from(session('google_booking_method', GoogleBookingMethod::USER_ACCOUNT->value));
 
         // Clear the session values after retrieving them
         session()->forget('google_permission_type');
         session()->forget('google_booking_method');
 
-        $googleAccount = $this->googleService->authenticateGoogleAccount($authCode, $permissionType, $bookingMethod);
+        // Don't set booking_method initially - will be set based on account type
+        $googleAccount = $this->googleService->authenticateGoogleAccount($authCode, $permissionType, null);
+
+        // If write permission, automatically detect account type and set booking method
+        if ($permissionType === PermissionType::WRITE) {
+            // Refresh account to get hosted_domain
+            $googleAccount->refresh();
+            
+            // If personal account, automatically set to USER_ACCOUNT
+            if (!$googleAccount->isBusiness()) {
+                $googleAccount->update([
+                    'booking_method' => GoogleBookingMethod::USER_ACCOUNT,
+                ]);
+                return redirect()->route('dashboard')
+                    ->with('success', 'Google account "' . $googleAccount->email . '" has been connected successfully.');
+            }
+            
+            // If workspace account, show booking method selection modal
+            return redirect()->route('dashboard')
+                ->with('success', 'Google account "' . $googleAccount->email . '" has been connected successfully.')
+                ->with('open-google-booking-method-modal', $googleAccount->id);
+        }
 
         return redirect()->route('dashboard')->with('success', 'Google account "' . $googleAccount->email . '" has been connected successfully.');
     }

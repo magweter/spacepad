@@ -150,18 +150,21 @@
 @push('scripts')
     <script>
         // Show service account modal if needed
-        @if(session('show_service_account_modal'))
+        @if(session('open-service-account-modal'))
             window.addEventListener('DOMContentLoaded', function() {
                 window.dispatchEvent(new CustomEvent('open-service-account-modal', {
-                    detail: { googleAccountId: '{{ session('google_account_id') }}' }
+                    detail: { googleAccountId: '{{ session('open-service-account-modal') }}' }
                 }));
             });
         @endif
 
         // Show booking method modal if needed (after write permission selection)
+        // Show booking method modal if needed (after connecting Google Workspace account with write permission)
         @if(session('open-google-booking-method-modal'))
             window.addEventListener('DOMContentLoaded', function() {
-                window.dispatchEvent(new CustomEvent('open-google-booking-method-modal'));
+                window.dispatchEvent(new CustomEvent('open-google-booking-method-modal', {
+                    detail: '{{ session('open-google-booking-method-modal') }}'
+                }));
             });
         @endif
     </script>

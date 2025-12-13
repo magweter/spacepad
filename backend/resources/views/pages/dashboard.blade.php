@@ -25,6 +25,35 @@
     {{-- Session Status Alert --}}
     <x-alerts.alert :errors="$errors" />
 
+    {{-- Google Workspace Booking Method Selection Warnings --}}
+    @foreach($googleAccounts as $googleAccount)
+        @if($googleAccount->permission_type === \App\Enums\PermissionType::WRITE && $googleAccount->isBusiness() && $googleAccount->booking_method === null)
+            <div class="mb-4 rounded-md bg-yellow-50 ring-1 ring-inset ring-yellow-600 p-4 flex items-start gap-4" x-data>
+                <div class="flex-shrink-0 mt-1">
+                    <span class="inline-flex items-center justify-center h-10 w-10 rounded-full bg-yellow-100">
+                        <svg class="h-6 w-6 text-yellow-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M12 9v2m0 4h.01M5.07 20A9.938 9.938 0 0 1 2 12C2 6.48 6.48 2 12 2c5.52 0 10 4.48 10 10a9.938 9.938 0 0 1-3.07 8" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </span>
+                </div>
+                <div class="flex-1">
+                    <h3 class="text-md font-semibold text-yellow-900 mb-1">Booking Method Required</h3>
+                    <p class="text-sm text-yellow-800 mb-1">
+                        Please select a booking method for your Google Workspace account <strong>{{ $googleAccount->name }}</strong> ({{ $googleAccount->email }}).
+                    </p>
+                </div>
+                <div class="flex-shrink-0 ml-4 mt-2">
+                    <button 
+                        type="button"
+                        @click="$dispatch('open-google-booking-method-modal', '{{ $googleAccount->id }}')"
+                        class="inline-flex items-center rounded-md bg-yellow-600 px-3 py-2 text-sm font-semibold text-white shadow-xs hover:bg-yellow-700">
+                        Select booking method
+                    </button>
+                </div>
+            </div>
+        @endif
+    @endforeach
+
     {{-- Service Account Warnings --}}
     @foreach($googleAccounts as $googleAccount)
         @if($googleAccount->isBusiness() && $googleAccount->booking_method === \App\Enums\GoogleBookingMethod::SERVICE_ACCOUNT && !$googleAccount->service_account_file_path)
@@ -439,6 +468,11 @@
                                         {{ $googleAccount->permission_type->label() }}
                                     </p>
                                 @endif
+                                @if($googleAccount->isBusiness() && $googleAccount->booking_method)
+                                    <p class="mt-0.5 whitespace-nowrap rounded-md px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset {{ $googleAccount->booking_method === \App\Enums\GoogleBookingMethod::SERVICE_ACCOUNT ? 'bg-orange-50 text-orange-700 ring-orange-600' : 'bg-indigo-50 text-indigo-700 ring-indigo-600' }}">
+                                        {{ $googleAccount->booking_method === \App\Enums\GoogleBookingMethod::SERVICE_ACCOUNT ? 'Service Account' : 'User Account' }}
+                                    </p>
+                                @endif
                             </div>
                         </div>
                     </div>
@@ -512,18 +546,20 @@
         });
 
         // Show service account modal if needed
-        @if(session('show_service_account_modal'))
+        @if(session('open-service-account-modal'))
             window.addEventListener('DOMContentLoaded', function() {
                 window.dispatchEvent(new CustomEvent('open-service-account-modal', {
-                    detail: { googleAccountId: '{{ session('google_account_id') }}' }
+                    detail: { googleAccountId: '{{ session('open-service-account-modal') }}' }
                 }));
             });
         @endif
 
-        // Show booking method modal if needed (after write permission selection)
+        // Show booking method modal if needed (after connecting Google Workspace account with write permission)
         @if(session('open-google-booking-method-modal'))
             window.addEventListener('DOMContentLoaded', function() {
-                window.dispatchEvent(new CustomEvent('open-google-booking-method-modal'));
+                window.dispatchEvent(new CustomEvent('open-google-booking-method-modal', {
+                    detail: '{{ session('open-google-booking-method-modal') }}'
+                }));
             });
         @endif
     </script>

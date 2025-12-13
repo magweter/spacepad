@@ -44,7 +44,7 @@ class GoogleService
      * @return GoogleAccount
      * @throws Exception
      */
-    public function authenticateGoogleAccount(string $authCode, PermissionType $permissionType = PermissionType::READ, GoogleBookingMethod $bookingMethod = GoogleBookingMethod::USER_ACCOUNT): GoogleAccount
+    public function authenticateGoogleAccount(string $authCode, PermissionType $permissionType = PermissionType::READ, ?GoogleBookingMethod $bookingMethod = null): GoogleAccount
     {
         $accessToken = $this->client->fetchAccessTokenWithAuthCode($authCode);
         if (Arr::exists($accessToken, 'error')) {
@@ -242,9 +242,12 @@ class GoogleService
         $endDateTime->setTimeZone($end->timezone->getName());
         $event->setEnd($endDateTime);
 
+        // Get booking method, defaulting to USER_ACCOUNT if null
+        $bookingMethod = $googleAccount->booking_method ?? GoogleBookingMethod::USER_ACCOUNT;
+
         // For workspace accounts with room resources and service account booking method, write directly to room calendar
         if ($calendar->room && $googleAccount->isBusiness() && 
-            $googleAccount->booking_method === GoogleBookingMethod::SERVICE_ACCOUNT && 
+            $bookingMethod === GoogleBookingMethod::SERVICE_ACCOUNT && 
             $googleAccount->service_account_file_path) {
             return $this->createRoomEventWithServiceAccount($googleAccount, $calendar, $event);
         }
@@ -287,9 +290,12 @@ class GoogleService
         Calendar $calendar,
         string $eventId
     ): void {
+        // Get booking method, defaulting to USER_ACCOUNT if null
+        $bookingMethod = $googleAccount->booking_method ?? GoogleBookingMethod::USER_ACCOUNT;
+
         // For workspace accounts with room resources and service account booking method, delete directly from room calendar
         if ($calendar->room && $googleAccount->isBusiness() && 
-            $googleAccount->booking_method === GoogleBookingMethod::SERVICE_ACCOUNT && 
+            $bookingMethod === GoogleBookingMethod::SERVICE_ACCOUNT && 
             $googleAccount->service_account_file_path) {
             $this->deleteRoomEventWithServiceAccount($googleAccount, $calendar, $eventId);
             return;

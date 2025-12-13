@@ -1,11 +1,12 @@
 <div x-data="{ 
         show: false,
         bookingMethod: 'user_account',
+        googleAccountId: null,
         loading: false
     }" 
     x-show="show" 
     x-cloak
-    @open-google-booking-method-modal.window="show = true; bookingMethod = 'user_account';"
+    @open-google-booking-method-modal.window="show = true; bookingMethod = 'user_account'; googleAccountId = $event.detail || null;"
     x-on:keydown.escape.window="show = false" 
     class="relative z-50" 
     role="dialog" 
@@ -38,6 +39,7 @@
                         @submit.prevent="loading = true; $refs.bookingMethodForm.submit()"
                         class="mt-6">
                         @csrf
+                        <input type="hidden" name="google_account_id" :value="googleAccountId">
                         <div class="space-y-4">
                             <!-- User Account Option -->
                             <label
