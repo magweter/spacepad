@@ -19,12 +19,27 @@ class InstanceController extends ApiController
         protected InstanceService $instanceService
     ) {}
 
+    /**
+     * Pseudonymize an IP address using HMAC-SHA256 with APP_KEY.
+     * This allows consistent pseudonymization for audit purposes while protecting PII.
+     * Returns first 16 characters of the hash for readability.
+     *
+     * @param string $ip
+     * @return string
+     */
+    private function pseudonymizeIp(string $ip): string
+    {
+        $key = config('app.key');
+        $hash = hash_hmac('sha256', $ip, $key);
+        return substr($hash, 0, 16);
+    }
+
     public function heartbeat(InstanceHeartbeatRequest $request): JsonResponse
     {
         // Security: Log instance heartbeat for audit trail
         logger()->info('Instance heartbeat received', [
             'instance_key' => substr($request['instance_key'], 0, 8) . '...', // Log partial key only
-            'ip' => request()->ip(),
+            'ip_hash' => $this->pseudonymizeIp(request()->ip()),
             'version' => $request['version'],
         ]);
 
@@ -81,7 +96,7 @@ class InstanceController extends ApiController
         // Security: Log instance validation for audit trail
         logger()->info('Instance validation received', [
             'instance_key' => substr($request['instance_key'], 0, 8) . '...', // Log partial key only
-            'ip' => request()->ip(),
+            'ip_hash' => $this->pseudonymizeIp(request()->ip()),
         ]);
 
         // Fetch current instance and update last validated at timestamp
@@ -105,7 +120,7 @@ class InstanceController extends ApiController
         // Security: Log instance activation for audit trail
         logger()->info('Instance activation attempt', [
             'instance_key' => substr($request['instance_key'], 0, 8) . '...', // Log partial key only
-            'ip' => request()->ip(),
+            'ip_hash' => $this->pseudonymizeIp(request()->ip()),
             'has_license_key' => !empty($request['license_key']),
         ]);
 

@@ -14,6 +14,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class EventService
 {
@@ -61,12 +62,28 @@ class EventService
      */
     public function bookRoom(string $displayId, string $userId, string $summary, ?int $duration = null, ?Carbon $start = null, ?Carbon $end = null): Event
     {
-        // If duration is provided, calculate start and end from now
+        // Normalize summary: trim and replace empty with default
+        $summary = trim($summary);
+        if (empty($summary)) {
+            $summary = __('Reserved');
+        }
+
+        // Validate duration if provided
         if ($duration !== null) {
+            if (!is_int($duration) || $duration <= 0) {
+                throw new Exception('Duration must be a positive integer greater than 0');
+            }
             $start = now();
             $end = $start->copy()->addMinutes($duration);
-        } elseif ($start === null || $end === null) {
-            throw new Exception('Either duration or both start and end times must be provided');
+        } else {
+            // Validate that both start and end are provided
+            if ($start === null || $end === null) {
+                throw new Exception('Either duration or both start and end times must be provided');
+            }
+            // Validate that start is before end
+            if (!$start->lt($end)) {
+                throw new Exception('Start time must be before end time');
+            }
         }
 
         // Check for any conflicting events (both custom and external)
@@ -110,7 +127,7 @@ class EventService
                         $eventData = $this->outlookService->createEvent(
                             $calendar->outlookAccount,
                             $calendar,
-                            $summary ?? __('Reserved'),
+                            $summary,
                             $start,
                             $end
                         );
@@ -121,7 +138,7 @@ class EventService
                         $googleEvent = $this->googleService->createEvent(
                             $calendar->googleAccount,
                             $calendar,
-                            $summary ?? __('Reserved'),
+                            $summary,
                             $start,
                             $end
                         );
@@ -132,29 +149,37 @@ class EventService
                         $externalEventId = $this->caldavService->createEvent(
                             $calendar->caldavAccount,
                             $calendar->calendar_id,
-                            $summary ?? __('Reserved'),
+                            $summary,
                             $start,
                             $end
                         );
+                    }
+
+                    // Validate that external event ID was returned
+                    // If API creation succeeded but no ID was returned, we can't track/cancel the event
+                    if (!is_string($externalEventId) || $externalEventId === '') {
+                        throw new Exception('External event was created but no external ID was returned. Cannot track or cancel this event.');
                     }
 
                     // Clear cache to force refetch
                     Cache::forget($display->getEventsCacheKey());
 
                     // Create event in database immediately with external_id (optimistic approach)
-                    // This ensures the event exists even if Google API hasn't synced yet
-                    $event = Event::create([
-                        'display_id' => $displayId,
-                        'user_id' => $userId,
-                        'calendar_id' => $calendar->id,
-                        'external_id' => $externalEventId,
-                        'status' => EventStatus::CONFIRMED,
-                        'source' => $calendar->google_account_id ? EventSource::GOOGLE : ($calendar->outlook_account_id ? EventSource::OUTLOOK : EventSource::CALDAV),
-                        'start' => $start,
-                        'end' => $end,
-                        'summary' => $summary ?? __('Reserved'),
-                        'timezone' => config('app.timezone', 'UTC'),
-                    ]);
+                    // Wrap in transaction to ensure atomicity - if DB write fails, we know the external event exists but isn't tracked
+                    $event = DB::transaction(function () use ($displayId, $userId, $calendar, $externalEventId, $start, $end, $summary) {
+                        return Event::create([
+                            'display_id' => $displayId,
+                            'user_id' => $userId,
+                            'calendar_id' => $calendar->id,
+                            'external_id' => $externalEventId,
+                            'status' => EventStatus::CONFIRMED,
+                            'source' => $calendar->google_account_id ? EventSource::GOOGLE : ($calendar->outlook_account_id ? EventSource::OUTLOOK : EventSource::CALDAV),
+                            'start' => $start,
+                            'end' => $end,
+                            'summary' => $summary,
+                            'timezone' => config('app.timezone', 'UTC'),
+                        ]);
+                    });
 
                     // Wait for Google Calendar API to reflect the change (with retry logic)
                     // This ensures the event appears in API queries
@@ -170,11 +195,15 @@ class EventService
 
                     return $event;
                 } catch (\Exception $e) {
-                    // If API creation fails, fall back to custom event
-                    logger()->warning('Failed to create event via API, falling back to custom event', [
+                    // If API creation fails or external ID is missing, throw exception
+                    // Don't silently fall back to custom event - this would create duplicates
+                    logger()->error('Failed to create external event or track it in database', [
                         'error' => $e->getMessage(),
                         'display_id' => $displayId,
+                        'start' => $start->toIso8601String(),
+                        'end' => $end->toIso8601String(),
                     ]);
+                    throw $e;
                 }
             }
         }
@@ -187,7 +216,7 @@ class EventService
             'source' => EventSource::CUSTOM,
             'start' => $start,
             'end' => $end,
-            'summary' => $summary ?? __('Reserved'),
+            'summary' => $summary,
             'timezone' => config('app.timezone', 'UTC'),
         ]);
     }
@@ -274,7 +303,7 @@ class EventService
                     }
 
                     // Delete the event from database (it's been removed from external calendar)
-                    $event->delete();
+                    $event->update(['status' => EventStatus::CANCELLED]);
 
                     // Sync to ensure everything is in sync
                     $this->syncAllExternalEventsForDisplay($display);
