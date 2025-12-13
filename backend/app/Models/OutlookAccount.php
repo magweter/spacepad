@@ -7,6 +7,7 @@ use App\Traits\HasUlid;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Enums\AccountStatus;
+use App\Enums\PermissionType;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class OutlookAccount extends Model
@@ -20,6 +21,7 @@ class OutlookAccount extends Model
         'avatar',
         'tenant_id',
         'status',
+        'permission_type',
         'user_id',
         'outlook_id',
         'token',
@@ -27,9 +29,17 @@ class OutlookAccount extends Model
         'token_expires_at',
     ];
 
+    protected $hidden = [
+        'token',
+        'refresh_token',
+    ];
+
     protected $casts = [
         'token_expires_at' => 'datetime',
         'status' => AccountStatus::class,
+        'permission_type' => PermissionType::class,
+        'token' => 'encrypted',
+        'refresh_token' => 'encrypted',
     ];
 
     public function isBusiness(): bool

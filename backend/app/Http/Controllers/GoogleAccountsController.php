@@ -2,13 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\PermissionType;
+use App\Enums\GoogleBookingMethod;
 use App\Models\GoogleAccount;
 use App\Services\GoogleService;
 use Google\Service\Exception;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Enum;
 
 class GoogleAccountsController extends Controller
 {
@@ -19,9 +23,120 @@ class GoogleAccountsController extends Controller
         $this->googleService = $googleService;
     }
 
-    public function auth(): RedirectResponse
+    public function setBookingMethod(Request $request): RedirectResponse
     {
-        return redirect($this->googleService->getAuthUrl());
+        $request->validate([
+            'google_account_id' => [
+                'required',
+                Rule::exists('google_accounts', 'id')->where('user_id', auth()->id()),
+            ],
+            'booking_method' => ['required', Rule::in(['service_account', 'user_account'])],
+        ]);
+
+        $googleAccount = GoogleAccount::where('id', $request->google_account_id)
+            ->where('user_id', auth()->id())
+            ->firstOrFail();
+
+        $googleAccount->update([
+            'booking_method' => GoogleBookingMethod::from($request->booking_method),
+        ]);
+
+        // If service account method selected, redirect to upload service account file
+        if ($request->booking_method === 'service_account') {
+            return redirect()->route('dashboard')
+                ->with('open-service-account-modal', $googleAccount->id)
+                ->with('success', 'Booking method set. Please upload your service account file.');
+        }
+
+        return redirect()->route('dashboard')->with('success', 'Booking method has been set successfully.');
+    }
+
+    public function auth(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'permission_type' => ['required', new Enum(PermissionType::class)],
+        ]);
+
+        $permissionType = PermissionType::from($request->permission_type);
+
+        // Store permission type in session
+        session(['google_permission_type' => $request->permission_type]);
+
+        // Proceed to OAuth - booking method will be set after connection
+        return redirect($this->googleService->getAuthUrl($permissionType));
+    }
+
+    /**
+     * Handle service account file upload for workspace accounts.
+     *
+     * @param Request $request
+     * @return RedirectResponse
+     */
+    public function uploadServiceAccount(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'google_account_id' => [
+                'required',
+                Rule::exists('google_accounts', 'id')->where('user_id', auth()->id()),
+            ],
+            'service_account_file' => [
+                'required',
+                'file',
+                'mimes:json',
+                'max:50', // Max 50KB
+                function ($attribute, $value, $fail) {
+                    $content = file_get_contents($value->getRealPath());
+                    $json = json_decode($content, true);
+                    
+                    if (!$json || !isset($json['type']) || $json['type'] !== 'service_account') {
+                        $fail('The file must be a valid Google Service Account JSON file.');
+                    }
+                    
+                    $required = ['private_key', 'client_email', 'project_id'];
+                    foreach ($required as $field) {
+                        if (!isset($json[$field])) {
+                            $fail("The service account file is missing required field: {$field}");
+                        }
+                    }
+                },
+            ],
+        ]);
+
+        $googleAccount = GoogleAccount::where('id', $request->google_account_id)
+            ->where('user_id', auth()->id())
+            ->firstOrFail();
+
+        // Ensure it's a workspace account
+        if (! $googleAccount->isBusiness()) {
+            return redirect()->route('dashboard')->with('error', 'Service account is only required for Google Workspace accounts.');
+        }
+
+        // Store file in user-specific directory
+        $userDir = 'google-service-accounts/' . auth()->id();
+        $fileName = 'google-account-' . $googleAccount->id . '-' . time() . '.json';
+        $filePath = $userDir . '/' . $fileName;
+        
+        // Delete old file if exists
+        if ($googleAccount->service_account_file_path && Storage::exists($googleAccount->service_account_file_path)) {
+            Storage::delete($googleAccount->service_account_file_path);
+        }
+
+        // Read file content and encrypt it before storing
+        $fileContent = file_get_contents($request->file('service_account_file')->getRealPath());
+        $encryptedContent = Crypt::encryptString($fileContent);
+        
+        // Store encrypted file - explicitly construct path to ensure correct value is stored
+        if (! Storage::put($filePath, $encryptedContent)) {
+            return redirect()->route('dashboard')->with('error', 'Failed to save service account file. Please try again.');
+        }
+
+        // Update account with file path and upgrade to WRITE permission
+        $googleAccount->update([
+            'service_account_file_path' => $filePath,
+            'permission_type' => PermissionType::WRITE,
+        ]);
+
+        return redirect()->route('dashboard')->with('success', 'Service account file uploaded successfully. Your account has been upgraded to Read & Write. You can now book rooms directly.');
     }
 
     /**
@@ -34,15 +149,47 @@ class GoogleAccountsController extends Controller
         }
 
         $authCode = request('code');
-        $this->googleService->authenticateGoogleAccount($authCode);
+        $permissionType = PermissionType::from(session('google_permission_type', PermissionType::READ->value));
 
-        return redirect()->route('dashboard');
+        // Clear the session values after retrieving them
+        session()->forget('google_permission_type');
+        session()->forget('google_booking_method');
+
+        // Don't set booking_method initially - will be set based on account type
+        $googleAccount = $this->googleService->authenticateGoogleAccount($authCode, $permissionType, null);
+
+        // If write permission, automatically detect account type and set booking method
+        if ($permissionType === PermissionType::WRITE) {
+            // Refresh account to get hosted_domain
+            $googleAccount->refresh();
+            
+            // If personal account, automatically set to USER_ACCOUNT
+            if (!$googleAccount->isBusiness()) {
+                $googleAccount->update([
+                    'booking_method' => GoogleBookingMethod::USER_ACCOUNT,
+                ]);
+                return redirect()->route('dashboard')
+                    ->with('success', 'Google account "' . $googleAccount->email . '" has been connected successfully.');
+            }
+            
+            // If workspace account, show booking method selection modal
+            return redirect()->route('dashboard')
+                ->with('success', 'Google account "' . $googleAccount->email . '" has been connected successfully.')
+                ->with('open-google-booking-method-modal', $googleAccount->id);
+        }
+
+        return redirect()->route('dashboard')->with('success', 'Google account "' . $googleAccount->email . '" has been connected successfully.');
     }
 
     public function delete(GoogleAccount $googleAccount): RedirectResponse
     {
         if ($googleAccount->calendars()->exists()) {
             return redirect()->route('dashboard')->with('error', 'Cannot disconnect this account because it is used by one or more displays.');
+        }
+
+        // Delete service account file if it exists
+        if ($googleAccount->service_account_file_path && Storage::exists($googleAccount->service_account_file_path)) {
+            Storage::delete($googleAccount->service_account_file_path);
         }
 
         $googleAccount->delete();

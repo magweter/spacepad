@@ -11,6 +11,7 @@ class ActionButton extends StatelessWidget {
   final bool isPhone;
   final double cornerRadius;
   final bool disabled;
+  final bool isLoading;
 
   const ActionButton({
     super.key,
@@ -21,13 +22,15 @@ class ActionButton extends StatelessWidget {
     this.borderColor,
     this.textColor,
     this.disabled = false,
+    this.isLoading = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final Color effectiveBorderColor = borderColor ?? TWColors.gray_500.withAlpha(160);
+    final bool isDisabled = disabled || isLoading;
     return Opacity(
-      opacity: disabled ? 0.5 : 1.0,
+      opacity: isDisabled ? 0.5 : 1.0,
       child: Container(
         margin: EdgeInsets.only(top: isPhone ? 10 : 20, bottom: isPhone ? 10 : 20),
         decoration: BoxDecoration(
@@ -40,7 +43,7 @@ class ActionButton extends StatelessWidget {
             color: Colors.transparent,
             child: InkWell(
               borderRadius: BorderRadius.circular(cornerRadius),
-              onTap: disabled ? null : onPressed,
+              onTap: isDisabled ? null : onPressed,
               child: Stack(
                 children: [
                   Padding(
@@ -48,18 +51,42 @@ class ActionButton extends StatelessWidget {
                       vertical: isPhone ? 12 : 16,
                       horizontal: isPhone ? 20 : 28,
                     ),
-                    child: Center(
-                      child: Text(
-                        text.tr,
-                        style: TextStyle(
-                          color: textColor ?? TWColors.white,
-                          fontSize: isPhone ? 16 : 20,
-                          fontWeight: FontWeight.w700,
-                        ),
+                    child: SizedBox(
+                      height: isPhone ? 22 : 26, // Fixed height to match text line height
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          // Keep text in layout to maintain button width, but make it invisible when loading
+                          Opacity(
+                            opacity: isLoading ? 0 : 1,
+                            child: Text(
+                              text.tr,
+                              style: TextStyle(
+                                color: textColor ?? TWColors.white,
+                                fontSize: isPhone ? 16 : 20,
+                                fontWeight: FontWeight.w700,
+                                height: 1.0, // Ensure consistent line height
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                          // Show loading indicator on top when loading
+                          if (isLoading)
+                            SizedBox(
+                              width: isPhone ? 20 : 24,
+                              height: isPhone ? 20 : 24,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  textColor ?? TWColors.white,
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                     ),
                   ),
-                  if (disabled)
+                  if (disabled && !isLoading)
                     Positioned.fill(
                       child: CustomPaint(
                         painter: _DiagonalStrikethroughPainter(

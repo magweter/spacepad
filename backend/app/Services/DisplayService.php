@@ -10,7 +10,7 @@ class DisplayService
 {
     public function getDisplay(string $displayId)
     {
-        return Display::query()->findOrFail($displayId);
+        return Display::query()->with('settings')->findOrFail($displayId);
     }
 
     /**

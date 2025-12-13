@@ -23,35 +23,53 @@ class OutlookWebhookController extends Controller
      */
     public function handleNotification(Request $request): Response
     {
-        logger()->info('Received webhook', $request->toArray());
-
-        // Handle webhook validation request
+        // Handle webhook validation request (Microsoft Graph requires this)
         if ($request->has('validationToken')) {
             return response($request->validationToken, 200)
                 ->header('Content-Type', 'text/plain');
         }
 
-        $newSyncTimestamp = now();
+        logger()->info('Received Outlook webhook', [
+            'ip' => $request->ip(),
+            'notification_count' => count($request->input('value', [])),
+        ]);
 
+        $newSyncTimestamp = now();
         $notifications = $request->input('value', []);
+        
+        // Security: Limit number of notifications per request to prevent DoS
+        if (count($notifications) > 100) {
+            logger()->warning('Outlook webhook received too many notifications', [
+                'count' => count($notifications),
+                'ip' => $request->ip(),
+            ]);
+            return response('Too many notifications', 400);
+        }
+
         foreach ($notifications as $notification) {
             $subscriptionId = Arr::get($notification, 'subscriptionId');
             $resource = Arr::get($notification, 'resource');
             $resourceId = Arr::get($notification, 'resourceData.id');
 
-            // Check for resource id
+            // Check for required fields
             if (!$resource || !$resourceId) {
-                logger()->warning('Resource or ResourceData was missing from request body');
+                logger()->warning('Resource or ResourceData was missing from request body', [
+                    'subscriptionId' => $subscriptionId,
+                ]);
                 continue;
             }
 
-            // Find the corresponding subscription in the database
+            // Security: Only process if subscription exists (prevents cache clearing attacks)
             $subscription = EventSubscription::with('display')
                 ->where('subscription_id', $subscriptionId)
                 ->first();
 
             if (!$subscription) {
-                logger()->warning('Subscription not found', ['subscriptionId' => $subscriptionId]);
+                logger()->warning('Outlook webhook received for unknown subscription', [
+                    'subscriptionId' => $subscriptionId,
+                    'ip' => $request->ip(),
+                ]);
+                // Continue to next notification (don't reveal which subscriptions exist)
                 continue;
             }
 

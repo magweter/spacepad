@@ -12,6 +12,8 @@ import 'package:spacepad/models/device_model.dart';
 import 'package:spacepad/models/display_model.dart';
 import 'package:spacepad/models/display_settings_model.dart';
 import 'package:spacepad/services/font_service.dart';
+import 'package:flutter/material.dart';
+import 'package:spacepad/components/custom_booking_modal.dart';
 
 class DashboardController extends GetxController {
   final RxBool loading = RxBool(true);
@@ -22,13 +24,18 @@ class DashboardController extends GetxController {
   // Global variables for device, display, and settings
   DeviceModel? globalCurrentDevice;
   DisplayModel? globalDisplay;
-  DisplaySettingsModel? globalSettings;
+  final Rx<DisplaySettingsModel?> globalSettings = Rx<DisplaySettingsModel?>(null);
   
   // Reactive font family for UI updates
   final RxString currentFontFamily = RxString('Inter');
   
   Timer? _clock;
   Timer? _dataTimer;
+  
+  // Track refresh state to prevent spamming
+  final RxBool isRefreshing = RxBool(false);
+  DateTime? _lastRefreshTime;
+  static const int _refreshCooldownSeconds = 3;
 
   @override
   void onInit() async {
@@ -78,12 +85,12 @@ class DashboardController extends GetxController {
       return currentEvent!.summary;
     }
     if (isCheckInActive) {
-      return globalSettings?.textCheckin ?? 'check_in_now'.tr;
+      return globalSettings.value?.textCheckin ?? 'check_in_now'.tr;
     }
     if (isTransitioning && !isReserved) {
-      return globalSettings?.textTransitioning ?? 'to_be_reserved'.tr;
+      return globalSettings.value?.textTransitioning ?? 'to_be_reserved'.tr;
     }
-    return globalSettings?.textAvailable ?? 'available'.tr;
+    return globalSettings.value?.textAvailable ?? 'available'.tr;
   }
 
   /// Returns the start and end DateTime of the current event, or null if not reserved.
@@ -210,10 +217,10 @@ class DashboardController extends GetxController {
         globalCurrentDevice = AuthService.instance.currentDevice.value;
         globalCurrentDevice!.display = displayData.display;
         globalDisplay = globalCurrentDevice!.display;
-        globalSettings = globalDisplay?.settings;
+        globalSettings.value = globalDisplay?.settings;
         
         // Update reactive font family to trigger UI rebuild
-        final newFontFamily = globalSettings?.fontFamily ?? 'Inter';
+        final newFontFamily = globalSettings.value?.fontFamily ?? 'Inter';
         if (currentFontFamily.value != newFontFamily) {
           currentFontFamily.value = newFontFamily;
           
@@ -244,8 +251,38 @@ class DashboardController extends GetxController {
     Get.offAll(() => const DisplayPage());
   }
 
-  Future<void> bookRoom(int duration) async {
+  // Manually refresh display data with cooldown to prevent spamming
+  Future<void> refreshDisplayData() async {
+    // Check if we're already refreshing
+    if (isRefreshing.value) {
+      return;
+    }
+    
+    // Check cooldown period
+    if (_lastRefreshTime != null) {
+      final secondsSinceLastRefresh = DateTime.now().difference(_lastRefreshTime!).inSeconds;
+      if (secondsSinceLastRefresh < _refreshCooldownSeconds) {
+        return;
+      }
+    }
+    
+    isRefreshing.value = true;
+    _lastRefreshTime = DateTime.now();
+    
     try {
+      await fetchDisplayData();
+      Toast.showSuccess('display_data_refreshed'.tr);
+    } finally {
+      isRefreshing.value = false;
+    }
+  }
+
+  Future<void> bookRoom(int duration) async {
+    if (isBooking.value) return; // Prevent multiple simultaneous bookings
+    
+    try {
+      isBooking.value = true;
+      bookingDuration.value = duration; // Track which button was clicked
       final summary = 'reserved'.tr;
       await DisplayService.instance.book(displayId.value, duration, summary: summary);
       await fetchDisplayData();
@@ -256,11 +293,47 @@ class DashboardController extends GetxController {
       showBookingOptions.value = false;
     } catch (e) {
       Toast.showError('could_not_book_room'.tr);
+    } finally {
+      isBooking.value = false;
+      bookingDuration.value = null; // Clear the tracked duration
     }
   }
 
-  Future<void> cancelCurrentEvent() async {
+  void showCustomBookingModal(BuildContext context, bool isPhone, double cornerRadius) {
+    showDialog(
+      context: context,
+      builder: (context) => CustomBookingModal(
+        controller: this,
+        isPhone: isPhone,
+        cornerRadius: cornerRadius,
+      ),
+    );
+  }
+
+  Future<void> bookCustom(String title, DateTime startTime, DateTime endTime) async {
+    isBooking.value = true;
     try {
+      await DisplayService.instance.bookCustom(displayId.value, title, startTime, endTime);
+      await fetchDisplayData();
+      Toast.showSuccess('room_booked'.tr);
+      
+      // Cancel the booking options timer since user took action
+      _bookingOptionsTimer?.cancel();
+      showBookingOptions.value = false;
+    } catch (e) {
+      Toast.showError('could_not_book_room'.tr);
+    } finally {
+      isBooking.value = false;
+      bookingDuration.value = null; // Clear the tracked duration
+    }
+  }
+
+
+  Future<void> cancelCurrentEvent() async {
+    if (isCancelling.value) return; // Prevent multiple simultaneous cancellations
+    
+    try {
+      isCancelling.value = true;
       if (currentEvent != null) {
         await DisplayService.instance.cancelEvent(displayId.value, currentEvent!.id);
         await fetchDisplayData();
@@ -268,33 +341,54 @@ class DashboardController extends GetxController {
       }
     } catch (e) {
       Toast.showError('could_not_cancel_event'.tr);
+    } finally {
+      isCancelling.value = false;
     }
   }
 
   // Check if booking should be displayed based on display settings
   bool get bookingEnabled {
-    return globalSettings?.bookingEnabled ?? false;
+    return globalSettings.value?.bookingEnabled ?? false;
+  }
+
+  // Check if custom booking is available (server capability)
+  bool get hasCustomBooking {
+    return globalSettings.value?.hasCustomBooking ?? false;
   }
 
   bool get calendarEnabled {
-    return globalSettings?.calendarEnabled ?? false;
+    return globalSettings.value?.calendarEnabled ?? false;
   }
 
   // Track if booking options are shown
   final RxBool showBookingOptions = RxBool(false);
   
+  // Loading states for actions
+  final RxBool isBooking = RxBool(false);
+  final Rx<int?> bookingDuration = Rx<int?>(null); // Track which duration button was clicked
+  final RxBool isCancelling = RxBool(false);
+  
   // Timer for booking options timeout
   Timer? _bookingOptionsTimer;
 
-  // Show booking options with 10-second timeout
+  // Track if admin actions are temporarily visible
+  final RxBool showAdminActionsTemporarily = RxBool(false);
+  
+  // Timer for admin actions timeout
+  Timer? _adminActionsTimer;
+  
+  // Timer for long press detection (3 seconds)
+  Timer? _longPressTimer;
+
+  // Show booking options with 30-second timeout
   void toggleBookingOptions() {
     showBookingOptions.value = true;
     
     // Cancel any existing timer
     _bookingOptionsTimer?.cancel();
     
-    // Set a 10-second timeout to automatically hide booking options
-    _bookingOptionsTimer = Timer(const Duration(seconds: 10), () {
+    // Set a 30-second timeout to automatically hide booking options
+    _bookingOptionsTimer = Timer(const Duration(seconds: 30), () {
       showBookingOptions.value = false;
     });
   }
@@ -304,17 +398,48 @@ class DashboardController extends GetxController {
     showBookingOptions.value = false;
     _bookingOptionsTimer?.cancel();
   }
+  // Start long press timer (3 seconds)
+  void startLongPressTimer() {
+    // Cancel any existing timer
+    _longPressTimer?.cancel();
+    
+    // Set a 3-second timer to trigger reveal
+    _longPressTimer = Timer(const Duration(seconds: 3), () {
+      revealAdminActionsTemporarily();
+    });
+  }
+
+  // Cancel long press timer
+  void cancelLongPressTimer() {
+    _longPressTimer?.cancel();
+  }
+
+  // Show admin actions temporarily (30 seconds)
+  void revealAdminActionsTemporarily() {
+    showAdminActionsTemporarily.value = true;
+    
+    // Show notification with duration
+    Toast.showSuccess('admin_actions_enabled'.trParams({'seconds': '30'}));
+    
+    // Cancel any existing timer
+    _adminActionsTimer?.cancel();
+    
+    // Set a 30-second timeout to automatically hide admin actions
+    _adminActionsTimer = Timer(const Duration(seconds: 30), () {
+      showAdminActionsTemporarily.value = false;
+    });
+  }
 
   int get checkInGracePeriod {
-    return globalSettings?.checkInGracePeriod ?? 5;
+    return globalSettings.value?.checkInGracePeriod ?? 5;
   }
 
   bool get checkInEnabled {
-    return globalSettings?.checkInEnabled ?? false;
+    return globalSettings.value?.checkInEnabled ?? false;
   }
 
   int get checkInMinutes {
-    return globalSettings?.checkInMinutes ?? 15;
+    return globalSettings.value?.checkInMinutes ?? 15;
   }
 
   void checkIn() async {
@@ -342,14 +467,14 @@ class DashboardController extends GetxController {
 
   /// Returns the summary to display for an event, respecting showMeetingTitle
   String getDisplayableSummary(EventModel event) {
-    if (globalSettings?.showMeetingTitle == false) {
+    if (globalSettings.value?.showMeetingTitle == false) {
       return getReservedText();
     }
     return event.summary;
   }
 
   String getReservedText() {
-    return globalSettings?.textReserved ?? 'reserved'.tr;
+    return globalSettings.value?.textReserved ?? 'reserved'.tr;
   }
 
   @override
@@ -357,6 +482,8 @@ class DashboardController extends GetxController {
     _clock?.cancel();
     _dataTimer?.cancel();
     _bookingOptionsTimer?.cancel();
+    _adminActionsTimer?.cancel();
+    _longPressTimer?.cancel();
 
     super.dispose();
   }

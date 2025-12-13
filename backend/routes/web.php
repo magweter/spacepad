@@ -51,12 +51,14 @@ Route::middleware(['auth', 'user.update-last-activity', 'gtm'])->group(function 
     Route::post('/onboarding/usage-type', [OnboardingController::class, 'updateUsageType'])->name('onboarding.usage-type');
     Route::post('/onboarding/terms', [OnboardingController::class, 'acceptTerms'])->name('onboarding.terms');
 
-    Route::get('/outlook-accounts/auth', [OutlookAccountsController::class, 'auth'])->name('outlook-accounts.auth');
+    Route::post('/outlook-accounts/auth', [OutlookAccountsController::class, 'auth'])->name('outlook-accounts.auth');
     Route::get('/outlook-accounts/callback', [OutlookAccountsController::class, 'callback']);
     Route::get('/outlook-accounts/calendars', [OutlookAccountsController::class, 'getCalendars']);
     Route::delete('/outlook-accounts/{outlookAccount}', [OutlookAccountsController::class, 'delete'])->name('outlook-accounts.delete');
 
-    Route::get('/google-accounts/auth', [GoogleAccountsController::class, 'auth'])->name('google-accounts.auth');
+    Route::post('/google-accounts/booking-method', [GoogleAccountsController::class, 'setBookingMethod'])->name('google-accounts.set-booking-method');
+    Route::post('/google-accounts/auth', [GoogleAccountsController::class, 'auth'])->name('google-accounts.auth');
+    Route::post('/google-accounts/service-account', [GoogleAccountsController::class, 'uploadServiceAccount'])->name('google-accounts.service-account');
     Route::get('/google-accounts/callback', [GoogleAccountsController::class, 'callback']);
     Route::get('/google-accounts/calendars', [GoogleAccountsController::class, 'getCalendars']);
     Route::delete('/google-accounts/{googleAccount}', [GoogleAccountsController::class, 'delete'])->name('google-accounts.delete');
@@ -101,11 +103,20 @@ Route::middleware(['auth', 'user.update-last-activity', 'gtm'])->group(function 
         \Spatie\GoogleTagManager\GoogleTagManagerFacade::flashPush([
             'event' => 'purchase',
         ]);
+        if (config('services.google_conversion.send_to')) {
+            \Spatie\GoogleTagManager\GoogleTagManagerFacade::flashPush([
+                'event' => 'conversion',
+                'send_to' => config('services.google_conversion.send_to'),
+                'value' => config('services.google_conversion.value'),
+                'currency' => config('services.google_conversion.currency'),
+                'transaction_id' => '',
+            ]);
+        }
         return redirect()->route('dashboard');
     })->name('billing.thanks');
-    
+
     Route::get('/admin', [AdminController::class, 'index'])->name('admin.index');
-    
+
     // Display image serving route
     Route::get('/displays/{display}/images/{type}', [DisplaySettingsController::class, 'serveImage'])
         ->name('displays.images');

@@ -25,6 +25,64 @@
     {{-- Session Status Alert --}}
     <x-alerts.alert :errors="$errors" />
 
+    {{-- Google Workspace Booking Method Selection Warnings --}}
+    @foreach($googleAccounts as $googleAccount)
+        @if($googleAccount->permission_type === \App\Enums\PermissionType::WRITE && $googleAccount->isBusiness() && $googleAccount->booking_method === null)
+            <div class="mb-4 rounded-md bg-yellow-50 ring-1 ring-inset ring-yellow-600 p-4 flex items-start gap-4" x-data>
+                <div class="flex-shrink-0 mt-1">
+                    <span class="inline-flex items-center justify-center h-10 w-10 rounded-full bg-yellow-100">
+                        <svg class="h-6 w-6 text-yellow-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M12 9v2m0 4h.01M5.07 20A9.938 9.938 0 0 1 2 12C2 6.48 6.48 2 12 2c5.52 0 10 4.48 10 10a9.938 9.938 0 0 1-3.07 8" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </span>
+                </div>
+                <div class="flex-1">
+                    <h3 class="text-md font-semibold text-yellow-900 mb-1">Booking Method Required</h3>
+                    <p class="text-sm text-yellow-800 mb-1">
+                        Please select a booking method for your Google Workspace account <strong>{{ $googleAccount->name }}</strong> ({{ $googleAccount->email }}).
+                    </p>
+                </div>
+                <div class="flex-shrink-0 ml-4 mt-2">
+                    <button 
+                        type="button"
+                        @click="$dispatch('open-google-booking-method-modal', '{{ $googleAccount->id }}')"
+                        class="inline-flex items-center rounded-md bg-yellow-600 px-3 py-2 text-sm font-semibold text-white shadow-xs hover:bg-yellow-700">
+                        Select booking method
+                    </button>
+                </div>
+            </div>
+        @endif
+    @endforeach
+
+    {{-- Service Account Warnings --}}
+    @foreach($googleAccounts as $googleAccount)
+        @if($googleAccount->isBusiness() && $googleAccount->booking_method === \App\Enums\GoogleBookingMethod::SERVICE_ACCOUNT && !$googleAccount->service_account_file_path)
+            <div class="mb-4 rounded-md bg-yellow-50 ring-1 ring-inset ring-yellow-600 p-4 flex items-start gap-4" x-data>
+                <div class="flex-shrink-0 mt-1">
+                    <span class="inline-flex items-center justify-center h-10 w-10 rounded-full bg-yellow-100">
+                        <svg class="h-6 w-6 text-yellow-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M12 9v2m0 4h.01M5.07 20A9.938 9.938 0 0 1 2 12C2 6.48 6.48 2 12 2c5.52 0 10 4.48 10 10a9.938 9.938 0 0 1-3.07 8" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </span>
+                </div>
+                <div class="flex-1">
+                    <h3 class="text-md font-semibold text-yellow-900 mb-1">Service Account Required</h3>
+                    <p class="text-sm text-yellow-800 mb-1">
+                        The Google Workspace account <strong>{{ $googleAccount->name }}</strong> ({{ $googleAccount->email }}) is configured to use service account booking but the service account file has not been uploaded yet. Please upload your service account file to enable room bookings.
+                    </p>
+                </div>
+                <div class="flex-shrink-0 ml-4 mt-2">
+                    <button 
+                        type="button"
+                        @click="$dispatch('open-service-account-modal', { googleAccountId: '{{ $googleAccount->id }}' })"
+                        class="inline-flex items-center rounded-md bg-yellow-600 px-3 py-2 text-sm font-semibold text-white shadow-xs hover:bg-yellow-700">
+                        Set up service account
+                    </button>
+                </div>
+            </div>
+        @endif
+    @endforeach
+
     {{-- License Key Modal --}}
     <x-modals.license-key />
 
@@ -42,7 +100,7 @@
                     Upgrade to Pro to create multiple displays, book on-display, customize or hide meeting titles, use logos and backgrounds, enable check-in and more!
                 </p>
                 <p class="text-sm text-indigo-700 mb-0">
-                    <a href="https://spacepad.io/#features" target="_blank" class="underline hover:text-indigo-900 inline-block">See all Pro features</a> or <a href="https://spacepad.io/#pricing" target="_blank" class="underline hover:text-indigo-900 inline-block">see pricing</a>.
+                    <a href="https://spacepad.io/#features" target="_blank" class="underline hover:text-indigo-900 inline-block">See all Pro features</a> or <a href="https://spacepad.io/pricing" target="_blank" class="underline hover:text-indigo-900 inline-block">see pricing</a>.
                 </p>
             </div>
             <div class="flex-shrink-0 ml-4 mt-2">
@@ -259,7 +317,7 @@
                                         <div class="flex flex-col items-center justify-center">
                                             <x-icons.display class="h-12 w-12 text-orange mb-3" />
                                             <h3 class="mb-2 text-md font-semibold text-gray-900">
-                                                You are almost ready!<br>Next, set up a new display.
+                                                One more step and you're set up
                                             </h3>
                                             <p class="mb-6 text-sm text-gray-500 max-w-sm">Pick the calendar or room you would like to synchronize. You are able to connect multiple tablets to one display.</p>
                                             @if(! $isSelfHosted && auth()->user()->shouldUpgrade())
@@ -293,19 +351,23 @@
             <div>
                 <div class="flex flex-col md:flex-row gap-4">
                     @if(config('services.microsoft.enabled'))
-                        <a href="{{ route('outlook-accounts.auth') }}"
-                           class="grow flex items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white p-4 shadow-sm hover:border-blue-500 hover:shadow-md transition-all duration-200">
+                        <button 
+                            type="button"
+                            onclick="window.dispatchEvent(new CustomEvent('open-permission-modal', { detail: { provider: 'outlook' } }))"
+                            class="grow flex items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white p-4 shadow-sm hover:border-blue-500 hover:shadow-md transition-all duration-200">
                             <x-icons.microsoft class="h-6 w-6" />
                             <span class="font-medium text-gray-900">Microsoft</span>
-                        </a>
+                        </button>
                     @endif
 
                     @if(config('services.google.enabled'))
-                        <a href="{{ route('google-accounts.auth') }}"
-                           class="grow flex items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white p-4 shadow-sm hover:border-blue-500 hover:shadow-md transition-all duration-200">
+                        <button 
+                            type="button"
+                            onclick="window.dispatchEvent(new CustomEvent('open-permission-modal', { detail: { provider: 'google' } }))"
+                            class="grow flex items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white p-4 shadow-sm hover:border-blue-500 hover:shadow-md transition-all duration-200">
                             <x-icons.google class="h-6 w-6" />
                             <span class="font-medium text-gray-900">Google</span>
-                        </a>
+                        </button>
                     @endif
 
                     @if(config('services.caldav.enabled'))
@@ -327,7 +389,7 @@
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-1 gap-4">
                 @foreach($outlookAccounts as $outlookAccount)
-                    <div class="relative flex items-center space-x-3 rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 hover:border-gray-400">
+                    <div class="relative flex items-center space-x-4 rounded-lg border border-gray-300 bg-white px-5 py-4 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 hover:border-gray-400">
                         @if($outlookAccount->calendars->isEmpty())
                             <form action="{{ route('outlook-accounts.delete', $outlookAccount) }}" method="POST" class="absolute top-4.5 right-2 z-10">
                                 @csrf
@@ -343,23 +405,33 @@
                                 </span>
                             </span>
                         @endif
-                        <div class="flex-shrink-0">
-                            <x-icons.microsoft class="h-10 w-10" />
+                        <div class="flex-shrink-0 px-1">
+                            <x-icons.microsoft class="h-12 w-12" />
                         </div>
                         <div class="min-w-0 flex-1">
                             <span class="absolute inset-0" aria-hidden="true"></span>
-                            <div class="flex items-center gap-2">
+                            <div class="flex items-center gap-2 flex-wrap">
                                 <p class="text-md font-medium text-gray-900">{{ $outlookAccount->name }}</p>
-                                <p class="mt-0.5 whitespace-nowrap rounded-md bg-green-50 px-1.5 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600">Connected</p>
                             </div>
-                            <p class="truncate text-sm text-gray-500 flex items-center gap-2 mt-1">
+                            <div class="truncate text-sm text-gray-500 flex items-center gap-2 flex-wrap">
                                 <span>{{ $outlookAccount->email }}</span>
-                            </p>
+                            </div>
+                            <div class="truncate text-sm text-gray-500 flex items-center gap-2 mt-1 flex-wrap">
+                                <p class="mt-0.5 whitespace-nowrap rounded-md bg-green-50 px-1.5 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600">Connected</p>
+                                <p class="mt-0.5 whitespace-nowrap rounded-md px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset {{ $outlookAccount->isBusiness() ? 'bg-purple-50 text-purple-700 ring-purple-600' : 'bg-gray-50 text-gray-700 ring-gray-600' }}">
+                                    {{ $outlookAccount->isBusiness() ? 'Microsoft 365' : 'Personal' }}
+                                </p>
+                                @if($outlookAccount->permission_type)
+                                    <p class="mt-0.5 whitespace-nowrap rounded-md px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset {{ $outlookAccount->permission_type === \App\Enums\PermissionType::WRITE ? 'bg-blue-50 text-blue-700 ring-blue-600' : 'bg-gray-50 text-gray-700 ring-gray-600' }}">
+                                        {{ $outlookAccount->permission_type->label() }}
+                                    </p>
+                                @endif
+                            </div>
                         </div>
                     </div>
                 @endforeach
                 @foreach($googleAccounts as $googleAccount)
-                    <div class="relative flex items-center space-x-3 rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 hover:border-gray-400">
+                    <div class="relative flex items-center space-x-4 rounded-lg border border-gray-300 bg-white px-5 py-4 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 hover:border-gray-400">
                         @if($googleAccount->calendars->isEmpty())
                             <form action="{{ route('google-accounts.delete', $googleAccount) }}" method="POST" class="absolute top-4.5 right-2 z-10">
                                 @csrf
@@ -375,23 +447,38 @@
                                 </span>
                             </span>
                         @endif
-                        <div class="flex-shrink-0">
-                            <x-icons.google class="h-10 w-10" />
+                        <div class="flex-shrink-0 px-1">
+                            <x-icons.google class="h-12 w-12" />
                         </div>
                         <div class="min-w-0 flex-1">
                             <span class="absolute inset-0" aria-hidden="true"></span>
-                            <div class="flex items-center gap-2">
+                            <div class="flex items-center gap-2 flex-wrap">
                                 <p class="text-md font-medium text-gray-900">{{ $googleAccount->name }}</p>
-                                <p class="mt-0.5 whitespace-nowrap rounded-md bg-green-50 px-1.5 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600">Connected</p>
                             </div>
-                            <p class="truncate text-sm text-gray-500 flex items-center gap-2 mt-1">
+                            <div class="truncate text-sm text-gray-500 flex items-center gap-2 flex-wrap">
                                 <span>{{ $googleAccount->email }}</span>
-                            </p>
+                            </div>
+                            <div class="truncate text-sm text-gray-500 flex items-center gap-2 mt-1 flex-wrap">
+                                <p class="mt-0.5 whitespace-nowrap rounded-md bg-green-50 px-1.5 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600">Connected</p>
+                                <p class="mt-0.5 whitespace-nowrap rounded-md px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset {{ $googleAccount->isBusiness() ? 'bg-purple-50 text-purple-700 ring-purple-600' : 'bg-gray-50 text-gray-700 ring-gray-600' }}">
+                                    {{ $googleAccount->isBusiness() ? 'Workspace' : 'Personal' }}
+                                </p>
+                                @if($googleAccount->permission_type)
+                                    <p class="mt-0.5 whitespace-nowrap rounded-md px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset {{ $googleAccount->permission_type === \App\Enums\PermissionType::WRITE ? 'bg-blue-50 text-blue-700 ring-blue-600' : 'bg-gray-50 text-gray-700 ring-gray-600' }}">
+                                        {{ $googleAccount->permission_type->label() }}
+                                    </p>
+                                @endif
+                                @if($googleAccount->isBusiness() && $googleAccount->booking_method)
+                                    <p class="mt-0.5 whitespace-nowrap rounded-md px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset {{ $googleAccount->booking_method === \App\Enums\GoogleBookingMethod::SERVICE_ACCOUNT ? 'bg-orange-50 text-orange-700 ring-orange-600' : 'bg-indigo-50 text-indigo-700 ring-indigo-600' }}">
+                                        {{ $googleAccount->booking_method === \App\Enums\GoogleBookingMethod::SERVICE_ACCOUNT ? 'Service Account' : 'User Account' }}
+                                    </p>
+                                @endif
+                            </div>
                         </div>
                     </div>
                 @endforeach
                 @foreach($caldavAccounts as $caldavAccount)
-                    <div class="relative flex items-center space-x-3 rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 hover:border-gray-400">
+                    <div class="relative flex items-center space-x-4 rounded-lg border border-gray-300 bg-white px-5 py-4 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 hover:border-gray-400">
                         @if($caldavAccount->calendars->isEmpty())
                             <form action="{{ route('caldav-accounts.delete', $caldavAccount) }}" method="POST" class="absolute top-4.5 right-2 z-10">
                                 @csrf
@@ -407,18 +494,25 @@
                                 </span>
                             </span>
                         @endif
-                        <div class="flex-shrink-0">
-                            <x-icons.calendar class="h-10 w-10" />
+                        <div class="flex-shrink-0 px-1">
+                            <x-icons.calendar class="h-12 w-12" />
                         </div>
                         <div class="min-w-0 flex-1">
                             <span class="absolute inset-0" aria-hidden="true"></span>
-                            <div class="flex items-center gap-2">
+                            <div class="flex items-center gap-2 flex-wrap">
                                 <p class="text-md font-medium text-gray-900">{{ $caldavAccount->name }}</p>
-                                <p class="mt-0.5 whitespace-nowrap rounded-md bg-green-50 px-1.5 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600">Connected</p>
                             </div>
-                            <p class="truncate text-sm text-gray-500 flex items-center gap-2 mt-1">
+                            <div class="truncate text-sm text-gray-500 flex items-center gap-2 flex-wrap">
                                 <span>{{ $caldavAccount->email }}</span>
-                            </p>
+                            </div>
+                            <div class="truncate text-sm text-gray-500 flex items-center gap-2 mt-1 flex-wrap">
+                                <p class="mt-0.5 whitespace-nowrap rounded-md bg-green-50 px-1.5 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600">Connected</p>
+                                @if($caldavAccount->permission_type)
+                                    <p class="mt-0.5 whitespace-nowrap rounded-md px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset {{ $caldavAccount->permission_type === \App\Enums\PermissionType::WRITE ? 'bg-blue-50 text-blue-700 ring-blue-600' : 'bg-gray-50 text-gray-700 ring-gray-600' }}">
+                                        {{ $caldavAccount->permission_type->label() }}
+                                    </p>
+                                @endif
+                            </div>
                         </div>
                     </div>
                 @endforeach
@@ -450,5 +544,30 @@
                 closeConnectModal();
             }
         });
+
+        // Show service account modal if needed
+        @if(session('open-service-account-modal'))
+            window.addEventListener('DOMContentLoaded', function() {
+                window.dispatchEvent(new CustomEvent('open-service-account-modal', {
+                    detail: { googleAccountId: '{{ session('open-service-account-modal') }}' }
+                }));
+            });
+        @endif
+
+        // Show booking method modal if needed (after connecting Google Workspace account with write permission)
+        @if(session('open-google-booking-method-modal'))
+            window.addEventListener('DOMContentLoaded', function() {
+                window.dispatchEvent(new CustomEvent('open-google-booking-method-modal', {
+                    detail: '{{ session('open-google-booking-method-modal') }}'
+                }));
+            });
+        @endif
     </script>
+@endpush
+
+@push('modals')
+    <x-modals.select-permission provider="outlook" />
+    <x-modals.select-permission provider="google" />
+    <x-modals.select-google-booking-method />
+    <x-modals.google-service-account />
 @endpush

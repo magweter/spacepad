@@ -9,6 +9,8 @@ use Sabre\DAV\Client;
 use Sabre\DAV\Xml\Property\ResourceType;
 use Sabre\HTTP\ClientException;
 use Sabre\VObject\Reader;
+use Sabre\VObject\Component\VCalendar;
+use Sabre\VObject\Component\VEvent;
 
 class CalDAVService
 {
@@ -26,7 +28,7 @@ class CalDAVService
     private function configureClient(CalDAVAccount $account): void
     {
         $this->client = new Client([
-            'baseUri' => Str::endsWith($account->url, '/') ? $account->url : rtrim($account->url, '/'),
+            'baseUri' => rtrim($account->url, '/'),
             'userName' => $account->username,
             'password' => $account->password,
         ]);
@@ -131,6 +133,93 @@ XML;
             return $events;
         } catch (\Exception $e) {
             throw new \Exception("CalDAV request failed: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Create an event in CalDAV calendar.
+     *
+     * @param CalDAVAccount $caldavAccount
+     * @param string $calendarId
+     * @param string $summary
+     * @param Carbon $start
+     * @param Carbon $end
+     * @return string|null Event UID
+     * @throws \Exception
+     */
+    public function createEvent(
+        CalDAVAccount $caldavAccount,
+        string $calendarId,
+        string $summary,
+        Carbon $start,
+        Carbon $end
+    ): ?string {
+        $this->configureClient($caldavAccount);
+
+        // Create VCalendar with VEvent
+        $vcalendar = new VCalendar();
+        $vevent = $vcalendar->createComponent('VEVENT');
+        
+        $uid = Str::uuid()->toString();
+        $vevent->UID = $uid;
+        $vevent->SUMMARY = $summary;
+        
+        // Set DTSTART and DTEND - VObject handles DateTime objects directly
+        $vevent->DTSTART = $start;
+        $vevent->DTEND = $end;
+        $vevent->DTSTAMP = now();
+        
+        $vcalendar->add($vevent);
+
+        // Generate event filename
+        $filename = $uid . '.ics';
+
+        try {
+            // PUT the event to the calendar - trim trailing slash from calendarId to avoid double slashes
+            $path = rtrim($calendarId, '/') . '/' . $filename;
+            $response = $this->client->request('PUT', $path, $vcalendar->serialize(), [
+                'Content-Type' => 'text/calendar; charset=utf-8',
+            ]);
+
+            if ($response['statusCode'] >= 200 && $response['statusCode'] < 300) {
+                return $uid;
+            }
+
+            throw new \Exception("Failed to create CalDAV event: Status code {$response['statusCode']}");
+        } catch (\Exception $e) {
+            throw new \Exception('Failed to create CalDAV event: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Delete an event from CalDAV calendar.
+     *
+     * @param CalDAVAccount $caldavAccount
+     * @param string $calendarId
+     * @param string $eventId
+     * @return void
+     * @throws \Exception
+     */
+    public function deleteEvent(
+        CalDAVAccount $caldavAccount,
+        string $calendarId,
+        string $eventId
+    ): void {
+        $this->configureClient($caldavAccount);
+
+        // Generate event filename (assuming .ics extension)
+        $filename = $eventId . '.ics';
+
+        try {
+            // DELETE the event from the calendar - trim trailing slash from calendarId to avoid double slashes
+            $path = rtrim($calendarId, '/') . '/' . $filename;
+            $response = $this->client->request('DELETE', $path);
+
+            if ($response['statusCode'] < 200 || $response['statusCode'] >= 300) {
+                throw new \Exception("Failed to delete CalDAV event: Status code {$response['statusCode']}");
+            }
+        } catch (\Exception $e) {
+            throw new \Exception('Failed to delete CalDAV event: ' . $e->getMessage());
         }
     }
 

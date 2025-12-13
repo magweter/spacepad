@@ -7,6 +7,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use App\Services\CalDAVService;
+use App\Enums\PermissionType;
 
 class CalDAVAccountsController extends Controller
 {
@@ -48,6 +49,7 @@ class CalDAVAccountsController extends Controller
             'url' => $validated['url'],
             'username' => $validated['username'],
             'password' => $validated['password'],
+            'permission_type' => PermissionType::WRITE,
         ]);
 
         return redirect()
@@ -63,4 +65,4 @@ class CalDAVAccountsController extends Controller
             ->route('dashboard')
             ->with('status', 'CalDAV account has been removed successfully.');
     }
-} 
+}

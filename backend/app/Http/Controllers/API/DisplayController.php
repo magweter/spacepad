@@ -14,6 +14,7 @@ use App\Services\EventService;
 use App\Services\ImageService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Carbon;
 
 class DisplayController extends ApiController
 {
@@ -32,6 +33,7 @@ class DisplayController extends ApiController
         $displays = Display::query()
             ->where('user_id', $device->user_id)
             ->whereIn('status', [DisplayStatus::READY, DisplayStatus::ACTIVE])
+            ->with('settings')
             ->get();
 
         return $this->success(data: DisplayResource::collection($displays));
@@ -55,7 +57,8 @@ class DisplayController extends ApiController
                 'events' => $events,
             ]));
         } catch (\Exception $e) {
-            return $this->error($e->getMessage(), 500);
+            report($e);
+            return $this->error(message: 'Something went wrong while fetching display data. Please try again later.', code: 500);
         }
     }
 
@@ -74,16 +77,26 @@ class DisplayController extends ApiController
 
         try {
             $data = $request->validated();
+            
+            // Parse start and end times if provided, otherwise use duration
+            $start = isset($data['start']) ? Carbon::parse($data['start'])->utc() : null;
+            $end = isset($data['end']) ? Carbon::parse($data['end'])->utc() : null;
+            $duration = isset($data['duration']) ? (int) $data['duration'] : null;
+            
             $event = $this->eventService->bookRoom(
-                $displayId,
-                $device->user_id,
-                (int) $request->duration,
-                Arr::get($data, 'summary', __('Reserved'))
+                displayId: $displayId,
+                userId: $device->user_id,
+                summary: Arr::get($data, 'summary', __('Reserved')),
+                duration: $duration,
+                start: $start,
+                end: $end
             );
+            
             return $this->success(data: new EventResource($event), code: 201);
         } catch (\Exception $e) {
+            report($e);
             $status = $e->getCode() === 403 ? 403 : 400;
-            return $this->error(message: $e->getMessage(), code: $status);
+            return $this->error(message: 'Room could not be booked. There may be conflicting events during this time period. Please try a different time or duration.', code: $status);
         }
     }
 
@@ -105,7 +118,7 @@ class DisplayController extends ApiController
             return $this->success(message: 'Checked in successfully');
         } catch (\Exception $e) {
             $status = $e->getCode() === 403 ? 403 : 400;
-            return $this->error(message: $e->getMessage(), code: $status);
+            return $this->error(message: 'Could not check in to event. Please try again later.', code: $status);
         }
     }
 
@@ -127,7 +140,7 @@ class DisplayController extends ApiController
             return $this->success(message: 'Event cancelled successfully');
         } catch (\Exception $e) {
             $status = $e->getCode() === 403 ? 403 : 400;
-            return $this->error(message: $e->getMessage(), code: $status);
+            return $this->error(message: 'Event could not be cancelled. Please try again later.', code: $status);
         }
     }
 

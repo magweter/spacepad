@@ -103,6 +103,16 @@ class Display extends Model
         return DisplaySettings::isBookingEnabled($this);
     }
 
+    public function hasCustomBooking(): bool
+    {
+        // Check if booking is enabled in settings
+        if (! DisplaySettings::isBookingEnabled($this)) {
+            return false;
+        }
+
+        return true;
+    }
+
     public function setCheckInEnabled(bool $enabled): bool
     {
         return DisplaySettings::setCheckInEnabled($this, $enabled);
@@ -181,5 +191,10 @@ class Display extends Model
     public function getFontFamily(): string
     {
         return DisplaySettings::getFontFamily($this);
+    }
+
+    public function isAdminActionsHidden(): bool
+    {
+        return DisplaySettings::isAdminActionsHidden($this);
     }
 }
