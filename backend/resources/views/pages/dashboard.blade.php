@@ -27,7 +27,7 @@
 
     {{-- Service Account Warnings --}}
     @foreach($googleAccounts as $googleAccount)
-        @if($googleAccount->isBusiness() && !$googleAccount->service_account_file_path)
+        @if($googleAccount->isBusiness() && $googleAccount->booking_method === \App\Enums\GoogleBookingMethod::SERVICE_ACCOUNT && !$googleAccount->service_account_file_path)
             <div class="mb-4 rounded-md bg-yellow-50 ring-1 ring-inset ring-yellow-600 p-4 flex items-start gap-4" x-data>
                 <div class="flex-shrink-0 mt-1">
                     <span class="inline-flex items-center justify-center h-10 w-10 rounded-full bg-yellow-100">
@@ -39,7 +39,7 @@
                 <div class="flex-1">
                     <h3 class="text-md font-semibold text-yellow-900 mb-1">Service Account Required</h3>
                     <p class="text-sm text-yellow-800 mb-1">
-                        The Google Workspace account <strong>{{ $googleAccount->name }}</strong> ({{ $googleAccount->email }}) currently has read-only access. Without a service account, room bookings will not show up in the calendar.
+                        The Google Workspace account <strong>{{ $googleAccount->name }}</strong> ({{ $googleAccount->email }}) is configured to use service account booking but the service account file has not been uploaded yet. Please upload your service account file to enable room bookings.
                     </p>
                 </div>
                 <div class="flex-shrink-0 ml-4 mt-2">
@@ -519,11 +519,19 @@
                 }));
             });
         @endif
+
+        // Show booking method modal if needed (after write permission selection)
+        @if(session('open-google-booking-method-modal'))
+            window.addEventListener('DOMContentLoaded', function() {
+                window.dispatchEvent(new CustomEvent('open-google-booking-method-modal'));
+            });
+        @endif
     </script>
 @endpush
 
 @push('modals')
     <x-modals.select-permission provider="outlook" />
     <x-modals.select-permission provider="google" />
+    <x-modals.select-google-booking-method />
     <x-modals.google-service-account />
 @endpush

@@ -12,7 +12,7 @@
     // Set type and title based on session messages
     if (session('success')) {
         $type = 'success';
-        $title = 'Success';
+        $title = 'Success!';
     } elseif (session('error')) {
         $type = 'error';
         $title = 'Something went wrong';
@@ -21,7 +21,7 @@
         $title = 'Heads up';
     } elseif (session('info')) {
         $type = 'info';
-        $title = 'Please note';
+        $title = 'Please note:';
     }
 
     $hasErrors = $errors->any() && !$errors->has('license_key');

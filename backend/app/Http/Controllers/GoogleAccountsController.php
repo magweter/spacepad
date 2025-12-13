@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\PermissionType;
+use App\Enums\GoogleBookingMethod;
 use App\Models\GoogleAccount;
 use App\Services\GoogleService;
 use Google\Service\Exception;
@@ -22,6 +23,20 @@ class GoogleAccountsController extends Controller
         $this->googleService = $googleService;
     }
 
+    public function setBookingMethod(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'booking_method' => ['required', Rule::in(['service_account', 'user_account'])],
+        ]);
+
+        // Store booking method in session - will be saved to account after OAuth callback
+        session(['google_booking_method' => $request->booking_method]);
+
+        // Permission type should already be in session, proceed to OAuth
+        $permissionType = PermissionType::from(session('google_permission_type', PermissionType::READ->value));
+        return redirect($this->googleService->getAuthUrl($permissionType));
+    }
+
     public function auth(Request $request): RedirectResponse
     {
         $request->validate([
@@ -30,12 +45,15 @@ class GoogleAccountsController extends Controller
 
         $permissionType = PermissionType::from($request->permission_type);
 
-        // For workspace accounts with write permission, we need service account file first
-        // Store permission type in session and check if we need service account upload
+        // Store permission type in session
         session(['google_permission_type' => $request->permission_type]);
 
-        // Check if this is a workspace account (we'll determine this after OAuth)
-        // For now, proceed with OAuth - we'll check in callback if service account is needed
+        // If write permission is selected, we need booking method first
+        if ($permissionType === PermissionType::WRITE && !session()->has('google_booking_method')) {
+            return redirect()->back()->with('open-google-booking-method-modal', true);
+        }
+
+        // Booking method should already be in session from setBookingMethod, proceed to OAuth
         return redirect($this->googleService->getAuthUrl($permissionType));
     }
 
@@ -80,13 +98,14 @@ class GoogleAccountsController extends Controller
             ->firstOrFail();
 
         // Ensure it's a workspace account
-        if (!$googleAccount->isBusiness()) {
+        if (! $googleAccount->isBusiness()) {
             return redirect()->route('dashboard')->with('error', 'Service account is only required for Google Workspace accounts.');
         }
 
         // Store file in user-specific directory
         $userDir = 'google-service-accounts/' . auth()->id();
         $fileName = 'google-account-' . $googleAccount->id . '-' . time() . '.json';
+        $filePath = $userDir . '/' . $fileName;
         
         // Delete old file if exists
         if ($googleAccount->service_account_file_path && Storage::exists($googleAccount->service_account_file_path)) {
@@ -97,8 +116,10 @@ class GoogleAccountsController extends Controller
         $fileContent = file_get_contents($request->file('service_account_file')->getRealPath());
         $encryptedContent = Crypt::encryptString($fileContent);
         
-        // Store encrypted file
-        $filePath = Storage::put($userDir . '/' . $fileName, $encryptedContent);
+        // Store encrypted file - explicitly construct path to ensure correct value is stored
+        if (! Storage::put($filePath, $encryptedContent)) {
+            return redirect()->route('dashboard')->with('error', 'Failed to save service account file. Please try again.');
+        }
 
         // Update account with file path and upgrade to WRITE permission
         $googleAccount->update([
@@ -120,13 +141,15 @@ class GoogleAccountsController extends Controller
 
         $authCode = request('code');
         $permissionType = PermissionType::from(session('google_permission_type', PermissionType::READ->value));
+        $bookingMethod = GoogleBookingMethod::from(session('google_booking_method', GoogleBookingMethod::USER_ACCOUNT->value));
 
-        // Clear the session value after retrieving it
+        // Clear the session values after retrieving them
         session()->forget('google_permission_type');
+        session()->forget('google_booking_method');
 
-        $this->googleService->authenticateGoogleAccount($authCode, $permissionType);
+        $googleAccount = $this->googleService->authenticateGoogleAccount($authCode, $permissionType, $bookingMethod);
 
-        return redirect()->route('dashboard');
+        return redirect()->route('dashboard')->with('success', 'Google account "' . $googleAccount->email . '" has been connected successfully.');
     }
 
     public function delete(GoogleAccount $googleAccount): RedirectResponse

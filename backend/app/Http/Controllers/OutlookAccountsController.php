@@ -47,9 +47,9 @@ class OutlookAccountsController extends Controller
         // Clear the session value after retrieving it
         session()->forget('outlook_permission_type');
 
-        $this->outlookService->authenticateOutlookAccount($authCode, $permissionType);
+        $outlookAccount = $this->outlookService->authenticateOutlookAccount($authCode, $permissionType);
 
-        return redirect()->route('dashboard');
+        return redirect()->route('dashboard')->with('success', 'Microsoft account "' . $outlookAccount->email . '" has been connected successfully.');
     }
 
     public function delete(OutlookAccount $outlookAccount): RedirectResponse

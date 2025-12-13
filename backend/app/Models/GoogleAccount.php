@@ -10,6 +10,7 @@ use App\Services\GoogleService;
 use App\Traits\HasUlid;
 use App\Enums\AccountStatus;
 use App\Enums\PermissionType;
+use App\Enums\GoogleBookingMethod;
 
 class GoogleAccount extends Model
 {
@@ -24,6 +25,7 @@ class GoogleAccount extends Model
         'status',
         'permission_type',
         'service_account_file_path',
+        'booking_method',
         'user_id',
         'google_id',
         'token',
@@ -35,6 +37,7 @@ class GoogleAccount extends Model
         'token_expires_at' => 'datetime',
         'status' => AccountStatus::class,
         'permission_type' => PermissionType::class,
+        'booking_method' => GoogleBookingMethod::class,
     ];
 
     public function user(): BelongsTo

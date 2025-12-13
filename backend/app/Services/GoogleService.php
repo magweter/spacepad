@@ -19,6 +19,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Storage;
 use App\Enums\PermissionType;
+use App\Enums\GoogleBookingMethod;
 
 class GoogleService
 {
@@ -39,10 +40,11 @@ class GoogleService
      *
      * @param string $authCode
      * @param PermissionType $permissionType
+     * @param GoogleBookingMethod $bookingMethod
      * @return GoogleAccount
      * @throws Exception
      */
-    public function authenticateGoogleAccount(string $authCode, PermissionType $permissionType = PermissionType::READ): GoogleAccount
+    public function authenticateGoogleAccount(string $authCode, PermissionType $permissionType = PermissionType::READ, GoogleBookingMethod $bookingMethod = GoogleBookingMethod::USER_ACCOUNT): GoogleAccount
     {
         $accessToken = $this->client->fetchAccessTokenWithAuthCode($authCode);
         if (Arr::exists($accessToken, 'error')) {
@@ -74,6 +76,7 @@ class GoogleService
                 'token_expires_at' => now()->addSeconds($accessToken['expires_in']),
                 'status' => AccountStatus::CONNECTED,
                 'permission_type' => $permissionType,
+                'booking_method' => $bookingMethod,
             ]
         );
     }
@@ -239,18 +242,20 @@ class GoogleService
         $endDateTime->setTimeZone($end->timezone->getName());
         $event->setEnd($endDateTime);
 
-        // For workspace accounts with room resources and service account, write directly to room calendar
-        if ($calendar->room && $googleAccount->isBusiness() && $googleAccount->service_account_file_path) {
+        // For workspace accounts with room resources and service account booking method, write directly to room calendar
+        if ($calendar->room && $googleAccount->isBusiness() && 
+            $googleAccount->booking_method === GoogleBookingMethod::SERVICE_ACCOUNT && 
+            $googleAccount->service_account_file_path) {
             return $this->createRoomEventWithServiceAccount($googleAccount, $calendar, $event);
         }
 
-        // Fall back to user OAuth method (only for personal accounts or non-room calendars)
+        // Fall back to user OAuth method (current account booking method or personal accounts)
         $this->ensureAuthenticated($googleAccount);
         $calendarService = new GoogleCalendar($this->client);
 
         $calendarId = $calendar->room ? 'primary' : $calendar->calendar_id;
 
-        // For room resources (personal accounts only), create event on user's primary calendar and add room as attendee
+        // For room resources with current account method, create event on user's primary calendar and add room as attendee
         // Room resource calendars are read-only and cannot be written to directly without service account
         if ($calendar->room) {
             $attendee = new \Google\Service\Calendar\EventAttendee();
@@ -282,13 +287,15 @@ class GoogleService
         Calendar $calendar,
         string $eventId
     ): void {
-        // For workspace accounts with room resources and service account, delete directly from room calendar
-        if ($calendar->room && $googleAccount->isBusiness() && $googleAccount->service_account_file_path) {
+        // For workspace accounts with room resources and service account booking method, delete directly from room calendar
+        if ($calendar->room && $googleAccount->isBusiness() && 
+            $googleAccount->booking_method === GoogleBookingMethod::SERVICE_ACCOUNT && 
+            $googleAccount->service_account_file_path) {
             $this->deleteRoomEventWithServiceAccount($googleAccount, $calendar, $eventId);
             return;
         }
 
-        // Fall back to user OAuth method (only for personal accounts or non-room calendars)
+        // Fall back to user OAuth method (current account booking method or personal accounts)
         $this->ensureAuthenticated($googleAccount);
         $calendarService = new GoogleCalendar($this->client);
 

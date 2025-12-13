@@ -247,11 +247,8 @@ class EventService
                     // Clear cache to force refetch
                     Cache::forget($display->getEventsCacheKey());
 
-                    // Refetch events to sync the deletion
-                    $this->syncAllExternalEventsForDisplay($display);
-
-                    // Delete the event from database (it will be removed by sync if still exists externally)
-                    $event->delete();
+                    // Cancel the event (it will be removed by sync if still exists externally)
+                    $event->update(['status' => EventStatus::CANCELLED]);
                     return;
                 } catch (\Exception $e) {
                     // If API deletion fails, fall back to marking as cancelled

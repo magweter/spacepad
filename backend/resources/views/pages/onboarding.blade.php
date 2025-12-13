@@ -143,6 +143,7 @@
 @push('modals')
     <x-modals.select-permission provider="outlook" />
     <x-modals.select-permission provider="google" />
+    <x-modals.select-google-booking-method />
     <x-modals.google-service-account />
 @endpush
 
@@ -154,6 +155,13 @@
                 window.dispatchEvent(new CustomEvent('open-service-account-modal', {
                     detail: { googleAccountId: '{{ session('google_account_id') }}' }
                 }));
+            });
+        @endif
+
+        // Show booking method modal if needed (after write permission selection)
+        @if(session('open-google-booking-method-modal'))
+            window.addEventListener('DOMContentLoaded', function() {
+                window.dispatchEvent(new CustomEvent('open-google-booking-method-modal'));
             });
         @endif
     </script>

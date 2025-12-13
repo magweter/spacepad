@@ -73,10 +73,10 @@ class OutlookService
      *
      * @param string $authCode
      * @param string|PermissionType $permissionType 'read' or 'write', or PermissionType enum
-     * @return void
+     * @return OutlookAccount
      * @throws \Exception
      */
-    public function authenticateOutlookAccount(string $authCode, string|PermissionType $permissionType = PermissionType::READ): void
+    public function authenticateOutlookAccount(string $authCode, string|PermissionType $permissionType = PermissionType::READ): OutlookAccount
     {
         $oauthTokenEndpoint = "https://login.microsoftonline.com/{$this->tenantId}/oauth2/v2.0/token";
 
@@ -112,7 +112,7 @@ class OutlookService
         $tenantId = $this->getTenantId($tokenData['access_token']);
 
         // Save the Outlook account and tokens
-        OutlookAccount::updateOrCreate(
+        return OutlookAccount::updateOrCreate(
             [
                 'user_id' => auth()->id(),
                 'outlook_id' => $user['id'],
