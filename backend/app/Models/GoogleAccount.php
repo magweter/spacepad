@@ -33,11 +33,18 @@ class GoogleAccount extends Model
         'token_expires_at',
     ];
 
+    protected $hidden = [
+        'token',
+        'refresh_token',
+    ];
+
     protected $casts = [
         'token_expires_at' => 'datetime',
         'status' => AccountStatus::class,
         'permission_type' => PermissionType::class,
         'booking_method' => GoogleBookingMethod::class,
+        'token' => 'encrypted',
+        'refresh_token' => 'encrypted',
     ];
 
     public function user(): BelongsTo

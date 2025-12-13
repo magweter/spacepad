@@ -141,19 +141,34 @@ class EventService
                     // Clear cache to force refetch
                     Cache::forget($display->getEventsCacheKey());
 
-                    // Refetch events to sync the new event
+                    // Create event in database immediately with external_id (optimistic approach)
+                    // This ensures the event exists even if Google API hasn't synced yet
+                    $event = Event::create([
+                        'display_id' => $displayId,
+                        'user_id' => $userId,
+                        'calendar_id' => $calendar->id,
+                        'external_id' => $externalEventId,
+                        'status' => EventStatus::CONFIRMED,
+                        'source' => $calendar->google_account_id ? EventSource::GOOGLE : ($calendar->outlook_account_id ? EventSource::OUTLOOK : EventSource::CALDAV),
+                        'start' => $start,
+                        'end' => $end,
+                        'summary' => $summary ?? __('Reserved'),
+                        'timezone' => config('app.timezone', 'UTC'),
+                    ]);
+
+                    // Wait for Google Calendar API to reflect the change (with retry logic)
+                    // This ensures the event appears in API queries
+                    if ($calendar->google_account_id) {
+                        $this->waitForEventInApi($calendar, $externalEventId, $start, $end, true);
+                    }
+
+                    // Sync to update event details from API (times, summary, etc. might differ slightly)
                     $this->syncAllExternalEventsForDisplay($display);
 
-                    // Find the newly created event by external_id
-                    // The times might differ slightly due to timezone conversions, so we match by external_id first
-                    $event = Event::query()
-                        ->where('display_id', $displayId)
-                        ->where('external_id', $externalEventId)
-                        ->first();
+                    // Refresh event from database after sync
+                    $event->refresh();
 
-                    if ($event) {
-                        return $event;
-                    }
+                    return $event;
                 } catch (\Exception $e) {
                     // If API creation fails, fall back to custom event
                     logger()->warning('Failed to create event via API, falling back to custom event', [
@@ -247,8 +262,23 @@ class EventService
                     // Clear cache to force refetch
                     Cache::forget($display->getEventsCacheKey());
 
-                    // Cancel the event (it will be removed by sync if still exists externally)
-                    $event->update(['status' => EventStatus::CANCELLED]);
+                    // Store external_id before deletion
+                    $externalEventId = $event->external_id;
+                    $eventStart = $event->start;
+                    $eventEnd = $event->end;
+
+                    // Wait for Google Calendar API to reflect the deletion (with retry logic)
+                    // This ensures the event is removed from API queries before we delete from DB
+                    if ($calendar->google_account_id) {
+                        $this->waitForEventInApi($calendar, $externalEventId, $eventStart, $eventEnd, false);
+                    }
+
+                    // Delete the event from database (it's been removed from external calendar)
+                    $event->delete();
+
+                    // Sync to ensure everything is in sync
+                    $this->syncAllExternalEventsForDisplay($display);
+
                     return;
                 } catch (\Exception $e) {
                     // If API deletion fails, fall back to marking as cancelled
@@ -261,7 +291,14 @@ class EventService
             }
         }
 
-        // Fall back to marking as cancelled (for custom events or if API deletion failed)
+        // For custom events (no external_id), delete them directly since they don't exist externally
+        if ($event->isCustomEvent()) {
+            $event->delete();
+            Cache::forget($display->getEventsCacheKey());
+            return;
+        }
+
+        // Fall back to marking as cancelled (for external events if API deletion failed)
         $event->update(['status' => EventStatus::CANCELLED]);
     }
 
@@ -528,13 +565,24 @@ class EventService
             $externalId = $ext['id'];
             $seenIds[] = $externalId;
 
-            $event = $existing->get($externalId) ?? new Event([
-                'display_id' => $display->id,
-                'user_id' => $display->user_id,
-                'source' => $source,
-                'external_id' => $externalId,
-                'status' => EventStatus::CONFIRMED
-            ]);
+            $event = $existing->get($externalId);
+            
+            // If event doesn't exist, create it
+            if (!$event) {
+                $event = new Event([
+                    'display_id' => $display->id,
+                    'user_id' => $display->user_id,
+                    'source' => $source,
+                    'external_id' => $externalId,
+                    'status' => EventStatus::CONFIRMED
+                ]);
+            } else {
+                // If event exists but is cancelled, don't reactivate it
+                // (it was likely just cancelled and Google API hasn't updated yet)
+                if ($event->status === EventStatus::CANCELLED) {
+                    continue;
+                }
+            }
 
             // Parse datetime strings and convert to UTC for storage
             // Carbon will automatically parse the timezone from the string and convert to UTC
@@ -544,6 +592,10 @@ class EventService
             $event->description = $ext['description'];
             $event->location = $ext['location'];
             $event->timezone = $ext['timezone'];
+            // Ensure status is confirmed when syncing (unless it was cancelled)
+            if ($event->status !== EventStatus::CANCELLED) {
+                $event->status = EventStatus::CONFIRMED;
+            }
 
             $event->save();
         }
@@ -572,6 +624,85 @@ class EventService
         }
 
         $event->checkIn();
+    }
+
+    /**
+     * Wait for an event to appear or disappear in Google Calendar API.
+     * Retries with exponential backoff to handle Google's eventual consistency.
+     *
+     * @param Calendar $calendar
+     * @param string $externalEventId
+     * @param Carbon $start
+     * @param Carbon $end
+     * @param bool $shouldExist True if waiting for event to appear, false if waiting for it to disappear
+     * @return void
+     */
+    private function waitForEventInApi(Calendar $calendar, string $externalEventId, Carbon $start, Carbon $end, bool $shouldExist): void
+    {
+        if (!$calendar->google_account_id || !$calendar->googleAccount) {
+            return; // Only wait for Google Calendar API
+        }
+
+        $maxAttempts = 5;
+        $baseDelay = 0.5; // Start with 500ms
+
+        for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
+            try {
+                // Fetch events from Google Calendar API
+                $googleEvents = $this->googleService->fetchEvents(
+                    $calendar->googleAccount,
+                    $calendar->calendar_id,
+                    $start->copy()->subHours(1), // Fetch slightly wider range
+                    $end->copy()->addHours(1)
+                );
+
+                // Check if event exists in the API response
+                $eventExists = false;
+                foreach ($googleEvents as $googleEvent) {
+                    if ($googleEvent->getId() === $externalEventId) {
+                        $eventExists = true;
+                        break;
+                    }
+                }
+
+                // If event state matches what we expect, we're done
+                if ($eventExists === $shouldExist) {
+                    return;
+                }
+
+                // If this is the last attempt, log a warning but continue
+                if ($attempt === $maxAttempts) {
+                    logger()->warning('Event state in Google API did not match expected state after retries', [
+                        'external_event_id' => $externalEventId,
+                        'expected_exists' => $shouldExist,
+                        'actual_exists' => $eventExists,
+                        'attempts' => $maxAttempts,
+                    ]);
+                    return;
+                }
+
+                // Exponential backoff: wait before retrying
+                $delay = $baseDelay * pow(2, $attempt - 1);
+                usleep((int)($delay * 1000000)); // Convert to microseconds
+
+            } catch (\Exception $e) {
+                // If API call fails, log and continue (don't block the operation)
+                logger()->warning('Error checking event in Google API during wait', [
+                    'error' => $e->getMessage(),
+                    'external_event_id' => $externalEventId,
+                    'attempt' => $attempt,
+                ]);
+
+                // On last attempt, give up
+                if ($attempt === $maxAttempts) {
+                    return;
+                }
+
+                // Wait before retrying
+                $delay = $baseDelay * pow(2, $attempt - 1);
+                usleep((int)($delay * 1000000));
+            }
+        }
     }
 
     private function processExpiredCheckIns(Display $display): void

@@ -29,10 +29,17 @@ class OutlookAccount extends Model
         'token_expires_at',
     ];
 
+    protected $hidden = [
+        'token',
+        'refresh_token',
+    ];
+
     protected $casts = [
         'token_expires_at' => 'datetime',
         'status' => AccountStatus::class,
         'permission_type' => PermissionType::class,
+        'token' => 'encrypted',
+        'refresh_token' => 'encrypted',
     ];
 
     public function isBusiness(): bool
