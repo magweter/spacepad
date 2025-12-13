@@ -21,6 +21,13 @@ class InstanceController extends ApiController
 
     public function heartbeat(InstanceHeartbeatRequest $request): JsonResponse
     {
+        // Security: Log instance heartbeat for audit trail
+        logger()->info('Instance heartbeat received', [
+            'instance_key' => substr($request['instance_key'], 0, 8) . '...', // Log partial key only
+            'ip' => request()->ip(),
+            'version' => $request['version'],
+        ]);
+
         // First, try to find an existing instance with the same instance_key
         $existingInstance = Instance::query()
             ->where('instance_key', $request['instance_key'])
@@ -71,6 +78,12 @@ class InstanceController extends ApiController
 
     public function validateInstance(ValidateInstanceRequest $request): JsonResponse
     {
+        // Security: Log instance validation for audit trail
+        logger()->info('Instance validation received', [
+            'instance_key' => substr($request['instance_key'], 0, 8) . '...', // Log partial key only
+            'ip' => request()->ip(),
+        ]);
+
         // Fetch current instance and update last validated at timestamp
         $instance = Instance::updateOrCreate(
             ['instance_key' => $request['instance_key']],
@@ -89,6 +102,13 @@ class InstanceController extends ApiController
 
     public function activate(ValidateInstanceRequest $request): JsonResponse
     {
+        // Security: Log instance activation for audit trail
+        logger()->info('Instance activation attempt', [
+            'instance_key' => substr($request['instance_key'], 0, 8) . '...', // Log partial key only
+            'ip' => request()->ip(),
+            'has_license_key' => !empty($request['license_key']),
+        ]);
+
         $instance = Instance::updateOrCreate(
             ['instance_key' => $request['instance_key']],
             [

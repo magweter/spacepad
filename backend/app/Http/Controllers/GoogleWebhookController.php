@@ -23,26 +23,42 @@ class GoogleWebhookController extends Controller
     public function handleNotification(Request $request): Response
     {
         $subscriptionId = $request->header('X-Goog-Channel-ID');
-        logger()->info("Received Google webhook for channel $subscriptionId");
+        
+        // Security: Require subscription ID header
+        if (empty($subscriptionId)) {
+            logger()->warning('Google webhook received without subscription ID', [
+                'ip' => $request->ip(),
+                'headers' => $request->headers->all(),
+            ]);
+            return response('Invalid request', 400);
+        }
 
-        $newSyncTimestamp = now();
+        logger()->info("Received Google webhook for channel $subscriptionId", [
+            'ip' => $request->ip(),
+        ]);
 
         // Find the corresponding subscription in the database
+        // Security: Only process if subscription exists (prevents cache clearing attacks)
         $subscription = EventSubscription::with('display')
             ->where('subscription_id', $subscriptionId)
             ->first();
 
-        if ($subscription) {
-            // Clear events cache for display
-            cache()->forget($subscription->display->getEventsCacheKey());
-
-            // Set new point to sync from
-            $subscription->display->updateLastEventAt($newSyncTimestamp);
+        if (!$subscription) {
+            logger()->warning('Google webhook received for unknown subscription', [
+                'subscriptionId' => $subscriptionId,
+                'ip' => $request->ip(),
+            ]);
+            // Return 200 to prevent subscription enumeration, but don't process
+            return response('Notification processed', 200);
         }
 
-        if (! $subscription) {
-            logger()->warning('Subscription not found', ['subscriptionId' => $subscriptionId]);
-        }
+        $newSyncTimestamp = now();
+
+        // Clear events cache for display
+        cache()->forget($subscription->display->getEventsCacheKey());
+
+        // Set new point to sync from
+        $subscription->display->updateLastEventAt($newSyncTimestamp);
 
         return response('Notification processed', 200);
     }

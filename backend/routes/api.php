@@ -29,10 +29,14 @@ Route::middleware(['auth:sanctum', 'user.update-last-activity'])->group(function
     Route::get('displays/{display}/images/{type}', [DisplayController::class, 'serveImage']);
 });
 
-Route::post('webhook/outlook', [OutlookWebhookController::class, 'handleNotification']);
-Route::post('webhook/google', [GoogleWebhookController::class, 'handleNotification']);
+// Webhook endpoints with rate limiting (100 requests per minute per IP)
+Route::middleware(['throttle:100,1'])->group(function () {
+    Route::post('webhook/outlook', [OutlookWebhookController::class, 'handleNotification']);
+    Route::post('webhook/google', [GoogleWebhookController::class, 'handleNotification']);
+});
 
-Route::prefix('v1')->group(function () {
+// Instance management endpoints with rate limiting (60 requests per minute per IP)
+Route::prefix('v1')->middleware(['throttle:60,1'])->group(function () {
     Route::post('/instances/activate', [InstanceController::class, 'activate']);
     Route::post('/instances/heartbeat', [InstanceController::class, 'heartbeat']);
     Route::post('/instances/validate', [InstanceController::class, 'validateInstance']);
