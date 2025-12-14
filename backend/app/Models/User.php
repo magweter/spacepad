@@ -26,6 +26,8 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'name',
+        'first_name',
+        'last_name',
         'email',
         'password',
         'microsoft_id',
@@ -82,6 +84,11 @@ class User extends Authenticatable
     public function displays(): HasMany
     {
         return $this->hasMany(Display::class);
+    }
+
+    public function devices(): HasMany
+    {
+        return $this->hasMany(Device::class);
     }
 
     public function rooms(): HasMany

@@ -82,18 +82,10 @@ class CheckMarketingTriggers extends Command
     {
         // Get users whose first display was created 24h ago
         $users = User::whereNull('deleted_at')
-            ->whereHas('displays', function ($query) {
-                $query->where('created_at', '<=', now()->subHours(24))
-                    ->where('created_at', '>', now()->subHours(25));
-            })
-            ->get()
-            ->filter(function ($user) {
-                // Only if this was their first display
-                $firstDisplay = $user->displays()->orderBy('created_at')->first();
-                return $firstDisplay && 
-                       $firstDisplay->created_at->isAfter(now()->subHours(25)) &&
-                       $firstDisplay->created_at->isBefore(now()->subHours(24));
-            });
+            ->where('created_at', '<=', now()->subHours(24))
+            ->where('created_at', '>', now()->subHours(25))
+            ->whereHas('displays')
+            ->get();
 
         foreach ($users as $user) {
             $cacheKey = "marketing:user_activated_24h:{$user->id}";
@@ -107,13 +99,27 @@ class CheckMarketingTriggers extends Command
 
     /**
      * Check users with no activity for 14 days
+     * Activity includes: user activity, device activity
      */
     private function checkPassiveUsers(): void
     {
+        $cutoffDate = now()->subDays(14);
+        $previousCutoffDate = now()->subDays(15);
+
         $users = User::whereNull('deleted_at')
-            ->whereNotNull('last_activity_at')
-            ->where('last_activity_at', '<=', now()->subDays(14))
-            ->where('last_activity_at', '>', now()->subDays(15))
+            ->where(function ($query) use ($cutoffDate, $previousCutoffDate) {
+                // User's last activity is within the window (or null)
+                $query->where(function ($q) use ($cutoffDate, $previousCutoffDate) {
+                    $q->whereNotNull('last_activity_at')
+                        ->where('last_activity_at', '<=', $cutoffDate)
+                        ->where('last_activity_at', '>', $previousCutoffDate);
+                });
+            })
+            // And no devices with recent activity
+            ->whereDoesntHave('devices', function ($q) use ($cutoffDate) {
+                $q->whereNotNull('last_activity_at')
+                    ->where('last_activity_at', '>', $cutoffDate);
+            })
             ->get();
 
         foreach ($users as $user) {
@@ -128,13 +134,27 @@ class CheckMarketingTriggers extends Command
 
     /**
      * Check users with no activity for 30 days
+     * Activity includes: user activity, device activity
      */
     private function checkInactiveUsers(): void
     {
+        $cutoffDate = now()->subDays(30);
+        $previousCutoffDate = now()->subDays(31);
+
         $users = User::whereNull('deleted_at')
-            ->whereNotNull('last_activity_at')
-            ->where('last_activity_at', '<=', now()->subDays(30))
-            ->where('last_activity_at', '>', now()->subDays(31))
+            ->where(function ($query) use ($cutoffDate, $previousCutoffDate) {
+                // User's last activity is within the window (or null)
+                $query->where(function ($q) use ($cutoffDate, $previousCutoffDate) {
+                    $q->whereNotNull('last_activity_at')
+                        ->where('last_activity_at', '<=', $cutoffDate)
+                        ->where('last_activity_at', '>', $previousCutoffDate);
+                });
+            })
+            // And no devices with recent activity
+            ->whereDoesntHave('devices', function ($q) use ($cutoffDate) {
+                $q->whereNotNull('last_activity_at')
+                    ->where('last_activity_at', '>', $cutoffDate);
+            })
             ->get();
 
         foreach ($users as $user) {
