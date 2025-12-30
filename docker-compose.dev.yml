@@ -14,14 +14,21 @@ services:
       PHP_OPCACHE_ENABLE: 0
       AUTORUN_ENABLED: 'false'
       AUTORUN_LARAVEL_MIGRATION: 'false'
+      # OpenTelemetry configuration
+      OTEL_PHP_AUTOLOAD_ENABLED: true
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-http://host.docker.internal:4318}
+      OTEL_EXPORTER_OTLP_HEADERS: ${OTEL_EXPORTER_OTLP_HEADERS:-}
+      OTEL_RESOURCE_ATTRIBUTES: "service.name=spacepad-app,service.namespace=spacepad,service.version=${SPACEPAD_VERSION:-dev},deployment.environment=local"
+      OTEL_SERVICE_NAME: spacepad-app
+      OTEL_METRICS_EXPORTER: otlp
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_LOGS_EXPORTER: otlp
+      OTEL_EXPERIMENTAL_METRIC_ENABLE: true
     ports:
       - "8000:8080"
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    depends_on:
-      - mariadb
-      - redis
-      - mailhog
 
   scheduler:
     image: spacepad/app:latest
@@ -33,10 +40,18 @@ services:
       - ./backend:/var/www/html
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    depends_on:
-      - mariadb
-      - redis
-      - mailhog
+    environment:
+      # OpenTelemetry configuration
+      OTEL_PHP_AUTOLOAD_ENABLED: true
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-http://host.docker.internal:4318}
+      OTEL_EXPORTER_OTLP_HEADERS: ${OTEL_EXPORTER_OTLP_HEADERS:-}
+      OTEL_RESOURCE_ATTRIBUTES: "service.name=spacepad-scheduler,service.namespace=spacepad,service.version=${SPACEPAD_VERSION:-dev},deployment.environment=local"
+      OTEL_SERVICE_NAME: spacepad-scheduler
+      OTEL_METRICS_EXPORTER: otlp
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_LOGS_EXPORTER: otlp
+      OTEL_EXPERIMENTAL_METRIC_ENABLE: true
 
   mariadb:
     image: mariadb:lts
@@ -71,6 +86,20 @@ services:
     ports:
       - "1025:1025"  # SMTP server
       - "8025:8025"  # Web interface
+
+  # k6 Load Generator (Continuous Traffic)
+  k6-load:
+    image: grafana/k6:latest
+    volumes:
+      - ./k6:/scripts
+    command: run /scripts/load-test.js
+    environment:
+      - BACKEND_URL=http://app:8080
+    networks:
+      - app
+    depends_on:
+      - app
+    restart: unless-stopped
 
 networks:
   app:
