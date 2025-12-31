@@ -28,6 +28,7 @@
         @stack('styles')
         @lemonJS
         @includeWhen(config('services.clarity.tag_code'), 'components.scripts.clarity')
+        @include('components.scripts.faro')
     </head>
     <body class="h-full @yield('body-classes')">
         @includeWhen(config('googletagmanager.enabled') && config('googletagmanager.id'), 'googletagmanager::body')

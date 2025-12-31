@@ -9,6 +9,7 @@
 
     <!-- Scripts -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @include('components.scripts.faro')
 </head>
 <body class="h-full">
     <div class="flex min-h-full flex-col justify-center py-12 sm:px-6 lg:px-8">
