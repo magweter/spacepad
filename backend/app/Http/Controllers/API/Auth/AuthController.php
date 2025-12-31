@@ -26,17 +26,28 @@ class AuthController extends ApiController
     public function login(LoginRequest $request): JsonResponse
     {
         $code = $request->validated()['code'];
+        $uid = $request->validated()['uid'];
+        $name = $request->validated()['name'] ?? 'Unknown';
         $connectedUserId = cache()->get("connect-code:$code");
 
         // Check if the code is a valid connect code
         if ($connectedUserId !== null) {
             $device = Device::firstOrCreate([
                 'user_id' => $connectedUserId,
-                'uid' => $request->validated()['uid'],
+                'uid' => $uid,
             ],[
                 'user_id' => $connectedUserId,
-                'uid' => $request->validated()['uid'],
-                'name' => $request->validated()['name'],
+                'uid' => $uid,
+                'name' => $name,
+            ]);
+
+            logger()->info('Device authentication successful', [
+                'user_id' => $connectedUserId,
+                'device_id' => $device->id,
+                'device_uid' => substr($uid, 0, 8) . '...',
+                'device_name' => $name,
+                'ip' => $request->ip(),
+                'user_agent' => substr($request->userAgent() ?? '', 0, 100),
             ]);
 
             return $this->success(
@@ -46,6 +57,13 @@ class AuthController extends ApiController
                 ]
             );
         }
+
+        logger()->warning('Device authentication failed - invalid connect code', [
+            'code_prefix' => substr($code, 0, 3) . '...',
+            'device_uid' => substr($uid, 0, 8) . '...',
+            'ip' => $request->ip(),
+            'user_agent' => substr($request->userAgent() ?? '', 0, 100),
+        ]);
 
         return $this->error(
             message: 'Code is incorrect.',

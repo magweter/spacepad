@@ -37,6 +37,26 @@ class Handler extends ExceptionHandler
      */
     public function render($request, Throwable $e): Response|JsonResponse|\Symfony\Component\HttpFoundation\Response
     {
+        // Log exceptions with context (skip 404s and validation errors to avoid noise)
+        if (!($e instanceof NotFoundHttpException) && !($e instanceof ValidationException)) {
+            $logLevel = $e instanceof AuthenticationException ? 'warning' : 'error';
+            
+            logger()->{$logLevel}('Unhandled exception', [
+                'exception' => get_class($e),
+                'message' => $e->getMessage(),
+                'code' => $e->getCode(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'route' => $request->route()?->getName(),
+                'path' => $request->path(),
+                'method' => $request->method(),
+                'ip' => $request->ip(),
+                'user_id' => auth()->id(),
+                'user_agent' => substr($request->userAgent() ?? '', 0, 200),
+                'trace' => config('app.debug') ? substr($e->getTraceAsString(), 0, 1000) : null,
+            ]);
+        }
+
         if ($request->expectsJson()) {
             $status = 500;
             $message = 'Server Error';
