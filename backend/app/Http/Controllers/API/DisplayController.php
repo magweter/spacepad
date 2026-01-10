@@ -30,8 +30,13 @@ class DisplayController extends ApiController
         /** @var Device $device */
         $device = auth()->user();
 
+        if (!$device->workspace_id) {
+            return $this->success(data: []);
+        }
+
+        // Get displays from device's workspace
         $displays = Display::query()
-            ->where('user_id', $device->user_id)
+            ->where('workspace_id', $device->workspace_id)
             ->whereIn('status', [DisplayStatus::READY, DisplayStatus::ACTIVE])
             ->with('settings')
             ->get();

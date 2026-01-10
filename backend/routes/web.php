@@ -116,6 +116,8 @@ Route::middleware(['auth', 'user.update-last-activity', 'gtm'])->group(function 
     })->name('billing.thanks');
 
     Route::get('/admin', [AdminController::class, 'index'])->name('admin.index');
+    Route::get('/admin/users/{user}', [AdminController::class, 'showUser'])->name('admin.users.show');
+    Route::delete('/admin/users/{user}', [AdminController::class, 'deleteUser'])->name('admin.users.delete');
 
     // Display image serving route
     Route::get('/displays/{display}/images/{type}', [DisplaySettingsController::class, 'serveImage'])

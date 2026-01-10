@@ -68,12 +68,20 @@ class DisplayController extends Controller
             default => throw new \InvalidArgumentException('Invalid provider')
         };
 
-        $display = DB::transaction(function () use ($validatedData) {
+        $user = auth()->user();
+        $workspace = $user->primaryWorkspace();
+        
+        if (!$workspace) {
+            return redirect()->back()->with('error', 'No workspace found. Please contact support.');
+        }
+
+        $display = DB::transaction(function () use ($validatedData, $workspace) {
             // Handle room or calendar selection
-            $calendar = $this->createCalendar($validatedData);
+            $calendar = $this->createCalendar($validatedData, $workspace);
 
             return Display::create([
                 'user_id' => auth()->id(),
+                'workspace_id' => $workspace->id,
                 'name' => $validatedData['name'],
                 'display_name' => $validatedData['displayName'],
                 'status' => DisplayStatus::READY,
@@ -127,10 +135,11 @@ class DisplayController extends Controller
             ->with('status', 'Display has successfully been deleted.');
     }
 
-    private function createCalendar(array $validatedData): Calendar
+    private function createCalendar(array $validatedData, $workspace): Calendar
     {
         $provider = $validatedData['provider'];
         $accountId = $validatedData['account'];
+        $userId = auth()->id();
 
         if (isset($validatedData['room'])) {
             $roomData = explode(',', $validatedData['room']);
@@ -139,20 +148,27 @@ class DisplayController extends Controller
 
             $calendar = Calendar::firstOrCreate([
                 'calendar_id' => $calendarId,
-                'user_id' => auth()->id(),
+                'user_id' => $userId,
             ], [
                 'calendar_id' => $calendarId,
-                'user_id' => auth()->id(),
+                'user_id' => $userId,
+                'workspace_id' => $workspace->id,
                 "{$provider}_account_id" => $accountId,
                 'name' => $calendarName,
             ]);
 
+            // Update workspace_id if calendar already existed
+            if (!$calendar->workspace_id) {
+                $calendar->update(['workspace_id' => $workspace->id]);
+            }
+
             Room::firstOrCreate([
                 'email_address' => $calendarId,
-                'user_id' => auth()->id(),
+                'user_id' => $userId,
             ], [
                 'email_address' => $calendarId,
-                'user_id' => auth()->id(),
+                'user_id' => $userId,
+                'workspace_id' => $workspace->id,
                 'calendar_id' => $calendar->id,
                 'name' => $calendarName,
             ]);
@@ -163,15 +179,23 @@ class DisplayController extends Controller
         $calendarData = explode(',', $validatedData['calendar']);
         $calendarName = $this->extractCalendarName($calendarData[1] ?? '');
         
-        return Calendar::firstOrCreate([
+        $calendar = Calendar::firstOrCreate([
             'calendar_id' => $calendarData[0],
-            'user_id' => auth()->id(),
+            'user_id' => $userId,
         ], [
-            'user_id' => auth()->id(),
+            'user_id' => $userId,
+            'workspace_id' => $workspace->id,
             "{$provider}_account_id" => $accountId,
             'calendar_id' => $calendarData[0],
             'name' => $calendarName,
         ]);
+
+        // Update workspace_id if calendar already existed
+        if (!$calendar->workspace_id) {
+            $calendar->update(['workspace_id' => $workspace->id]);
+        }
+
+        return $calendar;
     }
 
     /**

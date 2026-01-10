@@ -6,9 +6,13 @@ use App\Enums\DisplayStatus;
 use App\Models\Display;
 use App\Models\Instance;
 use App\Models\User;
+use App\Models\Workspace;
+use App\Models\WorkspaceMember;
 use Illuminate\Http\Request;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 
 class AdminController extends Controller
@@ -110,10 +114,17 @@ class AdminController extends Controller
                 return $user;
             });
 
+        // All users for the users overview tab
+        $allUsers = User::query()
+            ->withCount('displays')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
         return view('pages.admin', [
             'activeInstances' => $activeInstances,
             'activeDisplays' => $activeDisplays,
             'payingUsers' => $payingUsers,
+            'allUsers' => $allUsers,
             'activeDisplaysCount' => $activeDisplays->count(),
             'totalDisplays' => $totalDisplays,
             'activeInstancesCount' => $activeInstances->count(),
@@ -312,5 +323,211 @@ class AdminController extends Controller
         } catch (\Exception $e) {
             return null;
         }
+    }
+
+    /**
+     * Show user details page
+     */
+    public function showUser(User $user)
+    {
+        $admin = Auth::user();
+        if (!$admin || !$admin->isAdmin() || config('settings.is_self_hosted')) {
+            abort(403);
+        }
+
+        // Load user relationships for display
+        $user->load([
+            'outlookAccounts',
+            'googleAccounts',
+            'caldavAccounts',
+            'displays',
+            'devices',
+            'workspaces',
+            'subscriptions' => function($query) {
+                $query->where(function($q) {
+                    $q->whereNull('ends_at')
+                      ->orWhere('ends_at', '>', now());
+                })->orderByDesc('created_at');
+            },
+        ]);
+
+        // Get subscription info
+        $subscriptionInfo = null;
+        if (!$user->is_unlimited && $user->subscriptions->isNotEmpty()) {
+            $subscription = $user->subscriptions->first();
+            $subscriptionData = $this->getSubscriptionData($subscription->lemon_squeezy_id, $user->displays_count);
+            if ($subscriptionData) {
+                $subscriptionInfo = [
+                    'status' => $subscriptionData['status'] ?? null,
+                    'price' => $subscriptionData['price'] ?? 0,
+                    'mrr' => ($subscriptionData['price'] ?? 0) * $user->displays_count,
+                    'ends_at' => $subscription->ends_at,
+                ];
+            }
+        }
+
+        return view('pages.admin.user', [
+            'user' => $user,
+            'subscriptionInfo' => $subscriptionInfo,
+        ]);
+    }
+
+    /**
+     * Delete a user account and all associated data
+     */
+    public function deleteUser(Request $request, User $user): RedirectResponse
+    {
+        $admin = Auth::user();
+        if (!$admin || !$admin->isAdmin() || config('settings.is_self_hosted')) {
+            abort(403);
+        }
+
+        // Prevent deleting yourself
+        if ($user->id === $admin->id) {
+            return redirect()->route('admin.index')
+                ->with('error', 'You cannot delete your own account.');
+        }
+
+        // Confirm deletion
+        $request->validate([
+            'confirm_email' => ['required', 'email'],
+        ]);
+
+        if ($request->input('confirm_email') !== $user->email) {
+            return back()->withErrors(['confirm_email' => 'Email confirmation does not match.']);
+        }
+
+        DB::transaction(function () use ($user, $admin) {
+            // Delete all user's personal access tokens
+            $user->tokens()->delete();
+
+            // Delete displays and their related data first (before calendars/accounts)
+            if ($user->displays) {
+                foreach ($user->displays as $display) {
+                    // Delete event subscriptions
+                    $display->eventSubscriptions()->delete();
+                    // Delete display settings
+                    $display->settings()->delete();
+                    // Delete events associated with this display
+                    $display->events()->delete();
+                    // Delete devices associated with this display
+                    $display->devices()->delete();
+                    $display->delete();
+                }
+            }
+
+            // Delete devices (standalone devices not linked to displays)
+            $user->devices()->delete();
+
+            // Delete rooms
+            $user->rooms()->delete();
+
+            // Delete Outlook accounts and their calendars/events
+            if ($user->outlookAccounts) {
+                foreach ($user->outlookAccounts as $account) {
+                    if ($account->calendars) {
+                        foreach ($account->calendars as $calendar) {
+                            $calendar->events()->delete();
+                            $calendar->delete();
+                        }
+                    }
+                    $account->delete();
+                }
+            }
+
+            // Delete Google accounts and their calendars/events
+            if ($user->googleAccounts) {
+                foreach ($user->googleAccounts as $account) {
+                    if ($account->calendars) {
+                        foreach ($account->calendars as $calendar) {
+                            $calendar->events()->delete();
+                            $calendar->delete();
+                        }
+                    }
+                    $account->delete();
+                }
+            }
+
+            // Delete CalDAV accounts and their calendars/events
+            if ($user->caldavAccounts) {
+                foreach ($user->caldavAccounts as $account) {
+                    if ($account->calendars) {
+                        foreach ($account->calendars as $calendar) {
+                            $calendar->events()->delete();
+                            $calendar->delete();
+                        }
+                    }
+                    $account->delete();
+                }
+            }
+
+            // Delete any remaining calendars directly linked to user (shouldn't happen, but safety check)
+            // Note: Calendars are linked through accounts, not directly to users, so this is unlikely
+            // Events are deleted through calendars above
+
+            // Handle workspaces
+            $ownedWorkspaces = $user->ownedWorkspaces()->get();
+            foreach ($ownedWorkspaces as $workspace) {
+                // Get other members (excluding the user being deleted)
+                $otherMembers = $workspace->members()->where('user_id', '!=', $user->id)->get();
+                
+                if ($otherMembers->isNotEmpty()) {
+                    // Find first admin or first member to transfer ownership
+                    $newOwner = $otherMembers->first(function ($member) {
+                        return $member->pivot->role === \App\Enums\WorkspaceRole::ADMIN->value;
+                    }) ?? $otherMembers->first();
+                    
+                    if ($newOwner) {
+                        // Transfer ownership
+                        WorkspaceMember::where('workspace_id', $workspace->id)
+                            ->where('user_id', $newOwner->id)
+                            ->update(['role' => \App\Enums\WorkspaceRole::OWNER]);
+                    }
+                } else {
+                    // No other members, delete the workspace and all its data
+                    foreach ($workspace->displays as $display) {
+                        $display->eventSubscriptions()->delete();
+                        $display->settings()->delete();
+                        $display->events()->delete();
+                        $display->devices()->delete();
+                        $display->delete();
+                    }
+                    $workspace->devices()->delete();
+                    foreach ($workspace->calendars as $calendar) {
+                        $calendar->events()->delete();
+                        $calendar->delete();
+                    }
+                    $workspace->rooms()->delete();
+                    WorkspaceMember::where('workspace_id', $workspace->id)->delete();
+                    $workspace->delete();
+                }
+            }
+
+            // Delete workspace memberships (user's membership in workspaces they don't own)
+            WorkspaceMember::where('user_id', $user->id)->delete();
+
+            // Delete instance if exists
+            Instance::where('user_id', $user->id)->delete();
+
+            // Cancel LemonSqueezy subscriptions (if any)
+            // Note: This doesn't actually cancel them in LemonSqueezy, just removes the local reference
+            // You might want to add API call to cancel subscriptions
+            if (method_exists($user, 'subscriptions')) {
+                $user->subscriptions()->delete();
+            }
+
+            // Finally, delete the user
+            $user->delete();
+
+            logger()->info('User account deleted by admin', [
+                'deleted_user_id' => $user->id,
+                'deleted_user_email' => $user->email,
+                'deleted_by_admin_id' => $admin->id,
+                'deleted_by_admin_email' => $admin->email,
+            ]);
+        });
+
+        return redirect()->route('admin.index')
+            ->with('success', "User account {$user->email} and all associated data have been permanently deleted.");
     }
 }

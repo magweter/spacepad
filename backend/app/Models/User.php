@@ -4,10 +4,12 @@ namespace App\Models;
 
 use App\Enums\Plan;
 use App\Enums\UsageType;
+use App\Enums\WorkspaceRole;
 use App\Traits\HasUlid;
 use App\Traits\HasLastActivity;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -18,6 +20,31 @@ use App\Services\InstanceService;
 class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable, HasUlid, HasLastActivity, Billable;
+
+    /**
+     * Boot the model.
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        // Auto-create workspace when user is created
+        static::created(function ($user) {
+            // Only create if user doesn't already have a workspace
+            if (!$user->workspaces()->exists()) {
+                $workspace = Workspace::create([
+                    'name' => $user->name . "'s Workspace",
+                ]);
+
+                // Add user as owner member (use WorkspaceMember::create to generate ULID)
+                WorkspaceMember::create([
+                    'workspace_id' => $workspace->id,
+                    'user_id' => $user->id,
+                    'role' => WorkspaceRole::OWNER,
+                ]);
+            }
+        });
+    }
 
     /**
      * The attributes that are mass assignable.
@@ -94,6 +121,40 @@ class User extends Authenticatable
     public function rooms(): HasMany
     {
         return $this->hasMany(Room::class);
+    }
+
+    /**
+     * Get workspaces owned by this user (where user has 'owner' role)
+     */
+    public function ownedWorkspaces()
+    {
+        return $this->workspaces()->wherePivot('role', WorkspaceRole::OWNER->value);
+    }
+
+    /**
+     * Get workspaces this user is a member of
+     */
+    public function workspaces(): BelongsToMany
+    {
+        return $this->belongsToMany(Workspace::class, 'workspace_members')
+            ->withPivot('role')
+            ->withTimestamps();
+    }
+
+    /**
+     * Get the primary workspace for this user (first workspace where user is owner)
+     */
+    public function primaryWorkspace(): ?Workspace
+    {
+        return $this->ownedWorkspaces()->first() ?? $this->workspaces()->first();
+    }
+
+    /**
+     * Get all workspaces this user has access to
+     */
+    public function accessibleWorkspaces()
+    {
+        return $this->workspaces()->get();
     }
 
     public function hasAnyDisplay(): bool

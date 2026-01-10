@@ -204,7 +204,7 @@
                                 <tr>
                                     <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0">
                                         <div class="font-medium text-gray-900">{{ $display->name }}</div>
-                                        <div class="text-gray-500">{{ $display->calendar->name }}</div>
+                                        <div class="text-gray-500">{{ $display->display_name }}</div>
                                     </td>
                                     <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                                         <div class="flex flex-col gap-1">
@@ -226,6 +226,7 @@
                                                     <span class="text-gray-900">{{ $display->calendar->caldavAccount->name }}</span>
                                                 </div>
                                             @endif
+                                            <div class="text-gray-500">{{ $display->calendar->name }}</div>
                                         </div>
                                     </td>
                                     <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">

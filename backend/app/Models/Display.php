@@ -18,6 +18,7 @@ class Display extends Model
 
     protected $fillable = [
         'user_id',
+        'workspace_id',
         'name',
         'display_name',
         'calendar_id',
@@ -40,6 +41,11 @@ class Display extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function workspace(): BelongsTo
+    {
+        return $this->belongsTo(Workspace::class, 'workspace_id');
     }
 
     public function eventSubscriptions(): HasMany
