@@ -444,18 +444,42 @@ class OutlookService
             'data' => $data
         ]);
 
-        // Create a subscription with Microsoft Graph
-        $response = Http::withToken($outlookAccount->token)
-            ->post("https://graph.microsoft.com/v1.0/subscriptions", $data);
+        try {
+            // Create a subscription with Microsoft Graph
+            $response = Http::withToken($outlookAccount->token)
+                ->post("https://graph.microsoft.com/v1.0/subscriptions", $data);
 
-        $responseBody = $response->json();
-        if (
-            $response->failed() ||
-            !Arr::has($responseBody, ['id', 'resource', 'expirationDateTime', 'notificationUrl'])
-        ) {
-            logger()->error('Creating outlook subscription failed', [
-                'statuscode' => $response->status(),
-                'response' => $responseBody
+            $responseBody = $response->json();
+            if (
+                $response->failed() ||
+                !Arr::has($responseBody, ['id', 'resource', 'expirationDateTime', 'notificationUrl'])
+            ) {
+                $statusCode = $response->status();
+                $isUserError = $statusCode >= 400 && $statusCode < 500;
+                
+                logger()->error('Creating outlook subscription failed', [
+                    'statuscode' => $statusCode,
+                    'response' => $responseBody,
+                    'is_user_error' => $isUserError,
+                ]);
+                
+                // Throw exception for user errors (4xx) so the command can handle it
+                // Return null for server errors (5xx) to avoid marking display as error
+                if ($isUserError) {
+                    throw new Exception("Failed to create Outlook subscription: HTTP {$statusCode} - " . ($responseBody['error']['message'] ?? $responseBody['message'] ?? 'Unknown error'));
+                }
+                
+                return null;
+            }
+        } catch (Exception $e) {
+            // Re-throw if it's already a user error exception we just created
+            if (str_contains($e->getMessage(), 'Failed to create Outlook subscription')) {
+                throw $e;
+            }
+            // For connection errors, timeouts, etc., don't throw - these are transient
+            logger()->error('Error creating outlook subscription - connection/timeout error', [
+                'error' => $e->getMessage(),
+                'exception_type' => get_class($e),
             ]);
             return null;
         }

@@ -376,10 +376,11 @@ class GoogleService
             $response = $calendarService->events->watch($calendarId, $channel);
 
             if (!$response->getId()) {
-                logger()->error('Creating Google subscription failed', [
-                    'response' => $response
+                logger()->error('Creating Google subscription failed - no subscription ID returned', [
+                    'response' => $response,
                 ]);
-                return null;
+                // This is likely a user error (invalid calendar, permissions, etc.)
+                throw new Exception("Failed to create Google subscription: No subscription ID returned");
             }
 
             // Create the subscription record in the database
@@ -397,11 +398,33 @@ class GoogleService
 
             return $eventSubscription;
         } catch (Exception $e) {
-            report($e);
+            // Re-throw if it's already a user error exception we just created
+            if (str_contains($e->getMessage(), 'Failed to create Google subscription')) {
+                throw $e;
+            }
+            
+            // Check if this is a Google API exception with HTTP status code
+            $statusCode = $e->getCode();
+            $isUserError = $statusCode >= 400 && $statusCode < 500;
+            
+            // Check exception class name for Google API exceptions
+            $exceptionClass = get_class($e);
+            
             logger()->error('Error creating Google subscription', [
                 'error' => $e->getMessage(),
-                'calendarId' => $calendarId
+                'calendarId' => $calendarId,
+                'status_code' => $statusCode,
+                'is_user_error' => $isUserError,
+                'exception_type' => $exceptionClass,
             ]);
+            
+            // Throw exception for user errors (4xx) so the command can handle it
+            // Return null for server errors (5xx) or connection errors to avoid marking display as error
+            if ($isUserError) {
+                throw new Exception("Failed to create Google subscription: HTTP {$statusCode} - " . $e->getMessage());
+            }
+            
+            // For connection errors, timeouts, etc., don't throw - these are transient
             return null;
         }
     }
