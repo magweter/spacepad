@@ -60,8 +60,7 @@ class DisplayService
         
         // Pro feature check: check if any workspace owner has Pro
         if (!empty($options['pro'])) {
-            $workspaceOwner = $display->workspace->owners()->first();
-            if (!$workspaceOwner || !$workspaceOwner->hasPro()) {
+            if (!$display->workspace->hasPro()) {
                 return new PermissionResult(false, 'This is a Pro feature. Please upgrade to Pro to use this feature.', 403);
             }
         }

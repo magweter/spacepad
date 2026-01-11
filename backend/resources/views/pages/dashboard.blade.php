@@ -114,7 +114,7 @@
     <x-modals.license-key />
 
     {{-- Commercial Banner --}}
-    @if(! auth()->user()->hasPro() && auth()->user()->hasAnyDisplay())
+    @if(! auth()->user()->hasProForCurrentWorkspace() && auth()->user()->hasAnyDisplay())
         <div class="mb-4 rounded-lg bg-indigo-50 border border-indigo-200 p-4 flex items-start gap-4">
             <div class="flex-shrink-0 mt-1">
                 <span class="inline-flex items-center justify-center h-10 w-10 rounded-full bg-indigo-100">
@@ -161,7 +161,7 @@
                         </button>
                     @endif
                     @if(auth()->user()->can('create', \App\Models\Display::class))
-                        @if(auth()->user()->shouldUpgrade())
+                        @if(auth()->user()->shouldUpgradeForCurrentWorkspace())
                             <span class="inline-flex items-center rounded-md bg-gray-100 px-3 py-2 text-center text-sm font-semibold text-gray-400 shadow-sm ring-1 ring-inset ring-gray-200 cursor-not-allowed" title="Upgrade to Pro to create more displays">
                                 <x-icons.plus class="h-5 w-5 mr-1" />
                                 Create new display <span class="ml-2 inline-flex items-center rounded-md bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600">Pro</span>
@@ -240,11 +240,11 @@
                                                 One more step and you're set up
                                             </h3>
                                             <p class="mb-6 text-sm text-gray-500 max-w-sm">Pick the calendar or room you would like to synchronize. You are able to connect multiple tablets to one display.</p>
-                                            @if(! $isSelfHosted && auth()->user()->shouldUpgrade())
+                                            @if(! $isSelfHosted && auth()->user()->shouldUpgradeForCurrentWorkspace())
                                                 <span class="inline-flex items-center rounded-md bg-gray-100 px-3 py-2 text-center text-sm font-semibold text-gray-400 shadow-sm ring-1 ring-inset ring-gray-200 cursor-not-allowed" title="Upgrade to Pro to create more displays">
                                                     <x-icons.plus class="h-5 w-5 mr-1" /> Create new display <span class="ml-2 inline-flex items-center rounded-md bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600">Pro</span>
                                                 </span>
-                                            @elseif($isSelfHosted && auth()->user()->shouldUpgrade())
+                                            @elseif($isSelfHosted && auth()->user()->shouldUpgradeForCurrentWorkspace())
                                                 <span class="inline-flex items-center rounded-md bg-gray-100 px-3 py-2 text-center text-sm font-semibold text-gray-400 shadow-sm ring-1 ring-inset ring-gray-200 cursor-not-allowed" title="Upgrade to Pro to create more displays">
                                                     <x-icons.plus class="h-5 w-5 mr-1" /> Create new display <span class="ml-2 inline-flex items-center rounded-md bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600">Pro</span>
                                                 </span>

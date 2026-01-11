@@ -21,8 +21,8 @@ class DisplaySettingsController extends Controller
     {
         $this->authorize('update', $display);
 
-        // Check if user has Pro access
-        if (!auth()->user()->hasPro()) {
+        // Check if user has Pro access (workspace-aware)
+        if (!auth()->user()->hasProForCurrentWorkspace()) {
             return redirect()->route('dashboard')->with('error', 'Display settings are only available for Pro users.');
         }
 
@@ -35,8 +35,8 @@ class DisplaySettingsController extends Controller
     {
         $this->authorize('update', $display);
 
-        // Check if user has Pro access
-        if (!auth()->user()->hasPro()) {
+        // Check if user has Pro access (workspace-aware)
+        if (!auth()->user()->hasProForCurrentWorkspace()) {
             return redirect()->route('dashboard')->with('error', 'Display settings are only available for Pro users.');
         }
 
@@ -103,7 +103,7 @@ class DisplaySettingsController extends Controller
     {
         $this->authorize('update', $display);
 
-        if (!auth()->user()->hasPro()) {
+        if (!auth()->user()->hasProForCurrentWorkspace()) {
             return redirect()->route('dashboard')->with('error', 'Display customization is only available for Pro users.');
         }
 
@@ -116,7 +116,7 @@ class DisplaySettingsController extends Controller
     {
         $this->authorize('update', $display);
 
-        if (!auth()->user()->hasPro()) {
+        if (!auth()->user()->hasProForCurrentWorkspace()) {
             return redirect()->route('dashboard')->with('error', 'Display customization is only available for Pro users.');
         }
 

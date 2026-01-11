@@ -207,6 +207,26 @@ class User extends Authenticatable
     }
 
     /**
+     * Check if the user has Pro for the current workspace context.
+     * Returns true if the user has Pro OR if the selected workspace has Pro (any owner has Pro).
+     */
+    public function hasProForCurrentWorkspace(): bool
+    {
+        // If user has Pro, they have Pro everywhere
+        if ($this->hasPro()) {
+            return true;
+        }
+
+        // Check if the selected workspace has Pro (any owner has Pro)
+        $selectedWorkspace = $this->getSelectedWorkspace();
+        if ($selectedWorkspace && $selectedWorkspace->hasPro()) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
      * Check if the user should be treated as a business user
      */
     public function isBusinessUser(): bool
@@ -234,6 +254,26 @@ class User extends Authenticatable
 
         // Cloud Hosted: If the user is a business user and doesn't have Pro, they should upgrade
         return ! $this->hasPro() && $this->hasAnyDisplay();
+    }
+
+    /**
+     * Check if the user should upgrade to Pro for the current workspace context.
+     * Returns false if the user has Pro OR if the selected workspace has Pro.
+     */
+    public function shouldUpgradeForCurrentWorkspace(): bool
+    {
+        // If user has Pro for current workspace, no upgrade needed
+        if ($this->hasProForCurrentWorkspace()) {
+            return false;
+        }
+
+        // Self Hosted: If the user is a personal user, use a soft limit
+        if (config('settings.is_self_hosted') && $this->isPersonalUser()) {
+            return false;
+        }
+
+        // Cloud Hosted: If the user is a business user and doesn't have Pro, they should upgrade
+        return $this->hasAnyDisplay();
     }
 
     public function getCheckoutUrl(?string $redirectUrl = null): ?Checkout

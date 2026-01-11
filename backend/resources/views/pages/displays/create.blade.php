@@ -5,7 +5,7 @@
     @php
         $isSelfHosted = config('settings.is_self_hosted');
         $checkout = auth()->user()->getCheckoutUrl(route('displays.create'));
-        $userHasPro = auth()->user()->hasPro();
+        $userHasPro = auth()->user()->hasProForCurrentWorkspace();
     @endphp
 
     {{-- License Key Modal --}}

@@ -86,7 +86,7 @@
                     @endif
                 </button>
             </form>
-            @if(auth()->user()->hasPro())
+            @if(auth()->user()->hasProForCurrentWorkspace())
                 <a href="{{ route('displays.customization', $display) }}" class="inline-flex items-center rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-indigo-600 shadow-sm ring-1 ring-inset ring-indigo-300 hover:bg-indigo-50" title="Customize display (Pro)">
                     <x-icons.brush class="h-4 w-4" />
                 </a>

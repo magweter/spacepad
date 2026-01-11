@@ -68,8 +68,8 @@ class DisplayController extends Controller
         $provider = $validatedData['provider'];
         $accountId = $validatedData['account'];
 
-        // Check on access to create multiple displays
-        if (auth()->user()->shouldUpgrade()) {
+        // Check on access to create multiple displays (workspace-aware Pro check)
+        if (auth()->user()->shouldUpgradeForCurrentWorkspace()) {
             return redirect()->back()->with('error', 'You require an active Pro license to create multiple displays.');
         }
 

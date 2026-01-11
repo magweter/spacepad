@@ -114,5 +114,19 @@ class Workspace extends Model
         $role = $member->pivot->role;
         return $role instanceof WorkspaceRole ? $role : WorkspaceRole::from($role);
     }
+
+    /**
+     * Check if this workspace has Pro (any owner has Pro)
+     */
+    public function hasPro(): bool
+    {
+        $owners = $this->owners()->with('subscriptions')->get();
+        foreach ($owners as $owner) {
+            if ($owner->hasPro()) {
+                return true;
+            }
+        }
+        return false;
+    }
 }
 
