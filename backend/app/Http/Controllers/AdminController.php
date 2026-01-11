@@ -17,12 +17,27 @@ use Illuminate\Support\Facades\Http;
 
 class AdminController extends Controller
 {
-    public function index()
+    /**
+     * Check if the current request is authorized for admin access
+     */
+    private function checkAdminAccess(): void
     {
         $user = Auth::user();
+        
+        // Prevent access if impersonating
+        if (session()->get('impersonating')) {
+            abort(403, 'Cannot access admin panel while impersonating. Please stop impersonating first.');
+        }
+        
+        // Check if current user is admin
         if (!$user || !$user->isAdmin() || config('settings.is_self_hosted')) {
             abort(403);
         }
+    }
+
+    public function index()
+    {
+        $this->checkAdminAccess();
 
         $activeDisplays = Display::where('status', DisplayStatus::ACTIVE)->count();
         $totalDisplays = Display::count();
@@ -114,11 +129,28 @@ class AdminController extends Controller
                 return $user;
             });
 
-        // All users for the users overview tab
-        $allUsers = User::query()
+        // All users for the users overview tab (paginated for performance)
+        $search = request()->get('search');
+        $allUsersQuery = User::query()
             ->withCount('displays')
+            ->with(['subscriptions' => function($query) {
+                $query->where(function($q) {
+                    $q->whereNull('ends_at')
+                      ->orWhere('ends_at', '>', now());
+                });
+            }]);
+        
+        if ($search) {
+            $allUsersQuery->where(function($query) use ($search) {
+                $query->where('name', 'like', "%{$search}%")
+                      ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+        
+        $allUsers = $allUsersQuery
             ->orderBy('created_at', 'desc')
-            ->get();
+            ->paginate(50)
+            ->withQueryString();
 
         return view('pages.admin', [
             'activeInstances' => $activeInstances,
@@ -330,10 +362,9 @@ class AdminController extends Controller
      */
     public function showUser(User $user)
     {
+        $this->checkAdminAccess();
+        
         $admin = Auth::user();
-        if (!$admin || !$admin->isAdmin() || config('settings.is_self_hosted')) {
-            abort(403);
-        }
 
         // Load user relationships for display
         $user->load([
@@ -377,10 +408,9 @@ class AdminController extends Controller
      */
     public function deleteUser(Request $request, User $user): RedirectResponse
     {
+        $this->checkAdminAccess();
+        
         $admin = Auth::user();
-        if (!$admin || !$admin->isAdmin() || config('settings.is_self_hosted')) {
-            abort(403);
-        }
 
         // Prevent deleting yourself
         if ($user->id === $admin->id) {
@@ -529,5 +559,74 @@ class AdminController extends Controller
 
         return redirect()->route('admin.index')
             ->with('success', "User account {$user->email} and all associated data have been permanently deleted.");
+    }
+
+    /**
+     * Impersonate a user
+     */
+    public function impersonate(User $user): RedirectResponse
+    {
+        $this->checkAdminAccess();
+        
+        $admin = Auth::user();
+
+        // Prevent impersonating yourself
+        if ($admin->id === $user->id) {
+            return redirect()->route('admin.index')
+                ->with('error', 'You cannot impersonate yourself.');
+        }
+
+        // Store original admin ID in session
+        session()->put('impersonating', true);
+        session()->put('impersonator_id', $admin->id);
+
+        // Log in as the target user
+        Auth::login($user);
+
+        logger()->info('Admin started impersonating user', [
+            'admin_id' => $admin->id,
+            'admin_email' => $admin->email,
+            'impersonated_user_id' => $user->id,
+            'impersonated_user_email' => $user->email,
+        ]);
+
+        return redirect()->route('dashboard')
+            ->with('success', "You are now impersonating {$user->email}");
+    }
+
+    /**
+     * Stop impersonating and return to admin account
+     */
+    public function stopImpersonating(): RedirectResponse
+    {
+        $impersonatorId = session()->get('impersonator_id');
+        
+        if (!$impersonatorId) {
+            return redirect()->route('dashboard');
+        }
+
+        $impersonator = User::find($impersonatorId);
+        if (!$impersonator || !$impersonator->isAdmin()) {
+            session()->forget(['impersonating', 'impersonator_id']);
+            return redirect()->route('dashboard');
+        }
+
+        $impersonatedUser = Auth::user();
+
+        // Clear impersonation session
+        session()->forget(['impersonating', 'impersonator_id']);
+
+        // Log back in as admin
+        Auth::login($impersonator);
+
+        logger()->info('Admin stopped impersonating user', [
+            'admin_id' => $impersonator->id,
+            'admin_email' => $impersonator->email,
+            'impersonated_user_id' => $impersonatedUser->id,
+            'impersonated_user_email' => $impersonatedUser->email,
+        ]);
+
+        return redirect()->route('admin.index')
+            ->with('success', 'Stopped impersonating user.');
     }
 }

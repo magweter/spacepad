@@ -33,6 +33,9 @@
     <body class="h-full @yield('body-classes')">
         @includeWhen(config('googletagmanager.enabled') && config('googletagmanager.id'), 'googletagmanager::body')
         @stack('modals')
+        
+        @include('components.impersonation-banner')
+        
         <div class="min-h-full bg-gray-50">
             @yield('page')
         </div>
