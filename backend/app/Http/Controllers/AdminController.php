@@ -536,8 +536,8 @@ class AdminController extends Controller
             // Delete workspace memberships (user's membership in workspaces they don't own)
             WorkspaceMember::where('user_id', $user->id)->delete();
 
-            // Delete instance if exists
-            Instance::where('user_id', $user->id)->delete();
+            // Note: Instances are system-wide (for self-hosted tracking), not user-specific
+            // No need to delete instances when deleting a user
 
             // Cancel LemonSqueezy subscriptions (if any)
             // Note: This doesn't actually cancel them in LemonSqueezy, just removes the local reference
