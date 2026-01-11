@@ -30,7 +30,7 @@
                     </div>
                 </form>
             @endif
-            @if(auth()->user()->hasAnyDisplay() && $connectCode)
+            @if((auth()->user()->hasAnyDisplay() || auth()->user()->workspaces()->count() > 1) && $connectCode)
                 <div class="flex border border-dashed rounded-lg px-4 h-14 items-center border-gray-400">
                     <h3 class="text-sm font-semibold text-gray-900 mr-8 flex items-center">Connect code</h3>
                     <div class="flex-1 text-sm text-gray-500">
@@ -154,7 +154,7 @@
                     </p>
                 </div>
                 <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none flex items-center gap-2">
-                    @if(auth()->user()->hasAnyDisplay())
+                    @if(auth()->user()->hasAnyDisplay() || auth()->user()->workspaces()->count() > 1)
                         <button type="button" onclick="openConnectModal()" class="inline-flex items-center gap-x-1.5 rounded-md bg-oxford px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-oxford-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-oxford-600">
                             <x-icons.display class="h-4 w-4" />
                             How to connect a tablet

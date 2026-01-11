@@ -38,12 +38,13 @@ class DisplayController extends Controller
         $workspaces = $user->workspaces()->withPivot('role')->get();
         $selectedWorkspace = $user->getSelectedWorkspace();
 
-        // Filter accounts to only show those for the selected workspace
+        // Filter accounts to show all accounts for the selected workspace (from any workspace member)
         if ($selectedWorkspace) {
-            $outlookAccounts = $user->outlookAccounts()->where('workspace_id', $selectedWorkspace->id)->get();
-            $googleAccounts = $user->googleAccounts()->where('workspace_id', $selectedWorkspace->id)->get();
-            $caldavAccounts = $user->caldavAccounts()->where('workspace_id', $selectedWorkspace->id)->get();
+            $outlookAccounts = OutlookAccount::where('workspace_id', $selectedWorkspace->id)->get();
+            $googleAccounts = GoogleAccount::where('workspace_id', $selectedWorkspace->id)->get();
+            $caldavAccounts = CalDAVAccount::where('workspace_id', $selectedWorkspace->id)->get();
         } else {
+            // Fallback to user's own accounts if no workspace selected
             $outlookAccounts = $user->outlookAccounts;
             $googleAccounts = $user->googleAccounts;
             $caldavAccounts = $user->caldavAccounts;

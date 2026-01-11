@@ -190,11 +190,28 @@ class User extends Authenticatable
 
     public function isOnboarded(): bool
     {
-        if (config('settings.is_self_hosted')) {
-            return $this->usage_type && $this->terms_accepted_at && $this->hasAnyAccount();
+        // Check if user has accounts OR if any workspace they're a member of has accounts
+        $hasAccounts = $this->hasAnyAccount();
+        
+        if (!$hasAccounts) {
+            // Check if any workspace the user is a member of has accounts
+            $workspaceIds = $this->workspaces()->pluck('workspaces.id')->toArray();
+            if (!empty($workspaceIds)) {
+                $workspaceAccountCount = OutlookAccount::whereIn('workspace_id', $workspaceIds)->count()
+                    + GoogleAccount::whereIn('workspace_id', $workspaceIds)->count()
+                    + CalDAVAccount::whereIn('workspace_id', $workspaceIds)->count();
+                
+                if ($workspaceAccountCount > 0) {
+                    $hasAccounts = true;
+                }
+            }
         }
 
-        return $this->usage_type && $this->hasAnyAccount();
+        if (config('settings.is_self_hosted')) {
+            return $this->usage_type && $this->terms_accepted_at && $hasAccounts;
+        }
+
+        return $this->usage_type && $hasAccounts;
     }
 
     public function hasPro(): bool

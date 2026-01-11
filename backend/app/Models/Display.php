@@ -53,6 +53,11 @@ class Display extends Model
         return $this->hasMany(EventSubscription::class);
     }
 
+    public function events(): HasMany
+    {
+        return $this->hasMany(Event::class);
+    }
+
     public function devices(): HasMany
     {
         return $this->hasMany(Device::class);

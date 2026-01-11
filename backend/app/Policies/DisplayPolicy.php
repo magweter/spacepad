@@ -16,7 +16,7 @@ class DisplayPolicy
      */
     public function create(User $user): bool
     {
-        return $user->outlookAccounts()->count() > 0 || $user->googleAccounts()->count() > 0 || $user->caldavAccounts()->count() > 0;
+        return $user->isOnboarded();
     }
 
     /**
