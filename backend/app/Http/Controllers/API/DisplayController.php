@@ -9,6 +9,7 @@ use App\Http\Resources\API\DisplayResource;
 use App\Http\Resources\API\EventResource;
 use App\Models\Device;
 use App\Models\Display;
+use App\Models\User;
 use App\Services\DisplayService;
 use App\Services\EventService;
 use App\Services\ImageService;
@@ -30,8 +31,23 @@ class DisplayController extends ApiController
         /** @var Device $device */
         $device = auth()->user();
 
+        if (!$device->user_id) {
+            return $this->success(data: []);
+        }
+
+        $user = User::find($device->user_id);
+        if (!$user) {
+            return $this->success(data: []);
+        }
+
+        // Get displays from all workspaces the user is a member of
+        $workspaceIds = $user->workspaces->pluck('id');
+        if ($workspaceIds->isEmpty()) {
+            return $this->success(data: []);
+        }
+
         $displays = Display::query()
-            ->where('user_id', $device->user_id)
+            ->whereIn('workspace_id', $workspaceIds)
             ->whereIn('status', [DisplayStatus::READY, DisplayStatus::ACTIVE])
             ->with('settings')
             ->get();
@@ -39,6 +55,7 @@ class DisplayController extends ApiController
         logger()->info('Display list requested', [
             'user_id' => $device->user_id,
             'device_id' => $device->id,
+            'workspace_ids' => $workspaceIds->toArray(),
             'display_count' => $displays->count(),
             'ip' => request()->ip(),
         ]);

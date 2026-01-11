@@ -24,7 +24,12 @@ class DisplayPolicy
      */
     public function update(User $user, Display $display): bool
     {
-        return $user->id === $display->user_id;
+        if (!$display->workspace_id) {
+            return false;
+        }
+
+        $workspace = $display->workspace;
+        return $workspace && $workspace->canBeManagedBy($user);
     }
 
     /**
@@ -32,7 +37,12 @@ class DisplayPolicy
      */
     public function delete(User $user, Display $display): bool
     {
-        return $user->id === $display->user_id;
+        if (!$display->workspace_id) {
+            return false;
+        }
+
+        $workspace = $display->workspace;
+        return $workspace && $workspace->canBeManagedBy($user);
     }
 
     /**
@@ -42,7 +52,12 @@ class DisplayPolicy
     {
         // Handle User model
         if ($user instanceof User) {
-            return $user->id === $display->user_id;
+            if (!$display->workspace_id) {
+                return false;
+            }
+
+            $workspace = $display->workspace;
+            return $workspace && $workspace->hasMember($user);
         }
         
         // Handle Device model

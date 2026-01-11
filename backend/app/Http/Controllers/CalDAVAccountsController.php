@@ -41,9 +41,14 @@ class CalDAVAccountsController extends Controller
             ])->withInput();
         }
 
+        // Get selected workspace (from session or default to primary)
+        $selectedWorkspace = auth()->user()->getSelectedWorkspace();
+        $workspaceId = $selectedWorkspace?->id;
+
         // Create the CalDAV account
         $account = CalDAVAccount::create([
             'user_id' => auth()->id(),
+            'workspace_id' => $workspaceId,
             'name' => parse_url($validated['url'], PHP_URL_HOST),
             'email' => $validated['username'],
             'url' => $validated['url'],

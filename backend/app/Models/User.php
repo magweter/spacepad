@@ -4,10 +4,12 @@ namespace App\Models;
 
 use App\Enums\Plan;
 use App\Enums\UsageType;
+use App\Enums\WorkspaceRole;
 use App\Traits\HasUlid;
 use App\Traits\HasLastActivity;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -18,6 +20,31 @@ use App\Services\InstanceService;
 class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable, HasUlid, HasLastActivity, Billable;
+
+    /**
+     * Boot the model.
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        // Auto-create workspace when user is created
+        static::created(function ($user) {
+            // Only create if user doesn't already have a workspace
+            if (!$user->workspaces()->exists()) {
+                $workspace = Workspace::create([
+                    'name' => $user->name . "'s Workspace",
+                ]);
+
+                // Add user as owner member (use WorkspaceMember::create to generate ULID)
+                WorkspaceMember::create([
+                    'workspace_id' => $workspace->id,
+                    'user_id' => $user->id,
+                    'role' => WorkspaceRole::OWNER,
+                ]);
+            }
+        });
+    }
 
     /**
      * The attributes that are mass assignable.
@@ -96,6 +123,40 @@ class User extends Authenticatable
         return $this->hasMany(Room::class);
     }
 
+    /**
+     * Get workspaces owned by this user (where user has 'owner' role)
+     */
+    public function ownedWorkspaces()
+    {
+        return $this->workspaces()->wherePivot('role', WorkspaceRole::OWNER->value);
+    }
+
+    /**
+     * Get workspaces this user is a member of
+     */
+    public function workspaces(): BelongsToMany
+    {
+        return $this->belongsToMany(Workspace::class, 'workspace_members')
+            ->withPivot('role')
+            ->withTimestamps();
+    }
+
+    /**
+     * Get the primary workspace for this user (first workspace where user is owner)
+     */
+    public function primaryWorkspace(): ?Workspace
+    {
+        return $this->ownedWorkspaces()->first() ?? $this->workspaces()->first();
+    }
+
+    /**
+     * Get all workspaces this user has access to
+     */
+    public function accessibleWorkspaces()
+    {
+        return $this->workspaces()->get();
+    }
+
     public function hasAnyDisplay(): bool
     {
         return $this->displays()->count() > 0;
@@ -106,6 +167,11 @@ class User extends Authenticatable
         return $this->outlookAccounts()->count() > 0 || $this->googleAccounts()->count() > 0 || $this->caldavAccounts()->count() > 0;
     }
 
+    /**
+     * Get or generate a connect code for this user
+     * 
+     * @return string 6-digit connect code
+     */
     public function getConnectCode(): string
     {
         $connectCode = cache()->get("user:$this->id:connect-code");
@@ -116,7 +182,7 @@ class User extends Authenticatable
             } while (cache()->has("connect-code:$connectCode"));
 
             cache()->put("user:$this->id:connect-code", $connectCode, $expiresAt);
-            cache()->put("connect-code:$connectCode", auth()->id(), $expiresAt);
+            cache()->put("connect-code:$connectCode", $this->id, $expiresAt);
         }
 
         return $connectCode;
@@ -138,6 +204,26 @@ class User extends Authenticatable
         }
 
         return $this->is_unlimited || $this->subscribed();
+    }
+
+    /**
+     * Check if the user has Pro for the current workspace context.
+     * Returns true if the user has Pro OR if the selected workspace has Pro (any owner has Pro).
+     */
+    public function hasProForCurrentWorkspace(): bool
+    {
+        // If user has Pro, they have Pro everywhere
+        if ($this->hasPro()) {
+            return true;
+        }
+
+        // Check if the selected workspace has Pro (any owner has Pro)
+        $selectedWorkspace = $this->getSelectedWorkspace();
+        if ($selectedWorkspace && $selectedWorkspace->hasPro()) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -168,6 +254,26 @@ class User extends Authenticatable
 
         // Cloud Hosted: If the user is a business user and doesn't have Pro, they should upgrade
         return ! $this->hasPro() && $this->hasAnyDisplay();
+    }
+
+    /**
+     * Check if the user should upgrade to Pro for the current workspace context.
+     * Returns false if the user has Pro OR if the selected workspace has Pro.
+     */
+    public function shouldUpgradeForCurrentWorkspace(): bool
+    {
+        // If user has Pro for current workspace, no upgrade needed
+        if ($this->hasProForCurrentWorkspace()) {
+            return false;
+        }
+
+        // Self Hosted: If the user is a personal user, use a soft limit
+        if (config('settings.is_self_hosted') && $this->isPersonalUser()) {
+            return false;
+        }
+
+        // Cloud Hosted: If the user is a business user and doesn't have Pro, they should upgrade
+        return $this->hasAnyDisplay();
     }
 
     public function getCheckoutUrl(?string $redirectUrl = null): ?Checkout
@@ -212,5 +318,29 @@ class User extends Authenticatable
     public function isAdmin(): bool
     {
         return (bool) $this->is_admin;
+    }
+
+    /**
+     * Get the currently selected workspace (from session) or default to primary workspace
+     * 
+     * Note: This works for all users (including non-Pro users) who are members of workspaces.
+     * Workspace access is based on membership, not Pro status.
+     */
+    public function getSelectedWorkspace(): ?Workspace
+    {
+        $selectedWorkspaceId = session()->get('selected_workspace_id');
+        
+        if ($selectedWorkspaceId) {
+            // Validate user has access to the selected workspace (checks membership, not Pro status)
+            $workspace = $this->workspaces()->find($selectedWorkspaceId);
+            if ($workspace) {
+                return $workspace;
+            }
+            // If selected workspace is invalid or user no longer has access, clear it from session
+            session()->forget('selected_workspace_id');
+        }
+        
+        // Default to primary workspace (first owned workspace, or first workspace user is a member of)
+        return $this->primaryWorkspace();
     }
 }

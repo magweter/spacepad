@@ -12,7 +12,11 @@ uses(RefreshDatabase::class);
 
 test('display settings helper can get and set boolean values', function () {
     $user = User::factory()->create();
-    $display = Display::factory()->create(['user_id' => $user->id]);
+    $workspace = $user->primaryWorkspace();
+    $display = Display::factory()->create([
+        'user_id' => $user->id,
+        'workspace_id' => $workspace->id,
+    ]);
     
     // Test setting check-in enabled
     expect(DisplaySettings::setCheckInEnabled($display, true))->toBeTrue();
@@ -23,14 +27,21 @@ test('display settings helper can get and set boolean values', function () {
     expect(DisplaySettings::isBookingEnabled($display))->toBeTrue();
     
     // Test default values
-    $newDisplay = Display::factory()->create(['user_id' => $user->id]);
+    $newDisplay = Display::factory()->create([
+        'user_id' => $user->id,
+        'workspace_id' => $workspace->id,
+    ]);
     expect(DisplaySettings::isCheckInEnabled($newDisplay))->toBeFalse();
     expect(DisplaySettings::isBookingEnabled($newDisplay))->toBeFalse();
 });
 
 test('display model convenience methods work correctly', function () {
     $user = User::factory()->create();
-    $display = Display::factory()->create(['user_id' => $user->id]);
+    $workspace = $user->primaryWorkspace();
+    $display = Display::factory()->create([
+        'user_id' => $user->id,
+        'workspace_id' => $workspace->id,
+    ]);
     
     // Test default values
     expect($display->isCheckInEnabled())->toBeFalse();
@@ -47,7 +58,11 @@ test('display model convenience methods work correctly', function () {
 
 test('display settings can be retrieved as array', function () {
     $user = User::factory()->create();
-    $display = Display::factory()->create(['user_id' => $user->id]);
+    $workspace = $user->primaryWorkspace();
+    $display = Display::factory()->create([
+        'user_id' => $user->id,
+        'workspace_id' => $workspace->id,
+    ]);
     
     // Set some settings
     DisplaySettings::setCheckInEnabled($display, true);

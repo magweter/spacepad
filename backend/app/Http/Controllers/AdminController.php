@@ -6,19 +6,38 @@ use App\Enums\DisplayStatus;
 use App\Models\Display;
 use App\Models\Instance;
 use App\Models\User;
+use App\Models\Workspace;
+use App\Models\WorkspaceMember;
 use Illuminate\Http\Request;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 
 class AdminController extends Controller
 {
-    public function index()
+    /**
+     * Check if the current request is authorized for admin access
+     */
+    private function checkAdminAccess(): void
     {
         $user = Auth::user();
+        
+        // Prevent access if impersonating
+        if (session()->get('impersonating')) {
+            abort(403, 'Cannot access admin panel while impersonating. Please stop impersonating first.');
+        }
+        
+        // Check if current user is admin
         if (!$user || !$user->isAdmin() || config('settings.is_self_hosted')) {
             abort(403);
         }
+    }
+
+    public function index()
+    {
+        $this->checkAdminAccess();
 
         $activeDisplays = Display::where('status', DisplayStatus::ACTIVE)->count();
         $totalDisplays = Display::count();
@@ -110,10 +129,34 @@ class AdminController extends Controller
                 return $user;
             });
 
+        // All users for the users overview tab (paginated for performance)
+        $search = request()->get('search');
+        $allUsersQuery = User::query()
+            ->withCount('displays')
+            ->with(['subscriptions' => function($query) {
+                $query->where(function($q) {
+                    $q->whereNull('ends_at')
+                      ->orWhere('ends_at', '>', now());
+                });
+            }]);
+        
+        if ($search) {
+            $allUsersQuery->where(function($query) use ($search) {
+                $query->where('name', 'like', "%{$search}%")
+                      ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+        
+        $allUsers = $allUsersQuery
+            ->orderBy('created_at', 'desc')
+            ->paginate(50)
+            ->withQueryString();
+
         return view('pages.admin', [
             'activeInstances' => $activeInstances,
             'activeDisplays' => $activeDisplays,
             'payingUsers' => $payingUsers,
+            'allUsers' => $allUsers,
             'activeDisplaysCount' => $activeDisplays->count(),
             'totalDisplays' => $totalDisplays,
             'activeInstancesCount' => $activeInstances->count(),
@@ -312,5 +355,281 @@ class AdminController extends Controller
         } catch (\Exception $e) {
             return null;
         }
+    }
+
+    /**
+     * Show user details page
+     */
+    public function showUser(User $user)
+    {
+        $this->checkAdminAccess();
+        
+        $admin = Auth::user();
+
+        // Load user relationships for display
+        $user->load([
+            'outlookAccounts',
+            'googleAccounts',
+            'caldavAccounts',
+            'displays',
+            'devices',
+            'workspaces',
+            'subscriptions' => function($query) {
+                $query->where(function($q) {
+                    $q->whereNull('ends_at')
+                      ->orWhere('ends_at', '>', now());
+                })->orderByDesc('created_at');
+            },
+        ]);
+
+        // Get subscription info
+        $subscriptionInfo = null;
+        if (!$user->is_unlimited && $user->subscriptions->isNotEmpty()) {
+            $subscription = $user->subscriptions->first();
+            $subscriptionData = $this->getSubscriptionData($subscription->lemon_squeezy_id, $user->displays_count);
+            if ($subscriptionData) {
+                $subscriptionInfo = [
+                    'status' => $subscriptionData['status'] ?? null,
+                    'price' => $subscriptionData['price'] ?? 0,
+                    'mrr' => ($subscriptionData['price'] ?? 0) * $user->displays_count,
+                    'ends_at' => $subscription->ends_at,
+                ];
+            }
+        }
+
+        return view('pages.admin.user', [
+            'user' => $user,
+            'subscriptionInfo' => $subscriptionInfo,
+        ]);
+    }
+
+    /**
+     * Delete a user account and all associated data
+     */
+    public function deleteUser(Request $request, User $user): RedirectResponse
+    {
+        $this->checkAdminAccess();
+        
+        $admin = Auth::user();
+
+        // Prevent deleting yourself
+        if ($user->id === $admin->id) {
+            return redirect()->route('admin.index')
+                ->with('error', 'You cannot delete your own account.');
+        }
+
+        // Confirm deletion
+        $request->validate([
+            'confirm_email' => ['required', 'email'],
+        ]);
+
+        if ($request->input('confirm_email') !== $user->email) {
+            return back()->withErrors(['confirm_email' => 'Email confirmation does not match.']);
+        }
+
+        DB::transaction(function () use ($user, $admin) {
+            // Delete all user's personal access tokens
+            $user->tokens()->delete();
+
+            // Delete displays and their related data first (before calendars/accounts)
+            if ($user->displays) {
+                foreach ($user->displays as $display) {
+                    // Delete event subscriptions
+                    $display->eventSubscriptions()->delete();
+                    // Delete display settings
+                    $display->settings()->delete();
+                    // Delete events associated with this display
+                    $display->events()->delete();
+                    // Delete devices associated with this display
+                    $display->devices()->delete();
+                    $display->delete();
+                }
+            }
+
+            // Delete devices (standalone devices not linked to displays)
+            $user->devices()->delete();
+
+            // Delete rooms
+            $user->rooms()->delete();
+
+            // Delete Outlook accounts and their calendars/events
+            if ($user->outlookAccounts) {
+                foreach ($user->outlookAccounts as $account) {
+                    if ($account->calendars) {
+                        foreach ($account->calendars as $calendar) {
+                            $calendar->events()->delete();
+                            $calendar->delete();
+                        }
+                    }
+                    $account->delete();
+                }
+            }
+
+            // Delete Google accounts and their calendars/events
+            if ($user->googleAccounts) {
+                foreach ($user->googleAccounts as $account) {
+                    if ($account->calendars) {
+                        foreach ($account->calendars as $calendar) {
+                            $calendar->events()->delete();
+                            $calendar->delete();
+                        }
+                    }
+                    $account->delete();
+                }
+            }
+
+            // Delete CalDAV accounts and their calendars/events
+            if ($user->caldavAccounts) {
+                foreach ($user->caldavAccounts as $account) {
+                    if ($account->calendars) {
+                        foreach ($account->calendars as $calendar) {
+                            $calendar->events()->delete();
+                            $calendar->delete();
+                        }
+                    }
+                    $account->delete();
+                }
+            }
+
+            // Delete any remaining calendars directly linked to user (shouldn't happen, but safety check)
+            // Note: Calendars are linked through accounts, not directly to users, so this is unlikely
+            // Events are deleted through calendars above
+
+            // Handle workspaces
+            $ownedWorkspaces = $user->ownedWorkspaces()->get();
+            foreach ($ownedWorkspaces as $workspace) {
+                // Get other members (excluding the user being deleted)
+                $otherMembers = $workspace->members()->where('user_id', '!=', $user->id)->get();
+                
+                if ($otherMembers->isNotEmpty()) {
+                    // Find first admin or first member to transfer ownership
+                    $newOwner = $otherMembers->first(function ($member) {
+                        return $member->pivot->role === \App\Enums\WorkspaceRole::ADMIN->value;
+                    }) ?? $otherMembers->first();
+                    
+                    if ($newOwner) {
+                        // Transfer ownership
+                        WorkspaceMember::where('workspace_id', $workspace->id)
+                            ->where('user_id', $newOwner->id)
+                            ->update(['role' => \App\Enums\WorkspaceRole::OWNER]);
+                    }
+                } else {
+                    // No other members, delete the workspace and all its data
+                    foreach ($workspace->displays as $display) {
+                        $display->eventSubscriptions()->delete();
+                        $display->settings()->delete();
+                        $display->events()->delete();
+                        $display->devices()->delete();
+                        $display->delete();
+                    }
+                    $workspace->devices()->delete();
+                    foreach ($workspace->calendars as $calendar) {
+                        $calendar->events()->delete();
+                        $calendar->delete();
+                    }
+                    $workspace->rooms()->delete();
+                    WorkspaceMember::where('workspace_id', $workspace->id)->delete();
+                    $workspace->delete();
+                }
+            }
+
+            // Delete workspace memberships (user's membership in workspaces they don't own)
+            WorkspaceMember::where('user_id', $user->id)->delete();
+
+            // Delete instance if exists
+            Instance::where('user_id', $user->id)->delete();
+
+            // Cancel LemonSqueezy subscriptions (if any)
+            // Note: This doesn't actually cancel them in LemonSqueezy, just removes the local reference
+            // You might want to add API call to cancel subscriptions
+            if (method_exists($user, 'subscriptions')) {
+                $user->subscriptions()->delete();
+            }
+
+            // Finally, delete the user
+            $user->delete();
+
+            logger()->info('User account deleted by admin', [
+                'deleted_user_id' => $user->id,
+                'deleted_user_email' => $user->email,
+                'deleted_by_admin_id' => $admin->id,
+                'deleted_by_admin_email' => $admin->email,
+            ]);
+        });
+
+        return redirect()->route('admin.index')
+            ->with('success', "User account {$user->email} and all associated data have been permanently deleted.");
+    }
+
+    /**
+     * Impersonate a user
+     */
+    public function impersonate(User $user): RedirectResponse
+    {
+        $this->checkAdminAccess();
+        
+        $admin = Auth::user();
+
+        // Prevent impersonating yourself
+        if ($admin->id === $user->id) {
+            return redirect()->route('admin.index')
+                ->with('error', 'You cannot impersonate yourself.');
+        }
+
+        // Store original admin ID in session
+        session()->put('impersonating', true);
+        session()->put('impersonator_id', $admin->id);
+
+        // Clear any workspace selection from admin session - let impersonated user's workspace be selected
+        session()->forget('selected_workspace_id');
+
+        // Log in as the target user
+        Auth::login($user);
+
+        logger()->info('Admin started impersonating user', [
+            'admin_id' => $admin->id,
+            'admin_email' => $admin->email,
+            'impersonated_user_id' => $user->id,
+            'impersonated_user_email' => $user->email,
+        ]);
+
+        return redirect()->route('dashboard')
+            ->with('success', "You are now impersonating {$user->email}");
+    }
+
+    /**
+     * Stop impersonating and return to admin account
+     */
+    public function stopImpersonating(): RedirectResponse
+    {
+        $impersonatorId = session()->get('impersonator_id');
+        
+        if (!$impersonatorId) {
+            return redirect()->route('dashboard');
+        }
+
+        $impersonator = User::find($impersonatorId);
+        if (!$impersonator || !$impersonator->isAdmin()) {
+            session()->forget(['impersonating', 'impersonator_id']);
+            return redirect()->route('dashboard');
+        }
+
+        $impersonatedUser = Auth::user();
+
+        // Clear impersonation session
+        session()->forget(['impersonating', 'impersonator_id']);
+
+        // Log back in as admin
+        Auth::login($impersonator);
+
+        logger()->info('Admin stopped impersonating user', [
+            'admin_id' => $impersonator->id,
+            'admin_email' => $impersonator->email,
+            'impersonated_user_id' => $impersonatedUser->id,
+            'impersonated_user_email' => $impersonatedUser->email,
+        ]);
+
+        return redirect()->route('admin.index')
+            ->with('success', 'Stopped impersonating user.');
     }
 }

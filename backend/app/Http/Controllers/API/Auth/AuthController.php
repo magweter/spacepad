@@ -6,6 +6,7 @@ use App\Http\Controllers\API\ApiController;
 use App\Http\Requests\API\Auth\LoginRequest;
 use App\Http\Resources\API\DeviceResource;
 use App\Models\Device;
+use App\Models\User;
 use App\Services\OutlookService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Validation\ValidationException;
@@ -32,14 +33,23 @@ class AuthController extends ApiController
 
         // Check if the code is a valid connect code
         if ($connectedUserId !== null) {
+            $user = User::find($connectedUserId);
+            $workspace = $user?->primaryWorkspace();
+
             $device = Device::firstOrCreate([
                 'user_id' => $connectedUserId,
                 'uid' => $uid,
             ],[
                 'user_id' => $connectedUserId,
+                'workspace_id' => $workspace?->id,
                 'uid' => $uid,
                 'name' => $name,
             ]);
+
+            // Update workspace_id if device already existed but didn't have one
+            if ($device->workspace_id === null && $workspace) {
+                $device->update(['workspace_id' => $workspace->id]);
+            }
 
             logger()->info('Device authentication successful', [
                 'user_id' => $connectedUserId,

@@ -17,6 +17,7 @@ class Room extends Model
 
     protected $fillable = [
         'user_id',
+        'workspace_id',
         'calendar_id',
         'name',
         'email_address',
@@ -30,5 +31,10 @@ class Room extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function workspace(): BelongsTo
+    {
+        return $this->belongsTo(Workspace::class, 'workspace_id');
     }
 }

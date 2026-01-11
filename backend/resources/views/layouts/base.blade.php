@@ -8,12 +8,12 @@
                         <img class="h-7 w-7" src="/images/logo-black.svg" alt="Logo">
                     </div>
                     <span class="text-xl font-semibold text-black">Spacepad</span>
-                    @if(auth()->user()->hasPro())
+                    @if(auth()->user()->hasProForCurrentWorkspace())
                         <span class="ml-2 inline-flex items-center rounded-md bg-blue-50 px-1.5 py-0.5 text-sm font-medium text-blue-700 ring-1 ring-inset ring-blue-600">Pro</span>
                     @endif
                 </a>
                 <div class="ml-4 flex items-center space-x-4">
-                    @if(auth()->user()->isAdmin() && !config('settings.is_self_hosted'))
+                    @if(!session('impersonating') && auth()->user()->isAdmin() && !config('settings.is_self_hosted'))
                         <a href="{{ route('admin.index') }}" class="rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300 hover:text-black">
                             Admin
                         </a>

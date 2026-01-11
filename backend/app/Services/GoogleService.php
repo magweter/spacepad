@@ -59,14 +59,20 @@ class GoogleService
         $googleService = new Oauth2($this->client);
         $googleUserInfo = $googleService->userinfo->get();
 
+        // Get selected workspace (from session or default to primary)
+        $selectedWorkspace = auth()->user()->getSelectedWorkspace();
+        $workspaceId = $selectedWorkspace?->id;
+
         // Save the user's Google account and tokens in the database
         return GoogleAccount::updateOrCreate(
             [
                 'user_id' => auth()->id(),
                 'google_id' => $googleUserInfo->id,
+                'workspace_id' => $workspaceId,
             ],
             [
                 'user_id' => auth()->id(),
+                'workspace_id' => $workspaceId,
                 'email' => $googleUserInfo->email,
                 'name' => $googleUserInfo->name,
                 'avatar' => $googleUserInfo->picture,

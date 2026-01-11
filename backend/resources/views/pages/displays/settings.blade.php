@@ -3,7 +3,7 @@
 @section('container_class', 'max-w-2xl')
 
 @section('content')
-    @if(!auth()->user()->hasPro())
+    @if(!auth()->user()->hasProForCurrentWorkspace())
         <x-cards.card>
             <div class="text-center py-12">
                 <x-icons.settings class="h-12 w-12 text-gray-400 mx-auto mb-4" />

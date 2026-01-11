@@ -21,6 +21,7 @@ class Device extends Model implements Authenticatable
 
     protected $fillable = [
         'user_id',
+        'workspace_id',
         'display_id',
         'name',
         'uid',
@@ -39,5 +40,10 @@ class Device extends Model implements Authenticatable
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function workspace(): BelongsTo
+    {
+        return $this->belongsTo(Workspace::class, 'workspace_id');
     }
 }

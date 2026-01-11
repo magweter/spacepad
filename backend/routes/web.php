@@ -17,6 +17,7 @@ use App\Http\Controllers\CalDAVAccountsController;
 use App\Http\Controllers\LicenseController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\WorkspaceController;
 
 Route::get('/login', [LoginController::class, 'create'])
     ->middleware('guest')
@@ -99,6 +100,8 @@ Route::middleware(['auth', 'user.update-last-activity', 'gtm'])->group(function 
 
     Route::post('/license/validate', [LicenseController::class, 'validateLicense'])->name('license.validate');
 
+    Route::post('/workspaces/switch', [WorkspaceController::class, 'switch'])->name('workspaces.switch');
+
     Route::get('/billing/thanks', function () {
         \Spatie\GoogleTagManager\GoogleTagManagerFacade::flashPush([
             'event' => 'purchase',
@@ -116,6 +119,10 @@ Route::middleware(['auth', 'user.update-last-activity', 'gtm'])->group(function 
     })->name('billing.thanks');
 
     Route::get('/admin', [AdminController::class, 'index'])->name('admin.index');
+    Route::get('/admin/users/{user}', [AdminController::class, 'showUser'])->name('admin.users.show');
+    Route::delete('/admin/users/{user}', [AdminController::class, 'deleteUser'])->name('admin.users.delete');
+    Route::post('/admin/users/{user}/impersonate', [AdminController::class, 'impersonate'])->name('admin.users.impersonate');
+    Route::post('/admin/stop-impersonating', [AdminController::class, 'stopImpersonating'])->name('admin.stop-impersonating');
 
     // Display image serving route
     Route::get('/displays/{display}/images/{type}', [DisplaySettingsController::class, 'serveImage'])

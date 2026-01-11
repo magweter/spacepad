@@ -27,6 +27,7 @@ class GoogleAccount extends Model
         'service_account_file_path',
         'booking_method',
         'user_id',
+        'workspace_id',
         'google_id',
         'token',
         'refresh_token',
@@ -60,5 +61,10 @@ class GoogleAccount extends Model
     public function isBusiness(): bool
     {
         return !empty($this->hosted_domain);
+    }
+
+    public function workspace(): BelongsTo
+    {
+        return $this->belongsTo(Workspace::class);
     }
 }
