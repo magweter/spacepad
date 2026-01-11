@@ -10,7 +10,10 @@ use App\Models\WorkspaceMember;
 use App\Models\Display;
 use App\Models\Device;
 use App\Models\Calendar;
-use App\Models\Room;    
+use App\Models\Room;
+use App\Models\OutlookAccount;
+use App\Models\GoogleAccount;
+use App\Models\CalDAVAccount;
 use App\Enums\WorkspaceRole;
 
 return new class extends Migration
@@ -51,6 +54,21 @@ return new class extends Migration
 
                 // Migrate rooms to workspace
                 Room::where('user_id', $user->id)->update(['workspace_id' => $workspace->id]);
+
+                // Migrate Outlook accounts to workspace
+                OutlookAccount::where('user_id', $user->id)
+                    ->whereNull('workspace_id')
+                    ->update(['workspace_id' => $workspace->id]);
+
+                // Migrate Google accounts to workspace
+                GoogleAccount::where('user_id', $user->id)
+                    ->whereNull('workspace_id')
+                    ->update(['workspace_id' => $workspace->id]);
+
+                // Migrate CalDAV accounts to workspace
+                CalDAVAccount::where('user_id', $user->id)
+                    ->whereNull('workspace_id')
+                    ->update(['workspace_id' => $workspace->id]);
             }
         });
     }

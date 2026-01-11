@@ -2,15 +2,42 @@
 @section('title', 'Management dashboard')
 
 @section('actions')
-    {{-- Instruction Banner --}}
-    @if(auth()->user()->hasAnyDisplay() && $connectCode)
-        <div class="items-center flex ml-auto">
-            <div class="flex w-full border border-dashed rounded-lg p-4 border-gray-400">
-                <h3 class="text-sm font-semibold text-gray-900 mr-8">Connect code</h3>
-                <div class="max-w-xl text-sm text-gray-500 ml-auto">
-                    <p class="font-mono">{{ chunk_split($connectCode, 3, ' ') }}</p>
+    {{-- Workspace Selector and Connect Code --}}
+    @if($workspaces->count() > 1 || $connectCode)
+        <div class="items-center flex ml-auto gap-4">
+            @if($workspaces->count() > 1)
+                <form action="{{ route('workspaces.switch') }}" method="POST" id="workspace-switch-form">
+                    @csrf
+                    <div class="flex border border-dashed rounded-lg px-4 h-14 items-center border-gray-400">
+                        <label for="workspace-select" class="text-sm font-semibold text-gray-900 mr-4 flex items-center">Workspace</label>
+                        <select 
+                            id="workspace-select"
+                            name="workspace_id" 
+                            onchange="this.form.submit();"
+                            class="flex-1 text-sm font-medium text-gray-900 bg-transparent border bg-white rounded-lg p-1 focus:ring-0 focus:outline-none cursor-pointer"
+                        >
+                            @foreach($workspaces as $workspace)
+                                <option value="{{ $workspace->id }}" {{ ($selectedWorkspace?->id ?? $workspaces->first()->id) === $workspace->id ? 'selected' : '' }}>
+                                    {{ $workspace->name }}
+                                    @if($workspace->pivot->role === \App\Enums\WorkspaceRole::OWNER->value)
+                                        (Owner)
+                                    @elseif($workspace->pivot->role === \App\Enums\WorkspaceRole::ADMIN->value)
+                                        (Admin)
+                                    @endif
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                </form>
+            @endif
+            @if(auth()->user()->hasAnyDisplay() && $connectCode)
+                <div class="flex border border-dashed rounded-lg px-4 h-14 items-center border-gray-400">
+                    <h3 class="text-sm font-semibold text-gray-900 mr-8 flex items-center">Connect code</h3>
+                    <div class="flex-1 text-sm text-gray-500">
+                        <p class="font-mono">{{ chunk_split($connectCode, 3, ' ') }}</p>
+                    </div>
                 </div>
-            </div>
+            @endif
         </div>
     @endif
 @endsection
@@ -124,9 +151,6 @@
                     <h2 class="text-lg font-semibold leading-6 text-gray-900">Displays</h2>
                     <p class="mt-1 text-sm text-gray-500">
                         Overview of your displays and their status.
-                        @if($workspaces->count() > 1)
-                            <span class="text-gray-400">({{ $workspaces->count() }} workspaces)</span>
-                        @endif
                     </p>
                 </div>
                 <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none flex items-center gap-2">
@@ -205,66 +229,8 @@
                             </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-200" id="displays-table">
-                            @if($workspaces->count() > 1)
-                                @foreach($displays as $workspaceId => $workspaceDisplays)
-                                    @php
-                                        $workspace = $workspaces->firstWhere('id', $workspaceId);
-                                    @endphp
-                                    @if($workspace)
-                                        <tr class="bg-gray-50">
-                                            <td colspan="5" class="px-4 py-3">
-                                                <div class="flex items-center justify-between">
-                                                    <h3 class="text-sm font-semibold text-gray-900">
-                                                        {{ $workspace->name }}
-                                                        <span class="text-gray-500 font-normal">({{ $workspaceDisplays->count() }} display{{ $workspaceDisplays->count() !== 1 ? 's' : '' }})</span>
-                                                    </h3>
-                                                    <span class="text-xs text-gray-500">
-                                                        @if($workspace->pivot->role === \App\Enums\WorkspaceRole::OWNER->value)
-                                                            Owner
-                                                        @elseif($workspace->pivot->role === \App\Enums\WorkspaceRole::ADMIN->value)
-                                                            Admin
-                                                        @else
-                                                            Member
-                                                        @endif
-                                                    </span>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    @endif
-                                    @foreach($workspaceDisplays as $display)
-                                        <x-displays.table-row :display="$display" />
-                                    @endforeach
-                                @endforeach
-                                @if($displays->isEmpty())
-                                    <tr>
-                                        <td colspan="5" class="py-16 text-center">
-                                            <div class="flex flex-col items-center justify-center">
-                                                <x-icons.display class="h-12 w-12 text-orange mb-3" />
-                                                <h3 class="mb-2 text-md font-semibold text-gray-900">
-                                                    One more step and you're set up
-                                                </h3>
-                                                <p class="mb-6 text-sm text-gray-500 max-w-sm">Pick the calendar or room you would like to synchronize. You are able to connect multiple tablets to one display.</p>
-                                                @if(! $isSelfHosted && auth()->user()->shouldUpgrade())
-                                                    <span class="inline-flex items-center rounded-md bg-gray-100 px-3 py-2 text-center text-sm font-semibold text-gray-400 shadow-sm ring-1 ring-inset ring-gray-200 cursor-not-allowed" title="Upgrade to Pro to create more displays">
-                                                        <x-icons.plus class="h-5 w-5 mr-1" /> Create new display <span class="ml-2 inline-flex items-center rounded-md bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600">Pro</span>
-                                                    </span>
-                                                @elseif($isSelfHosted && auth()->user()->shouldUpgrade())
-                                                    <span class="inline-flex items-center rounded-md bg-gray-100 px-3 py-2 text-center text-sm font-semibold text-gray-400 shadow-sm ring-1 ring-inset ring-gray-200 cursor-not-allowed" title="Upgrade to Pro to create more displays">
-                                                        <x-icons.plus class="h-5 w-5 mr-1" /> Create new display <span class="ml-2 inline-flex items-center rounded-md bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600">Pro</span>
-                                                    </span>
-                                                @else
-                                                    <a href="{{ route('displays.create') }}" class="inline-flex items-center rounded-md bg-oxford px-3 py-2 text-center text-sm font-semibold text-white">
-                                                        <x-icons.plus class="h-5 w-5 mr-1" />
-                                                        Create new display
-                                                    </a>
-                                                @endif
-                                            </div>
-                                        </td>
-                                    </tr>
-                                @endif
-                            @else
-                                @forelse($displaysFlat as $display)
-                                    <x-displays.table-row :display="$display" />
+                            @forelse($displays as $display)
+                                <x-displays.table-row :display="$display" />
                             @empty
                                 <tr>
                                     <td colspan="5" class="py-16 text-center">
@@ -284,14 +250,14 @@
                                                 </span>
                                             @else
                                                 <a href="{{ route('displays.create') }}" class="inline-flex items-center rounded-md bg-oxford px-3 py-2 text-center text-sm font-semibold text-white">
-                                                    <x-icons.plus class="h-5 w-5 mr-1" /> Create new display
+                                                    <x-icons.plus class="h-5 w-5 mr-1" />
+                                                    Create new display
                                                 </a>
                                             @endif
                                         </div>
                                     </td>
                                 </tr>
                             @endforelse
-                            @endif
                             </tbody>
                         </table>
                     </div>

@@ -8,6 +8,10 @@ use Illuminate\Contracts\View\Factory;
 use Illuminate\Contracts\View\View;
 use App\Services\InstanceService;
 use App\Models\Display;
+use App\Models\Calendar;
+use App\Models\OutlookAccount;
+use App\Models\GoogleAccount;
+use App\Models\CalDAVAccount;
 
 class DashboardController extends Controller
 {
@@ -22,26 +26,45 @@ class DashboardController extends Controller
     public function __invoke(): View|Factory|Application
     {
         $user = auth()->user();
-        $user->load(['outlookAccounts', 'googleAccounts', 'caldavAccounts', 'workspaces']);
+        
+        // Load workspaces with pivot data (role) - this includes all workspaces user is a member of
+        $workspaces = $user->workspaces()->withPivot('role')->get();
         
         // Get connect code for user
         $connectCode = $user->getConnectCode();
 
-        // Get displays from all workspaces user is a member of
-        $workspaceIds = $user->workspaces->pluck('id');
-        $displays = Display::whereIn('workspace_id', $workspaceIds)
-            ->with(['workspace', 'calendar.outlookAccount', 'calendar.googleAccount', 'calendar.caldavAccount'])
-            ->get()
-            ->groupBy('workspace_id');
+        // Get selected workspace (from session or default to primary)
+        $selectedWorkspace = $user->getSelectedWorkspace();
+        
+        // Get displays from selected workspace only
+        if ($selectedWorkspace) {
+            $displays = Display::where('workspace_id', $selectedWorkspace->id)
+                ->with(['workspace', 'calendar.outlookAccount', 'calendar.googleAccount', 'calendar.caldavAccount'])
+                ->get();
+            
+            // Get accounts for the selected workspace
+            $outlookAccounts = OutlookAccount::where('workspace_id', $selectedWorkspace->id)
+                ->get();
+            $googleAccounts = GoogleAccount::where('workspace_id', $selectedWorkspace->id)
+                ->get();
+            $caldavAccounts = CalDAVAccount::where('workspace_id', $selectedWorkspace->id)
+                ->get();
+        } else {
+            $displays = collect();
+            $outlookAccounts = collect();
+            $googleAccounts = collect();
+            $caldavAccounts = collect();
+        }
 
         logger()->info('Dashboard page accessed', [
             'user_id' => $user->id,
             'email' => $user->email,
-            'outlook_accounts_count' => $user->outlookAccounts->count(),
-            'google_accounts_count' => $user->googleAccounts->count(),
-            'caldav_accounts_count' => $user->caldavAccounts->count(),
-            'displays_count' => $displays->flatten()->count(),
-            'workspaces_count' => $user->workspaces->count(),
+            'outlook_accounts_count' => $outlookAccounts->count(),
+            'google_accounts_count' => $googleAccounts->count(),
+            'caldav_accounts_count' => $caldavAccounts->count(),
+            'displays_count' => $displays->count(),
+            'workspaces_count' => $workspaces->count(),
+            'selected_workspace_id' => $selectedWorkspace?->id,
             'ip' => request()->ip(),
             'user_agent' => substr(request()->userAgent() ?? '', 0, 100),
         ]);
@@ -49,12 +72,12 @@ class DashboardController extends Controller
         $isSelfHosted = config('settings.is_self_hosted');
         
         return view('pages.dashboard', [
-            'outlookAccounts' => $user->outlookAccounts,
-            'googleAccounts' => $user->googleAccounts,
-            'caldavAccounts' => $user->caldavAccounts,
-            'displays' => $displays, // Grouped by workspace
-            'displaysFlat' => $displays->flatten(), // Flat list for compatibility
-            'workspaces' => $user->workspaces,
+            'outlookAccounts' => $outlookAccounts,
+            'googleAccounts' => $googleAccounts,
+            'caldavAccounts' => $caldavAccounts,
+            'displays' => $displays,
+            'workspaces' => $workspaces,
+            'selectedWorkspace' => $selectedWorkspace,
             'connectCode' => $connectCode,
             'primaryWorkspace' => $user->primaryWorkspace(),
             'version' => config('settings.version', 'dev'),

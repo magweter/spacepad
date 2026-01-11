@@ -279,4 +279,28 @@ class User extends Authenticatable
     {
         return (bool) $this->is_admin;
     }
+
+    /**
+     * Get the currently selected workspace (from session) or default to primary workspace
+     * 
+     * Note: This works for all users (including non-Pro users) who are members of workspaces.
+     * Workspace access is based on membership, not Pro status.
+     */
+    public function getSelectedWorkspace(): ?Workspace
+    {
+        $selectedWorkspaceId = session()->get('selected_workspace_id');
+        
+        if ($selectedWorkspaceId) {
+            // Validate user has access to the selected workspace (checks membership, not Pro status)
+            $workspace = $this->workspaces()->find($selectedWorkspaceId);
+            if ($workspace) {
+                return $workspace;
+            }
+            // If selected workspace is invalid or user no longer has access, clear it from session
+            session()->forget('selected_workspace_id');
+        }
+        
+        // Default to primary workspace (first owned workspace, or first workspace user is a member of)
+        return $this->primaryWorkspace();
+    }
 }

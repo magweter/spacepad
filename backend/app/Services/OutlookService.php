@@ -111,14 +111,20 @@ class OutlookService
 
         $tenantId = $this->getTenantId($tokenData['access_token']);
 
+        // Get selected workspace (from session or default to primary)
+        $selectedWorkspace = auth()->user()->getSelectedWorkspace();
+        $workspaceId = $selectedWorkspace?->id;
+
         // Save the Outlook account and tokens
         return OutlookAccount::updateOrCreate(
             [
                 'user_id' => auth()->id(),
                 'outlook_id' => $user['id'],
+                'workspace_id' => $workspaceId,
             ],
             [
                 'user_id' => auth()->id(),
+                'workspace_id' => $workspaceId,
                 'email' => $user['mail'] ?? $user['userPrincipalName'],
                 'name' => $user['displayName'],
                 'tenant_id' => $tenantId,

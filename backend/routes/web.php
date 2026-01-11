@@ -17,6 +17,7 @@ use App\Http\Controllers\CalDAVAccountsController;
 use App\Http\Controllers\LicenseController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\WorkspaceController;
 
 Route::get('/login', [LoginController::class, 'create'])
     ->middleware('guest')
@@ -98,6 +99,8 @@ Route::middleware(['auth', 'user.update-last-activity', 'gtm'])->group(function 
         ->name('rooms.google');
 
     Route::post('/license/validate', [LicenseController::class, 'validateLicense'])->name('license.validate');
+
+    Route::post('/workspaces/switch', [WorkspaceController::class, 'switch'])->name('workspaces.switch');
 
     Route::get('/billing/thanks', function () {
         \Spatie\GoogleTagManager\GoogleTagManagerFacade::flashPush([

@@ -580,6 +580,9 @@ class AdminController extends Controller
         session()->put('impersonating', true);
         session()->put('impersonator_id', $admin->id);
 
+        // Clear any workspace selection from admin session - let impersonated user's workspace be selected
+        session()->forget('selected_workspace_id');
+
         // Log in as the target user
         Auth::login($user);
 

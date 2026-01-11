@@ -36,13 +36,25 @@ class DisplayController extends Controller
     {
         $user = auth()->user();
         $workspaces = $user->workspaces()->withPivot('role')->get();
+        $selectedWorkspace = $user->getSelectedWorkspace();
+
+        // Filter accounts to only show those for the selected workspace
+        if ($selectedWorkspace) {
+            $outlookAccounts = $user->outlookAccounts()->where('workspace_id', $selectedWorkspace->id)->get();
+            $googleAccounts = $user->googleAccounts()->where('workspace_id', $selectedWorkspace->id)->get();
+            $caldavAccounts = $user->caldavAccounts()->where('workspace_id', $selectedWorkspace->id)->get();
+        } else {
+            $outlookAccounts = $user->outlookAccounts;
+            $googleAccounts = $user->googleAccounts;
+            $caldavAccounts = $user->caldavAccounts;
+        }
 
         return view('pages.displays.create', [
-            'outlookAccounts' => $user->outlookAccounts,
-            'googleAccounts' => $user->googleAccounts,
-            'caldavAccounts' => $user->caldavAccounts,
+            'outlookAccounts' => $outlookAccounts,
+            'googleAccounts' => $googleAccounts,
+            'caldavAccounts' => $caldavAccounts,
             'workspaces' => $workspaces,
-            'defaultWorkspace' => $user->primaryWorkspace(),
+            'defaultWorkspace' => $selectedWorkspace ?? $user->primaryWorkspace(),
         ]);
     }
 
@@ -71,8 +83,10 @@ class DisplayController extends Controller
 
         $user = auth()->user();
         
-        // Get workspace from request, or default to primary
-        $workspaceId = $validatedData['workspace_id'] ?? $user->primaryWorkspace()?->id;
+        // Get workspace from request, session (selected workspace), or default to primary
+        $workspaceId = $validatedData['workspace_id'] 
+            ?? session()->get('selected_workspace_id')
+            ?? $user->primaryWorkspace()?->id;
         
         if (!$workspaceId) {
             return redirect()->back()->with('error', 'No workspace found. Please contact support.');
@@ -162,7 +176,7 @@ class DisplayController extends Controller
 
             $calendar = Calendar::firstOrCreate([
                 'calendar_id' => $calendarId,
-                'user_id' => $userId,
+                'workspace_id' => $workspace->id,
             ], [
                 'calendar_id' => $calendarId,
                 'user_id' => $userId,
@@ -171,14 +185,9 @@ class DisplayController extends Controller
                 'name' => $calendarName,
             ]);
 
-            // Update workspace_id if calendar already existed
-            if (!$calendar->workspace_id) {
-                $calendar->update(['workspace_id' => $workspace->id]);
-            }
-
             Room::firstOrCreate([
                 'email_address' => $calendarId,
-                'user_id' => $userId,
+                'workspace_id' => $workspace->id,
             ], [
                 'email_address' => $calendarId,
                 'user_id' => $userId,
@@ -195,7 +204,7 @@ class DisplayController extends Controller
         
         $calendar = Calendar::firstOrCreate([
             'calendar_id' => $calendarData[0],
-            'user_id' => $userId,
+            'workspace_id' => $workspace->id,
         ], [
             'user_id' => $userId,
             'workspace_id' => $workspace->id,
@@ -203,11 +212,6 @@ class DisplayController extends Controller
             'calendar_id' => $calendarData[0],
             'name' => $calendarName,
         ]);
-
-        // Update workspace_id if calendar already existed
-        if (!$calendar->workspace_id) {
-            $calendar->update(['workspace_id' => $workspace->id]);
-        }
 
         return $calendar;
     }
