@@ -167,6 +167,11 @@ class User extends Authenticatable
         return $this->outlookAccounts()->count() > 0 || $this->googleAccounts()->count() > 0 || $this->caldavAccounts()->count() > 0;
     }
 
+    /**
+     * Get or generate a connect code for this user
+     * 
+     * @return string 6-digit connect code
+     */
     public function getConnectCode(): string
     {
         $connectCode = cache()->get("user:$this->id:connect-code");
@@ -177,7 +182,7 @@ class User extends Authenticatable
             } while (cache()->has("connect-code:$connectCode"));
 
             cache()->put("user:$this->id:connect-code", $connectCode, $expiresAt);
-            cache()->put("connect-code:$connectCode", auth()->id(), $expiresAt);
+            cache()->put("connect-code:$connectCode", $this->id, $expiresAt);
         }
 
         return $connectCode;

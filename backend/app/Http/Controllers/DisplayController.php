@@ -34,14 +34,15 @@ class DisplayController extends Controller
 
     public function create(): View
     {
-        $outlookAccounts = auth()->user()->outlookAccounts;
-        $googleAccounts = auth()->user()->googleAccounts;
-        $caldavAccounts = auth()->user()->caldavAccounts;
+        $user = auth()->user();
+        $workspaces = $user->workspaces()->withPivot('role')->get();
 
         return view('pages.displays.create', [
-            'outlookAccounts' => $outlookAccounts,
-            'googleAccounts' => $googleAccounts,
-            'caldavAccounts' => $caldavAccounts,
+            'outlookAccounts' => $user->outlookAccounts,
+            'googleAccounts' => $user->googleAccounts,
+            'caldavAccounts' => $user->caldavAccounts,
+            'workspaces' => $workspaces,
+            'defaultWorkspace' => $user->primaryWorkspace(),
         ]);
     }
 
@@ -69,10 +70,23 @@ class DisplayController extends Controller
         };
 
         $user = auth()->user();
-        $workspace = $user->primaryWorkspace();
         
-        if (!$workspace) {
+        // Get workspace from request, or default to primary
+        $workspaceId = $validatedData['workspace_id'] ?? $user->primaryWorkspace()?->id;
+        
+        if (!$workspaceId) {
             return redirect()->back()->with('error', 'No workspace found. Please contact support.');
+        }
+        
+        // Verify user has access to this workspace
+        $workspace = $user->workspaces()->find($workspaceId);
+        if (!$workspace) {
+            return redirect()->back()->with('error', 'You do not have access to this workspace.');
+        }
+        
+        // Check if user can create displays in this workspace (owner/admin)
+        if (!$workspace->canBeManagedBy($user)) {
+            return redirect()->back()->with('error', 'You do not have permission to create displays in this workspace.');
         }
 
         $display = DB::transaction(function () use ($validatedData, $workspace) {

@@ -3,12 +3,12 @@
 
 @section('actions')
     {{-- Instruction Banner --}}
-    @if(auth()->user()->hasAnyDisplay())
+    @if(auth()->user()->hasAnyDisplay() && $connectCode)
         <div class="items-center flex ml-auto">
             <div class="flex w-full border border-dashed rounded-lg p-4 border-gray-400">
                 <h3 class="text-sm font-semibold text-gray-900 mr-8">Connect code</h3>
                 <div class="max-w-xl text-sm text-gray-500 ml-auto">
-                    <p>{{ chunk_split($connectCode, 3, ' ') }}</p>
+                    <p class="font-mono">{{ chunk_split($connectCode, 3, ' ') }}</p>
                 </div>
             </div>
         </div>
@@ -122,7 +122,12 @@
             <div class="sm:flex sm:items-center mb-4">
                 <div class="sm:flex-auto">
                     <h2 class="text-lg font-semibold leading-6 text-gray-900">Displays</h2>
-                    <p class="mt-1 text-sm text-gray-500">Overview of your displays and their status.</p>
+                    <p class="mt-1 text-sm text-gray-500">
+                        Overview of your displays and their status.
+                        @if($workspaces->count() > 1)
+                            <span class="text-gray-400">({{ $workspaces->count() }} workspaces)</span>
+                        @endif
+                    </p>
                 </div>
                 <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none flex items-center gap-2">
                     @if(auth()->user()->hasAnyDisplay())
@@ -200,118 +205,66 @@
                             </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-200" id="displays-table">
-                            @forelse($displays as $display)
-                                <tr>
-                                    <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0">
-                                        <div class="font-medium text-gray-900">{{ $display->name }}</div>
-                                        <div class="text-gray-500">{{ $display->display_name }}</div>
-                                    </td>
-                                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                                        <div class="flex flex-col gap-1">
-                                            @if($display->calendar->outlookAccount)
-                                                <div class="flex items-center">
-                                                    <x-icons.microsoft class="h-4 w-4 text-gray-900 mr-2" />
-                                                    <span class="text-gray-900">{{ $display->calendar->outlookAccount->name }}</span>
+                            @if($workspaces->count() > 1)
+                                @foreach($displays as $workspaceId => $workspaceDisplays)
+                                    @php
+                                        $workspace = $workspaces->firstWhere('id', $workspaceId);
+                                    @endphp
+                                    @if($workspace)
+                                        <tr class="bg-gray-50">
+                                            <td colspan="5" class="px-4 py-3">
+                                                <div class="flex items-center justify-between">
+                                                    <h3 class="text-sm font-semibold text-gray-900">
+                                                        {{ $workspace->name }}
+                                                        <span class="text-gray-500 font-normal">({{ $workspaceDisplays->count() }} display{{ $workspaceDisplays->count() !== 1 ? 's' : '' }})</span>
+                                                    </h3>
+                                                    <span class="text-xs text-gray-500">
+                                                        @if($workspace->pivot->role === \App\Enums\WorkspaceRole::OWNER->value)
+                                                            Owner
+                                                        @elseif($workspace->pivot->role === \App\Enums\WorkspaceRole::ADMIN->value)
+                                                            Admin
+                                                        @else
+                                                            Member
+                                                        @endif
+                                                    </span>
                                                 </div>
-                                            @endif
-                                            @if($display->calendar->googleAccount)
-                                                <div class="flex items-center">
-                                                    <x-icons.google class="h-4 w-4 text-gray-900 mr-2" />
-                                                    <span class="text-gray-900">{{ $display->calendar->googleAccount->name }}</span>
-                                                </div>
-                                            @endif
-                                            @if($display->calendar->caldavAccount)
-                                                <div class="flex items-center">
-                                                    <x-icons.calendar class="h-4 w-4 text-gray-900 mr-2" />
-                                                    <span class="text-gray-900">{{ $display->calendar->caldavAccount->name }}</span>
-                                                </div>
-                                            @endif
-                                            <div class="text-gray-500">{{ $display->calendar->name }}</div>
-                                        </div>
-                                    </td>
-                                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                                        <span class="inline-flex items-center rounded-md bg-{{ $display->status->color() }}-50 px-2 py-1 text-xs font-medium text-{{ $display->status->color() }}-700 ring-1 ring-inset ring-{{ $display->status->color() }}-600">
-                                            {{ $display->status->label() }}
-                                        </span>
-                                    </td>
-                                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                                        <div class="flex flex-col gap-1">
-                                            <div class="flex items-center gap-x-1.5">
-                                                @if($display->devices->isNotEmpty())
-                                                    <div class="flex-none rounded-full bg-emerald-500/20 p-1">
-                                                        <div class="h-2 w-2 rounded-full bg-emerald-500"></div>
-                                                    </div>
-                                                    <div class="group relative">
-                                                        <button type="button" class="flex items-center gap-x-1 text-sm text-gray-500 hover:text-gray-900">
-                                                            <span>{{ $display->devices->count() }} device{{ $display->devices->count() > 1 ? 's' : '' }}</span>
-                                                            <x-icons.information class="h-4 w-4 text-gray-400" />
-                                                        </button>
-                                                        <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block">
-                                                            <div class="rounded-md bg-gray-900 px-2 py-1 text-xs text-white shadow-lg">
-                                                                <div class="whitespace-nowrap">
-                                                                    @foreach($display->devices as $device)
-                                                                        <div class="flex items-center gap-x-1">
-                                                                            <span>{{ $device->name }}</span>
-                                                                            @if($device->last_activity_at)
-                                                                                <span class="text-gray-400">({{ $device->last_activity_at->diffForHumans() }})</span>
-                                                                            @endif
-                                                                        </div>
-                                                                    @endforeach
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
+                                            </td>
+                                        </tr>
+                                    @endif
+                                    @foreach($workspaceDisplays as $display)
+                                        <x-displays.table-row :display="$display" />
+                                    @endforeach
+                                @endforeach
+                                @if($displays->isEmpty())
+                                    <tr>
+                                        <td colspan="5" class="py-16 text-center">
+                                            <div class="flex flex-col items-center justify-center">
+                                                <x-icons.display class="h-12 w-12 text-orange mb-3" />
+                                                <h3 class="mb-2 text-md font-semibold text-gray-900">
+                                                    One more step and you're set up
+                                                </h3>
+                                                <p class="mb-6 text-sm text-gray-500 max-w-sm">Pick the calendar or room you would like to synchronize. You are able to connect multiple tablets to one display.</p>
+                                                @if(! $isSelfHosted && auth()->user()->shouldUpgrade())
+                                                    <span class="inline-flex items-center rounded-md bg-gray-100 px-3 py-2 text-center text-sm font-semibold text-gray-400 shadow-sm ring-1 ring-inset ring-gray-200 cursor-not-allowed" title="Upgrade to Pro to create more displays">
+                                                        <x-icons.plus class="h-5 w-5 mr-1" /> Create new display <span class="ml-2 inline-flex items-center rounded-md bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600">Pro</span>
+                                                    </span>
+                                                @elseif($isSelfHosted && auth()->user()->shouldUpgrade())
+                                                    <span class="inline-flex items-center rounded-md bg-gray-100 px-3 py-2 text-center text-sm font-semibold text-gray-400 shadow-sm ring-1 ring-inset ring-gray-200 cursor-not-allowed" title="Upgrade to Pro to create more displays">
+                                                        <x-icons.plus class="h-5 w-5 mr-1" /> Create new display <span class="ml-2 inline-flex items-center rounded-md bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600">Pro</span>
+                                                    </span>
                                                 @else
-                                                    <div class="flex-none rounded-full bg-gray-500/20 p-1">
-                                                        <div class="h-2 w-2 rounded-full bg-gray-500"></div>
-                                                    </div>
-                                                    <span class="text-gray-500">No devices</span>
+                                                    <a href="{{ route('displays.create') }}" class="inline-flex items-center rounded-md bg-oxford px-3 py-2 text-center text-sm font-semibold text-white">
+                                                        <x-icons.plus class="h-5 w-5 mr-1" />
+                                                        Create new display
+                                                    </a>
                                                 @endif
                                             </div>
-                                            @if($display->last_sync_at)
-                                                <div class="text-gray-400 text-xs">Last sync {{ $display->last_sync_at->diffForHumans() }}</div>
-                                            @endif
-                                        </div>
-                                    </td>
-                                    <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-0">
-                                        <div class="flex justify-end gap-x-2">
-                                            <form action="{{ route('displays.updateStatus', $display) }}" method="POST" class="inline">
-                                                @csrf
-                                                @method('PATCH')
-                                                <input type="hidden" name="status" value="{{ $display->status === \App\Enums\DisplayStatus::ACTIVE ? 'deactivated' : 'active' }}">
-                                                <button type="submit" class="inline-flex items-center rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
-                                                    @if($display->status === \App\Enums\DisplayStatus::ACTIVE)
-                                                        <x-icons.pause class="h-4 w-4" />
-                                                    @else
-                                                        <x-icons.play class="h-4 w-4" />
-                                                    @endif
-                                                </button>
-                                            </form>
-                                            @if(auth()->user()->hasPro())
-                                                <a href="{{ route('displays.customization', $display) }}" class="inline-flex items-center rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-indigo-600 shadow-sm ring-1 ring-inset ring-indigo-300 hover:bg-indigo-50" title="Customize display (Pro)">
-                                                    <x-icons.brush class="h-4 w-4" />
-                                                </a>
-                                                <a href="{{ route('displays.settings.index', $display) }}" class="inline-flex items-center rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-blue-600 shadow-sm ring-1 ring-inset ring-blue-300 hover:bg-blue-50" title="Display settings (Pro)">
-                                                    <x-icons.settings class="h-4 w-4" />
-                                                </a>
-                                            @else
-                                                <span class="inline-flex items-center rounded-md bg-gray-100 px-2.5 py-1.5 text-sm font-semibold text-gray-400 shadow-sm ring-1 ring-inset ring-gray-200 cursor-not-allowed" title="Upgrade to Pro to unlock customization">
-                                                    <x-icons.brush class="h-4 w-4" />
-                                                </span>
-                                                <span class="inline-flex items-center rounded-md bg-gray-100 px-2.5 py-1.5 text-sm font-semibold text-gray-400 shadow-sm ring-1 ring-inset ring-gray-200 cursor-not-allowed" title="Upgrade to Pro to unlock settings">
-                                                    <x-icons.settings class="h-4 w-4" />
-                                                </span>
-                                            @endif
-                                            <form action="{{ route('displays.delete', $display) }}" method="POST" class="inline">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="inline-flex items-center rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-red-600 shadow-sm ring-1 ring-inset ring-red-300 hover:bg-red-50">
-                                                    <x-icons.trash class="h-4 w-4" />
-                                                </button>
-                                            </form>
-                                        </div>
-                                    </td>
-                                </tr>
+                                        </td>
+                                    </tr>
+                                @endif
+                            @else
+                                @forelse($displaysFlat as $display)
+                                    <x-displays.table-row :display="$display" />
                             @empty
                                 <tr>
                                     <td colspan="5" class="py-16 text-center">
@@ -338,6 +291,7 @@
                                     </td>
                                 </tr>
                             @endforelse
+                            @endif
                             </tbody>
                         </table>
                     </div>
@@ -520,6 +474,25 @@
             </div>
         </x-cards.card>
     </div>
+
+    {{-- Server Info (Self-hosted only) --}}
+    @if($isSelfHosted)
+        <div class="mt-8 flex flex-wrap items-center gap-3 text-sm text-gray-500">
+            <span class="inline-flex items-center rounded-md bg-gray-100 px-2.5 py-1.5 text-xs font-medium text-gray-600">
+                Self-hosted
+            </span>
+            @if($version)
+                <span class="inline-flex items-center rounded-md bg-gray-100 px-2.5 py-1.5 text-xs font-medium text-gray-600">
+                    v{{ $version }}
+                </span>
+            @endif
+            @if($appUrl)
+                <span class="inline-flex items-center rounded-md bg-gray-100 px-2.5 py-1.5 text-xs font-medium text-gray-600">
+                    {{ parse_url($appUrl, PHP_URL_HOST) }} ({{ $appEnv }})
+                </span>
+            @endif
+        </div>
+    @endif
 @endsection
 
 @push('scripts')
@@ -563,6 +536,7 @@
                 }));
             });
         @endif
+
     </script>
 @endpush
 

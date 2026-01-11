@@ -25,8 +25,15 @@ class DeviceController extends ApiController
         $device = auth()->user();
         $data = $request->validated();
 
+        if (!$device->workspace_id) {
+            return $this->error(
+                message: 'Device is not assigned to a workspace',
+                code: Response::HTTP_BAD_REQUEST
+            );
+        }
+
         $display = Display::query()
-            ->where('user_id', $device->user_id)
+            ->where('workspace_id', $device->workspace_id)
             ->find($data['display_id']);
 
         if (! $display) {
