@@ -30,11 +30,21 @@ class DashboardController extends Controller
         // Load workspaces with pivot data (role) - this includes all workspaces user is a member of
         $workspaces = $user->workspaces()->withPivot('role')->get();
         
-        // Get connect code for user
-        $connectCode = $user->getConnectCode();
-
         // Get selected workspace (from session or default to primary)
         $selectedWorkspace = $user->getSelectedWorkspace();
+        
+        // Get connect code from workspace owner (or current user if no workspace selected)
+        $connectCode = null;
+        if ($selectedWorkspace) {
+            $workspaceOwner = $selectedWorkspace->owners()->first();
+            if ($workspaceOwner) {
+                $connectCode = $workspaceOwner->getConnectCode();
+            }
+        }
+        // Fallback to current user's connect code if no workspace or owner found
+        if (!$connectCode) {
+            $connectCode = $user->getConnectCode();
+        }
         
         // Get displays from selected workspace only
         if ($selectedWorkspace) {

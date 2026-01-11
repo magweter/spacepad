@@ -308,8 +308,20 @@
                     <span class="bg-white px-2 text-sm text-gray-500">Connected accounts</span>
                 </div>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-1 gap-4">
-                @foreach($outlookAccounts as $outlookAccount)
+            @if($outlookAccounts->isEmpty() && $googleAccounts->isEmpty() && $caldavAccounts->isEmpty())
+                <div class="py-12 text-center">
+                    <div class="flex flex-col items-center justify-center">
+                        <h3 class="mb-2 text-md font-semibold text-gray-900">
+                            No accounts connected yet
+                        </h3>
+                        <p class="mb-0 text-sm text-gray-500 max-w-sm">
+                            Connect a calendar account above to get started. You can connect Microsoft, Google, or CalDAV accounts.
+                        </p>
+                    </div>
+                </div>
+            @else
+                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-1 gap-4">
+                    @foreach($outlookAccounts as $outlookAccount)
                     <div class="relative flex items-center space-x-4 rounded-lg border border-gray-300 bg-white px-5 py-4 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 hover:border-gray-400">
                         @if($outlookAccount->calendars->isEmpty())
                             <form action="{{ route('outlook-accounts.delete', $outlookAccount) }}" method="POST" class="absolute top-4.5 right-2 z-10">
@@ -437,7 +449,8 @@
                         </div>
                     </div>
                 @endforeach
-            </div>
+                </div>
+            @endif
         </x-cards.card>
     </div>
 
