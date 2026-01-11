@@ -16,11 +16,18 @@ uses(RefreshDatabase::class);
 
 beforeEach(function () {
     $this->user = User::factory()->create();
-    $this->device = Device::factory()->create(['user_id' => $this->user->id]);
+    // User boot method automatically creates a workspace, get the primary workspace
+    $this->workspace = $this->user->primaryWorkspace();
+    
+    $this->device = Device::factory()->create([
+        'user_id' => $this->user->id,
+        'workspace_id' => $this->workspace->id,
+    ]);
 
     // Create calendar first
     $this->calendar = Calendar::factory()->create([
         'user_id' => $this->user->id,
+        'workspace_id' => $this->workspace->id,
         'calendar_id' => 'test@example.com',
         'name' => 'Test Calendar'
     ]);
@@ -28,6 +35,7 @@ beforeEach(function () {
     // Then create display with calendar
     $this->display = Display::factory()->create([
         'user_id' => $this->user->id,
+        'workspace_id' => $this->workspace->id,
         'calendar_id' => $this->calendar->id,
         'status' => 'active'
     ]);
@@ -58,6 +66,7 @@ it('returns outlook events in the correct format', function () {
     $outlookAccount = OutlookAccount::factory()->create(['user_id' => $this->user->id]);
     Room::factory()->create([
         'user_id' => $this->user->id,
+        'workspace_id' => $this->workspace->id,
         'calendar_id' => $this->calendar->id,
         'email_address' => 'test@example.com'
     ]);
@@ -128,6 +137,7 @@ it('returns google events in the correct format', function () {
     $googleAccount = GoogleAccount::factory()->create(['user_id' => $this->user->id]);
     Room::factory()->create([
         'user_id' => $this->user->id,
+        'workspace_id' => $this->workspace->id,
         'calendar_id' => $this->calendar->id,
         'email_address' => 'test@example.com'
     ]);
@@ -254,6 +264,7 @@ it('caches events when event subscription exists', function () {
     $outlookAccount = OutlookAccount::factory()->create(['user_id' => $this->user->id]);
     Room::factory()->create([
         'user_id' => $this->user->id,
+        'workspace_id' => $this->workspace->id,
         'calendar_id' => $this->calendar->id,
         'email_address' => 'test@example.com'
     ]);

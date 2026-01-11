@@ -36,7 +36,7 @@ class DisplayService
         }
 
         if (!$displayId) {
-            return new PermissionResult(false, 'Display ID is required', 400);
+            return new PermissionResult(false, 'Display not found', 404);
         }
 
         // Get all workspace IDs the user is a member of
