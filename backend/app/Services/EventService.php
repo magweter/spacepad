@@ -424,7 +424,11 @@ class EventService
             endDateTime: $display->getEndTime(),
         );
 
-        return collect($events)->map(fn($e) => $this->sanitizeGoogleEvent($e));
+        // Filter out cancelled events - Google Calendar returns cancelled events with status "cancelled"
+        // but they should not be displayed
+        return collect($events)
+            ->filter(fn($e) => $e->getStatus() !== 'cancelled')
+            ->map(fn($e) => $this->sanitizeGoogleEvent($e));
     }
 
     /**
