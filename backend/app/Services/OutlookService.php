@@ -334,8 +334,11 @@ class OutlookService
         if ($calendar->room) {
             // For rooms, use the user's calendar
             $endpoint = "https://graph.microsoft.com/v1.0/users/{$calendar->calendar_id}/calendar/events";
+        } elseif ($calendar->is_primary) {
+            // For primary calendar, use /me/calendar/events (without calendar ID)
+            $endpoint = "https://graph.microsoft.com/v1.0/me/calendar/events";
         } else {
-            // For calendars, use the calendar ID
+            // For other calendars, use the calendar ID
             $endpoint = "https://graph.microsoft.com/v1.0/me/calendars/{$calendar->calendar_id}/events";
         }
 
@@ -372,8 +375,11 @@ class OutlookService
         if ($calendar->room) {
             // For rooms, use the user's calendar
             $endpoint = "https://graph.microsoft.com/v1.0/users/{$calendar->calendar_id}/calendar/events/{$eventId}";
+        } elseif ($calendar->is_primary) {
+            // For primary calendar, use /me/calendar/events (without calendar ID)
+            $endpoint = "https://graph.microsoft.com/v1.0/me/calendar/events/{$eventId}";
         } else {
-            // For calendars, use the calendar ID
+            // For other calendars, use the calendar ID
             $endpoint = "https://graph.microsoft.com/v1.0/me/calendars/{$calendar->calendar_id}/events/{$eventId}";
         }
 
@@ -402,7 +408,22 @@ class OutlookService
         Display $display,
         string $emailAddress
     ): ?EventSubscription {
-        return $this->createEventSubscription($outlookAccount, $display, "/users/$emailAddress/events");
+        // Try the standard path first
+        try {
+            return $this->createEventSubscription($outlookAccount, $display, "/users/$emailAddress/events");
+        } catch (\Exception $e) {
+            // If it fails with a resource invalid error, try with /calendar/ path as backup
+            if (str_contains($e->getMessage(), 'Resource') && str_contains($e->getMessage(), 'invalid')) {
+                logger()->warning('Subscription failed with /events path, trying /calendar/events as backup', [
+                    'email' => $emailAddress,
+                    'display_id' => $display->id,
+                    'error' => $e->getMessage(),
+                ]);
+                return $this->createEventSubscription($outlookAccount, $display, "/users/$emailAddress/calendar/events");
+            }
+            // Re-throw if it's not a resource invalid error
+            throw $e;
+        }
     }
 
     /**
