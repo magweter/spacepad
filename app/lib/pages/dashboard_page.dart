@@ -72,7 +72,7 @@ class _DashboardPageState extends State<DashboardPage> {
     // Base padding on shortest side, increase for portrait
     final horizontalBase = shortestSide * 0.033; // ~3.3% of shortest side
     final verticalBase = shortestSide * 0.025; // ~2.5% of shortest side
-    final portraitMultiplier = isPortrait ? 1.2 : 1.0;
+    final portraitMultiplier = isPortrait ? 1.2 : 1.4;
     
     return EdgeInsets.fromLTRB(
       horizontalBase * portraitMultiplier,
