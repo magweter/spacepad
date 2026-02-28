@@ -20,6 +20,7 @@ class Instance extends Model
         'is_self_hosted',
         'displays_count',
         'rooms_count',
+        'boards_count',
         'users',
         'version',
         'last_validated_at',

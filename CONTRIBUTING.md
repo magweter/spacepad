@@ -49,6 +49,7 @@ Thank you for your interest in contributing to Spacepad! This document provides 
 ### Coding Standards
 
 - Follow the [PSR-12](https://www.php-fig.org/psr/psr-12/) coding style guide for PHP
+- Always use import statements instead of inline fully qualified class names - See [Coding Standards](backend/docs/CODING_STANDARDS.md) for details
 - Use ESLint and Prettier for JavaScript/TypeScript
 - Write meaningful commit messages
 - Add comments for complex logic

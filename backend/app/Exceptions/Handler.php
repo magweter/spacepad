@@ -8,6 +8,7 @@ use Illuminate\Http\Response;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Auth\AuthenticationException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Throwable;
 
 class Handler extends ExceptionHandler
@@ -37,6 +38,38 @@ class Handler extends ExceptionHandler
      */
     public function render($request, Throwable $e): Response|JsonResponse|\Symfony\Component\HttpFoundation\Response
     {
+        // Log exceptions with context (skip 4xx noise; avoid leaking details in prod)
+        if (
+            $this->shouldReport($e) &&
+            !($e instanceof NotFoundHttpException) &&
+            !($e instanceof ValidationException) &&
+            !($e instanceof HttpExceptionInterface && $e->getStatusCode() < 500)
+        ) {
+            $logLevel = $e instanceof AuthenticationException ? 'warning' : 'error';
+
+            $context = [
+                'exception' => get_class($e),
+                'route' => $request->route()?->getName(),
+                'path' => $request->path(),
+                'method' => $request->method(),
+                'user_id' => auth()->id(),
+            ];
+
+            if (config('app.debug')) {
+                $context += [
+                    'message' => $e->getMessage(),
+                    'code' => $e->getCode(),
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine(),
+                    'ip' => $request->ip(),
+                    'user_agent' => substr($request->userAgent() ?? '', 0, 200),
+                    'trace' => substr($e->getTraceAsString(), 0, 1000),
+                ];
+            }
+
+            logger()->{$logLevel}('Unhandled exception', $context);
+        }
+
         if ($request->expectsJson()) {
             $status = 500;
             $message = 'Server Error';

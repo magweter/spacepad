@@ -2,13 +2,13 @@
 @section('title', 'Management dashboard')
 
 @section('actions')
-    {{-- Instruction Banner --}}
-    @if(auth()->user()->hasAnyDisplay())
-        <div class="items-center flex ml-auto">
-            <div class="flex w-full border border-dashed rounded-lg p-4 border-gray-400">
-                <h3 class="text-sm font-semibold text-gray-900 mr-8">Connect code</h3>
-                <div class="max-w-xl text-sm text-gray-500 ml-auto">
-                    <p>{{ chunk_split($connectCode, 3, ' ') }}</p>
+    {{-- Connect Code --}}
+    @if((auth()->user()->hasAnyDisplay() || auth()->user()->workspaces()->count() > 1) && $connectCode)
+        <div class="items-center flex ml-auto gap-4">
+            <div class="flex border border-dashed rounded-lg px-4 h-14 items-center border-gray-400">
+                <h3 class="text-sm font-semibold text-gray-900 mr-8 flex items-center">Connect code</h3>
+                <div class="flex-1 text-sm text-gray-500">
+                    <p class="font-mono">{{ chunk_split($connectCode, 3, ' ') }}</p>
                 </div>
             </div>
         </div>
@@ -87,7 +87,7 @@
     <x-modals.license-key />
 
     {{-- Commercial Banner --}}
-    @if(! auth()->user()->hasPro() && auth()->user()->hasAnyDisplay())
+    @if(! auth()->user()->hasProForCurrentWorkspace() && auth()->user()->hasAnyDisplay())
         <div class="mb-4 rounded-lg bg-indigo-50 border border-indigo-200 p-4 flex items-start gap-4">
             <div class="flex-shrink-0 mt-1">
                 <span class="inline-flex items-center justify-center h-10 w-10 rounded-full bg-indigo-100">
@@ -97,7 +97,7 @@
             <div class="flex-1">
                 <h3 class="text-md font-semibold text-indigo-900 mb-1">Unlock all features</h3>
                 <p class="text-sm text-indigo-800 mb-1">
-                    Upgrade to Pro to create multiple displays, book on-display, customize or hide meeting titles, use logos and backgrounds, enable check-in and more!
+                    Upgrade to Pro to unlock all features, including multiple displays, creating boards, book on-display, personalize displays, enable check-in and more!
                 </p>
                 <p class="text-sm text-indigo-700 mb-0">
                     <a href="https://spacepad.io/#features" target="_blank" class="underline hover:text-indigo-900 inline-block">See all Pro features</a> or <a href="https://spacepad.io/pricing" target="_blank" class="underline hover:text-indigo-900 inline-block">see pricing</a>.
@@ -119,33 +119,66 @@
 
     <div class="grid gap-4 grid-cols-12 min-h-[600px]">
         <x-cards.card class="col-span-12 xl:col-span-8">
-            <div class="sm:flex sm:items-center mb-4">
-                <div class="sm:flex-auto">
-                    <h2 class="text-lg font-semibold leading-6 text-gray-900">Displays</h2>
-                    <p class="mt-1 text-sm text-gray-500">Overview of your displays and their status.</p>
-                </div>
-                <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none flex items-center gap-2">
-                    @if(auth()->user()->hasAnyDisplay())
-                        <button type="button" onclick="openConnectModal()" class="inline-flex items-center gap-x-1.5 rounded-md bg-oxford px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-oxford-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-oxford-600">
-                            <x-icons.display class="h-4 w-4" />
-                            How to connect a tablet
+            {{-- Tabs --}}
+            <div class="border-b border-gray-200 mb-6">
+                <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+                    <button onclick="switchTab('displays')" id="tab-displays" class="tab-button border-b-2 border-blue-600 pb-4 px-1 text-sm font-medium text-blue-600 whitespace-nowrap">
+                        Displays
+                    </button>
+                    @if(auth()->user()->hasProForCurrentWorkspace())
+                        <button onclick="switchTab('boards')" id="tab-boards" class="tab-button border-b-2 border-transparent pb-4 px-1 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap">
+                            Boards <span class="ml-1 inline-flex items-center rounded-md bg-green-50 px-1.5 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">New</span>
                         </button>
+                    @else
+                        <div class="relative group">
+                            <button type="button" disabled id="tab-boards" class="tab-button border-b-2 border-transparent pb-4 px-1 text-sm font-medium text-gray-400 cursor-not-allowed whitespace-nowrap flex items-center gap-1">
+                                Boards
+                                <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                                </svg>
+                            </button>
+                            <div class="absolute left-0 top-full mt-2 w-72 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
+                                <div class="font-semibold mb-1">Boards (Pro Feature)</div>
+                                <div class="mb-2">Boards are meeting room availability overviews for big screens, allowing you to display multiple rooms at once.</div>
+                                <div>Find more information on <a href="https://spacepad.io" target="_blank" class="underline font-semibold hover:text-blue-300">spacepad.io</a></div>
+                                <div class="absolute bottom-full left-4 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-gray-900"></div>
+                            </div>
+                        </div>
                     @endif
-                    @if(auth()->user()->can('create', \App\Models\Display::class))
-                        @if(auth()->user()->shouldUpgrade())
-                            <span class="inline-flex items-center rounded-md bg-gray-100 px-3 py-2 text-center text-sm font-semibold text-gray-400 shadow-sm ring-1 ring-inset ring-gray-200 cursor-not-allowed" title="Upgrade to Pro to create more displays">
-                                <x-icons.plus class="h-5 w-5 mr-1" />
-                                Create new display <span class="ml-2 inline-flex items-center rounded-md bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600">Pro</span>
-                            </span>
-                        @else
-                            <a href="{{ route('displays.create') }}" class="inline-flex items-center rounded-md bg-oxford px-3 py-2 text-center text-sm font-semibold text-white">
-                                <x-icons.plus class="h-5 w-5 mr-1" />
-                                Create new display
-                            </a>
-                        @endif
-                    @endif
-                </div>
+                </nav>
             </div>
+
+            {{-- Displays Tab Content --}}
+            <div id="tab-content-displays" class="tab-content">
+                <div class="sm:flex sm:items-center mb-4">
+                    <div class="sm:flex-auto">
+                        <h2 class="text-lg font-semibold leading-6 text-gray-900">Displays</h2>
+                        <p class="mt-1 text-sm text-gray-500">
+                            Overview of your displays and their status.
+                        </p>
+                    </div>
+                    <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none flex items-center gap-2">
+                        @if(auth()->user()->hasAnyDisplay() || auth()->user()->workspaces()->count() > 1)
+                            <button type="button" onclick="openConnectModal()" class="inline-flex items-center gap-x-1.5 rounded-md bg-oxford px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-oxford-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-oxford-600">
+                                <x-icons.display class="h-4 w-4" />
+                                How to connect a tablet
+                            </button>
+                        @endif
+                        @if(auth()->user()->can('create', \App\Models\Display::class))
+                            @if(auth()->user()->shouldUpgradeForCurrentWorkspace())
+                                <span class="inline-flex items-center rounded-md bg-gray-100 px-3 py-2 text-center text-sm font-semibold text-gray-400 shadow-sm ring-1 ring-inset ring-gray-200 cursor-not-allowed" title="Upgrade to Pro to create more displays">
+                                    <x-icons.plus class="h-5 w-5 mr-1" />
+                                    Create new display <span class="ml-2 inline-flex items-center rounded-md bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600">Pro</span>
+                                </span>
+                            @else
+                                <a href="{{ route('displays.create') }}" class="inline-flex items-center rounded-md bg-oxford px-3 py-2 text-center text-sm font-semibold text-white">
+                                    <x-icons.plus class="h-5 w-5 mr-1" />
+                                    Create new display
+                                </a>
+                            @endif
+                        @endif
+                    </div>
+                </div>
 
             {{-- Connect Instructions Modal --}}
             <div id="connectModal" class="relative z-10 hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
@@ -184,165 +217,176 @@
                 </div>
             </div>
 
-            <div class="mt-6 flow-root">
-                <div class="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
-                    <div class="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
-                        <table class="min-w-full divide-y divide-gray-300">
-                            <thead>
-                            <tr>
-                                <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-0">Name</th>
-                                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Account</th>
-                                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Status</th>
-                                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Activity</th>
-                                <th scope="col" class="relative py-3.5 pr-4 pl-3 sm:pr-0">
-                                    <span class="sr-only">Actions</span>
-                                </th>
-                            </tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-200" id="displays-table">
-                            @forelse($displays as $display)
+                <div class="mt-6 flow-root">
+                    <div class="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+                        <div class="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
+                            <table class="min-w-full divide-y divide-gray-300">
+                                <thead>
                                 <tr>
-                                    <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0">
-                                        <div class="font-medium text-gray-900">{{ $display->name }}</div>
-                                        <div class="text-gray-500">{{ $display->calendar->name }}</div>
-                                    </td>
-                                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                                        <div class="flex flex-col gap-1">
-                                            @if($display->calendar->outlookAccount)
-                                                <div class="flex items-center">
-                                                    <x-icons.microsoft class="h-4 w-4 text-gray-900 mr-2" />
-                                                    <span class="text-gray-900">{{ $display->calendar->outlookAccount->name }}</span>
-                                                </div>
-                                            @endif
-                                            @if($display->calendar->googleAccount)
-                                                <div class="flex items-center">
-                                                    <x-icons.google class="h-4 w-4 text-gray-900 mr-2" />
-                                                    <span class="text-gray-900">{{ $display->calendar->googleAccount->name }}</span>
-                                                </div>
-                                            @endif
-                                            @if($display->calendar->caldavAccount)
-                                                <div class="flex items-center">
-                                                    <x-icons.calendar class="h-4 w-4 text-gray-900 mr-2" />
-                                                    <span class="text-gray-900">{{ $display->calendar->caldavAccount->name }}</span>
-                                                </div>
-                                            @endif
-                                        </div>
-                                    </td>
-                                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                                        <span class="inline-flex items-center rounded-md bg-{{ $display->status->color() }}-50 px-2 py-1 text-xs font-medium text-{{ $display->status->color() }}-700 ring-1 ring-inset ring-{{ $display->status->color() }}-600">
-                                            {{ $display->status->label() }}
-                                        </span>
-                                    </td>
-                                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                                        <div class="flex flex-col gap-1">
-                                            <div class="flex items-center gap-x-1.5">
-                                                @if($display->devices->isNotEmpty())
-                                                    <div class="flex-none rounded-full bg-emerald-500/20 p-1">
-                                                        <div class="h-2 w-2 rounded-full bg-emerald-500"></div>
-                                                    </div>
-                                                    <div class="group relative">
-                                                        <button type="button" class="flex items-center gap-x-1 text-sm text-gray-500 hover:text-gray-900">
-                                                            <span>{{ $display->devices->count() }} device{{ $display->devices->count() > 1 ? 's' : '' }}</span>
-                                                            <x-icons.information class="h-4 w-4 text-gray-400" />
-                                                        </button>
-                                                        <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block">
-                                                            <div class="rounded-md bg-gray-900 px-2 py-1 text-xs text-white shadow-lg">
-                                                                <div class="whitespace-nowrap">
-                                                                    @foreach($display->devices as $device)
-                                                                        <div class="flex items-center gap-x-1">
-                                                                            <span>{{ $device->name }}</span>
-                                                                            @if($device->last_activity_at)
-                                                                                <span class="text-gray-400">({{ $device->last_activity_at->diffForHumans() }})</span>
-                                                                            @endif
-                                                                        </div>
-                                                                    @endforeach
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
+                                    <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-0">Name</th>
+                                    <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Account</th>
+                                    <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Status</th>
+                                    <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Activity</th>
+                                    <th scope="col" class="relative py-3.5 pr-4 pl-3 sm:pr-0">
+                                        <span class="sr-only">Actions</span>
+                                    </th>
+                                </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-200" id="displays-table">
+                                @forelse($displays as $display)
+                                    <x-displays.table-row :display="$display" />
+                                @empty
+                                    <tr>
+                                        <td colspan="5" class="py-16 text-center">
+                                            <div class="flex flex-col items-center justify-center">
+                                                <x-icons.display class="h-12 w-12 text-orange mb-3" />
+                                                <h3 class="mb-2 text-md font-semibold text-gray-900">
+                                                    One more step and you're set up
+                                                </h3>
+                                                <p class="mb-6 text-sm text-gray-500 max-w-sm">Pick the calendar or room you would like to synchronize. You are able to connect multiple tablets to one display.</p>
+                                                @if(! $isSelfHosted && auth()->user()->shouldUpgradeForCurrentWorkspace())
+                                                    <span class="inline-flex items-center rounded-md bg-gray-100 px-3 py-2 text-center text-sm font-semibold text-gray-400 shadow-sm ring-1 ring-inset ring-gray-200 cursor-not-allowed" title="Upgrade to Pro to create more displays">
+                                                        <x-icons.plus class="h-5 w-5 mr-1" /> Create new display <span class="ml-2 inline-flex items-center rounded-md bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600">Pro</span>
+                                                    </span>
+                                                @elseif($isSelfHosted && auth()->user()->shouldUpgradeForCurrentWorkspace())
+                                                    <span class="inline-flex items-center rounded-md bg-gray-100 px-3 py-2 text-center text-sm font-semibold text-gray-400 shadow-sm ring-1 ring-inset ring-gray-200 cursor-not-allowed" title="Upgrade to Pro to create more displays">
+                                                        <x-icons.plus class="h-5 w-5 mr-1" /> Create new display <span class="ml-2 inline-flex items-center rounded-md bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600">Pro</span>
+                                                    </span>
                                                 @else
-                                                    <div class="flex-none rounded-full bg-gray-500/20 p-1">
-                                                        <div class="h-2 w-2 rounded-full bg-gray-500"></div>
-                                                    </div>
-                                                    <span class="text-gray-500">No devices</span>
+                                                    <a href="{{ route('displays.create') }}" class="inline-flex items-center rounded-md bg-oxford px-3 py-2 text-center text-sm font-semibold text-white">
+                                                        <x-icons.plus class="h-5 w-5 mr-1" />
+                                                        Create new display
+                                                    </a>
                                                 @endif
                                             </div>
-                                            @if($display->last_sync_at)
-                                                <div class="text-gray-400 text-xs">Last sync {{ $display->last_sync_at->diffForHumans() }}</div>
-                                            @endif
-                                        </div>
-                                    </td>
-                                    <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-0">
-                                        <div class="flex justify-end gap-x-2">
-                                            <form action="{{ route('displays.updateStatus', $display) }}" method="POST" class="inline">
-                                                @csrf
-                                                @method('PATCH')
-                                                <input type="hidden" name="status" value="{{ $display->status === \App\Enums\DisplayStatus::ACTIVE ? 'deactivated' : 'active' }}">
-                                                <button type="submit" class="inline-flex items-center rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
-                                                    @if($display->status === \App\Enums\DisplayStatus::ACTIVE)
-                                                        <x-icons.pause class="h-4 w-4" />
-                                                    @else
-                                                        <x-icons.play class="h-4 w-4" />
-                                                    @endif
-                                                </button>
-                                            </form>
-                                            @if(auth()->user()->hasPro())
-                                                <a href="{{ route('displays.customization', $display) }}" class="inline-flex items-center rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-indigo-600 shadow-sm ring-1 ring-inset ring-indigo-300 hover:bg-indigo-50" title="Customize display (Pro)">
-                                                    <x-icons.brush class="h-4 w-4" />
-                                                </a>
-                                                <a href="{{ route('displays.settings.index', $display) }}" class="inline-flex items-center rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-blue-600 shadow-sm ring-1 ring-inset ring-blue-300 hover:bg-blue-50" title="Display settings (Pro)">
-                                                    <x-icons.settings class="h-4 w-4" />
-                                                </a>
-                                            @else
-                                                <span class="inline-flex items-center rounded-md bg-gray-100 px-2.5 py-1.5 text-sm font-semibold text-gray-400 shadow-sm ring-1 ring-inset ring-gray-200 cursor-not-allowed" title="Upgrade to Pro to unlock customization">
-                                                    <x-icons.brush class="h-4 w-4" />
-                                                </span>
-                                                <span class="inline-flex items-center rounded-md bg-gray-100 px-2.5 py-1.5 text-sm font-semibold text-gray-400 shadow-sm ring-1 ring-inset ring-gray-200 cursor-not-allowed" title="Upgrade to Pro to unlock settings">
-                                                    <x-icons.settings class="h-4 w-4" />
-                                                </span>
-                                            @endif
-                                            <form action="{{ route('displays.delete', $display) }}" method="POST" class="inline">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="inline-flex items-center rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-red-600 shadow-sm ring-1 ring-inset ring-red-300 hover:bg-red-50">
-                                                    <x-icons.trash class="h-4 w-4" />
-                                                </button>
-                                            </form>
-                                        </div>
-                                    </td>
-                                </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="5" class="py-16 text-center">
-                                        <div class="flex flex-col items-center justify-center">
-                                            <x-icons.display class="h-12 w-12 text-orange mb-3" />
-                                            <h3 class="mb-2 text-md font-semibold text-gray-900">
-                                                One more step and you're set up
-                                            </h3>
-                                            <p class="mb-6 text-sm text-gray-500 max-w-sm">Pick the calendar or room you would like to synchronize. You are able to connect multiple tablets to one display.</p>
-                                            @if(! $isSelfHosted && auth()->user()->shouldUpgrade())
-                                                <span class="inline-flex items-center rounded-md bg-gray-100 px-3 py-2 text-center text-sm font-semibold text-gray-400 shadow-sm ring-1 ring-inset ring-gray-200 cursor-not-allowed" title="Upgrade to Pro to create more displays">
-                                                    <x-icons.plus class="h-5 w-5 mr-1" /> Create new display <span class="ml-2 inline-flex items-center rounded-md bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600">Pro</span>
-                                                </span>
-                                            @elseif($isSelfHosted && auth()->user()->shouldUpgrade())
-                                                <span class="inline-flex items-center rounded-md bg-gray-100 px-3 py-2 text-center text-sm font-semibold text-gray-400 shadow-sm ring-1 ring-inset ring-gray-200 cursor-not-allowed" title="Upgrade to Pro to create more displays">
-                                                    <x-icons.plus class="h-5 w-5 mr-1" /> Create new display <span class="ml-2 inline-flex items-center rounded-md bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600">Pro</span>
-                                                </span>
-                                            @else
-                                                <a href="{{ route('displays.create') }}" class="inline-flex items-center rounded-md bg-oxford px-3 py-2 text-center text-sm font-semibold text-white">
-                                                    <x-icons.plus class="h-5 w-5 mr-1" /> Create new display
-                                                </a>
-                                            @endif
-                                        </div>
-                                    </td>
-                                </tr>
-                            @endforelse
-                            </tbody>
-                        </table>
+                                        </td>
+                                    </tr>
+                                @endforelse
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
+
+            {{-- Boards Tab Content --}}
+            @if(auth()->user()->hasProForCurrentWorkspace())
+                <div id="tab-content-boards" class="tab-content hidden">
+                    <div class="sm:flex sm:items-center mb-4">
+                        <div class="sm:flex-auto">
+                            <div class="flex items-center gap-1">
+                                <h2 class="text-lg font-semibold leading-6 text-gray-900">Boards</h2>
+                                <div class="relative group">
+                                    <button type="button" class="text-gray-400 hover:text-gray-500 focus:outline-none flex items-center gap-1">
+                                        <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                                        </svg>
+                                    </button>
+                                    <div class="absolute left-0 top-full mt-2 w-64 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
+                                        <div class="font-semibold mb-1">Billing Information</div>
+                                        <div>Boards are billed as <strong>2x displays</strong> to keep the base product accessible and fair for users who don't use boards.</div>
+                                        <div class="absolute bottom-full left-4 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-gray-900"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <p class="mt-1 text-sm text-gray-500">
+                                Meeting room availability overviews for big screens.
+                            </p>
+                        </div>
+                        <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
+                            <a href="{{ route('boards.create') }}" class="inline-flex items-center rounded-md bg-oxford px-3 py-2 text-center text-sm font-semibold text-white">
+                                <x-icons.plus class="h-5 w-5 mr-1" />
+                                Create new board
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="mt-6 flow-root">
+                        <div class="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+                            <div class="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
+                                <table class="min-w-full divide-y divide-gray-300">
+                                    <thead>
+                                    <tr>
+                                        <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-0">Name</th>
+                                        <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Displays</th>
+                                        <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Type</th>
+                                        <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Created by</th>
+                                        <th scope="col" class="relative py-3.5 pr-4 pl-3 sm:pr-0">
+                                            <span class="sr-only">Actions</span>
+                                        </th>
+                                    </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-200">
+                                    @forelse($boards as $board)
+                                        <tr>
+                                            <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0">
+                                                {{ $board->name }}
+                                            </td>
+                                            <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                                {{ $board->display_count }} {{ $board->display_count === 1 ? 'display' : 'displays' }}
+                                            </td>
+                                            <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                                @if($board->show_all_displays)
+                                                    <span class="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
+                                                        Show all
+                                                    </span>
+                                                @else
+                                                    <span class="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20">
+                                                        Selected
+                                                    </span>
+                                                @endif
+                                            </td>
+                                            <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                                {{ $board->user->name }}
+                                            </td>
+                                            <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-0">
+                                                <div class="flex justify-end gap-x-2">
+                                                    <a href="{{ route('boards.show', $board) }}" target="_blank" class="inline-flex items-center rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50" title="Open board in new tab">
+                                                        <x-icons.external class="h-4 w-4" />
+                                                    </a>
+                                                    @can('update', $board)
+                                                        <a href="{{ route('boards.edit', $board) }}" class="inline-flex items-center rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-blue-600 shadow-sm ring-1 ring-inset ring-blue-300 hover:bg-blue-50" title="Edit board">
+                                                            <x-icons.settings class="h-4 w-4" />
+                                                        </a>
+                                                    @endcan
+                                                    @can('delete', $board)
+                                                        <form action="{{ route('boards.destroy', $board) }}" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to delete this board?');">
+                                                            @csrf
+                                                            @method('DELETE')
+                                                            <button type="submit" class="inline-flex items-center rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-red-600 shadow-sm ring-1 ring-inset ring-red-300 hover:bg-red-50" title="Delete board">
+                                                                <x-icons.trash class="h-4 w-4" />
+                                                            </button>
+                                                        </form>
+                                                    @endcan
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="5" class="py-16 text-center">
+                                                <div class="flex flex-col items-center justify-center">
+                                                    <x-icons.display class="h-12 w-12 text-orange mb-3" />
+                                                    <h3 class="mb-2 text-md font-semibold text-gray-900">
+                                                        No boards yet
+                                                    </h3>
+                                                    <p class="mb-6 text-sm text-gray-500 max-w-sm">Create your first board to display room availability on a big screen.</p>
+                                                    <a href="{{ route('boards.create') }}" class="inline-flex items-center rounded-md bg-oxford px-3 py-2 text-center text-sm font-semibold text-white">
+                                                        <x-icons.plus class="h-5 w-5 mr-1" />
+                                                        Create new board
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    @endforelse
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            @endif
         </x-cards.card>
+        
         <x-cards.card class="col-span-12 xl:col-span-4 space-y-6">
             <div>
                 <h2 class="text-lg font-semibold leading-6 text-gray-900">Accounts</h2>
@@ -387,8 +431,20 @@
                     <span class="bg-white px-2 text-sm text-gray-500">Connected accounts</span>
                 </div>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-1 gap-4">
-                @foreach($outlookAccounts as $outlookAccount)
+            @if($outlookAccounts->isEmpty() && $googleAccounts->isEmpty() && $caldavAccounts->isEmpty())
+                <div class="py-12 text-center">
+                    <div class="flex flex-col items-center justify-center">
+                        <h3 class="mb-2 text-md font-semibold text-gray-900">
+                            No accounts connected yet
+                        </h3>
+                        <p class="mb-0 text-sm text-gray-500 max-w-sm">
+                            Connect a calendar account above to get started. You can connect Microsoft, Google, or CalDAV accounts.
+                        </p>
+                    </div>
+                </div>
+            @else
+                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-1 gap-4">
+                    @foreach($outlookAccounts as $outlookAccount)
                     <div class="relative flex items-center space-x-4 rounded-lg border border-gray-300 bg-white px-5 py-4 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 hover:border-gray-400">
                         @if($outlookAccount->calendars->isEmpty())
                             <form action="{{ route('outlook-accounts.delete', $outlookAccount) }}" method="POST" class="absolute top-4.5 right-2 z-10">
@@ -516,9 +572,29 @@
                         </div>
                     </div>
                 @endforeach
-            </div>
+                </div>
+            @endif
         </x-cards.card>
     </div>
+
+    {{-- Server Info (Self-hosted only) --}}
+    @if($isSelfHosted)
+        <div class="mt-8 flex flex-wrap items-center gap-3 text-sm text-gray-500">
+            <span class="inline-flex items-center rounded-md bg-gray-100 px-2.5 py-1.5 text-xs font-medium text-gray-600">
+                Self-hosted
+            </span>
+            @if($version)
+                <span class="inline-flex items-center rounded-md bg-gray-100 px-2.5 py-1.5 text-xs font-medium text-gray-600">
+                    v{{ $version }}
+                </span>
+            @endif
+            @if($appUrl)
+                <span class="inline-flex items-center rounded-md bg-gray-100 px-2.5 py-1.5 text-xs font-medium text-gray-600">
+                    {{ parse_url($appUrl, PHP_URL_HOST) }} ({{ $appEnv }})
+                </span>
+            @endif
+        </div>
+    @endif
 @endsection
 
 @push('scripts')
@@ -562,6 +638,73 @@
                 }));
             });
         @endif
+
+        // Tab switching functionality
+        function switchTab(tabName, updateUrl = true) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.add('hidden');
+            });
+
+            // Remove active state from all tabs
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.classList.remove('border-blue-600', 'text-blue-600');
+                button.classList.add('border-transparent', 'text-gray-500');
+            });
+
+            // Show selected tab content
+            const selectedContent = document.getElementById('tab-content-' + tabName);
+            if (selectedContent) {
+                selectedContent.classList.remove('hidden');
+            }
+
+            // Activate selected tab button
+            const selectedTab = document.getElementById('tab-' + tabName);
+            if (selectedTab) {
+                selectedTab.classList.remove('border-transparent', 'text-gray-500');
+                selectedTab.classList.add('border-blue-600', 'text-blue-600');
+            }
+
+            // Update URL with tab parameter
+            if (updateUrl) {
+                const url = new URL(window.location);
+                if (tabName === 'displays') {
+                    // Remove tab parameter for default tab
+                    url.searchParams.delete('tab');
+                } else {
+                    url.searchParams.set('tab', tabName);
+                }
+                window.history.pushState({ tab: tabName }, '', url);
+            }
+        }
+
+        // Restore active tab on page load from URL
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const tabFromUrl = urlParams.get('tab');
+            const defaultTab = 'displays';
+            const tabToShow = tabFromUrl || defaultTab;
+            
+            // Check if the tab exists (e.g., boards tab might not exist for non-Pro users)
+            const tabButton = document.getElementById('tab-' + tabToShow);
+            if (tabButton) {
+                switchTab(tabToShow, false); // Don't update URL on initial load
+            } else {
+                // If tab from URL doesn't exist, fall back to default
+                switchTab(defaultTab, false);
+            }
+        });
+
+        // Handle browser back/forward buttons
+        window.addEventListener('popstate', function(event) {
+            const urlParams = new URLSearchParams(window.location.search);
+            const tabFromUrl = urlParams.get('tab') || 'displays';
+            const tabButton = document.getElementById('tab-' + tabFromUrl);
+            if (tabButton) {
+                switchTab(tabFromUrl, false);
+            }
+        });
+
     </script>
 @endpush
 

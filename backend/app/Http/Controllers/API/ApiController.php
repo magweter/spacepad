@@ -18,6 +18,20 @@ class ApiController extends Controller
 
     protected function error(string $message = 'Error', mixed $errors = null, int $code = 400): JsonResponse
     {
+        // Log API errors for observability (skip 404s and auth errors to avoid noise)
+        if ($code >= 500 || ($code >= 400 && $code < 404)) {
+            logger()->warning('API error response', [
+                'message' => $message,
+                'code' => $code,
+                'errors' => $errors,
+                'route' => request()->route()?->getName(),
+                'path' => request()->path(),
+                'method' => request()->method(),
+                'ip' => request()->ip(),
+                'user_id' => auth()->id(),
+            ]);
+        }
+
         return response()->json([
             'success' => false,
             'message' => $message,

@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:intl/intl.dart';
 import 'package:spacepad/components/frosted_panel.dart';
 import 'package:spacepad/components/solid_button.dart';
+import 'package:spacepad/date_format_helper.dart';
+import 'package:spacepad/models/event_model.dart';
 import 'package:spacepad/theme.dart';
 import 'package:tailwind_components/tailwind_components.dart';
 
@@ -33,18 +34,34 @@ class _CustomBookingModalState extends State<CustomBookingModal> {
     super.initState();
     final now = DateTime.now();
     
-    // Clamp start time to now if in the past
-    _startTime = now;
-    
-    // Calculate default end time: 1 hour from now, or until next meeting if available
-    final upcomingEvents = widget.controller.upcomingEvents;
-    if (upcomingEvents.isNotEmpty) {
-      _nextMeetingStart = upcomingEvents.first.start;
-      final oneHourFromStart = _startTime.add(const Duration(hours: 1));
-      _endTime = (_nextMeetingStart != null && _nextMeetingStart!.isBefore(oneHourFromStart))
-          ? _nextMeetingStart!
-          : oneHourFromStart;
+    // Find the first available time slot
+    // If there's a current event, start time should be when it ends
+    // Otherwise, start from now
+    final currentEvent = widget.controller.currentEvent;
+    if (currentEvent != null && currentEvent.end.isAfter(now)) {
+      _startTime = currentEvent.end;
     } else {
+      _startTime = now;
+    }
+    
+    // Calculate default end time: 1 hour from start, or until next meeting if available
+    final upcomingEvents = widget.controller.upcomingEvents as List<EventModel>;
+    if (upcomingEvents.isNotEmpty) {
+      // Find the next meeting that starts after our start time
+      final nextMeetingAfterStart = upcomingEvents.where((event) => event.start.isAfter(_startTime)).firstOrNull;
+      if (nextMeetingAfterStart != null) {
+        _nextMeetingStart = nextMeetingAfterStart.start;
+        final oneHourFromStart = _startTime.add(const Duration(hours: 1));
+        _endTime = _nextMeetingStart!.isBefore(oneHourFromStart)
+            ? _nextMeetingStart!
+            : oneHourFromStart;
+      } else {
+        // No meetings after start time, use 1 hour default
+        _nextMeetingStart = null;
+        _endTime = _startTime.add(const Duration(hours: 1));
+      }
+    } else {
+      _nextMeetingStart = null;
       _endTime = _startTime.add(const Duration(hours: 1));
     }
     
@@ -321,7 +338,7 @@ class _CustomBookingModalState extends State<CustomBookingModal> {
                                         border: Border.all(color: TWColors.gray_500),
                                       ),
                                       child: Text(
-                                        DateFormat('HH:mm').format(_startTime),
+                                        formatTime(context, _startTime),
                                         style: TextStyle(
                                           color: Colors.white,
                                           fontSize: 15,
@@ -372,7 +389,7 @@ class _CustomBookingModalState extends State<CustomBookingModal> {
                                         border: Border.all(color: TWColors.gray_500),
                                       ),
                                       child: Text(
-                                        DateFormat('HH:mm').format(_endTime),
+                                        formatTime(context, _endTime),
                                         style: TextStyle(
                                           color: Colors.white,
                                           fontSize: 15,
@@ -404,7 +421,7 @@ class _CustomBookingModalState extends State<CustomBookingModal> {
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       SolidButton(
-                        text: 'cancel',
+                        text: 'close',
                         onPressed: () => Navigator.of(context).pop(),
                         fontSize: 17,
                         padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),

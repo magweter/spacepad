@@ -4,10 +4,12 @@ namespace App\Models;
 
 use App\Enums\Plan;
 use App\Enums\UsageType;
+use App\Enums\WorkspaceRole;
 use App\Traits\HasUlid;
 use App\Traits\HasLastActivity;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -20,12 +22,39 @@ class User extends Authenticatable
     use HasApiTokens, HasFactory, Notifiable, HasUlid, HasLastActivity, Billable;
 
     /**
+     * Boot the model.
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        // Auto-create workspace when user is created
+        static::created(function ($user) {
+            // Only create if user doesn't already have a workspace
+            if (!$user->workspaces()->exists()) {
+                $workspace = Workspace::create([
+                    'name' => $user->name . "'s Workspace",
+                ]);
+
+                // Add user as owner member (use WorkspaceMember::create to generate ULID)
+                WorkspaceMember::create([
+                    'workspace_id' => $workspace->id,
+                    'user_id' => $user->id,
+                    'role' => WorkspaceRole::OWNER,
+                ]);
+            }
+        });
+    }
+
+    /**
      * The attributes that are mass assignable.
      *
      * @var array<int, string>
      */
     protected $fillable = [
         'name',
+        'first_name',
+        'last_name',
         'email',
         'password',
         'microsoft_id',
@@ -84,9 +113,53 @@ class User extends Authenticatable
         return $this->hasMany(Display::class);
     }
 
+    public function devices(): HasMany
+    {
+        return $this->hasMany(Device::class);
+    }
+
     public function rooms(): HasMany
     {
         return $this->hasMany(Room::class);
+    }
+
+    public function boards(): HasMany
+    {
+        return $this->hasMany(Board::class);
+    }
+
+    /**
+     * Get workspaces owned by this user (where user has 'owner' role)
+     */
+    public function ownedWorkspaces()
+    {
+        return $this->workspaces()->wherePivot('role', WorkspaceRole::OWNER->value);
+    }
+
+    /**
+     * Get workspaces this user is a member of
+     */
+    public function workspaces(): BelongsToMany
+    {
+        return $this->belongsToMany(Workspace::class, 'workspace_members')
+            ->withPivot('role')
+            ->withTimestamps();
+    }
+
+    /**
+     * Get the primary workspace for this user (first workspace where user is owner)
+     */
+    public function primaryWorkspace(): ?Workspace
+    {
+        return $this->ownedWorkspaces()->first() ?? $this->workspaces()->first();
+    }
+
+    /**
+     * Get all workspaces this user has access to
+     */
+    public function accessibleWorkspaces()
+    {
+        return $this->workspaces()->get();
     }
 
     public function hasAnyDisplay(): bool
@@ -99,6 +172,11 @@ class User extends Authenticatable
         return $this->outlookAccounts()->count() > 0 || $this->googleAccounts()->count() > 0 || $this->caldavAccounts()->count() > 0;
     }
 
+    /**
+     * Get or generate a connect code for this user
+     * 
+     * @return string 6-digit connect code
+     */
     public function getConnectCode(): string
     {
         $connectCode = cache()->get("user:$this->id:connect-code");
@@ -109,19 +187,56 @@ class User extends Authenticatable
             } while (cache()->has("connect-code:$connectCode"));
 
             cache()->put("user:$this->id:connect-code", $connectCode, $expiresAt);
-            cache()->put("connect-code:$connectCode", auth()->id(), $expiresAt);
+            cache()->put("connect-code:$connectCode", $this->id, $expiresAt);
         }
 
         return $connectCode;
     }
 
+    /**
+     * Retrieve and invalidate a connect code atomically
+     * This ensures the code can only be used once
+     * 
+     * @param string $code The 6-digit connect code
+     * @return int|null The user ID associated with the code, or null if invalid/already used
+     */
+    public static function pullConnectCode(string $code): ?int
+    {
+        // Atomically retrieve and remove the connect code from cache
+        $userId = cache()->pull("connect-code:$code");
+        
+        // If code was valid, also remove the reverse mapping
+        if ($userId !== null) {
+            cache()->forget("user:$userId:connect-code");
+        }
+        
+        return $userId;
+    }
+
     public function isOnboarded(): bool
     {
-        if (config('settings.is_self_hosted')) {
-            return $this->usage_type && $this->terms_accepted_at && $this->hasAnyAccount();
+        // Check if user has accounts OR if any workspace they're a member of has accounts
+        $hasAccounts = $this->hasAnyAccount();
+        
+        if (!$hasAccounts) {
+            // Check if any workspace the user is a member of has accounts
+            $workspaceIds = $this->workspaces()->pluck('workspaces.id')->toArray();
+            if (!empty($workspaceIds)) {
+                $workspaceAccountCount = OutlookAccount::whereIn('workspace_id', $workspaceIds)->count()
+                    + GoogleAccount::whereIn('workspace_id', $workspaceIds)->count()
+                    + CalDAVAccount::whereIn('workspace_id', $workspaceIds)->count();
+                
+                if ($workspaceAccountCount > 0) {
+                    $hasAccounts = true;
+                }
+            }
         }
 
-        return $this->usage_type && $this->hasAnyAccount();
+        if (config('settings.is_self_hosted')) {
+            return $this->usage_type && $this->terms_accepted_at && $hasAccounts;
+        }
+
+        return $this->usage_type && $hasAccounts;
     }
 
     public function hasPro(): bool
@@ -131,6 +246,41 @@ class User extends Authenticatable
         }
 
         return $this->is_unlimited || $this->subscribed();
+    }
+
+    /**
+     * Check if the user has Pro for the current workspace context.
+     * Returns true if the user has Pro OR if the selected workspace has Pro (any owner has Pro).
+     */
+    public function hasProForCurrentWorkspace(): bool
+    {
+        // If user has Pro, they have Pro everywhere
+        if ($this->hasPro()) {
+            return true;
+        }
+
+        // Check if the selected workspace has Pro (any owner has Pro)
+        $selectedWorkspace = $this->getSelectedWorkspace();
+        if ($selectedWorkspace && $selectedWorkspace->hasPro()) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Check if the user has Pro for a specific workspace.
+     * Returns true if the user has Pro OR if the workspace has Pro (any owner has Pro).
+     */
+    public function hasProForWorkspace(Workspace $workspace): bool
+    {
+        // If user has Pro, they have Pro everywhere
+        if ($this->hasPro()) {
+            return true;
+        }
+
+        // Check if the workspace has Pro (any owner has Pro)
+        return $workspace->hasPro();
     }
 
     /**
@@ -161,6 +311,33 @@ class User extends Authenticatable
 
         // Cloud Hosted: If the user is a business user and doesn't have Pro, they should upgrade
         return ! $this->hasPro() && $this->hasAnyDisplay();
+    }
+
+    /**
+     * Check if the user should upgrade to Pro for the current workspace context.
+     * Returns false if the user has Pro OR if the selected workspace has Pro.
+     */
+    public function shouldUpgradeForCurrentWorkspace(): bool
+    {
+        // If user has Pro for current workspace, no upgrade needed
+        if ($this->hasProForCurrentWorkspace()) {
+            return false;
+        }
+
+        // Self Hosted: If the user is a personal user, use a soft limit
+        if (config('settings.is_self_hosted') && $this->isPersonalUser()) {
+            return false;
+        }
+
+        // Get the current workspace to scope the display check
+        $selectedWorkspace = $this->getSelectedWorkspace();
+        if (!$selectedWorkspace) {
+            // No workspace context, no upgrade needed
+            return false;
+        }
+
+        // Cloud Hosted: Check if the user has any displays in the current workspace
+        return $this->displays()->where('workspace_id', $selectedWorkspace->id)->exists();
     }
 
     public function getCheckoutUrl(?string $redirectUrl = null): ?Checkout
@@ -205,5 +382,29 @@ class User extends Authenticatable
     public function isAdmin(): bool
     {
         return (bool) $this->is_admin;
+    }
+
+    /**
+     * Get the currently selected workspace (from session) or default to primary workspace
+     * 
+     * Note: This works for all users (including non-Pro users) who are members of workspaces.
+     * Workspace access is based on membership, not Pro status.
+     */
+    public function getSelectedWorkspace(): ?Workspace
+    {
+        $selectedWorkspaceId = session()->get('selected_workspace_id');
+        
+        if ($selectedWorkspaceId) {
+            // Validate user has access to the selected workspace (checks membership, not Pro status)
+            $workspace = $this->workspaces()->find($selectedWorkspaceId);
+            if ($workspace) {
+                return $workspace;
+            }
+            // If selected workspace is invalid or user no longer has access, clear it from session
+            session()->forget('selected_workspace_id');
+        }
+        
+        // Default to primary workspace (first owned workspace, or first workspace user is a member of)
+        return $this->primaryWorkspace();
     }
 }

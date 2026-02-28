@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use App\Enums\DisplayStatus;
 use App\Helpers\DisplaySettings;
 
@@ -18,6 +19,7 @@ class Display extends Model
 
     protected $fillable = [
         'user_id',
+        'workspace_id',
         'name',
         'display_name',
         'calendar_id',
@@ -42,9 +44,19 @@ class Display extends Model
         return $this->belongsTo(User::class, 'user_id');
     }
 
+    public function workspace(): BelongsTo
+    {
+        return $this->belongsTo(Workspace::class, 'workspace_id');
+    }
+
     public function eventSubscriptions(): HasMany
     {
         return $this->hasMany(EventSubscription::class);
+    }
+
+    public function events(): HasMany
+    {
+        return $this->hasMany(Event::class);
     }
 
     public function devices(): HasMany
@@ -55,6 +67,12 @@ class Display extends Model
     public function settings(): HasMany
     {
         return $this->hasMany(DisplaySetting::class);
+    }
+
+    public function boards(): BelongsToMany
+    {
+        return $this->belongsToMany(Board::class, 'board_displays')
+            ->withTimestamps();
     }
 
     public function getStartTime(): Carbon
@@ -196,5 +214,15 @@ class Display extends Model
     public function isAdminActionsHidden(): bool
     {
         return DisplaySettings::isAdminActionsHidden($this);
+    }
+
+    public function getCancelPermission(): string
+    {
+        return DisplaySettings::getCancelPermission($this);
+    }
+
+    public function getBorderThickness(): string
+    {
+        return DisplaySettings::getBorderThickness($this);
     }
 }

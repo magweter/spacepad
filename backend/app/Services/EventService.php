@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\EventStatus;
 use App\Enums\EventSource;
 use App\Enums\PermissionType;
+use App\Helpers\DisplaySettings;
 use App\Models\Display;
 use App\Models\Event;
 use App\Models\Calendar;
@@ -15,6 +16,7 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class EventService
 {
@@ -166,11 +168,13 @@ class EventService
 
                     // Create event in database immediately with external_id (optimistic approach)
                     // Wrap in transaction to ensure atomicity - if DB write fails, we know the external event exists but isn't tracked
+                    // Note: source is set to the calendar system (GOOGLE/OUTLOOK/CALDAV) so cancellation knows which API to use
+                    // calendar_id is set to identify this as a tablet booking (isTabletBooking() checks for calendar_id)
                     $event = DB::transaction(function () use ($displayId, $userId, $calendar, $externalEventId, $start, $end, $summary) {
                         return Event::create([
                             'display_id' => $displayId,
                             'user_id' => $userId,
-                            'calendar_id' => $calendar->id,
+                            'calendar_id' => $calendar->id, // Set calendar_id to mark as tablet booking
                             'external_id' => $externalEventId,
                             'status' => EventStatus::CONFIRMED,
                             'source' => $calendar->google_account_id ? EventSource::GOOGLE : ($calendar->outlook_account_id ? EventSource::OUTLOOK : EventSource::CALDAV),
@@ -229,7 +233,7 @@ class EventService
     {
         $event = Event::query()
             ->where('display_id', $displayId)
-            ->with(['display.calendar.outlookAccount', 'display.calendar.googleAccount', 'display.calendar.caldavAccount', 'display.calendar.room'])
+            ->with(['display.calendar.outlookAccount', 'display.calendar.googleAccount', 'display.calendar.caldavAccount', 'display.calendar.room', 'display.settings'])
             ->find($eventId);
 
         if (!$event) {
@@ -238,6 +242,16 @@ class EventService
 
         $display = $event->display;
         $calendar = $display->calendar;
+
+        // Check cancel permission setting
+        $cancelPermission = DisplaySettings::getCancelPermission($display);
+        if ($cancelPermission === 'none') {
+            throw new Exception('Cancelling events is not allowed on this display');
+        }
+        
+        if ($cancelPermission === 'tablet_only' && !$event->isTabletBooking()) {
+            throw new Exception('Only events booked via this tablet can be cancelled');
+        }
 
         // If event has external_id and calendar has write permissions, delete via API
         if ($event->external_id && $calendar) {
@@ -424,7 +438,34 @@ class EventService
             endDateTime: $display->getEndTime(),
         );
 
-        return collect($events)->map(fn($e) => $this->sanitizeGoogleEvent($e));
+        // Get room email if this calendar has a room
+        $roomEmail = $calendar->room?->email_address;
+
+        // Filter out cancelled events and events where the room declined as attendee
+        return collect($events)
+            ->filter(function ($event) use ($roomEmail) {
+                // Filter out cancelled events
+                if ($event->getStatus() === 'cancelled') {
+                    return false;
+                }
+
+                // If this calendar has a room, check if the room declined the event
+                if ($roomEmail && $event->getAttendees()) {
+                    foreach ($event->getAttendees() as $attendee) {
+                        // Check if this attendee is the room and if it declined
+                        if (strtolower($attendee->getEmail()) === strtolower($roomEmail)) {
+                            $responseStatus = $attendee->getResponseStatus();
+                            // Filter out events where the room declined
+                            if ($responseStatus === 'declined') {
+                                return false;
+                            }
+                        }
+                    }
+                }
+
+                return true;
+            })
+            ->map(fn($e) => $this->sanitizeGoogleEvent($e));
     }
 
     /**
@@ -545,6 +586,27 @@ class EventService
     }
 
     /**
+     * Safely truncate description to prevent database errors.
+     * MEDIUMTEXT can hold up to 16MB, but we'll limit to 10MB for safety.
+     */
+    private function truncateDescription(?string $description): string
+    {
+        if ($description === null || $description === '') {
+            return '';
+        }
+
+        // MEDIUMTEXT limit is 16,777,215 bytes, but we'll use 10MB (10,485,760 bytes) as a safe limit
+        $maxLength = 10 * 1024 * 1024; // 10MB in bytes
+
+        if (strlen($description) > $maxLength) {
+            // Truncate and add ellipsis
+            return substr($description, 0, $maxLength - 3) . '...';
+        }
+
+        return $description;
+    }
+
+    /**
      * Check if there are any conflicting events for a display in a given time range.
      *
      * @param string $displayId
@@ -590,6 +652,7 @@ class EventService
         $seenIds = [];
 
         $externalEvents = $externalEvents->filter(fn ($event) => ! $event['isAllDay']);
+        
         foreach ($externalEvents as $ext) {
             $externalId = $ext['id'];
             $seenIds[] = $externalId;
@@ -598,13 +661,13 @@ class EventService
             
             // If event doesn't exist, create it
             if (!$event) {
-                $event = new Event([
-                    'display_id' => $display->id,
-                    'user_id' => $display->user_id,
-                    'source' => $source,
-                    'external_id' => $externalId,
-                    'status' => EventStatus::CONFIRMED
-                ]);
+                $event = new Event();
+                $event->id = (string) Str::ulid(); // Manually generate ULID since saveQuietly() disables creating event
+                $event->display_id = $display->id;
+                $event->user_id = $display->user_id;
+                $event->source = $source;
+                $event->external_id = $externalId;
+                $event->status = EventStatus::CONFIRMED;
             } else {
                 // If event exists but is cancelled, don't reactivate it
                 // (it was likely just cancelled and Google API hasn't updated yet)
@@ -618,7 +681,7 @@ class EventService
             $event->start = Carbon::parse($ext['start'])->utc();
             $event->end = Carbon::parse($ext['end'])->utc();
             $event->summary = $ext['summary'];
-            $event->description = $ext['description'];
+            $event->description = $this->truncateDescription($ext['description'] ?? null);
             $event->location = $ext['location'];
             $event->timezone = $ext['timezone'];
             // Ensure status is confirmed when syncing (unless it was cancelled)
@@ -626,7 +689,8 @@ class EventService
                 $event->status = EventStatus::CONFIRMED;
             }
 
-            $event->save();
+            // Save without firing events to prevent N+1 queries (cache cleared once at end)
+            $event->saveQuietly();
         }
 
         // Delete events that no longer exist externally
@@ -635,6 +699,9 @@ class EventService
             ->where('source', $source)
             ->whereNotIn('external_id', $seenIds)
             ->delete();
+
+        // Clear cache once at the end instead of for each event
+        Cache::forget($display->getEventsCacheKey());
     }
 
     public function checkInToEvent(string $eventId, string $displayId): void

@@ -17,6 +17,9 @@ use App\Http\Controllers\CalDAVAccountsController;
 use App\Http\Controllers\LicenseController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\WorkspaceController;
+use App\Http\Controllers\BoardController;
+use App\Http\Controllers\UsageController;
 
 Route::get('/login', [LoginController::class, 'create'])
     ->middleware('guest')
@@ -99,6 +102,8 @@ Route::middleware(['auth', 'user.update-last-activity', 'gtm'])->group(function 
 
     Route::post('/license/validate', [LicenseController::class, 'validateLicense'])->name('license.validate');
 
+    Route::post('/workspaces/switch', [WorkspaceController::class, 'switch'])->name('workspaces.switch');
+
     Route::get('/billing/thanks', function () {
         \Spatie\GoogleTagManager\GoogleTagManagerFacade::flashPush([
             'event' => 'purchase',
@@ -116,8 +121,24 @@ Route::middleware(['auth', 'user.update-last-activity', 'gtm'])->group(function 
     })->name('billing.thanks');
 
     Route::get('/admin', [AdminController::class, 'index'])->name('admin.index');
+    Route::get('/admin/users/{user}', [AdminController::class, 'showUser'])->name('admin.users.show');
+    Route::delete('/admin/users/{user}', [AdminController::class, 'deleteUser'])->name('admin.users.delete');
+    Route::post('/admin/users/{user}/impersonate', [AdminController::class, 'impersonate'])->name('admin.users.impersonate');
+    Route::post('/admin/stop-impersonating', [AdminController::class, 'stopImpersonating'])->name('admin.stop-impersonating');
 
     // Display image serving route
     Route::get('/displays/{display}/images/{type}', [DisplaySettingsController::class, 'serveImage'])
         ->name('displays.images');
+
+    // Boards routes
+    Route::get('/boards/create', [BoardController::class, 'create'])->name('boards.create');
+    Route::post('/boards', [BoardController::class, 'store'])->name('boards.store');
+    Route::get('/boards/{board}', [BoardController::class, 'show'])->name('boards.show');
+    Route::get('/boards/{board}/edit', [BoardController::class, 'edit'])->name('boards.edit');
+    Route::put('/boards/{board}', [BoardController::class, 'update'])->name('boards.update');
+    Route::delete('/boards/{board}', [BoardController::class, 'destroy'])->name('boards.destroy');
+    Route::get('/boards/{board}/images/logo', [BoardController::class, 'serveLogo'])->name('boards.images.logo');
+
+    // Usage routes
+    Route::get('/usage', [UsageController::class, 'index'])->name('usage.index');
 });

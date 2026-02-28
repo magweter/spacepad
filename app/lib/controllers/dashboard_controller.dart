@@ -356,6 +356,44 @@ class DashboardController extends GetxController {
     return globalSettings.value?.hasCustomBooking ?? false;
   }
 
+  // Check if current event can be cancelled based on cancel permission setting
+  bool get canCancelCurrentEvent {
+    // Early return: cannot cancel if there's no current event
+    if (currentEvent == null) {
+      return false;
+    }
+    
+    final cancelPermission = globalSettings.value?.cancelPermission ?? 'all';
+    
+    if (cancelPermission == 'none') {
+      return false;
+    }
+    
+    if (cancelPermission == 'tablet_only') {
+      // Only allow cancelling if the event was booked via tablet
+      // currentEvent is guaranteed to be non-null at this point
+      return currentEvent!.isTabletBooking;
+    }
+    
+    // Default: 'all' - allow cancelling any event
+    // currentEvent is guaranteed to be non-null at this point
+    return true;
+  }
+
+  // Get border width based on border thickness setting
+  double getBorderWidth() {
+    final borderThickness = globalSettings.value?.borderThickness ?? 'medium';
+    switch (borderThickness) {
+      case 'small':
+        return 1.33;
+      case 'large':
+        return 2.67;
+      case 'medium':
+      default:
+        return 2.0;
+    }
+  }
+
   bool get calendarEnabled {
     return globalSettings.value?.calendarEnabled ?? false;
   }

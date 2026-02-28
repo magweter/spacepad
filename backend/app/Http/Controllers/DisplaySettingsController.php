@@ -21,8 +21,8 @@ class DisplaySettingsController extends Controller
     {
         $this->authorize('update', $display);
 
-        // Check if user has Pro access
-        if (!auth()->user()->hasPro()) {
+        // Check if user has Pro access for the display's workspace
+        if (!$display->workspace_id || !auth()->user()->hasProForWorkspace($display->workspace)) {
             return redirect()->route('dashboard')->with('error', 'Display settings are only available for Pro users.');
         }
 
@@ -35,8 +35,8 @@ class DisplaySettingsController extends Controller
     {
         $this->authorize('update', $display);
 
-        // Check if user has Pro access
-        if (!auth()->user()->hasPro()) {
+        // Check if user has Pro access for the display's workspace
+        if (!$display->workspace_id || !auth()->user()->hasProForWorkspace($display->workspace)) {
             return redirect()->route('dashboard')->with('error', 'Display settings are only available for Pro users.');
         }
 
@@ -47,6 +47,8 @@ class DisplaySettingsController extends Controller
             'hide_admin_actions' => 'boolean',
             'check_in_minutes' => 'nullable|integer|min:1|max:60',
             'check_in_grace_period' => 'nullable|integer|min:1|max:30',
+            'cancel_permission' => 'nullable|in:all,tablet_only,none',
+            'border_thickness' => 'nullable|in:small,medium,large',
         ]);
 
         $updated = true;
@@ -89,6 +91,22 @@ class DisplaySettingsController extends Controller
             );
         }
 
+        // Handle cancel permission
+        if ($request->has('cancel_permission')) {
+            $updated = $updated && DisplaySettings::setCancelPermission(
+                $display,
+                $request->input('cancel_permission')
+            );
+        }
+
+        // Handle border thickness
+        if ($request->has('border_thickness')) {
+            $updated = $updated && DisplaySettings::setBorderThickness(
+                $display,
+                $request->input('border_thickness')
+            );
+        }
+
         if (!$updated) {
             return back()->withErrors(['error' => 'Failed to update settings']);
         }
@@ -103,7 +121,8 @@ class DisplaySettingsController extends Controller
     {
         $this->authorize('update', $display);
 
-        if (!auth()->user()->hasPro()) {
+        // Check if user has Pro access for the display's workspace
+        if (!$display->workspace_id || !auth()->user()->hasProForWorkspace($display->workspace)) {
             return redirect()->route('dashboard')->with('error', 'Display customization is only available for Pro users.');
         }
 
@@ -116,7 +135,8 @@ class DisplaySettingsController extends Controller
     {
         $this->authorize('update', $display);
 
-        if (!auth()->user()->hasPro()) {
+        // Check if user has Pro access for the display's workspace
+        if (!$display->workspace_id || !auth()->user()->hasProForWorkspace($display->workspace)) {
             return redirect()->route('dashboard')->with('error', 'Display customization is only available for Pro users.');
         }
 

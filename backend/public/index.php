@@ -9,6 +9,9 @@ if (file_exists($maintenance = __DIR__.'/../storage/framework/maintenance.php'))
     require $maintenance;
 }
 
+// Configure OpenTelemetry before autoloader (prevents warnings when extension not installed)
+require __DIR__.'/../bootstrap/opentelemetry.php';
+
 // Register the Composer autoloader...
 require __DIR__.'/../vendor/autoload.php';
 

@@ -1,5 +1,6 @@
 <?php
 
+use App\Console\Commands\CheckMarketingTriggers;
 use App\Console\Commands\CleanupExpiredEvents;
 use App\Console\Commands\RenewEventSubscriptions;
 use App\Console\Commands\SendHeartbeat;
@@ -32,6 +33,11 @@ Schedule::command(CleanupExpiredEvents::class)
     ->withoutOverlapping();
 
 Schedule::command(UpdateLemonSqueezySubscriptions::class)
+    ->when(fn() => ! config('settings.is_self_hosted'))
+    ->hourly()
+    ->withoutOverlapping();
+
+Schedule::command(CheckMarketingTriggers::class)
     ->when(fn() => ! config('settings.is_self_hosted'))
     ->hourly()
     ->withoutOverlapping();

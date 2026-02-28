@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:spacepad/models/event_model.dart';
 import 'package:spacepad/theme.dart';
 import 'package:get/get.dart';
-import 'package:intl/intl.dart';
+import 'package:spacepad/date_format_helper.dart';
 import 'package:tailwind_components/tailwind_components.dart';
 import 'package:spacepad/components/frosted_panel.dart';
 
@@ -111,7 +111,7 @@ class CalendarModal extends StatelessWidget {
                                               ),
                                               const SizedBox(width: 8),
                                               Text(
-                                                '${DateFormat('HH:mm').format(event.start)} - ${DateFormat('HH:mm').format(event.end)}',
+                                                '${formatTime(context, event.start)} - ${formatTime(context, event.end)}',
                                                 style: TextStyle(
                                                   color: AppTheme.platinum,
                                                   fontSize: 15,

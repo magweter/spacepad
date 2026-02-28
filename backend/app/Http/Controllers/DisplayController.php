@@ -34,14 +34,28 @@ class DisplayController extends Controller
 
     public function create(): View
     {
-        $outlookAccounts = auth()->user()->outlookAccounts;
-        $googleAccounts = auth()->user()->googleAccounts;
-        $caldavAccounts = auth()->user()->caldavAccounts;
+        $user = auth()->user();
+        $workspaces = $user->workspaces()->withPivot('role')->get();
+        $selectedWorkspace = $user->getSelectedWorkspace();
+
+        // Filter accounts to show all accounts for the selected workspace (from any workspace member)
+        if ($selectedWorkspace) {
+            $outlookAccounts = OutlookAccount::where('workspace_id', $selectedWorkspace->id)->get();
+            $googleAccounts = GoogleAccount::where('workspace_id', $selectedWorkspace->id)->get();
+            $caldavAccounts = CalDAVAccount::where('workspace_id', $selectedWorkspace->id)->get();
+        } else {
+            // Fallback to user's own accounts if no workspace selected
+            $outlookAccounts = $user->outlookAccounts;
+            $googleAccounts = $user->googleAccounts;
+            $caldavAccounts = $user->caldavAccounts;
+        }
 
         return view('pages.displays.create', [
             'outlookAccounts' => $outlookAccounts,
             'googleAccounts' => $googleAccounts,
             'caldavAccounts' => $caldavAccounts,
+            'workspaces' => $workspaces,
+            'defaultWorkspace' => $selectedWorkspace ?? $user->primaryWorkspace(),
         ]);
     }
 
@@ -55,8 +69,8 @@ class DisplayController extends Controller
         $provider = $validatedData['provider'];
         $accountId = $validatedData['account'];
 
-        // Check on access to create multiple displays
-        if (auth()->user()->shouldUpgrade()) {
+        // Check on access to create multiple displays (workspace-aware Pro check)
+        if (auth()->user()->shouldUpgradeForCurrentWorkspace()) {
             return redirect()->back()->with('error', 'You require an active Pro license to create multiple displays.');
         }
 
@@ -68,12 +82,35 @@ class DisplayController extends Controller
             default => throw new \InvalidArgumentException('Invalid provider')
         };
 
-        $display = DB::transaction(function () use ($validatedData) {
+        $user = auth()->user();
+        
+        // Get workspace from request, session (selected workspace), or default to primary
+        $workspaceId = $validatedData['workspace_id'] 
+            ?? session()->get('selected_workspace_id')
+            ?? $user->primaryWorkspace()?->id;
+        
+        if (!$workspaceId) {
+            return redirect()->back()->with('error', 'No workspace found. Please contact support.');
+        }
+        
+        // Verify user has access to this workspace
+        $workspace = $user->workspaces()->find($workspaceId);
+        if (!$workspace) {
+            return redirect()->back()->with('error', 'You do not have access to this workspace.');
+        }
+        
+        // Check if user can create displays in this workspace (owner/admin)
+        if (!$workspace->canBeManagedBy($user)) {
+            return redirect()->back()->with('error', 'You do not have permission to create displays in this workspace.');
+        }
+
+        $display = DB::transaction(function () use ($validatedData, $workspace) {
             // Handle room or calendar selection
-            $calendar = $this->createCalendar($validatedData);
+            $calendar = $this->createCalendar($validatedData, $workspace);
 
             return Display::create([
                 'user_id' => auth()->id(),
+                'workspace_id' => $workspace->id,
                 'name' => $validatedData['name'],
                 'display_name' => $validatedData['displayName'],
                 'status' => DisplayStatus::READY,
@@ -127,10 +164,11 @@ class DisplayController extends Controller
             ->with('status', 'Display has successfully been deleted.');
     }
 
-    private function createCalendar(array $validatedData): Calendar
+    private function createCalendar(array $validatedData, $workspace): Calendar
     {
         $provider = $validatedData['provider'];
         $accountId = $validatedData['account'];
+        $userId = auth()->id();
 
         if (isset($validatedData['room'])) {
             $roomData = explode(',', $validatedData['room']);
@@ -139,20 +177,22 @@ class DisplayController extends Controller
 
             $calendar = Calendar::firstOrCreate([
                 'calendar_id' => $calendarId,
-                'user_id' => auth()->id(),
+                'workspace_id' => $workspace->id,
             ], [
                 'calendar_id' => $calendarId,
-                'user_id' => auth()->id(),
+                'user_id' => $userId,
+                'workspace_id' => $workspace->id,
                 "{$provider}_account_id" => $accountId,
                 'name' => $calendarName,
             ]);
 
             Room::firstOrCreate([
                 'email_address' => $calendarId,
-                'user_id' => auth()->id(),
+                'workspace_id' => $workspace->id,
             ], [
                 'email_address' => $calendarId,
-                'user_id' => auth()->id(),
+                'user_id' => $userId,
+                'workspace_id' => $workspace->id,
                 'calendar_id' => $calendar->id,
                 'name' => $calendarName,
             ]);
@@ -163,15 +203,18 @@ class DisplayController extends Controller
         $calendarData = explode(',', $validatedData['calendar']);
         $calendarName = $this->extractCalendarName($calendarData[1] ?? '');
         
-        return Calendar::firstOrCreate([
+        $calendar = Calendar::firstOrCreate([
             'calendar_id' => $calendarData[0],
-            'user_id' => auth()->id(),
+            'workspace_id' => $workspace->id,
         ], [
-            'user_id' => auth()->id(),
+            'user_id' => $userId,
+            'workspace_id' => $workspace->id,
             "{$provider}_account_id" => $accountId,
             'calendar_id' => $calendarData[0],
             'name' => $calendarName,
         ]);
+
+        return $calendar;
     }
 
     /**

@@ -5,7 +5,7 @@
     @php
         $isSelfHosted = config('settings.is_self_hosted');
         $checkout = auth()->user()->getCheckoutUrl(route('displays.create'));
-        $userHasPro = auth()->user()->hasPro();
+        $userHasPro = auth()->user()->hasProForCurrentWorkspace();
     @endphp
 
     {{-- License Key Modal --}}
@@ -40,6 +40,29 @@
                             <p class="mt-2 text-sm text-gray-500">This name will be displayed on the top right corner of the display.</p>
                         </div>
                     </div>
+
+                    @if($workspaces->count() > 1)
+                        <div class="mb-4">
+                            <label for="workspace_id" class="block text-sm font-medium leading-6 text-gray-900">Workspace</label>
+                            <div class="mt-2">
+                                <select name="workspace_id" id="workspace_id" class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6">
+                                    @foreach($workspaces as $workspace)
+                                        <option value="{{ $workspace->id }}" {{ $workspace->id === $defaultWorkspace?->id ? 'selected' : '' }}>
+                                            {{ $workspace->name }}
+                                            @if($workspace->pivot->role === \App\Enums\WorkspaceRole::OWNER->value)
+                                                (Owner)
+                                            @elseif($workspace->pivot->role === \App\Enums\WorkspaceRole::ADMIN->value)
+                                                (Admin)
+                                            @endif
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <p class="mt-2 text-sm text-gray-500">Select which workspace this display should belong to.</p>
+                        </div>
+                    @else
+                        <input type="hidden" name="workspace_id" value="{{ $defaultWorkspace?->id }}">
+                    @endif
 
                     <!-- Step 1: Provider Selection -->
                     <div class="mt-4" id="providerSelection">

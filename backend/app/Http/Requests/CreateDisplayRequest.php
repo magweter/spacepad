@@ -35,6 +35,7 @@ class CreateDisplayRequest extends FormRequest
             'provider' => 'required|string|in:outlook,google,caldav',
             'room' => 'required_without:calendar|string',
             'calendar' => 'required_without:room|string',
+            'workspace_id' => 'nullable|string|exists:workspaces,id',
         ];
     }
 }

@@ -25,6 +25,7 @@ class CalDAVAccount extends Model
         'status',
         'permission_type',
         'user_id',
+        'workspace_id',
         'url',
         'username',
         'password',
@@ -48,5 +49,10 @@ class CalDAVAccount extends Model
     public function calendars(): HasMany
     {
         return $this->hasMany(Calendar::class, 'caldav_account_id');
+    }
+
+    public function workspace(): BelongsTo
+    {
+        return $this->belongsTo(Workspace::class);
     }
 }

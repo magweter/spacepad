@@ -19,9 +19,17 @@ class DisplaySettingsApiTest extends TestCase
         $user = User::factory()->create([
             'usage_type' => UsageType::PERSONAL,
         ]);
+        $workspace = $user->primaryWorkspace();
 
-        $display = Display::factory()->create(['user_id' => $user->id]);
-        $device = Device::factory()->create(['user_id' => $user->id, 'display_id' => $display->id]);
+        $display = Display::factory()->create([
+            'user_id' => $user->id,
+            'workspace_id' => $workspace->id,
+        ]);
+        $device = Device::factory()->create([
+            'user_id' => $user->id,
+            'workspace_id' => $workspace->id,
+            'display_id' => $display->id,
+        ]);
 
         // Set some display settings
         DisplaySettings::setCheckInEnabled($display, true);
@@ -54,9 +62,17 @@ class DisplaySettingsApiTest extends TestCase
         $user = User::factory()->create([
             'usage_type' => UsageType::PERSONAL,
         ]);
+        $workspace = $user->primaryWorkspace();
 
-        $display = Display::factory()->create(['user_id' => $user->id]);
-        $device = Device::factory()->create(['user_id' => $user->id, 'display_id' => $display->id]);
+        $display = Display::factory()->create([
+            'user_id' => $user->id,
+            'workspace_id' => $workspace->id,
+        ]);
+        $device = Device::factory()->create([
+            'user_id' => $user->id,
+            'workspace_id' => $workspace->id,
+            'display_id' => $display->id,
+        ]);
 
         $response = $this->actingAs($device)
             ->getJson('/api/displays');
@@ -73,9 +89,17 @@ class DisplaySettingsApiTest extends TestCase
         $user = User::factory()->create([
             'usage_type' => UsageType::PERSONAL,
         ]);
+        $workspace = $user->primaryWorkspace();
 
-        $display = Display::factory()->create(['user_id' => $user->id]);
-        Device::factory()->create(['user_id' => $user->id, 'display_id' => $display->id]);
+        $display = Display::factory()->create([
+            'user_id' => $user->id,
+            'workspace_id' => $workspace->id,
+        ]);
+        Device::factory()->create([
+            'user_id' => $user->id,
+            'workspace_id' => $workspace->id,
+            'display_id' => $display->id,
+        ]);
 
         // Set display settings
         DisplaySettings::setCheckInEnabled($display, true);

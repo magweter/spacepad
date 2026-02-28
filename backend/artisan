@@ -5,6 +5,9 @@ use Symfony\Component\Console\Input\ArgvInput;
 
 define('LARAVEL_START', microtime(true));
 
+// Configure OpenTelemetry before autoloader (prevents warnings when extension not installed)
+require __DIR__.'/bootstrap/opentelemetry.php';
+
 // Register the Composer autoloader...
 require __DIR__.'/vendor/autoload.php';
 

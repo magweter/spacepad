@@ -8,17 +8,46 @@
                         <img class="h-7 w-7" src="/images/logo-black.svg" alt="Logo">
                     </div>
                     <span class="text-xl font-semibold text-black">Spacepad</span>
-                    @if(auth()->user()->hasPro())
+                    @if(auth()->user()->hasProForCurrentWorkspace())
                         <span class="ml-2 inline-flex items-center rounded-md bg-blue-50 px-1.5 py-0.5 text-sm font-medium text-blue-700 ring-1 ring-inset ring-blue-600">Pro</span>
                     @endif
                 </a>
                 <div class="ml-4 flex items-center space-x-4">
-                    @if(auth()->user()->isAdmin() && !config('settings.is_self_hosted'))
+                    @php
+                        $workspaces = auth()->user()->workspaces()->withPivot('role')->get();
+                        $selectedWorkspace = auth()->user()->getSelectedWorkspace();
+                    @endphp
+                    @if($workspaces->count() > 1)
+                        <form action="{{ route('workspaces.switch') }}" method="POST" id="workspace-switch-form" class="flex items-center">
+                            @csrf
+                            <select 
+                                id="workspace-select"
+                                name="workspace_id" 
+                                onchange="this.form.submit();"
+                                class="rounded-md px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                            >
+                                @foreach($workspaces as $workspace)
+                                    <option value="{{ $workspace->id }}" {{ ($selectedWorkspace?->id ?? $workspaces->first()->id) === $workspace->id ? 'selected' : '' }}>
+                                        {{ $workspace->name }}
+                                        @if($workspace->pivot->role === \App\Enums\WorkspaceRole::OWNER->value)
+                                            (Owner)
+                                        @elseif($workspace->pivot->role === \App\Enums\WorkspaceRole::ADMIN->value)
+                                            (Admin)
+                                        @endif
+                                    </option>
+                                @endforeach
+                            </select>
+                        </form>
+                    @endif
+                    @if(!session('impersonating') && auth()->user()->isAdmin() && !config('settings.is_self_hosted'))
                         <a href="{{ route('admin.index') }}" class="rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300 hover:text-black">
                             Admin
                         </a>
                     @endif
-                    @if(auth()->user()->hasPro())
+                    @if(auth()->user()->hasProForCurrentWorkspace())
+                        <a href="{{ route('usage.index') }}" class="rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300 hover:text-black">
+                            Usage
+                        </a>
                         <button type="button" onclick="window.dispatchEvent(new CustomEvent('open-modal', { detail: 'manage-subscription' }))" class="rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300 hover:text-black">
                             Manage subscription
                         </button>
@@ -26,12 +55,6 @@
                             Need help?
                         </a>
                     @endif
-                    <a href="https://github.com/magweter/spacepad/issues" target="_blank" class="hidden md:block rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300 hover:text-black">
-                        Give feedback
-                    </a>
-                    <a href="https://spacepad.io" target="_blank" class="hidden md:block rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300 hover:text-black">
-                        Visit website
-                    </a>
                     @auth
                         <form action="{{ route('logout') }}" method="POST">
                             @csrf

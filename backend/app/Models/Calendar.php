@@ -17,6 +17,7 @@ class Calendar extends Model
 
     protected $fillable = [
         'user_id',
+        'workspace_id',
         'outlook_account_id',
         'google_account_id',
         'caldav_account_id',
@@ -53,5 +54,10 @@ class Calendar extends Model
     public function events(): HasMany
     {
         return $this->hasMany(Event::class);
+    }
+
+    public function workspace(): BelongsTo
+    {
+        return $this->belongsTo(Workspace::class, 'workspace_id');
     }
 }

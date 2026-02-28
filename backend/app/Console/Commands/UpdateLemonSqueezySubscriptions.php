@@ -52,17 +52,17 @@ class UpdateLemonSqueezySubscriptions extends Command
 
         foreach ($usersWithSubscriptions as $user) {
             try {
-                $displayCount = $this->getActiveDisplayCount($user);
+                $totalUsage = $this->getTotalUsageCount($user);
                 
                 if ($user->is_unlimited) {
-                    $this->line("Skipping unlimited user {$user->email} with {$displayCount} displays");
+                    $this->line("Skipping unlimited user {$user->email} with {$totalUsage} total usage units");
                     $successCount++;
                 } else {
                     // Try both quantity-based and usage-based billing methods
-                    $this->updateQuantityBasedBilling($user, $displayCount);
-                    $this->updateUsageBasedBilling($user, $displayCount);
+                    $this->updateQuantityBasedBilling($user, $totalUsage);
+                    $this->updateUsageBasedBilling($user, $totalUsage);
                     $successCount++;
-                    $this->info("Updated subscription for user {$user->email} with {$displayCount} displays");
+                    $this->info("Updated subscription for user {$user->email} with {$totalUsage} total usage units (displays + boards*2)");
                 }
             } catch (\Exception $e) {
                 $errorCount++;
@@ -89,6 +89,21 @@ class UpdateLemonSqueezySubscriptions extends Command
         return $user->displays()
             ->whereIn('status', [DisplayStatus::READY, DisplayStatus::ACTIVE])
             ->count();
+    }
+
+    /**
+     * Get the total usage count for a user across all their workspaces
+     * Displays count as 1x, Boards count as 2x
+     */
+    private function getTotalUsageCount(User $user): int
+    {
+        $totalUsage = 0;
+        
+        foreach ($user->workspaces as $workspace) {
+            $totalUsage += $workspace->getTotalUsageCount();
+        }
+        
+        return $totalUsage;
     }
 
     /**

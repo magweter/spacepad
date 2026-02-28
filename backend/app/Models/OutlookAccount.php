@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use App\Enums\AccountStatus;
 use App\Enums\PermissionType;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class OutlookAccount extends Model
 {
@@ -23,6 +24,7 @@ class OutlookAccount extends Model
         'status',
         'permission_type',
         'user_id',
+        'workspace_id',
         'outlook_id',
         'token',
         'refresh_token',
@@ -50,5 +52,10 @@ class OutlookAccount extends Model
     public function calendars(): HasMany
     {
         return $this->hasMany(Calendar::class, 'outlook_account_id');
+    }
+
+    public function workspace(): BelongsTo
+    {
+        return $this->belongsTo(Workspace::class);
     }
 }

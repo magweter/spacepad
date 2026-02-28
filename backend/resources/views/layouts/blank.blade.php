@@ -17,7 +17,7 @@
         <meta name="theme-color" content="#ffffff">
 
         <meta name="robots" content="noindex, nofollow">
-        <title>{{ config('app.name') }}</title>
+        <title>@yield('title', config('app.name'))</title>
 
         @includeWhen(config('googletagmanager.enabled') && config('googletagmanager.id'), 'googletagmanager::head')
 
@@ -28,10 +28,14 @@
         @stack('styles')
         @lemonJS
         @includeWhen(config('services.clarity.tag_code'), 'components.scripts.clarity')
+        @include('components.scripts.faro')
     </head>
     <body class="h-full @yield('body-classes')">
         @includeWhen(config('googletagmanager.enabled') && config('googletagmanager.id'), 'googletagmanager::body')
         @stack('modals')
+        
+        @include('components.impersonation-banner')
+        
         <div class="min-h-full bg-gray-50">
             @yield('page')
         </div>
