@@ -224,4 +224,34 @@ class DisplaySettings
     {
         return self::setSetting($display, 'hide_admin_actions', $hidden, 'boolean');
     }
+
+    // Cancel permission settings
+    // Values: 'all' (default), 'tablet_only', 'none'
+    public static function getCancelPermission(Display $display): string
+    {
+        return self::getSetting($display, 'cancel_permission', 'all');
+    }
+
+    public static function setCancelPermission(Display $display, string $permission): bool
+    {
+        if (!in_array($permission, ['all', 'tablet_only', 'none'])) {
+            return false;
+        }
+        return self::setSetting($display, 'cancel_permission', $permission, 'string');
+    }
+
+    // Border thickness settings
+    // Values: 'small', 'medium' (default), 'large'
+    public static function getBorderThickness(Display $display): string
+    {
+        return self::getSetting($display, 'border_thickness', 'medium');
+    }
+
+    public static function setBorderThickness(Display $display, string $thickness): bool
+    {
+        if (!in_array($thickness, ['small', 'medium', 'large'])) {
+            return false;
+        }
+        return self::setSetting($display, 'border_thickness', $thickness, 'string');
+    }
 }

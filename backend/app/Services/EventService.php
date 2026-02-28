@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\EventStatus;
 use App\Enums\EventSource;
 use App\Enums\PermissionType;
+use App\Helpers\DisplaySettings;
 use App\Models\Display;
 use App\Models\Event;
 use App\Models\Calendar;
@@ -167,11 +168,13 @@ class EventService
 
                     // Create event in database immediately with external_id (optimistic approach)
                     // Wrap in transaction to ensure atomicity - if DB write fails, we know the external event exists but isn't tracked
+                    // Note: source is set to the calendar system (GOOGLE/OUTLOOK/CALDAV) so cancellation knows which API to use
+                    // calendar_id is set to identify this as a tablet booking (isTabletBooking() checks for calendar_id)
                     $event = DB::transaction(function () use ($displayId, $userId, $calendar, $externalEventId, $start, $end, $summary) {
                         return Event::create([
                             'display_id' => $displayId,
                             'user_id' => $userId,
-                            'calendar_id' => $calendar->id,
+                            'calendar_id' => $calendar->id, // Set calendar_id to mark as tablet booking
                             'external_id' => $externalEventId,
                             'status' => EventStatus::CONFIRMED,
                             'source' => $calendar->google_account_id ? EventSource::GOOGLE : ($calendar->outlook_account_id ? EventSource::OUTLOOK : EventSource::CALDAV),
@@ -230,7 +233,7 @@ class EventService
     {
         $event = Event::query()
             ->where('display_id', $displayId)
-            ->with(['display.calendar.outlookAccount', 'display.calendar.googleAccount', 'display.calendar.caldavAccount', 'display.calendar.room'])
+            ->with(['display.calendar.outlookAccount', 'display.calendar.googleAccount', 'display.calendar.caldavAccount', 'display.calendar.room', 'display.settings'])
             ->find($eventId);
 
         if (!$event) {
@@ -239,6 +242,16 @@ class EventService
 
         $display = $event->display;
         $calendar = $display->calendar;
+
+        // Check cancel permission setting
+        $cancelPermission = DisplaySettings::getCancelPermission($display);
+        if ($cancelPermission === 'none') {
+            throw new Exception('Cancelling events is not allowed on this display');
+        }
+        
+        if ($cancelPermission === 'tablet_only' && !$event->isTabletBooking()) {
+            throw new Exception('Only events booked via this tablet can be cancelled');
+        }
 
         // If event has external_id and calendar has write permissions, delete via API
         if ($event->external_id && $calendar) {

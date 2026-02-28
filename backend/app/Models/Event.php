@@ -58,6 +58,23 @@ class Event extends Model
     }
 
     /**
+     * Check if this event was booked via the tablet
+     * Tablet bookings have calendar_id set (even if they exist in external calendars)
+     * Synced events from external calendars don't have calendar_id set
+     */
+    public function isTabletBooking(): bool
+    {
+        // If it's a custom event (no external calendar), it's definitely a tablet booking
+        if ($this->isCustomEvent()) {
+            return true;
+        }
+
+        // If it has external_id AND calendar_id, it was created via tablet and synced to external calendar
+        // Synced events from external calendars don't have calendar_id set
+        return $this->external_id !== null && $this->calendar_id !== null;
+    }
+
+    /**
      * Check if event is currently active
      */
     public function isActive(): bool

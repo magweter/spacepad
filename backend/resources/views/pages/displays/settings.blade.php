@@ -137,6 +137,80 @@
                     </div>
                 </div>
 
+                <!-- Cancel Permission Settings -->
+                <div class="border border-gray-200 rounded-lg p-6">
+                    <div class="mb-4">
+                        <h3 class="text-base font-semibold text-gray-900">Cancel Permission</h3>
+                        <p class="text-sm text-gray-500">Control which events can be cancelled via the tablet</p>
+                    </div>
+                    <div class="text-sm text-gray-600 mb-4">
+                        <p>Choose which events users can cancel directly from this display.</p>
+                    </div>
+                    <div class="space-y-2">
+                        <div class="flex items-center">
+                            <input type="radio" id="cancel_permission_all" name="cancel_permission" value="all" 
+                                   {{ \App\Helpers\DisplaySettings::getCancelPermission($display) === 'all' ? 'checked' : '' }}
+                                   class="h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-600">
+                            <label for="cancel_permission_all" class="ml-2 text-sm text-gray-700">
+                                <strong>All events</strong> - Users can cancel any event (default)
+                            </label>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="radio" id="cancel_permission_tablet_only" name="cancel_permission" value="tablet_only" 
+                                   {{ \App\Helpers\DisplaySettings::getCancelPermission($display) === 'tablet_only' ? 'checked' : '' }}
+                                   class="h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-600">
+                            <label for="cancel_permission_tablet_only" class="ml-2 text-sm text-gray-700">
+                                <strong>Tablet bookings only</strong> - Users can only cancel events booked via this tablet
+                            </label>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="radio" id="cancel_permission_none" name="cancel_permission" value="none" 
+                                   {{ \App\Helpers\DisplaySettings::getCancelPermission($display) === 'none' ? 'checked' : '' }}
+                                   class="h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-600">
+                            <label for="cancel_permission_none" class="ml-2 text-sm text-gray-700">
+                                <strong>None</strong> - Users cannot cancel any events via this tablet
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Border Thickness Settings -->
+                <div class="border border-gray-200 rounded-lg p-6">
+                    <div class="mb-4">
+                        <h3 class="text-base font-semibold text-gray-900">Border Thickness</h3>
+                        <p class="text-sm text-gray-500">Control the thickness of borders and panels on this display</p>
+                    </div>
+                    <div class="text-sm text-gray-600 mb-4">
+                        <p>Adjust the visual thickness of borders and panels to match your design preferences.</p>
+                    </div>
+                    <div class="space-y-2">
+                        <div class="flex items-center">
+                            <input type="radio" id="border_thickness_small" name="border_thickness" value="small" 
+                                   {{ \App\Helpers\DisplaySettings::getBorderThickness($display) === 'small' ? 'checked' : '' }}
+                                   class="h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-600">
+                            <label for="border_thickness_small" class="ml-2 text-sm text-gray-700">
+                                <strong>Small</strong> - Thin borders for a minimalist look
+                            </label>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="radio" id="border_thickness_medium" name="border_thickness" value="medium" 
+                                   {{ \App\Helpers\DisplaySettings::getBorderThickness($display) === 'medium' ? 'checked' : '' }}
+                                   class="h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-600">
+                            <label for="border_thickness_medium" class="ml-2 text-sm text-gray-700">
+                                <strong>Medium</strong> - Standard border thickness (default)
+                            </label>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="radio" id="border_thickness_large" name="border_thickness" value="large" 
+                                   {{ \App\Helpers\DisplaySettings::getBorderThickness($display) === 'large' ? 'checked' : '' }}
+                                   class="h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-600">
+                            <label for="border_thickness_large" class="ml-2 text-sm text-gray-700">
+                                <strong>Large</strong> - Thick borders for better visibility
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Display Information -->
                 <div class="border border-gray-200 rounded-lg p-6 bg-gray-50">
                     <h3 class="text-base font-semibold text-gray-900 mb-4">Display Information</h3>

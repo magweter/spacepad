@@ -208,4 +208,14 @@ class Display extends Model
     {
         return DisplaySettings::isAdminActionsHidden($this);
     }
+
+    public function getCancelPermission(): string
+    {
+        return DisplaySettings::getCancelPermission($this);
+    }
+
+    public function getBorderThickness(): string
+    {
+        return DisplaySettings::getBorderThickness($this);
+    }
 }

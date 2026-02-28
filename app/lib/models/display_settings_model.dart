@@ -14,6 +14,8 @@ class DisplaySettingsModel {
   String? logoUrl;
   String? backgroundImageUrl;
   String fontFamily;
+  String cancelPermission;
+  String borderThickness;
 
   DisplaySettingsModel({
     required this.checkInEnabled,
@@ -31,6 +33,8 @@ class DisplaySettingsModel {
     this.logoUrl,
     this.backgroundImageUrl,
     required this.fontFamily,
+    this.cancelPermission = 'all',
+    this.borderThickness = 'medium',
   });
 
   factory DisplaySettingsModel.fromJson(Map data) {
@@ -50,6 +54,8 @@ class DisplaySettingsModel {
       logoUrl: data['logo_url'],
       backgroundImageUrl: data['background_image_url'],
       fontFamily: data['font_family'] ?? 'Inter',
+      cancelPermission: data['cancel_permission'] ?? 'all',
+      borderThickness: data['border_thickness'] ?? 'medium',
     );
   }
 

@@ -47,7 +47,7 @@ class _DashboardPageState extends State<DashboardPage> {
     return cornerRadius;
   }
 
-  double _getContainerPadding(BuildContext context) {
+  double _getContainerPadding(BuildContext context, DashboardController controller) {
     final size = MediaQuery.of(context).size;
     final shortestSide = size.shortestSide;
     final isPortrait = size.height > size.width;
@@ -56,7 +56,12 @@ class _DashboardPageState extends State<DashboardPage> {
     final basePadding = shortestSide * 0.02; // 2% of shortest side
     final portraitMultiplier = isPortrait ? 1.2 : 1.1;
     
-    return basePadding * portraitMultiplier;
+    // Adjust padding based on border thickness setting
+    // Border thickness affects the visual border created by padding
+    final borderThickness = controller.getBorderWidth();
+    final borderMultiplier = borderThickness / 2.0; // Normalize to 2.0 (medium) as baseline
+    
+    return basePadding * portraitMultiplier * borderMultiplier;
   }
 
   EdgeInsets _getInnerPadding(BuildContext context) {
@@ -100,7 +105,7 @@ class _DashboardPageState extends State<DashboardPage> {
             color: controller.isTransitioning || controller.isCheckInActive ?
               TWColors.amber_500 :
               (controller.isReserved ? TWColors.rose_600 : TWColors.green_600),
-            padding: EdgeInsets.all(_getContainerPadding(context)),
+            padding: EdgeInsets.all(_getContainerPadding(context, controller)),
                 child: AuthenticatedBackground(
                   imageUrl: controller.globalSettings.value?.backgroundImageUrl,
                   borderRadius: BorderRadius.circular(cornerRadius),
@@ -163,7 +168,7 @@ class _DashboardPageState extends State<DashboardPage> {
                       ),
 
                       SpaceCol(
-                        spaceBetween: _getContainerPadding(context) * 1.75, // Proportional to container padding
+                        spaceBetween: _getContainerPadding(context, controller) * 1.75, // Proportional to container padding
                         mainAxisSize: MainAxisSize.max,
                         mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -211,10 +216,10 @@ class _DashboardPageState extends State<DashboardPage> {
                                     borderRadius: cornerRadius,
                                     blurIntensity: 18,
                                     padding: EdgeInsets.fromLTRB(
-                                      isPhone ? 10 : 20,
-                                      isPhone ? 5 : 10,
-                                      isPhone ? 10 : 20,
-                                      isPhone ? 5 : 10,
+                                      isPhone ? 10 : 15,
+                                      isPhone ? 5 : 8,
+                                      isPhone ? 10 : 15,
+                                      isPhone ? 5 : 8,
                                     ),
                                     child: Obx(() => Text(
                                       'meeting_info_title'.trParams({

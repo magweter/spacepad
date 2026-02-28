@@ -47,6 +47,8 @@ class DisplaySettingsController extends Controller
             'hide_admin_actions' => 'boolean',
             'check_in_minutes' => 'nullable|integer|min:1|max:60',
             'check_in_grace_period' => 'nullable|integer|min:1|max:30',
+            'cancel_permission' => 'nullable|in:all,tablet_only,none',
+            'border_thickness' => 'nullable|in:small,medium,large',
         ]);
 
         $updated = true;
@@ -86,6 +88,22 @@ class DisplaySettingsController extends Controller
             $updated = $updated && DisplaySettings::setCheckInMinutes(
                 $display,
                 (int) $request->input('check_in_minutes')
+            );
+        }
+
+        // Handle cancel permission
+        if ($request->has('cancel_permission')) {
+            $updated = $updated && DisplaySettings::setCancelPermission(
+                $display,
+                $request->input('cancel_permission')
+            );
+        }
+
+        // Handle border thickness
+        if ($request->has('border_thickness')) {
+            $updated = $updated && DisplaySettings::setBorderThickness(
+                $display,
+                $request->input('border_thickness')
             );
         }
 
