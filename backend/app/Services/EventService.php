@@ -15,6 +15,7 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class EventService
 {
@@ -616,55 +617,52 @@ class EventService
 
         $externalEvents = $externalEvents->filter(fn ($event) => ! $event['isAllDay']);
         
-        // Disable observers during bulk sync to prevent N+1 queries
-        // Cache will be cleared once at the end instead of for each event
-        Event::withoutEvents(function () use ($display, $source, $externalEvents, $existing, &$seenIds) {
-            foreach ($externalEvents as $ext) {
-                $externalId = $ext['id'];
-                $seenIds[] = $externalId;
+        foreach ($externalEvents as $ext) {
+            $externalId = $ext['id'];
+            $seenIds[] = $externalId;
 
-                $event = $existing->get($externalId);
-                
-                // If event doesn't exist, create it
-                if (!$event) {
-                    $event = new Event([
-                        'display_id' => $display->id,
-                        'user_id' => $display->user_id,
-                        'source' => $source,
-                        'external_id' => $externalId,
-                        'status' => EventStatus::CONFIRMED
-                    ]);
-                } else {
-                    // If event exists but is cancelled, don't reactivate it
-                    // (it was likely just cancelled and Google API hasn't updated yet)
-                    if ($event->status === EventStatus::CANCELLED) {
-                        continue;
-                    }
+            $event = $existing->get($externalId);
+            
+            // If event doesn't exist, create it
+            if (!$event) {
+                $event = new Event();
+                $event->id = (string) Str::ulid(); // Manually generate ULID since saveQuietly() disables creating event
+                $event->display_id = $display->id;
+                $event->user_id = $display->user_id;
+                $event->source = $source;
+                $event->external_id = $externalId;
+                $event->status = EventStatus::CONFIRMED;
+            } else {
+                // If event exists but is cancelled, don't reactivate it
+                // (it was likely just cancelled and Google API hasn't updated yet)
+                if ($event->status === EventStatus::CANCELLED) {
+                    continue;
                 }
-
-                // Parse datetime strings and convert to UTC for storage
-                // Carbon will automatically parse the timezone from the string and convert to UTC
-                $event->start = Carbon::parse($ext['start'])->utc();
-                $event->end = Carbon::parse($ext['end'])->utc();
-                $event->summary = $ext['summary'];
-                $event->description = $this->truncateDescription($ext['description'] ?? null);
-                $event->location = $ext['location'];
-                $event->timezone = $ext['timezone'];
-                // Ensure status is confirmed when syncing (unless it was cancelled)
-                if ($event->status !== EventStatus::CANCELLED) {
-                    $event->status = EventStatus::CONFIRMED;
-                }
-
-                $event->save();
             }
 
-            // Delete events that no longer exist externally
-            Event::query()
-                ->where('display_id', $display->id)
-                ->where('source', $source)
-                ->whereNotIn('external_id', $seenIds)
-                ->delete();
-        });
+            // Parse datetime strings and convert to UTC for storage
+            // Carbon will automatically parse the timezone from the string and convert to UTC
+            $event->start = Carbon::parse($ext['start'])->utc();
+            $event->end = Carbon::parse($ext['end'])->utc();
+            $event->summary = $ext['summary'];
+            $event->description = $this->truncateDescription($ext['description'] ?? null);
+            $event->location = $ext['location'];
+            $event->timezone = $ext['timezone'];
+            // Ensure status is confirmed when syncing (unless it was cancelled)
+            if ($event->status !== EventStatus::CANCELLED) {
+                $event->status = EventStatus::CONFIRMED;
+            }
+
+            // Save without firing events to prevent N+1 queries (cache cleared once at end)
+            $event->saveQuietly();
+        }
+
+        // Delete events that no longer exist externally
+        Event::query()
+            ->where('display_id', $display->id)
+            ->where('source', $source)
+            ->whereNotIn('external_id', $seenIds)
+            ->delete();
 
         // Clear cache once at the end instead of for each event
         Cache::forget($display->getEventsCacheKey());

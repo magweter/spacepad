@@ -24,7 +24,7 @@ COPY resources ./resources
 RUN pnpm install && pnpm run build
 
 # Set our base image
-FROM serversideup/php:8.4-unit AS base
+FROM serversideup/php:8.5-fpm-nginx AS base
 
 # Switch to root before installing our PHP extensions
 USER root
