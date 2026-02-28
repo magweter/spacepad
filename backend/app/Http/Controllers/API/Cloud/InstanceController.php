@@ -73,6 +73,7 @@ class InstanceController extends ApiController
             'is_self_hosted' => $request['is_self_hosted'],
             'displays_count' => $request['displays_count'],
             'rooms_count' => $request['rooms_count'],
+            'boards_count' => $request['boards_count'] ?? null,
             'users' => $request['users'],
             'version' => $request['version'],
             'last_heartbeat_at' => now(),

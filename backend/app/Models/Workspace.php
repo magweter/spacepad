@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\DisplayStatus;
 use App\Enums\WorkspaceRole;
 use App\Traits\HasUlid;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -58,6 +59,14 @@ class Workspace extends Model
     public function rooms(): HasMany
     {
         return $this->hasMany(Room::class);
+    }
+
+    /**
+     * Get all boards in this workspace
+     */
+    public function boards(): HasMany
+    {
+        return $this->hasMany(Board::class);
     }
 
     /**
@@ -127,6 +136,40 @@ class Workspace extends Model
             }
         }
         return false;
+    }
+
+    /**
+     * Get the total usage count for billing purposes
+     * Displays count as 1x, Boards count as 2x
+     */
+    public function getTotalUsageCount(): int
+    {
+        $displayCount = $this->displays()
+            ->count();
+        
+        $boardCount = $this->boards()->count();
+        
+        return $displayCount + ($boardCount * 2);
+    }
+
+    /**
+     * Get breakdown of usage for display
+     */
+    public function getUsageBreakdown(): array
+    {
+        $displayCount = $this->displays()
+            ->count();
+        
+        $boardCount = $this->boards()->count();
+        $boardUsage = $boardCount * 2;
+        $totalUsage = $displayCount + $boardUsage;
+        
+        return [
+            'displays' => $displayCount,
+            'boards' => $boardCount,
+            'board_usage' => $boardUsage,
+            'total' => $totalUsage,
+        ];
     }
 }
 

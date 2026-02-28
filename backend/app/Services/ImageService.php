@@ -165,4 +165,54 @@ class ImageService
             Storage::disk('public')->delete($currentBackground);
         }
     }
+
+    /**
+     * Get the logo URL for a board
+     */
+    public function getBoardLogoUrl(\App\Models\Board $board): ?string
+    {
+        if (!$board->logo) {
+            return null;
+        }
+
+        // Add version parameter based on when logo was last updated
+        $version = $board->updated_at->timestamp;
+        return url('boards/' . $board->id . '/images/logo') . '?v=' . $version;
+    }
+
+    /**
+     * Store a logo file for a board and return the path
+     */
+    public function storeBoardLogoFile($file, \App\Models\Board $board): ?string
+    {
+        try {
+            $filename = 'logo_' . $board->id . '_' . time() . '.' . $file->getClientOriginalExtension();
+            $path = $file->storeAs('boards/logos', $filename, 'public');
+            return $path;
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
+
+    /**
+     * Remove logo file from storage for a board
+     */
+    public function removeBoardLogoFile(\App\Models\Board $board): void
+    {
+        if ($board->logo && Storage::disk('public')->exists($board->logo)) {
+            Storage::disk('public')->delete($board->logo);
+        }
+    }
+
+    /**
+     * Serve board logo image
+     */
+    public function serveBoardLogo(\App\Models\Board $board)
+    {
+        if (!$board->logo || !Storage::disk('public')->exists($board->logo)) {
+            abort(404, 'Logo not found');
+        }
+
+        return response()->file(Storage::disk('public')->path($board->logo));
+    }
 }

@@ -18,6 +18,8 @@ use App\Http\Controllers\LicenseController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\WorkspaceController;
+use App\Http\Controllers\BoardController;
+use App\Http\Controllers\UsageController;
 
 Route::get('/login', [LoginController::class, 'create'])
     ->middleware('guest')
@@ -127,4 +129,16 @@ Route::middleware(['auth', 'user.update-last-activity', 'gtm'])->group(function 
     // Display image serving route
     Route::get('/displays/{display}/images/{type}', [DisplaySettingsController::class, 'serveImage'])
         ->name('displays.images');
+
+    // Boards routes
+    Route::get('/boards/create', [BoardController::class, 'create'])->name('boards.create');
+    Route::post('/boards', [BoardController::class, 'store'])->name('boards.store');
+    Route::get('/boards/{board}', [BoardController::class, 'show'])->name('boards.show');
+    Route::get('/boards/{board}/edit', [BoardController::class, 'edit'])->name('boards.edit');
+    Route::put('/boards/{board}', [BoardController::class, 'update'])->name('boards.update');
+    Route::delete('/boards/{board}', [BoardController::class, 'destroy'])->name('boards.destroy');
+    Route::get('/boards/{board}/images/logo', [BoardController::class, 'serveLogo'])->name('boards.images.logo');
+
+    // Usage routes
+    Route::get('/usage', [UsageController::class, 'index'])->name('usage.index');
 });

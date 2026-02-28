@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Data\LicenseData;
 use App\Data\UserData;
+use App\Models\Board;
 use App\Models\Display;
 use App\Models\Room;
 use App\Models\User;
@@ -121,6 +122,7 @@ class InstanceService
             isSelfHosted: config('settings.is_self_hosted'),
             displaysCount: Display::count(),
             roomsCount: Room::count(),
+            boardsCount: Board::count(),
             version: ! empty($version) ? $version : 'unknown',
             users: $users->toArray()
         );

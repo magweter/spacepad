@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\DisplayStatus;
+use App\Models\Board;
 use App\Models\Display;
 use App\Models\Instance;
 use App\Models\User;
@@ -41,6 +42,7 @@ class AdminController extends Controller
 
         $activeDisplays = Display::where('status', DisplayStatus::ACTIVE)->count();
         $totalDisplays = Display::count();
+        $totalBoards = Board::count();
         $totalInstances = Instance::count();
         $sevenDaysAgo = now()->subDays(7);
 
@@ -62,6 +64,7 @@ class AdminController extends Controller
             ->withCount(['displays' => function($q) use ($sevenDaysAgo) {
                 $q->where('last_sync_at', '>=', $sevenDaysAgo);
             }])
+            ->withCount('boards')
             ->with(['displays' => function($q) use ($sevenDaysAgo) {
                 $q->where('last_sync_at', '>=', $sevenDaysAgo)->orderByDesc('last_sync_at');
             }])
@@ -88,6 +91,7 @@ class AdminController extends Controller
                     });
             })
             ->withCount('displays')
+            ->withCount('boards')
             ->with(['subscriptions' => function($query) {
                 $query->where(function($q) {
                     $q->whereNull('ends_at')
@@ -133,6 +137,7 @@ class AdminController extends Controller
         $search = request()->get('search');
         $allUsersQuery = User::query()
             ->withCount('displays')
+            ->withCount('boards')
             ->with(['subscriptions' => function($query) {
                 $query->where(function($q) {
                     $q->whereNull('ends_at')
@@ -159,6 +164,7 @@ class AdminController extends Controller
             'allUsers' => $allUsers,
             'activeDisplaysCount' => $activeDisplays->count(),
             'totalDisplays' => $totalDisplays,
+            'totalBoards' => $totalBoards,
             'activeInstancesCount' => $activeInstances->count(),
             'totalInstances' => $totalInstances,
             'payingUsersCount' => $payingUsers->count(),

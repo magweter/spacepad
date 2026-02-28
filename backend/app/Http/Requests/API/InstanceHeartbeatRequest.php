@@ -21,6 +21,7 @@ class InstanceHeartbeatRequest extends FormRequest
             'is_self_hosted' => ['required', 'boolean'],
             'displays_count' => ['required', 'integer', 'min:0'],
             'rooms_count' => ['required', 'integer', 'min:0'],
+            'boards_count' => ['nullable', 'integer', 'min:0'],
             'version' => ['required', 'string'],
             'users' => ['required', 'array'],
             'users.*.email' => ['required', 'email'],

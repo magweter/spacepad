@@ -12,6 +12,7 @@ use App\Models\Calendar;
 use App\Models\OutlookAccount;
 use App\Models\GoogleAccount;
 use App\Models\CalDAVAccount;
+use App\Models\Board;
 
 class DashboardController extends Controller
 {
@@ -52,6 +53,12 @@ class DashboardController extends Controller
                 ->with(['workspace', 'calendar.outlookAccount', 'calendar.googleAccount', 'calendar.caldavAccount'])
                 ->get();
             
+            // Get boards for the selected workspace
+            $boards = Board::where('workspace_id', $selectedWorkspace->id)
+                ->with(['user', 'displays'])
+                ->orderBy('name')
+                ->get();
+            
             // Get accounts for the selected workspace
             $outlookAccounts = OutlookAccount::where('workspace_id', $selectedWorkspace->id)
                 ->get();
@@ -61,6 +68,7 @@ class DashboardController extends Controller
                 ->get();
         } else {
             $displays = collect();
+            $boards = collect();
             $outlookAccounts = collect();
             $googleAccounts = collect();
             $caldavAccounts = collect();
@@ -86,6 +94,7 @@ class DashboardController extends Controller
             'googleAccounts' => $googleAccounts,
             'caldavAccounts' => $caldavAccounts,
             'displays' => $displays,
+            'boards' => $boards,
             'workspaces' => $workspaces,
             'selectedWorkspace' => $selectedWorkspace,
             'connectCode' => $connectCode,
