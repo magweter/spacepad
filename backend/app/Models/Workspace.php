@@ -61,6 +61,14 @@ class Workspace extends Model
     }
 
     /**
+     * Get all boards in this workspace
+     */
+    public function boards(): HasMany
+    {
+        return $this->hasMany(Board::class);
+    }
+
+    /**
      * Check if a user is a member of this workspace
      */
     public function hasMember(User $user): bool

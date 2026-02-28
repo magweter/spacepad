@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use App\Enums\DisplayStatus;
 use App\Helpers\DisplaySettings;
 
@@ -66,6 +67,12 @@ class Display extends Model
     public function settings(): HasMany
     {
         return $this->hasMany(DisplaySetting::class);
+    }
+
+    public function boards(): BelongsToMany
+    {
+        return $this->belongsToMany(Board::class, 'board_displays')
+            ->withTimestamps();
     }
 
     public function getStartTime(): Carbon
