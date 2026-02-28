@@ -549,6 +549,27 @@ class EventService
     }
 
     /**
+     * Safely truncate description to prevent database errors.
+     * MEDIUMTEXT can hold up to 16MB, but we'll limit to 10MB for safety.
+     */
+    private function truncateDescription(?string $description): string
+    {
+        if ($description === null || $description === '') {
+            return '';
+        }
+
+        // MEDIUMTEXT limit is 16,777,215 bytes, but we'll use 10MB (10,485,760 bytes) as a safe limit
+        $maxLength = 10 * 1024 * 1024; // 10MB in bytes
+
+        if (strlen($description) > $maxLength) {
+            // Truncate and add ellipsis
+            return substr($description, 0, $maxLength - 3) . '...';
+        }
+
+        return $description;
+    }
+
+    /**
      * Check if there are any conflicting events for a display in a given time range.
      *
      * @param string $displayId
@@ -594,51 +615,59 @@ class EventService
         $seenIds = [];
 
         $externalEvents = $externalEvents->filter(fn ($event) => ! $event['isAllDay']);
-        foreach ($externalEvents as $ext) {
-            $externalId = $ext['id'];
-            $seenIds[] = $externalId;
+        
+        // Disable observers during bulk sync to prevent N+1 queries
+        // Cache will be cleared once at the end instead of for each event
+        Event::withoutEvents(function () use ($display, $source, $externalEvents, $existing, &$seenIds) {
+            foreach ($externalEvents as $ext) {
+                $externalId = $ext['id'];
+                $seenIds[] = $externalId;
 
-            $event = $existing->get($externalId);
-            
-            // If event doesn't exist, create it
-            if (!$event) {
-                $event = new Event([
-                    'display_id' => $display->id,
-                    'user_id' => $display->user_id,
-                    'source' => $source,
-                    'external_id' => $externalId,
-                    'status' => EventStatus::CONFIRMED
-                ]);
-            } else {
-                // If event exists but is cancelled, don't reactivate it
-                // (it was likely just cancelled and Google API hasn't updated yet)
-                if ($event->status === EventStatus::CANCELLED) {
-                    continue;
+                $event = $existing->get($externalId);
+                
+                // If event doesn't exist, create it
+                if (!$event) {
+                    $event = new Event([
+                        'display_id' => $display->id,
+                        'user_id' => $display->user_id,
+                        'source' => $source,
+                        'external_id' => $externalId,
+                        'status' => EventStatus::CONFIRMED
+                    ]);
+                } else {
+                    // If event exists but is cancelled, don't reactivate it
+                    // (it was likely just cancelled and Google API hasn't updated yet)
+                    if ($event->status === EventStatus::CANCELLED) {
+                        continue;
+                    }
                 }
+
+                // Parse datetime strings and convert to UTC for storage
+                // Carbon will automatically parse the timezone from the string and convert to UTC
+                $event->start = Carbon::parse($ext['start'])->utc();
+                $event->end = Carbon::parse($ext['end'])->utc();
+                $event->summary = $ext['summary'];
+                $event->description = $this->truncateDescription($ext['description'] ?? null);
+                $event->location = $ext['location'];
+                $event->timezone = $ext['timezone'];
+                // Ensure status is confirmed when syncing (unless it was cancelled)
+                if ($event->status !== EventStatus::CANCELLED) {
+                    $event->status = EventStatus::CONFIRMED;
+                }
+
+                $event->save();
             }
 
-            // Parse datetime strings and convert to UTC for storage
-            // Carbon will automatically parse the timezone from the string and convert to UTC
-            $event->start = Carbon::parse($ext['start'])->utc();
-            $event->end = Carbon::parse($ext['end'])->utc();
-            $event->summary = $ext['summary'];
-            $event->description = $ext['description'];
-            $event->location = $ext['location'];
-            $event->timezone = $ext['timezone'];
-            // Ensure status is confirmed when syncing (unless it was cancelled)
-            if ($event->status !== EventStatus::CANCELLED) {
-                $event->status = EventStatus::CONFIRMED;
-            }
+            // Delete events that no longer exist externally
+            Event::query()
+                ->where('display_id', $display->id)
+                ->where('source', $source)
+                ->whereNotIn('external_id', $seenIds)
+                ->delete();
+        });
 
-            $event->save();
-        }
-
-        // Delete events that no longer exist externally
-        Event::query()
-            ->where('display_id', $display->id)
-            ->where('source', $source)
-            ->whereNotIn('external_id', $seenIds)
-            ->delete();
+        // Clear cache once at the end instead of for each event
+        Cache::forget($display->getEventsCacheKey());
     }
 
     public function checkInToEvent(string $eventId, string $displayId): void

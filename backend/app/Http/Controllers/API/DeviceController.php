@@ -15,8 +15,14 @@ class DeviceController extends ApiController
 {
     public function me(): JsonResponse
     {
+        /** @var Device $device */
+        $device = auth()->user();
+        
+        // Eager load display with settings to avoid N+1 queries
+        $device->load('display.settings');
+        
         return $this->success(
-            data: DeviceResource::make(auth()->user())
+            data: DeviceResource::make($device)
         );
     }
 
