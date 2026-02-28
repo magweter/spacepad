@@ -211,36 +211,306 @@
     </div>
 
     {{-- Room List --}}
-    <div class="space-y-4" id="displays-list">
-        @forelse($displays as $displayData)
-            @php
-                $display = $displayData['display'];
-                $status = $displayData['status'];
-                $statusText = $displayData['statusText'];
-                $currentEvent = $displayData['currentEvent'];
-                $nextEvent = $displayData['nextEvent'];
-                $transitioningMinutes = $displayData['transitioningMinutes'] ?? null;
-                
-                // Status colors
-                $statusBarColor = match($status) {
-                    'busy' => 'bg-red-500',
-                    'transitioning' => 'bg-amber-500',
-                    'error' => 'bg-gray-500',
-                    default => 'bg-green-500',
-                };
-                
-                // Update status text with minutes if transitioning
-                $statusTextParts = [];
-                if ($status === 'transitioning' && $transitioningMinutes !== null) {
-                    $statusTextParts = [
-                        'label' => $t('boards.transitioning'),
-                        'minutes' => '(' . $transitioningMinutes . ' min)'
-                    ];
-                } else {
-                    $statusTextParts = ['label' => $statusText];
-                }
-            @endphp
-            <div class="board-card relative overflow-hidden rounded-xl transition-all duration-300 hover:scale-[1.01]">
+    @php
+        $viewMode = $board->view_mode ?? 'card';
+    @endphp
+    
+    @if($viewMode === 'table')
+        {{-- Row View --}}
+        <div class="overflow-x-auto">
+            <table class="w-full border-collapse">
+                <thead>
+                    <tr class="border-b border-gray-700/30">
+                        <th class="text-left py-3 px-4 text-sm font-semibold uppercase tracking-wider board-text-secondary">Room</th>
+                        <th class="text-left py-3 px-4 text-sm font-semibold uppercase tracking-wider board-text-secondary">Status</th>
+                        <th class="text-left py-3 px-4 text-sm font-semibold uppercase tracking-wider board-text-secondary">Current</th>
+                        @if($board->show_next_event ?? true)
+                            <th class="text-left py-3 px-4 text-sm font-semibold uppercase tracking-wider board-text-secondary">Next</th>
+                        @endif
+                    </tr>
+                </thead>
+                <tbody id="displays-list">
+                    @forelse($displays as $displayData)
+                        @php
+                            $display = $displayData['display'];
+                            $status = $displayData['status'];
+                            $statusText = $displayData['statusText'];
+                            $currentEvent = $displayData['currentEvent'];
+                            $nextEvent = $displayData['nextEvent'];
+                            $transitioningMinutes = $displayData['transitioningMinutes'] ?? null;
+                            
+                            // Status colors
+                            $statusBarColor = match($status) {
+                                'busy' => 'bg-red-500',
+                                'transitioning' => 'bg-amber-500',
+                                'error' => 'bg-gray-500',
+                                default => 'bg-green-500',
+                            };
+                            
+                            // Update status text with minutes if transitioning
+                            $statusTextParts = [];
+                            if ($status === 'transitioning' && $transitioningMinutes !== null) {
+                                $statusTextParts = [
+                                    'label' => $t('boards.transitioning'),
+                                    'minutes' => '(' . $transitioningMinutes . ' min)'
+                                ];
+                            } else {
+                                $statusTextParts = ['label' => $statusText];
+                            }
+                            
+                            $statusBadgeClass = match($status) {
+                                'busy' => 'bg-red-500/10 text-red-400 border-red-500/20',
+                                'transitioning' => 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+                                'error' => 'bg-gray-500/10 text-gray-400 border-gray-500/20',
+                                default => 'bg-green-500/10 text-green-400 border-green-500/20',
+                            };
+                        @endphp
+                        <tr class="border-b border-gray-700/20 hover:bg-gray-800/30 transition-colors">
+                            <td class="py-3 px-4">
+                                <div class="font-semibold text-base board-text-primary">{{ $display->display_name ?: $display->name }}</div>
+                            </td>
+                            <td class="py-3 px-4">
+                                <span class="inline-flex flex-col items-center justify-center px-2 py-1 rounded text-xs font-semibold uppercase tracking-wider text-center border {{ $statusBadgeClass }}">
+                                    @if(isset($statusTextParts['minutes']))
+                                        <span>{{ $statusTextParts['label'] }}</span>
+                                        <span>{{ $statusTextParts['minutes'] }}</span>
+                                    @else
+                                        <span>{{ $statusText }}</span>
+                                    @endif
+                                </span>
+                            </td>
+                            <td class="py-3 px-4">
+                                @if($currentEvent)
+                                    <div class="space-y-1">
+                                        @if($board->show_title ?? true)
+                                            <div class="text-sm font-semibold board-text-primary">{{ $currentEvent['summary'] }}</div>
+                                        @endif
+                                        <div class="flex items-center gap-2 text-xs board-text-secondary">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                            </svg>
+                                            <span class="event-time" data-start="{{ $currentEvent['start']->toIso8601String() }}" data-end="{{ $currentEvent['end']->toIso8601String() }}"></span>
+                                        </div>
+                                    </div>
+                                @else
+                                    @if($nextEvent)
+                                        <span class="text-sm board-text-secondary">
+                                            {{ $t('boards.available_until', ['time' => '']) }}<span class="available-until-time" data-time="{{ $nextEvent['start']->toIso8601String() }}"></span>
+                                        </span>
+                                    @else
+                                        <span class="text-sm board-text-secondary">{{ $t('boards.available_until_end_of_day') }}</span>
+                                    @endif
+                                @endif
+                            </td>
+                            @if($board->show_next_event ?? true)
+                                <td class="py-3 px-4">
+                                    @if($nextEvent)
+                                        <div class="space-y-1">
+                                            @if($board->show_title ?? true)
+                                                <div class="text-sm font-semibold board-text-primary">{{ $nextEvent['summary'] }}</div>
+                                            @endif
+                                            <div class="flex items-center gap-2 text-xs board-text-secondary">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                                </svg>
+                                                <span class="event-time" data-start="{{ $nextEvent['start']->toIso8601String() }}" data-end="{{ $nextEvent['end']->toIso8601String() }}"></span>
+                                            </div>
+                                        </div>
+                                    @else
+                                        <span class="text-sm board-text-secondary">—</span>
+                                    @endif
+                                </td>
+                            @endif
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="{{ ($board->show_next_event ?? true) ? '4' : '3' }}" class="py-16 text-center">
+                                <div class="flex flex-col items-center gap-4">
+                                    <div class="h-16 w-16 rounded-full bg-gray-500/20 flex items-center justify-center">
+                                        <x-icons.display class="h-8 w-8 board-text-tertiary" />
+                                    </div>
+                                    <p class="text-lg board-text-secondary">{{ $t('boards.no_displays') }}</p>
+                                </div>
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    @elseif($viewMode === 'grid')
+        {{-- Grid View --}}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" id="displays-list">
+            @forelse($displays as $displayData)
+                @php
+                    $display = $displayData['display'];
+                    $status = $displayData['status'];
+                    $statusText = $displayData['statusText'];
+                    $currentEvent = $displayData['currentEvent'];
+                    $nextEvent = $displayData['nextEvent'];
+                    $transitioningMinutes = $displayData['transitioningMinutes'] ?? null;
+                    
+                    // Status colors
+                    $statusBarColor = match($status) {
+                        'busy' => 'bg-red-500',
+                        'transitioning' => 'bg-amber-500',
+                        'error' => 'bg-gray-500',
+                        default => 'bg-green-500',
+                    };
+                    
+                    // Update status text with minutes if transitioning
+                    $statusTextParts = [];
+                    if ($status === 'transitioning' && $transitioningMinutes !== null) {
+                        $statusTextParts = [
+                            'label' => $t('boards.transitioning'),
+                            'minutes' => '(' . $transitioningMinutes . ' min)'
+                        ];
+                    } else {
+                        $statusTextParts = ['label' => $statusText];
+                    }
+                @endphp
+                <div class="board-card relative overflow-hidden rounded-xl transition-all duration-300 hover:scale-[1.01]">
+                    {{-- Status Indicator Bar - Full height on left edge --}}
+                    <div class="absolute left-0 top-0 bottom-0 w-1 {{ $statusBarColor }}"></div>
+                    
+                    <div class="pl-8 pr-6 py-5 flex flex-col gap-2">
+                        {{-- Status Badge and Room Name --}}
+                        <div>
+                            {{-- Status Badge - Above Title --}}
+                            <div class="mb-5">
+                                @php
+                                    $statusBadgeClass = match($status) {
+                                        'busy' => 'bg-red-500/10 text-red-400 border-red-500/20',
+                                        'transitioning' => 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+                                        'error' => 'bg-gray-500/10 text-gray-400 border-gray-500/20',
+                                        default => 'bg-green-500/10 text-green-400 border-green-500/20',
+                                    };
+                                @endphp
+                                <span class="inline-flex flex-col items-center justify-center px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider text-center border {{ $statusBadgeClass }}">
+                                    @if(isset($statusTextParts['minutes']))
+                                        <span>{{ $statusTextParts['label'] }}</span>
+                                        <span>{{ $statusTextParts['minutes'] }}</span>
+                                    @else
+                                        <span>{{ $statusText }}</span>
+                                    @endif
+                                </span>
+                            </div>
+                            {{-- Room Name --}}
+                            <h3 class="text-xl font-bold board-text-primary">{{ $display->display_name ?: $display->name }}</h3>
+                        </div>
+                        
+                        {{-- Event Info --}}
+                        <div>
+                            @if($currentEvent)
+                                {{-- Current Event --}}
+                                <div class="space-y-1">
+                                    @if($board->show_title ?? true)
+                                        <div class="text-base font-semibold board-text-primary">{{ $currentEvent['summary'] }}</div>
+                                    @endif
+                                    <div class="flex items-center gap-3 text-sm board-text-secondary">
+                                        <div class="flex items-center gap-1.5">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                            </svg>
+                                            <span class="event-time" data-start="{{ $currentEvent['start']->toIso8601String() }}" data-end="{{ $currentEvent['end']->toIso8601String() }}"></span>
+                                        </div>
+                                        @if(($board->show_booker ?? true) && $currentEvent['organizer'] !== 'Unknown')
+                                            <span class="text-gray-500">•</span>
+                                            <div class="flex items-center gap-1.5">
+                                                <svg class="w-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                                </svg>
+                                                <span>{{ $currentEvent['organizer'] }}</span>
+                                            </div>
+                                        @endif
+                                    </div>
+                                </div>
+                            @else
+                                {{-- Available --}}
+                                @if($nextEvent)
+                                    <span class="text-base font-medium board-text-secondary">
+                                        {{ $t('boards.available_until', ['time' => '']) }}<span class="available-until-time" data-time="{{ $nextEvent['start']->toIso8601String() }}"></span>
+                                    </span>
+                                @else
+                                    <span class="text-base font-medium board-text-secondary">{{ $t('boards.available_until_end_of_day') }}</span>
+                                @endif
+                            @endif
+
+                            {{-- Next Up Event - Below Current Event --}}
+                            @if($nextEvent && ($board->show_next_event ?? true))
+                                <div class="pt-3 mt-3 border-t border-gray-700/30">
+                                    <div class="space-y-1">
+                                        @if($board->show_title ?? true)
+                                            <div class="flex items-center justify-between gap-2">
+                                                <div class="text-base font-semibold board-text-primary truncate">{{ $nextEvent['summary'] }}</div>
+                                                <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">{{ $t('boards.next') }}</span>
+                                            </div>
+                                        @endif
+                                        <div class="flex items-center gap-3 text-sm board-text-secondary">
+                                            <div class="flex items-center gap-1.5">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                                </svg>
+                                                <span class="event-time" data-start="{{ $nextEvent['start']->toIso8601String() }}" data-end="{{ $nextEvent['end']->toIso8601String() }}"></span>
+                                            </div>
+                                            @if(($board->show_booker ?? true) && isset($nextEvent['organizer']) && $nextEvent['organizer'] !== 'Unknown')
+                                                <span class="text-gray-500">•</span>
+                                                <div class="flex items-center gap-1.5">
+                                                    <svg class="w-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                                    </svg>
+                                                    <span>{{ $nextEvent['organizer'] }}</span>
+                                                </div>
+                                            @endif
+                                        </div>
+                                    </div>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            @empty
+                <div class="col-span-full board-card rounded-xl p-16 text-center">
+                    <div class="flex flex-col items-center gap-4">
+                        <div class="h-16 w-16 rounded-full bg-gray-500/20 flex items-center justify-center">
+                            <x-icons.display class="h-8 w-8 board-text-tertiary" />
+                        </div>
+                        <p class="text-lg font-medium board-text-secondary">{{ $t('boards.no_displays') }}</p>
+                    </div>
+                </div>
+            @endforelse
+        </div>
+    @else
+        {{-- Card View (Default) --}}
+        <div class="space-y-4" id="displays-list">
+            @forelse($displays as $displayData)
+                @php
+                    $display = $displayData['display'];
+                    $status = $displayData['status'];
+                    $statusText = $displayData['statusText'];
+                    $currentEvent = $displayData['currentEvent'];
+                    $nextEvent = $displayData['nextEvent'];
+                    $transitioningMinutes = $displayData['transitioningMinutes'] ?? null;
+                    
+                    // Status colors
+                    $statusBarColor = match($status) {
+                        'busy' => 'bg-red-500',
+                        'transitioning' => 'bg-amber-500',
+                        'error' => 'bg-gray-500',
+                        default => 'bg-green-500',
+                    };
+                    
+                    // Update status text with minutes if transitioning
+                    $statusTextParts = [];
+                    if ($status === 'transitioning' && $transitioningMinutes !== null) {
+                        $statusTextParts = [
+                            'label' => $t('boards.transitioning'),
+                            'minutes' => '(' . $transitioningMinutes . ' min)'
+                        ];
+                    } else {
+                        $statusTextParts = ['label' => $statusText];
+                    }
+                @endphp
+                <div class="board-card relative overflow-hidden rounded-xl transition-all duration-300 hover:scale-[1.01]">
                 {{-- Status Indicator Bar - Full height on left edge --}}
                 <div class="absolute left-0 top-0 bottom-0 w-1 {{ $statusBarColor }}"></div>
                 
@@ -273,7 +543,7 @@
                             {{-- Current Event --}}
                             <div class="space-y-1">
                                 @if($board->show_title ?? true)
-                                    <div class="text-base font-semibold board-text-primary">{{ $currentEvent['summary'] }}</div>
+                                    <div class="text-base font-semibold board-text-primary truncate">{{ $currentEvent['summary'] }}</div>
                                 @endif
                                 <div class="flex items-center gap-3 text-sm board-text-secondary">
                                     <div class="flex items-center gap-1.5">
@@ -314,7 +584,7 @@
                                 </div>
                                 <div class="space-y-1">
                                     @if($board->show_title ?? true)
-                                        <div class="text-base font-semibold board-text-primary">{{ $nextEvent['summary'] }}</div>
+                                        <div class="text-base font-semibold board-text-primary truncate">{{ $nextEvent['summary'] }}</div>
                                     @endif
                                     <div class="flex items-center justify-end gap-3 text-sm board-text-secondary">
                                         <div class="flex items-center gap-1.5">
@@ -330,17 +600,18 @@
                     @endif
                 </div>
             </div>
-        @empty
-            <div class="board-card rounded-xl p-16 text-center">
-                <div class="flex flex-col items-center gap-4">
-                    <div class="h-16 w-16 rounded-full bg-gray-500/20 flex items-center justify-center">
-                        <x-icons.display class="h-8 w-8 board-text-tertiary" />
+            @empty
+                <div class="board-card rounded-xl p-16 text-center">
+                    <div class="flex flex-col items-center gap-4">
+                        <div class="h-16 w-16 rounded-full bg-gray-500/20 flex items-center justify-center">
+                            <x-icons.display class="h-8 w-8 board-text-tertiary" />
+                        </div>
+                        <p class="text-lg font-medium board-text-secondary">{{ $t('boards.no_displays') }}</p>
                     </div>
-                    <p class="text-lg font-medium board-text-secondary">{{ $t('boards.no_displays') }}</p>
                 </div>
-            </div>
-        @endforelse
-    </div>
+            @endforelse
+        </div>
+    @endif
 </div>
 @endsection
 

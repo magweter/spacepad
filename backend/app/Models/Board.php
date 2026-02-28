@@ -30,6 +30,7 @@ class Board extends Model
         'transitioning_minutes',
         'font_family',
         'language',
+        'view_mode',
         'show_meeting_title',
     ];
 

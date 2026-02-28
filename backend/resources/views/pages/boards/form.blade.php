@@ -208,6 +208,21 @@
                 </div>
 
                 <div>
+                    <label class="block text-sm font-medium leading-6 text-gray-900 mb-3">Display Settings</label>
+                    <div class="space-y-4">
+                        <div class="space-y-1">
+                            <label for="view_mode" class="block text-sm font-medium text-gray-700 mb-2">View Mode</label>
+                            <select name="view_mode" id="view_mode" class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                                <option value="card" {{ old('view_mode', $board?->view_mode ?? 'card') === 'card' ? 'selected' : '' }}>Card View</option>
+                                <option value="table" {{ old('view_mode', $board?->view_mode ?? 'card') === 'table' ? 'selected' : '' }}>Table View</option>
+                                <option value="grid" {{ old('view_mode', $board?->view_mode ?? 'card') === 'grid' ? 'selected' : '' }}>Grid View</option>
+                            </select>
+                            <p class="mt-1 text-sm text-gray-500">Choose how displays are displayed on the board.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
                     <label class="block text-sm font-medium leading-6 text-gray-900 mb-3">Language</label>
                     <div class="space-y-1">
                         <label for="language" class="block text-sm font-medium text-gray-700 mb-2">Display Language</label>

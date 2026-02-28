@@ -130,6 +130,7 @@ class BoardController extends Controller
             'transitioning_minutes' => $validated['transitioning_minutes'] ?? 10,
             'font_family' => $validated['font_family'] ?? 'Inter',
             'language' => $validated['language'] ?? 'en',
+            'view_mode' => $validated['view_mode'] ?? 'card',
             'show_meeting_title' => $validated['show_meeting_title'] ?? true,
         ]);
         
@@ -291,6 +292,7 @@ class BoardController extends Controller
             'transitioning_minutes' => $validated['transitioning_minutes'] ?? 10,
             'font_family' => $validated['font_family'] ?? 'Inter',
             'language' => $validated['language'] ?? 'en',
+            'view_mode' => $validated['view_mode'] ?? 'card',
             'show_meeting_title' => $validated['show_meeting_title'] ?? true,
         ]);
         
@@ -414,22 +416,30 @@ class BoardController extends Controller
                 // Get board settings for meeting title privacy
                 $showMeetingTitle = $board ? ($board->show_meeting_title ?? true) : DisplaySettings::getShowMeetingTitle($display);
                 
+                // Helper function to truncate summary
+                $truncateSummary = function($text) {
+                    if (mb_strlen($text) > 40) {
+                        return mb_substr($text, 0, 40) . '...';
+                    }
+                    return $text;
+                };
+                
                 return [
                     'display' => $display,
                     'status' => $status,
                     'statusText' => $statusText,
                     'currentEvent' => $currentEvent ? [
-                        'summary' => $showMeetingTitle 
+                        'summary' => $truncateSummary($showMeetingTitle 
                             ? $currentEvent->summary 
-                            : (DisplaySettings::getReservedText($display) ?? 'Reserved'),
+                            : (DisplaySettings::getReservedText($display) ?? 'Reserved')),
                         'start' => $currentEvent->start,
                         'end' => $currentEvent->end,
                         'organizer' => $currentEvent->user?->name ?? 'Unknown',
                     ] : null,
                     'nextEvent' => $nextEvent ? [
-                        'summary' => $showMeetingTitle 
+                        'summary' => $truncateSummary($showMeetingTitle 
                             ? $nextEvent->summary 
-                            : (DisplaySettings::getReservedText($display) ?? 'Reserved'),
+                            : (DisplaySettings::getReservedText($display) ?? 'Reserved')),
                         'start' => $nextEvent->start,
                         'end' => $nextEvent->end,
                         'organizer' => $nextEvent->user?->name ?? 'Unknown',

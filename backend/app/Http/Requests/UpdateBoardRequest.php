@@ -39,6 +39,7 @@ class UpdateBoardRequest extends FormRequest
             'transitioning_minutes' => 'nullable|integer|min:1|max:60',
             'font_family' => 'nullable|string|in:Inter,Roboto,Open Sans,Lato,Poppins,Montserrat',
             'language' => 'nullable|string|in:en,nl,fr,de,es,sv',
+            'view_mode' => 'nullable|string|in:card,table,grid',
             'show_meeting_title' => 'nullable|boolean',
             'display_ids' => [
                 'nullable',
