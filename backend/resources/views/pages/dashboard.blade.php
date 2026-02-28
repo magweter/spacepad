@@ -2,42 +2,15 @@
 @section('title', 'Management dashboard')
 
 @section('actions')
-    {{-- Workspace Selector and Connect Code --}}
-    @if($workspaces->count() > 1 || $connectCode)
+    {{-- Connect Code --}}
+    @if((auth()->user()->hasAnyDisplay() || auth()->user()->workspaces()->count() > 1) && $connectCode)
         <div class="items-center flex ml-auto gap-4">
-            @if($workspaces->count() > 1)
-                <form action="{{ route('workspaces.switch') }}" method="POST" id="workspace-switch-form">
-                    @csrf
-                    <div class="flex border border-dashed rounded-lg px-4 h-14 items-center border-gray-400">
-                        <label for="workspace-select" class="text-sm font-semibold text-gray-900 mr-4 flex items-center">Workspace</label>
-                        <select 
-                            id="workspace-select"
-                            name="workspace_id" 
-                            onchange="this.form.submit();"
-                            class="flex-1 text-sm font-medium text-gray-900 bg-transparent border bg-white rounded-lg p-1 focus:ring-0 focus:outline-none cursor-pointer"
-                        >
-                            @foreach($workspaces as $workspace)
-                                <option value="{{ $workspace->id }}" {{ ($selectedWorkspace?->id ?? $workspaces->first()->id) === $workspace->id ? 'selected' : '' }}>
-                                    {{ $workspace->name }}
-                                    @if($workspace->pivot->role === \App\Enums\WorkspaceRole::OWNER->value)
-                                        (Owner)
-                                    @elseif($workspace->pivot->role === \App\Enums\WorkspaceRole::ADMIN->value)
-                                        (Admin)
-                                    @endif
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-                </form>
-            @endif
-            @if((auth()->user()->hasAnyDisplay() || auth()->user()->workspaces()->count() > 1) && $connectCode)
-                <div class="flex border border-dashed rounded-lg px-4 h-14 items-center border-gray-400">
-                    <h3 class="text-sm font-semibold text-gray-900 mr-8 flex items-center">Connect code</h3>
-                    <div class="flex-1 text-sm text-gray-500">
-                        <p class="font-mono">{{ chunk_split($connectCode, 3, ' ') }}</p>
-                    </div>
+            <div class="flex border border-dashed rounded-lg px-4 h-14 items-center border-gray-400">
+                <h3 class="text-sm font-semibold text-gray-900 mr-8 flex items-center">Connect code</h3>
+                <div class="flex-1 text-sm text-gray-500">
+                    <p class="font-mono">{{ chunk_split($connectCode, 3, ' ') }}</p>
                 </div>
-            @endif
+            </div>
         </div>
     @endif
 @endsection
@@ -124,7 +97,7 @@
             <div class="flex-1">
                 <h3 class="text-md font-semibold text-indigo-900 mb-1">Unlock all features</h3>
                 <p class="text-sm text-indigo-800 mb-1">
-                    Upgrade to Pro to create multiple displays, book on-display, customize or hide meeting titles, use logos and backgrounds, enable check-in and more!
+                    Upgrade to Pro to unlock all features, including multiple displays, creating boards, book on-display, personalize displays, enable check-in and more!
                 </p>
                 <p class="text-sm text-indigo-700 mb-0">
                     <a href="https://spacepad.io/#features" target="_blank" class="underline hover:text-indigo-900 inline-block">See all Pro features</a> or <a href="https://spacepad.io/pricing" target="_blank" class="underline hover:text-indigo-900 inline-block">see pricing</a>.
@@ -156,6 +129,21 @@
                         <button onclick="switchTab('boards')" id="tab-boards" class="tab-button border-b-2 border-transparent pb-4 px-1 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap">
                             Boards <span class="ml-1 inline-flex items-center rounded-md bg-green-50 px-1.5 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">New</span>
                         </button>
+                    @else
+                        <div class="relative group">
+                            <button type="button" disabled id="tab-boards" class="tab-button border-b-2 border-transparent pb-4 px-1 text-sm font-medium text-gray-400 cursor-not-allowed whitespace-nowrap flex items-center gap-1">
+                                Boards
+                                <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                                </svg>
+                            </button>
+                            <div class="absolute left-0 top-full mt-2 w-72 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
+                                <div class="font-semibold mb-1">Boards (Pro Feature)</div>
+                                <div class="mb-2">Boards are meeting room availability overviews for big screens, allowing you to display multiple rooms at once.</div>
+                                <div>Find more information on <a href="https://spacepad.io" target="_blank" class="underline font-semibold hover:text-blue-300">spacepad.io</a></div>
+                                <div class="absolute bottom-full left-4 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-gray-900"></div>
+                            </div>
+                        </div>
                     @endif
                 </nav>
             </div>
@@ -286,7 +274,21 @@
                 <div id="tab-content-boards" class="tab-content hidden">
                     <div class="sm:flex sm:items-center mb-4">
                         <div class="sm:flex-auto">
-                            <h2 class="text-lg font-semibold leading-6 text-gray-900">Boards</h2>
+                            <div class="flex items-center gap-1">
+                                <h2 class="text-lg font-semibold leading-6 text-gray-900">Boards</h2>
+                                <div class="relative group">
+                                    <button type="button" class="text-gray-400 hover:text-gray-500 focus:outline-none flex items-center gap-1">
+                                        <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                                        </svg>
+                                    </button>
+                                    <div class="absolute left-0 top-full mt-2 w-64 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
+                                        <div class="font-semibold mb-1">Billing Information</div>
+                                        <div>Boards are billed as <strong>2x displays</strong> to keep the base product accessible and fair for users who don't use boards.</div>
+                                        <div class="absolute bottom-full left-4 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-gray-900"></div>
+                                    </div>
+                                </div>
+                            </div>
                             <p class="mt-1 text-sm text-gray-500">
                                 Meeting room availability overviews for big screens.
                             </p>

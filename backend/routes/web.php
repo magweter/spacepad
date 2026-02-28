@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\WorkspaceController;
 use App\Http\Controllers\BoardController;
+use App\Http\Controllers\UsageController;
 
 Route::get('/login', [LoginController::class, 'create'])
     ->middleware('guest')
@@ -137,4 +138,7 @@ Route::middleware(['auth', 'user.update-last-activity', 'gtm'])->group(function 
     Route::put('/boards/{board}', [BoardController::class, 'update'])->name('boards.update');
     Route::delete('/boards/{board}', [BoardController::class, 'destroy'])->name('boards.destroy');
     Route::get('/boards/{board}/images/logo', [BoardController::class, 'serveLogo'])->name('boards.images.logo');
+
+    // Usage routes
+    Route::get('/usage', [UsageController::class, 'index'])->name('usage.index');
 });

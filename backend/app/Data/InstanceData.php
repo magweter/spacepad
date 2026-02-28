@@ -29,6 +29,8 @@ class InstanceData extends Data
         public int $displaysCount,
         #[MapName('rooms_count')]
         public int $roomsCount,
+        #[MapName('boards_count')]
+        public ?int $boardsCount = null,
 
         // Telemetry
         public string $version,

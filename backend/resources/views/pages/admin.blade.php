@@ -81,6 +81,7 @@
                                 <th class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-0">Instance Key</th>
                                 <th class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 align-top">Users</th>
                                 <th class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 align-top">Displays</th>
+                                <th class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 align-top">Boards</th>
                                 <th class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 align-top">Rooms</th>
                                 <th class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 align-top">Last Heartbeat</th>
                                 <th class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 align-top">Paid</th>
@@ -103,12 +104,13 @@
                                         @endif
                                     </td>
                                     <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500 align-top">{{ $instance->displays_count }}</td>
+                                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500 align-top">{{ $instance->boards_count ?? '-' }}</td>
                                     <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500 align-top">{{ $instance->rooms_count }}</td>
                                     <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500 align-top">{{ $instance->last_heartbeat_at?->diffForHumans() ?? '-' }}</td>
                                     <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500 align-top">{{ $instance->is_paid ? 'Yes' : 'No' }}</td>
                                 </tr>
                             @empty
-                                <tr><td colspan="6" class="text-center py-4 text-gray-400">No active self-hosted instances found.</td></tr>
+                                <tr><td colspan="7" class="text-center py-4 text-gray-400">No active self-hosted instances found.</td></tr>
                             @endforelse
                             </tbody>
                         </table>
@@ -119,7 +121,7 @@
 
         <!-- Tab 2: Active Cloud-Hosted Users -->
         <div x-show="activeTab === 'active-users'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0">
-            <div class="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2">
+            <div class="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-3">
                 <div class="bg-white overflow-hidden shadow rounded-lg">
                     <div class="p-5 flex items-center">
                         <div class="flex-shrink-0">
@@ -148,6 +150,20 @@
                         </div>
                     </div>
                 </div>
+                <div class="bg-white overflow-hidden shadow rounded-lg">
+                    <div class="p-5 flex items-center">
+                        <div class="flex-shrink-0">
+                            <!-- Heroicon: Squares2X2 (outline) -->
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-8 w-8 text-purple-500"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" /></svg>
+                        </div>
+                        <div class="ml-5 w-0 flex-1">
+                            <dl>
+                                <dt class="text-sm font-medium text-gray-500 truncate">Total Boards</dt>
+                                <dd class="mt-1 text-2xl font-semibold text-gray-900">{{ $totalBoards }}</dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div class="mt-10">
@@ -161,6 +177,7 @@
                                 <th class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Email</th>
                                 <th class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Usage Type</th>
                                 <th class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Displays</th>
+                                <th class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Boards</th>
                                 <th class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Last Display Activity</th>
                                 <th class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Paid</th>
                             </tr>
@@ -172,11 +189,12 @@
                                     <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{ $user->email }}</td>
                                     <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{ $user->usage_type?->label() }}</td>
                                     <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{ $user->displays_count }}</td>
+                                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{ $user->boards_count ?? 0 }}</td>
                                     <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{ $user->last_display_activity ? \Carbon\Carbon::parse($user->last_display_activity)->diffForHumans() : '-' }}</td>
                                     <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{ $user->is_paid ? 'Yes' : 'No' }}</td>
                                 </tr>
                             @empty
-                                <tr><td colspan="6" class="text-center py-4 text-gray-400">No active cloud-hosted users found.</td></tr>
+                                <tr><td colspan="7" class="text-center py-4 text-gray-400">No active cloud-hosted users found.</td></tr>
                             @endforelse
                             </tbody>
                         </table>
@@ -243,6 +261,7 @@
                                 <th class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Email</th>
                                 <th class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Usage Type</th>
                                 <th class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Displays</th>
+                                <th class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Boards</th>
                                 <th class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Subscription Status</th>
                                 <th class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">LS Status</th>
                                 <th class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Price</th>
@@ -309,7 +328,7 @@
                                     <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{ $user->created_at->format('Y-m-d') }}</td>
                                 </tr>
                             @empty
-                                <tr><td colspan="10" class="text-center py-4 text-gray-400">No paying cloud-hosted users found.</td></tr>
+                                <tr><td colspan="11" class="text-center py-4 text-gray-400">No paying cloud-hosted users found.</td></tr>
                             @endforelse
                             </tbody>
                         </table>
@@ -385,6 +404,7 @@
                                 <th class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Email</th>
                                 <th class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Usage Type</th>
                                 <th class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Displays</th>
+                                <th class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Boards</th>
                                 <th class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Pro</th>
                                 <th class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Registered</th>
                                 <th class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Last Activity</th>
@@ -398,6 +418,7 @@
                                     <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{ $user->email }}</td>
                                     <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{ $user->usage_type?->label() ?? '-' }}</td>
                                     <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{ $user->displays_count }}</td>
+                                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{ $user->boards_count ?? 0 }}</td>
                                     <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                                         @if($user->hasPro())
                                             <span class="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">Yes</span>
@@ -423,7 +444,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="8" class="py-8 text-center text-sm text-gray-500">
+                                    <td colspan="9" class="py-8 text-center text-sm text-gray-500">
                                         @if(request('search'))
                                             No users found matching "{{ request('search') }}"
                                         @else

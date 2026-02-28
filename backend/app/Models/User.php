@@ -123,6 +123,11 @@ class User extends Authenticatable
         return $this->hasMany(Room::class);
     }
 
+    public function boards(): HasMany
+    {
+        return $this->hasMany(Board::class);
+    }
+
     /**
      * Get workspaces owned by this user (where user has 'owner' role)
      */
