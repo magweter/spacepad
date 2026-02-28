@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
@@ -32,6 +33,11 @@ class _DashboardPageState extends State<DashboardPage> {
     return shortestSide < 600;
   }
 
+  bool _isPortrait(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    return size.height > size.width;
+  }
+
   double _getCornerRadius(BuildContext context) {
     // Get the top padding which includes the notch area
     final topPadding = MediaQuery.of(context).padding.top;
@@ -41,11 +47,46 @@ class _DashboardPageState extends State<DashboardPage> {
     return cornerRadius;
   }
 
+  double _getContainerPadding(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final shortestSide = size.shortestSide;
+    final isPortrait = size.height > size.width;
+    
+    // Base padding on shortest side, increase for portrait
+    final basePadding = shortestSide * 0.02; // 2% of shortest side
+    final portraitMultiplier = isPortrait ? 1.2 : 1.1;
+    
+    return basePadding * portraitMultiplier;
+  }
+
+  EdgeInsets _getInnerPadding(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final shortestSide = size.shortestSide;
+    final isPortrait = size.height > size.width;
+    
+    // Base padding on shortest side, increase for portrait
+    final horizontalBase = shortestSide * 0.033; // ~3.3% of shortest side
+    final verticalBase = shortestSide * 0.025; // ~2.5% of shortest side
+    final portraitMultiplier = isPortrait ? 1.2 : 1.0;
+    
+    return EdgeInsets.fromLTRB(
+      horizontalBase * portraitMultiplier,
+      verticalBase * portraitMultiplier,
+      horizontalBase * portraitMultiplier,
+      verticalBase * portraitMultiplier,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     DashboardController controller = Get.put(DashboardController());
     final isPhone = _isPhone(context);
+    final isPortrait = _isPortrait(context);
     final cornerRadius = _getCornerRadius(context);
+
+    if (kDebugMode) print('isPhone: $isPhone');
+    if (kDebugMode) print('isPortrait: $isPortrait');
+    if (kDebugMode) print('cornerRadius: $cornerRadius');
 
     return Scaffold(
       backgroundColor: AppTheme.black,
@@ -59,17 +100,12 @@ class _DashboardPageState extends State<DashboardPage> {
             color: controller.isTransitioning || controller.isCheckInActive ?
               TWColors.amber_500 :
               (controller.isReserved ? TWColors.rose_600 : TWColors.green_600),
-            padding: EdgeInsets.all(isPhone ? 12 : 18),
+            padding: EdgeInsets.all(_getContainerPadding(context)),
                 child: AuthenticatedBackground(
                   imageUrl: controller.globalSettings.value?.backgroundImageUrl,
                   borderRadius: BorderRadius.circular(cornerRadius),
                 child: Padding(
-                  padding: EdgeInsets.fromLTRB(
-                    isPhone ? 20 : 40,
-                    isPhone ? 15 : 30,
-                    isPhone ? 20 : 40,
-                    isPhone ? 15 : 30,
-                  ),
+                  padding: _getInnerPadding(context),
                   child: Stack(
                     children: [
                       Align(
@@ -127,7 +163,7 @@ class _DashboardPageState extends State<DashboardPage> {
                       ),
 
                       SpaceCol(
-                        spaceBetween: isPhone ? 20 : 40,
+                        spaceBetween: _getContainerPadding(context) * 1.75, // Proportional to container padding
                         mainAxisSize: MainAxisSize.max,
                         mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -226,70 +262,71 @@ class _DashboardPageState extends State<DashboardPage> {
                           borderRadius: cornerRadius,
                           blurIntensity: 18,
                           padding: EdgeInsets.all(isPhone ? 12 : 20),
-                          child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                // Upcoming Events Section
-                                Expanded(
-                                  child: controller.upcomingEvents.isNotEmpty
-                                    ? SpaceCol(
-                                        spaceBetween: isPhone ? 8 : 12,
-                                        children: [
-                                          for (EventModel event in controller.upcomingEvents.take(1)) EventLine(event: event),
-                                        ],
-                                      )
-                                    : Text(
-                                        'no_upcoming_events'.tr,
-                                        style: TextStyle(
-                                          color: TWColors.white,
-                                          fontSize: isPhone ? 16 : 18,
-                                          fontWeight: FontWeight.w500,
-                                        ),
+                          child: SpaceRow(
+                            spaceBetween: isPhone ? 10 : 20,
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              // Upcoming Events Section
+                              Expanded(
+                                child: controller.upcomingEvents.isNotEmpty
+                                  ? SpaceCol(
+                                      spaceBetween: isPhone ? 8 : 12,
+                                      children: [
+                                        for (EventModel event in controller.upcomingEvents.take(1)) EventLine(event: event),
+                                      ],
+                                    )
+                                  : Text(
+                                      'no_upcoming_events'.tr,
+                                      style: TextStyle(
+                                        color: TWColors.white,
+                                        fontSize: isPhone ? 16 : 18,
+                                        fontWeight: FontWeight.w500,
                                       ),
-                                ),
-                                
-                                // Action Buttons Section
-                                if (controller.calendarEnabled)
-                                  Material(
-                                    color: Colors.transparent,
-                                    child: InkWell(
-                                      hoverColor: Colors.transparent,
-                                      splashColor: Colors.transparent,
-                                      highlightColor: Colors.transparent,
-                                      borderRadius: BorderRadius.circular(8),
-                                      onTap: () {
-                                        showDialog(
-                                          context: context,
-                                          builder: (context) => CalendarModal(
-                                            events: controller.events,
-                                            selectedDate: DateTime.now(),
-                                          ),
-                                        );
-                                      },
-                                      child: Padding(
-                                        padding: EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Icon(
-                                              Icons.calendar_today_outlined,
-                                              size: 24,
-                                              color: Colors.white,
-                                            ),
-                                            SizedBox(width: 12),
-                                            Text(
-                                              'view_schedule'.tr,
-                                              style: TextStyle(
-                                                color: Colors.white,
-                                                fontSize: isPhone ? 14 : 18,
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                            ),
-                                          ],
+                                    ),
+                              ),
+                              
+                              // Action Buttons Section
+                              if (controller.calendarEnabled)
+                                Material(
+                                  color: Colors.transparent,
+                                  child: InkWell(
+                                    hoverColor: Colors.transparent,
+                                    splashColor: Colors.transparent,
+                                    highlightColor: Colors.transparent,
+                                    borderRadius: BorderRadius.circular(8),
+                                    onTap: () {
+                                      showDialog(
+                                        context: context,
+                                        builder: (context) => CalendarModal(
+                                          events: controller.events,
+                                          selectedDate: DateTime.now(),
                                         ),
+                                      );
+                                    },
+                                    child: Padding(
+                                      padding: EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            Icons.calendar_today_outlined,
+                                            size: 24,
+                                            color: Colors.white,
+                                          ),
+                                          SizedBox(width: 12),
+                                          Text(
+                                            'view_schedule'.tr,
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: isPhone ? 14 : 18,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ),
                                   ),
+                                ),
                               ],
                             ),
                           ),

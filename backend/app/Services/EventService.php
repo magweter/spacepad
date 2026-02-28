@@ -425,10 +425,33 @@ class EventService
             endDateTime: $display->getEndTime(),
         );
 
-        // Filter out cancelled events - Google Calendar returns cancelled events with status "cancelled"
-        // but they should not be displayed
+        // Get room email if this calendar has a room
+        $roomEmail = $calendar->room?->email_address;
+
+        // Filter out cancelled events and events where the room declined as attendee
         return collect($events)
-            ->filter(fn($e) => $e->getStatus() !== 'cancelled')
+            ->filter(function ($event) use ($roomEmail) {
+                // Filter out cancelled events
+                if ($event->getStatus() === 'cancelled') {
+                    return false;
+                }
+
+                // If this calendar has a room, check if the room declined the event
+                if ($roomEmail && $event->getAttendees()) {
+                    foreach ($event->getAttendees() as $attendee) {
+                        // Check if this attendee is the room and if it declined
+                        if (strtolower($attendee->getEmail()) === strtolower($roomEmail)) {
+                            $responseStatus = $attendee->getResponseStatus();
+                            // Filter out events where the room declined
+                            if ($responseStatus === 'declined') {
+                                return false;
+                            }
+                        }
+                    }
+                }
+
+                return true;
+            })
             ->map(fn($e) => $this->sanitizeGoogleEvent($e));
     }
 
