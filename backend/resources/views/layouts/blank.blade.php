@@ -17,7 +17,7 @@
         <meta name="theme-color" content="#ffffff">
 
         <meta name="robots" content="noindex, nofollow">
-        <title>{{ config('app.name') }}</title>
+        <title>@yield('title', config('app.name'))</title>
 
         @includeWhen(config('googletagmanager.enabled') && config('googletagmanager.id'), 'googletagmanager::head')
 

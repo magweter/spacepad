@@ -18,13 +18,29 @@ class Board extends Model
         'workspace_id',
         'user_id',
         'name',
+        'title',
+        'subtitle',
         'show_all_displays',
         'theme',
         'logo',
+        'show_title',
+        'show_booker',
+        'show_next_event',
+        'show_transitioning',
+        'transitioning_minutes',
+        'font_family',
+        'language',
+        'show_meeting_title',
     ];
 
     protected $casts = [
         'show_all_displays' => 'boolean',
+        'show_title' => 'boolean',
+        'show_booker' => 'boolean',
+        'show_next_event' => 'boolean',
+        'show_transitioning' => 'boolean',
+        'transitioning_minutes' => 'integer',
+        'show_meeting_title' => 'boolean',
     ];
 
     public function workspace(): BelongsTo

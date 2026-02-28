@@ -16,6 +16,7 @@ use Illuminate\Contracts\View\Factory;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Lang;
 
 class BoardController extends Controller
 {
@@ -118,8 +119,18 @@ class BoardController extends Controller
             'workspace_id' => $validated['workspace_id'],
             'user_id' => $user->id,
             'name' => $validated['name'],
+            'title' => $validated['title'] ?? null,
+            'subtitle' => $validated['subtitle'] ?? null,
             'show_all_displays' => $validated['show_all_displays'],
             'theme' => $validated['theme'] ?? 'dark',
+            'show_title' => $validated['show_title'] ?? true,
+            'show_booker' => $validated['show_booker'] ?? true,
+            'show_next_event' => $validated['show_next_event'] ?? true,
+            'show_transitioning' => $validated['show_transitioning'] ?? true,
+            'transitioning_minutes' => $validated['transitioning_minutes'] ?? 10,
+            'font_family' => $validated['font_family'] ?? 'Inter',
+            'language' => $validated['language'] ?? 'en',
+            'show_meeting_title' => $validated['show_meeting_title'] ?? true,
         ]);
         
         // Handle logo upload after board is created
@@ -165,17 +176,44 @@ class BoardController extends Controller
         
         $this->authorize('view', $board);
         
+        // Store board in a way that getDisplayStatusData can access it
+        $this->currentBoard = $board;
+        
         // Get displays to show
         $displays = $board->getDisplaysToShow();
         
         // Fetch events and determine status for each display
-        $displayData = $this->getDisplayStatusData($displays);
+        $displayData = $this->getDisplayStatusData($displays, $board);
         
         return view('pages.boards.show', [
             'board' => $board,
             'displays' => $displayData,
             'workspace' => $board->workspace,
         ]);
+    }
+    
+    private function getTransitioningMinutes($currentEvent, $nextEvent, ?Board $board = null): ?int
+    {
+        $transitioningMinutes = $board ? ($board->transitioning_minutes ?? 10) : 10;
+        $now = now();
+        
+        // If current event is ending soon
+        if ($currentEvent) {
+            $minutesLeft = $currentEvent->end->diffInMinutes($now, false);
+            if ($minutesLeft < $transitioningMinutes && $minutesLeft > 0) {
+                return $minutesLeft;
+            }
+        }
+        
+        // If next event is starting soon
+        if ($nextEvent) {
+            $minutesUntil = $now->diffInMinutes($nextEvent->start, false);
+            if ($minutesUntil < $transitioningMinutes && $minutesUntil > 0) {
+                return $minutesUntil;
+            }
+        }
+        
+        return null;
     }
 
     /**
@@ -241,9 +279,19 @@ class BoardController extends Controller
         // Update the board
         $board->update([
             'name' => $validated['name'],
+            'title' => $validated['title'] ?? null,
+            'subtitle' => $validated['subtitle'] ?? null,
             'show_all_displays' => $validated['show_all_displays'],
             'theme' => $validated['theme'] ?? 'dark',
             'logo' => $logoPath,
+            'show_title' => $validated['show_title'] ?? true,
+            'show_booker' => $validated['show_booker'] ?? true,
+            'show_next_event' => $validated['show_next_event'] ?? true,
+            'show_transitioning' => $validated['show_transitioning'] ?? true,
+            'transitioning_minutes' => $validated['transitioning_minutes'] ?? 10,
+            'font_family' => $validated['font_family'] ?? 'Inter',
+            'language' => $validated['language'] ?? 'en',
+            'show_meeting_title' => $validated['show_meeting_title'] ?? true,
         ]);
         
         // Sync displays if not showing all
@@ -305,9 +353,9 @@ class BoardController extends Controller
      * Get display status data for a collection of displays
      * Extracted from FlightboardController for reusability
      */
-    private function getDisplayStatusData(Collection $displays): Collection
+    private function getDisplayStatusData(Collection $displays, ?Board $board = null): Collection
     {
-        return $displays->map(function ($display) {
+        return $displays->map(function ($display) use ($board) {
             try {
                 $events = $this->eventService->getEventsForDisplay($display->id)
                     ->where('status', '!=', EventStatus::CANCELLED);
@@ -323,16 +371,22 @@ class BoardController extends Controller
                 
                 $nextEvent = $upcomingEvents->first();
                 
+                // Get board settings
+                $showTransitioning = $board ? ($board->show_transitioning ?? true) : true;
+                
+                // Get board language for translations
+                $boardLanguage = $board ? ($board->language ?? 'en') : 'en';
+                
                 // Determine status
                 $status = 'available'; // green
-                $statusText = 'Open';
+                $statusText = Lang::get('boards.available', [], $boardLanguage);
                 
                 if ($currentEvent) {
                     $status = 'busy'; // red
-                    $statusText = 'Busy';
-                } elseif ($this->isTransitioning($display, $currentEvent, $nextEvent)) {
+                    $statusText = Lang::get('boards.busy', [], $boardLanguage);
+                } elseif ($showTransitioning && $this->isTransitioning($display, $currentEvent, $nextEvent, $board)) {
                     $status = 'transitioning'; // amber
-                    $statusText = 'Transitioning';
+                    $statusText = Lang::get('boards.transitioning', [], $boardLanguage);
                 }
                 
                 // Check for check-in active
@@ -353,16 +407,19 @@ class BoardController extends Controller
                     
                     if ($checkInEvent) {
                         $status = 'transitioning';
-                        $statusText = 'Check-in';
+                        $statusText = Lang::get('boards.check_in', [], $boardLanguage);
                     }
                 }
+                
+                // Get board settings for meeting title privacy
+                $showMeetingTitle = $board ? ($board->show_meeting_title ?? true) : DisplaySettings::getShowMeetingTitle($display);
                 
                 return [
                     'display' => $display,
                     'status' => $status,
                     'statusText' => $statusText,
                     'currentEvent' => $currentEvent ? [
-                        'summary' => DisplaySettings::getShowMeetingTitle($display) 
+                        'summary' => $showMeetingTitle 
                             ? $currentEvent->summary 
                             : (DisplaySettings::getReservedText($display) ?? 'Reserved'),
                         'start' => $currentEvent->start,
@@ -370,13 +427,14 @@ class BoardController extends Controller
                         'organizer' => $currentEvent->user?->name ?? 'Unknown',
                     ] : null,
                     'nextEvent' => $nextEvent ? [
-                        'summary' => DisplaySettings::getShowMeetingTitle($display) 
+                        'summary' => $showMeetingTitle 
                             ? $nextEvent->summary 
                             : (DisplaySettings::getReservedText($display) ?? 'Reserved'),
                         'start' => $nextEvent->start,
                         'end' => $nextEvent->end,
                         'organizer' => $nextEvent->user?->name ?? 'Unknown',
                     ] : null,
+                    'transitioningMinutes' => $this->getTransitioningMinutes($currentEvent, $nextEvent, $board),
                 ];
             } catch (\Exception $e) {
                 logger()->error('Failed to fetch events for display in board', [
@@ -384,10 +442,13 @@ class BoardController extends Controller
                     'error' => $e->getMessage(),
                 ]);
                 
+                // Get board language for translations
+                $boardLanguage = $board ? ($board->language ?? 'en') : 'en';
+                
                 return [
                     'display' => $display,
                     'status' => 'error',
-                    'statusText' => 'Error',
+                    'statusText' => Lang::get('boards.error', [], $boardLanguage),
                     'currentEvent' => null,
                     'nextEvent' => null,
                 ];
@@ -398,27 +459,28 @@ class BoardController extends Controller
     /**
      * Check if display is in transitioning state
      */
-    private function isTransitioning($display, $currentEvent, $nextEvent): bool
+    private function isTransitioning($display, $currentEvent, $nextEvent, ?Board $board = null): bool
     {
         $checkInEnabled = DisplaySettings::isCheckInEnabled($display);
         if ($checkInEnabled) {
             return false; // Check-in logic handled separately
         }
         
+        $transitioningMinutes = $board ? ($board->transitioning_minutes ?? 10) : 10;
         $now = now();
         
-        // Current event ending within 10 minutes
+        // Current event ending within configured minutes
         if ($currentEvent) {
             $minutesLeft = $currentEvent->end->diffInMinutes($now, false);
-            if ($minutesLeft < 10 && $minutesLeft > 0) {
+            if ($minutesLeft < $transitioningMinutes && $minutesLeft > 0) {
                 return true;
             }
         }
         
-        // Next event starting within 10 minutes
+        // Next event starting within configured minutes
         if ($nextEvent) {
-            $minutesUntil = $nextEvent->start->diffInMinutes($now, false);
-            if ($minutesUntil < 10 && $minutesUntil > 0) {
+            $minutesUntil = $now->diffInMinutes($nextEvent->start, false);
+            if ($minutesUntil < $transitioningMinutes && $minutesUntil > 0) {
                 return true;
             }
         }

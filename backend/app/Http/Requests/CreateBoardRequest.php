@@ -25,11 +25,21 @@ class CreateBoardRequest extends FormRequest
     {
         return [
             'name' => 'required|string|max:255',
+            'title' => 'nullable|string|max:255',
+            'subtitle' => 'nullable|string|max:255',
             'workspace_id' => 'required|string|exists:workspaces,id',
             'show_all_displays' => 'required|boolean',
             'theme' => 'nullable|string|in:dark,light,system',
             'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
             'remove_logo' => 'nullable|boolean',
+            'show_title' => 'nullable|boolean',
+            'show_booker' => 'nullable|boolean',
+            'show_next_event' => 'nullable|boolean',
+            'show_transitioning' => 'nullable|boolean',
+            'transitioning_minutes' => 'nullable|integer|min:1|max:60',
+            'font_family' => 'nullable|string|in:Inter,Roboto,Open Sans,Lato,Poppins,Montserrat',
+            'language' => 'nullable|string|in:en,nl,fr,de,es,sv',
+            'show_meeting_title' => 'nullable|boolean',
             'display_ids' => [
                 'nullable',
                 'array',
@@ -59,6 +69,16 @@ class CreateBoardRequest extends FormRequest
                 'show_all_displays' => filter_var($this->show_all_displays, FILTER_VALIDATE_BOOLEAN),
             ]);
         }
+
+        // Convert checkbox values to boolean (default to true if not present for new boards)
+        $this->merge([
+            'show_title' => $this->has('show_title') ? filter_var($this->show_title, FILTER_VALIDATE_BOOLEAN) : true,
+            'show_booker' => $this->has('show_booker') ? filter_var($this->show_booker, FILTER_VALIDATE_BOOLEAN) : true,
+            'show_next_event' => $this->has('show_next_event') ? filter_var($this->show_next_event, FILTER_VALIDATE_BOOLEAN) : true,
+            'show_transitioning' => $this->has('show_transitioning') ? filter_var($this->show_transitioning, FILTER_VALIDATE_BOOLEAN) : true,
+            'transitioning_minutes' => $this->has('transitioning_minutes') ? (int) $this->transitioning_minutes : 10,
+            'show_meeting_title' => $this->has('show_meeting_title') ? filter_var($this->show_meeting_title, FILTER_VALIDATE_BOOLEAN) : true,
+        ]);
 
         // Ensure display_ids is an array
         if ($this->has('display_ids') && !is_array($this->display_ids)) {
