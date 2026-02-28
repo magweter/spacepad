@@ -19,7 +19,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        if (config('settings.is_self_hosted')) {
+        // Don't ignore migrations in test environment - tests need the tables
+        if (config('settings.is_self_hosted') && !app()->environment('testing')) {
             LemonSqueezy::ignoreMigrations();
         }
     }
