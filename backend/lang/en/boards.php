@@ -10,6 +10,9 @@ return [
     'available_until' => 'Available until :time',
     'available_until_end_of_day' => 'Available until end of day',
     'next' => 'Next',
+    'room' => 'Room',
+    'status' => 'Status',
+    'current' => 'Current',
     'no_displays' => 'No displays available for this board.',
     'transitioning_minutes' => 'Transitioning (:minutes min)',
 ];

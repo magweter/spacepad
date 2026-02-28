@@ -221,11 +221,11 @@
             <table class="w-full border-collapse">
                 <thead>
                     <tr class="border-b border-gray-700/30">
-                        <th class="text-left py-3 px-4 text-sm font-semibold uppercase tracking-wider board-text-secondary">Room</th>
-                        <th class="text-left py-3 px-4 text-sm font-semibold uppercase tracking-wider board-text-secondary">Status</th>
-                        <th class="text-left py-3 px-4 text-sm font-semibold uppercase tracking-wider board-text-secondary">Current</th>
+                        <th class="text-left py-3 px-4 text-sm font-semibold uppercase tracking-wider board-text-secondary">{{ $t('boards.room') }}</th>
+                        <th class="text-left py-3 px-4 text-sm font-semibold uppercase tracking-wider board-text-secondary">{{ $t('boards.status') }}</th>
+                        <th class="text-left py-3 px-4 text-sm font-semibold uppercase tracking-wider board-text-secondary">{{ $t('boards.current') }}</th>
                         @if($board->show_next_event ?? true)
-                            <th class="text-left py-3 px-4 text-sm font-semibold uppercase tracking-wider board-text-secondary">Next</th>
+                            <th class="text-left py-3 px-4 text-sm font-semibold uppercase tracking-wider board-text-secondary">{{ $t('boards.next') }}</th>
                         @endif
                     </tr>
                 </thead>

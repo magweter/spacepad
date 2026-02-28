@@ -10,6 +10,9 @@ return [
     'available_until' => 'Tillgänglig till :time',
     'available_until_end_of_day' => 'Tillgänglig till dagens slut',
     'next' => 'Nästa',
+    'room' => 'Rum',
+    'status' => 'Status',
+    'current' => 'Nuvarande',
     'no_displays' => 'Inga skärmar tillgängliga för denna tavla.',
     'transitioning_minutes' => 'Övergång (:minutes min)',
 ];

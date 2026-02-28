@@ -392,12 +392,12 @@ class AdminController extends Controller
         $subscriptionInfo = null;
         if (!$user->is_unlimited && $user->subscriptions->isNotEmpty()) {
             $subscription = $user->subscriptions->first();
-            $subscriptionData = $this->getSubscriptionData($subscription->lemon_squeezy_id, $user->displays_count);
+            $subscriptionData = $this->getSubscriptionData($subscription->lemon_squeezy_id, $user->displays->count());
             if ($subscriptionData) {
                 $subscriptionInfo = [
                     'status' => $subscriptionData['status'] ?? null,
                     'price' => $subscriptionData['price'] ?? 0,
-                    'mrr' => ($subscriptionData['price'] ?? 0) * $user->displays_count,
+                    'mrr' => ($subscriptionData['price'] ?? 0) * $user->displays->count(),
                     'ends_at' => $subscription->ends_at,
                 ];
             }
@@ -592,6 +592,10 @@ class AdminController extends Controller
         // Log in as the target user
         Auth::login($user);
 
+        // Regenerate session and CSRF token to prevent session fixation
+        session()->regenerate();
+        session()->regenerateToken();
+
         logger()->info('Admin started impersonating user', [
             'admin_id' => $admin->id,
             'admin_email' => $admin->email,
@@ -627,6 +631,10 @@ class AdminController extends Controller
 
         // Log back in as admin
         Auth::login($impersonator);
+
+        // Regenerate session and CSRF token to prevent session fixation
+        session()->regenerate();
+        session()->regenerateToken();
 
         logger()->info('Admin stopped impersonating user', [
             'admin_id' => $impersonator->id,

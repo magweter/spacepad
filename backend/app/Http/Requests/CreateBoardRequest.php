@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class CreateBoardRequest extends FormRequest
 {
@@ -51,7 +52,9 @@ class CreateBoardRequest extends FormRequest
                     }
                 },
             ],
-            'display_ids.*' => 'exists:displays,id',
+            'display_ids.*' => [
+                Rule::exists('displays', 'id')->where('workspace_id', $this->input('workspace_id')),
+            ],
         ];
     }
 

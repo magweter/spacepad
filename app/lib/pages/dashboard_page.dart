@@ -323,7 +323,7 @@ class _DashboardPageState extends State<DashboardPage> {
                                             'view_schedule'.tr,
                                             style: TextStyle(
                                               color: Colors.white,
-                                              fontSize: isPhone ? 14 : 18,
+                                              fontSize: isPhone ? 16 : 18,
                                               fontWeight: FontWeight.w500,
                                             ),
                                           ),

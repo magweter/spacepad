@@ -31,44 +31,47 @@ return new class extends Migration
                     continue;
                 }
 
-                // Create workspace for user
-                $workspace = Workspace::create([
-                    'name' => $user->name . "'s Workspace",
-                ]);
+                // Wrap per-user migration logic in a transaction for atomicity
+                DB::transaction(function () use ($user) {
+                    // Create workspace for user
+                    $workspace = Workspace::create([
+                        'name' => $user->name . "'s Workspace",
+                    ]);
 
-                // Add user as owner member (use WorkspaceMember::create to generate ULID)
-                WorkspaceMember::create([
-                    'workspace_id' => $workspace->id,
-                    'user_id' => $user->id,
-                    'role' => WorkspaceRole::OWNER,
-                ]);
+                    // Add user as owner member (use WorkspaceMember::create to generate ULID)
+                    WorkspaceMember::create([
+                        'workspace_id' => $workspace->id,
+                        'user_id' => $user->id,
+                        'role' => WorkspaceRole::OWNER,
+                    ]);
 
-                // Migrate displays to workspace
-                Display::where('user_id', $user->id)->update(['workspace_id' => $workspace->id]);
+                    // Migrate displays to workspace
+                    Display::where('user_id', $user->id)->update(['workspace_id' => $workspace->id]);
 
-                // Migrate devices to workspace
-                Device::where('user_id', $user->id)->update(['workspace_id' => $workspace->id]);
+                    // Migrate devices to workspace
+                    Device::where('user_id', $user->id)->update(['workspace_id' => $workspace->id]);
 
-                // Migrate calendars to workspace
-                Calendar::where('user_id', $user->id)->update(['workspace_id' => $workspace->id]);
+                    // Migrate calendars to workspace
+                    Calendar::where('user_id', $user->id)->update(['workspace_id' => $workspace->id]);
 
-                // Migrate rooms to workspace
-                Room::where('user_id', $user->id)->update(['workspace_id' => $workspace->id]);
+                    // Migrate rooms to workspace
+                    Room::where('user_id', $user->id)->update(['workspace_id' => $workspace->id]);
 
-                // Migrate Outlook accounts to workspace
-                OutlookAccount::where('user_id', $user->id)
-                    ->whereNull('workspace_id')
-                    ->update(['workspace_id' => $workspace->id]);
+                    // Migrate Outlook accounts to workspace
+                    OutlookAccount::where('user_id', $user->id)
+                        ->whereNull('workspace_id')
+                        ->update(['workspace_id' => $workspace->id]);
 
-                // Migrate Google accounts to workspace
-                GoogleAccount::where('user_id', $user->id)
-                    ->whereNull('workspace_id')
-                    ->update(['workspace_id' => $workspace->id]);
+                    // Migrate Google accounts to workspace
+                    GoogleAccount::where('user_id', $user->id)
+                        ->whereNull('workspace_id')
+                        ->update(['workspace_id' => $workspace->id]);
 
-                // Migrate CalDAV accounts to workspace
-                CalDAVAccount::where('user_id', $user->id)
-                    ->whereNull('workspace_id')
-                    ->update(['workspace_id' => $workspace->id]);
+                    // Migrate CalDAV accounts to workspace
+                    CalDAVAccount::where('user_id', $user->id)
+                        ->whereNull('workspace_id')
+                        ->update(['workspace_id' => $workspace->id]);
+                });
             }
         });
     }

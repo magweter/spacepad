@@ -61,22 +61,30 @@ class Board extends Model
     }
 
     /**
+     * Get the query builder for displays that should be shown on this board
+     * If show_all_displays is true, returns query for all active displays from the workspace
+     * Otherwise, returns query for selected displays from the pivot table
+     */
+    public function getDisplaysToShowQuery()
+    {
+        if ($this->show_all_displays) {
+            return Display::where('workspace_id', $this->workspace_id)
+                ->whereIn('status', [DisplayStatus::READY, DisplayStatus::ACTIVE]);
+        }
+
+        return $this->displays()
+            ->where('workspace_id', $this->workspace_id)
+            ->whereIn('status', [DisplayStatus::READY, DisplayStatus::ACTIVE]);
+    }
+
+    /**
      * Get the displays that should be shown on this board
      * If show_all_displays is true, returns all active displays from the workspace
      * Otherwise, returns only the selected displays from the pivot table
      */
     public function getDisplaysToShow()
     {
-        if ($this->show_all_displays) {
-            return Display::where('workspace_id', $this->workspace_id)
-                ->whereIn('status', [DisplayStatus::READY, DisplayStatus::ACTIVE])
-                ->with(['settings', 'user'])
-                ->orderBy('name')
-                ->get();
-        }
-
-        return $this->displays()
-            ->whereIn('status', [DisplayStatus::READY, DisplayStatus::ACTIVE])
+        return $this->getDisplaysToShowQuery()
             ->with(['settings', 'user'])
             ->orderBy('name')
             ->get();
@@ -91,7 +99,10 @@ class Board extends Model
             return $display->workspace_id === $this->workspace_id;
         }
 
-        return $this->displays()->where('displays.id', $display->id)->exists();
+        return $this->displays()
+            ->where('workspace_id', $this->workspace_id)
+            ->where('displays.id', $display->id)
+            ->exists();
     }
 
     /**
@@ -99,6 +110,6 @@ class Board extends Model
      */
     public function getDisplayCountAttribute(): int
     {
-        return $this->getDisplaysToShow()->count();
+        return $this->getDisplaysToShowQuery()->count();
     }
 }

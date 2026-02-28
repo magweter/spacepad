@@ -358,6 +358,11 @@ class DashboardController extends GetxController {
 
   // Check if current event can be cancelled based on cancel permission setting
   bool get canCancelCurrentEvent {
+    // Early return: cannot cancel if there's no current event
+    if (currentEvent == null) {
+      return false;
+    }
+    
     final cancelPermission = globalSettings.value?.cancelPermission ?? 'all';
     
     if (cancelPermission == 'none') {
@@ -366,10 +371,12 @@ class DashboardController extends GetxController {
     
     if (cancelPermission == 'tablet_only') {
       // Only allow cancelling if the event was booked via tablet
-      return currentEvent?.isTabletBooking ?? false;
+      // currentEvent is guaranteed to be non-null at this point
+      return currentEvent!.isTabletBooking;
     }
     
     // Default: 'all' - allow cancelling any event
+    // currentEvent is guaranteed to be non-null at this point
     return true;
   }
 

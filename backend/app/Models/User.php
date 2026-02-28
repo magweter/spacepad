@@ -193,6 +193,26 @@ class User extends Authenticatable
         return $connectCode;
     }
 
+    /**
+     * Retrieve and invalidate a connect code atomically
+     * This ensures the code can only be used once
+     * 
+     * @param string $code The 6-digit connect code
+     * @return int|null The user ID associated with the code, or null if invalid/already used
+     */
+    public static function pullConnectCode(string $code): ?int
+    {
+        // Atomically retrieve and remove the connect code from cache
+        $userId = cache()->pull("connect-code:$code");
+        
+        // If code was valid, also remove the reverse mapping
+        if ($userId !== null) {
+            cache()->forget("user:$userId:connect-code");
+        }
+        
+        return $userId;
+    }
+
     public function isOnboarded(): bool
     {
         // Check if user has accounts OR if any workspace they're a member of has accounts
@@ -249,6 +269,21 @@ class User extends Authenticatable
     }
 
     /**
+     * Check if the user has Pro for a specific workspace.
+     * Returns true if the user has Pro OR if the workspace has Pro (any owner has Pro).
+     */
+    public function hasProForWorkspace(Workspace $workspace): bool
+    {
+        // If user has Pro, they have Pro everywhere
+        if ($this->hasPro()) {
+            return true;
+        }
+
+        // Check if the workspace has Pro (any owner has Pro)
+        return $workspace->hasPro();
+    }
+
+    /**
      * Check if the user should be treated as a business user
      */
     public function isBusinessUser(): bool
@@ -294,8 +329,15 @@ class User extends Authenticatable
             return false;
         }
 
-        // Cloud Hosted: If the user is a business user and doesn't have Pro, they should upgrade
-        return $this->hasAnyDisplay();
+        // Get the current workspace to scope the display check
+        $selectedWorkspace = $this->getSelectedWorkspace();
+        if (!$selectedWorkspace) {
+            // No workspace context, no upgrade needed
+            return false;
+        }
+
+        // Cloud Hosted: Check if the user has any displays in the current workspace
+        return $this->displays()->where('workspace_id', $selectedWorkspace->id)->exists();
     }
 
     public function getCheckoutUrl(?string $redirectUrl = null): ?Checkout

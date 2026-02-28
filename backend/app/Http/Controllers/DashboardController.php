@@ -76,7 +76,6 @@ class DashboardController extends Controller
 
         logger()->info('Dashboard page accessed', [
             'user_id' => $user->id,
-            'email' => $user->email,
             'outlook_accounts_count' => $outlookAccounts->count(),
             'google_accounts_count' => $googleAccounts->count(),
             'caldav_accounts_count' => $caldavAccounts->count(),

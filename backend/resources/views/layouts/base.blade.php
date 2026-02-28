@@ -44,7 +44,7 @@
                             Admin
                         </a>
                     @endif
-                    @if(auth()->user()->hasPro())
+                    @if(auth()->user()->hasProForCurrentWorkspace())
                         <a href="{{ route('usage.index') }}" class="rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300 hover:text-black">
                             Usage
                         </a>

@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateBoardRequest extends FormRequest
 {
@@ -51,7 +52,12 @@ class UpdateBoardRequest extends FormRequest
                     }
                 },
             ],
-            'display_ids.*' => 'exists:displays,id',
+            'display_ids.*' => [
+                Rule::exists('displays', 'id')->where(function ($query) {
+                    $workspaceId = $this->input('workspace_id') ?? $this->route('board')?->workspace_id;
+                    $query->where('workspace_id', $workspaceId);
+                }),
+            ],
         ];
     }
 
@@ -70,6 +76,9 @@ class UpdateBoardRequest extends FormRequest
                 'show_all_displays' => filter_var($this->show_all_displays, FILTER_VALIDATE_BOOLEAN),
             ]);
         }
+
+        // Retrieve the route-bound board model
+        $board = $this->route('board');
 
         // Convert checkbox values to boolean (if checkbox is unchecked, it won't be in request, so default to false)
         $this->merge([

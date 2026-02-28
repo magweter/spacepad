@@ -21,13 +21,44 @@ class ActionPanel extends StatelessWidget {
     
     return SpaceRow(
       mainAxisSize: MainAxisSize.min,
-      spaceBetween: isPhone ? 16 : 24,
+      mainAxisAlignment: MainAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Show booking options when not reserved
-        if (!controller.isReserved && controller.bookingEnabled) Obx(() {
-          final isBooking = controller.isBooking.value;
-          final bookingDuration = controller.bookingDuration.value;
-          return controller.showBookingOptions.value ?
+        Obx(() {
+          final showBooking = !controller.isReserved && controller.bookingEnabled;
+          final showCheckIn = controller.isCheckInActive && controller.checkInEnabled;
+          
+          if (showBooking) {
+            final isBooking = controller.isBooking.value;
+            final bookingDuration = controller.bookingDuration.value;
+            
+            // If both booking and check-in are visible, combine them
+            if (showCheckIn && !controller.showBookingOptions.value) {
+              // Show "book_now" button and check-in button together
+              return SpaceRow(
+                mainAxisSize: MainAxisSize.min,
+                spaceBetween: isPhone ? 12 : 16,
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: [
+                  ActionButton(
+                    text: 'book_now',
+                    onPressed: isBooking ? null : () => controller.toggleBookingOptions(),
+                    isPhone: isPhone,
+                    cornerRadius: cornerRadius,
+                    isLoading: isBooking && bookingDuration == null,
+                  ),
+                  ActionButton(
+                    text: 'check_in',
+                    onPressed: () => controller.checkIn(),
+                    isPhone: isPhone,
+                    cornerRadius: cornerRadius,
+                  ),
+                ],
+              );
+            }
+            
+            return controller.showBookingOptions.value ?
           (isPortrait ? 
             // Portrait: Horizontally scrollable container wrapped in Flexible
             Flexible(
@@ -122,42 +153,62 @@ class ActionPanel extends StatelessWidget {
             cornerRadius: cornerRadius,
             isLoading: isBooking && bookingDuration == null, // Only show loading if no specific duration button was clicked
           );
+          }
+          return SizedBox.shrink();
         }),
         // Show cancel button and custom booking when reserved (meeting is active)
-        if (controller.isReserved && !controller.isCheckInActive && controller.bookingEnabled) Obx(() {
-          final isBooking = controller.isBooking.value;
-          return SpaceRow(
-            mainAxisSize: MainAxisSize.min,
-            spaceBetween: isPhone ? 12 : 16,
-            children: [
-              if (controller.canCancelCurrentEvent)
-                ActionButton(
-                  text: 'cancel_event',
-                  onPressed: controller.isCancelling.value ? null : () => controller.cancelCurrentEvent(),
-                  textColor: Colors.white,
-                  isPhone: isPhone,
-                  cornerRadius: cornerRadius,
-                  isLoading: controller.isCancelling.value,
-                ),
-              if (controller.hasCustomBooking)
-                ActionButton(
-                  text: 'reserve',
-                  onPressed: isBooking ? null : () => controller.showCustomBookingModal(context, isPhone, cornerRadius),
-                  isPhone: isPhone,
-                  cornerRadius: cornerRadius,
-                  disabled: isBooking,
-                  isLoading: isBooking && controller.bookingDuration.value == null,
-                ),
-            ],
-          );
+        Obx(() {
+          if (controller.isReserved && !controller.isCheckInActive && controller.bookingEnabled) {
+            final isBooking = controller.isBooking.value;
+            return SpaceRow(
+              mainAxisSize: MainAxisSize.min,
+              spaceBetween: isPhone ? 12 : 16,
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                if (controller.canCancelCurrentEvent)
+                  ActionButton(
+                    text: 'cancel_event',
+                    onPressed: controller.isCancelling.value ? null : () => controller.cancelCurrentEvent(),
+                    textColor: Colors.white,
+                    isPhone: isPhone,
+                    cornerRadius: cornerRadius,
+                    isLoading: controller.isCancelling.value,
+                  ),
+                if (controller.hasCustomBooking)
+                  ActionButton(
+                    text: 'reserve',
+                    onPressed: isBooking ? null : () => controller.showCustomBookingModal(context, isPhone, cornerRadius),
+                    isPhone: isPhone,
+                    cornerRadius: cornerRadius,
+                    disabled: isBooking,
+                    isLoading: isBooking && controller.bookingDuration.value == null,
+                  ),
+              ],
+            );
+          }
+          return SizedBox.shrink();
         }),
-        if (controller.isCheckInActive && controller.checkInEnabled) ActionButton(
-          text: 'check_in',
-          onPressed: () => controller.checkIn(),
-          isPhone: isPhone,
-          cornerRadius: cornerRadius,
-        ),
-        SizedBox.shrink()
+        Obx(() {
+          // Show check-in button separately when booking is not enabled or reserved
+          // Hide check-in button when booking options are expanded
+          final showBooking = !controller.isReserved && controller.bookingEnabled;
+          final showCheckIn = controller.isCheckInActive && controller.checkInEnabled;
+          
+          // Don't show check-in button when booking options are expanded
+          if (showBooking && controller.showBookingOptions.value) {
+            return SizedBox.shrink();
+          }
+          
+          if (showCheckIn && (controller.isReserved || !controller.bookingEnabled)) {
+            return ActionButton(
+              text: 'check_in',
+              onPressed: () => controller.checkIn(),
+              isPhone: isPhone,
+              cornerRadius: cornerRadius,
+            );
+          }
+          return SizedBox.shrink();
+        }),
       ]
     );
   }

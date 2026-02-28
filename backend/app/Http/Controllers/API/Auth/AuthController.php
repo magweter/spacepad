@@ -29,12 +29,34 @@ class AuthController extends ApiController
         $code = $request->validated()['code'];
         $uid = $request->validated()['uid'];
         $name = $request->validated()['name'] ?? 'Unknown';
-        $connectedUserId = cache()->get("connect-code:$code");
+        
+        // Atomically retrieve and invalidate the connect code
+        $connectedUserId = User::pullConnectCode($code);
 
-        // Check if the code is a valid connect code
+        // Check if the code is a valid connect code and user exists
         if ($connectedUserId !== null) {
             $user = User::find($connectedUserId);
-            $workspace = $user?->primaryWorkspace();
+            
+            // Verify user exists before proceeding
+            if (!$user) {
+                logger()->warning('Device authentication failed - user not found', [
+                    'user_id' => $connectedUserId,
+                    'code_prefix' => substr($code, 0, 3) . '...',
+                    'device_uid' => substr($uid, 0, 8) . '...',
+                    'ip' => $request->ip(),
+                ]);
+
+                return $this->error(
+                    message: 'Code is incorrect.',
+                    errors: [
+                        'code' => [
+                            'incorrect',
+                        ]
+                    ]
+                );
+            }
+
+            $workspace = $user->primaryWorkspace();
 
             $device = Device::firstOrCreate([
                 'user_id' => $connectedUserId,
