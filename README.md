@@ -1,7 +1,7 @@
 <p align="center" style="margin-top: 120px">
   <h1 align="center">Spacepad</h3>
 
-  <p align="center">Spacepad is a simple privacy-focused room display app. Display room availability in real-time, <br>synced with your rooms and calendars — ideal for tablets outside meeting spaces or home-offices. <br>Suitable for both small offices and larger deployments.
+  <p align="center">Simple room displays for every workplace. Display room availability in real-time, <br>synced with your rooms and calendars — ideal for tablets outside meeting spaces or home-offices. <br>Suitable for both small offices and larger deployments.
     <br />
     <br />
     <a href="https://spacepad.io">Website</a>
@@ -12,7 +12,7 @@
   </p>
 </p>
 
-![Spacepad - Screenshot](assets/screenshot.png)
+![Product Overview](art/overview.png)
 
 ## Our Mission
 
@@ -26,17 +26,39 @@ Spacepad strives to be the perfect all-encompassing room display solution for SM
 
 ## Features
 
-Spacepad offers a range of features to make viewing occupancy of meeting rooms a breeze. 
+Spacepad offers a comprehensive suite of features to make managing and viewing room availability effortless.
 
-- **Events display real-time on display**
-- **Outlook Calendar / Google Calendar integration**
-- **Microsoft 365 / Google Workspace integration**
-- **CalDAV Integration (like Nextcloud)**
-- **Ad-hoc on display room booking**
-- **Room check-in and release functionality**
-- **View full schedule of the day on the display**
-- **Modern Cross Platform app**
-- **Self Hosted or Cloud Hosted**
+### Core Features
+- **Real-time room availability** - Events sync instantly and display current room status
+- **Multi-room overview boards** - Create beautiful dashboards showing multiple rooms at once with customizable layouts (card, table, or grid view)
+- **On-device room booking** - Book rooms directly from the display with preset durations (15/30/60 min) or custom time slots
+- **Room check-in** - Check in to reserved meetings with configurable grace periods
+- **Event cancellation** - Cancel current meetings directly from the display
+- **Full day schedule** - View all upcoming events for the day on each display
+
+### Calendar Integrations
+- **Google Calendar** - Full integration with Google Workspace calendars
+- **Microsoft 365** - Seamless sync with Outlook calendars via Microsoft Graph API
+- **CalDAV** - Support for any CalDAV-compatible provider (Nextcloud, iCloud, etc.)
+- **Real-time webhooks** - Instant updates when calendar events change
+
+### Customization & Branding
+- **Custom themes** - Dark, light, or system theme support
+- **Custom logos** - Upload your organization's logo to displays and boards
+- **Font selection** - Choose from multiple Google Fonts (Inter, Roboto, Open Sans, Lato, Poppins, Montserrat)
+- **Multi-language support** - Available in English, Dutch, French, German, Spanish, and Swedish
+- **Privacy controls** - Hide meeting titles for privacy-sensitive environments
+- **Display settings** - Configure what information to show (booker name, next event, transitioning status)
+
+### Workspace & Collaboration
+- **Workspaces** - Organize displays, calendars, and boards by workspace
+- **Team collaboration** - Share workspaces with team members with role-based access
+- **Workspace-scoped resources** - All displays, calendars, and boards are organized per workspace
+
+### Deployment Options
+- **Cloud Hosted** - Get started in minutes with zero maintenance
+- **Self Hosted** - Full control over your data with Docker deployment
+- **Cross-platform** - Native iOS and Android apps built with Flutter
 
 > [!TIP]
 > The product is developing rapidly and we're happily accepting feedback and suggestions. Have a look at our [roadmap](#roadmap) on the implementation of new features or open a new [discussion](https://github.com/magweter/spacepad/discussions) to share ideas.
@@ -84,15 +106,18 @@ We love open source and welcome your contributions! See [CONTRIBUTING.md](CONTRI
 
 ## 📅 Roadmap Highlights
 
-- [x] M365 support
-- [x] Self-hosted with Docker
-- [x] Google Workspace support
-- [x] CalDAV support
-- [x] Booking directly on device
-- [x] Showing all events of the day
-- [x] Custom display themes & logos
-- [ ] Multi-room overview dashboard
-- [ ] Amazon Fire Tablet support
-- [ ] Organizations & management
+- [x] Microsoft 365 / Outlook integration
+- [x] Self-hosted deployment with Docker
+- [x] Google Workspace / Google Calendar integration
+- [x] CalDAV support (Nextcloud, iCloud, etc.)
+- [x] On-device room booking with custom time slots
+- [x] Room check-in and release functionality
+- [x] Full day event schedule display
+- [x] Custom themes, logos, and fonts
+- [x] Multi-room overview boards (Pro feature)
+- [x] Workspace management and collaboration
+- [x] Multi-language support (6 languages)
+- [x] Privacy controls for meeting titles
+- [x] Multiple board view modes (card, table, grid)
 
 Feature requests? We're all ears! Please open a new [discussion](https://github.com/magweter/spacepad/discussions).
