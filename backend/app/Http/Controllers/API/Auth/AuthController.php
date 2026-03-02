@@ -68,10 +68,12 @@ class AuthController extends ApiController
                 'name' => $name,
             ]);
 
-            // Update workspace_id if device already existed but didn't have one
+            // Update device name and workspace_id if device already existed
+            $updateData = ['name' => $name];
             if ($device->workspace_id === null && $workspace) {
-                $device->update(['workspace_id' => $workspace->id]);
+                $updateData['workspace_id'] = $workspace->id;
             }
+            $device->update($updateData);
 
             logger()->info('Device authentication successful', [
                 'user_id' => $connectedUserId,
