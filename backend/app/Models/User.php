@@ -198,9 +198,9 @@ class User extends Authenticatable
      * This ensures the code can only be used once
      * 
      * @param string $code The 6-digit connect code
-     * @return int|null The user ID associated with the code, or null if invalid/already used
+     * @return string|null The user ID associated with the code, or null if invalid/already used
      */
-    public static function pullConnectCode(string $code): ?int
+    public static function pullConnectCode(string $code): ?string
     {
         // Atomically retrieve and remove the connect code from cache
         $userId = cache()->pull("connect-code:$code");
