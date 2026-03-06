@@ -129,7 +129,13 @@ class Workspace extends Model
      */
     public function hasPro(): bool
     {
-        $owners = $this->owners()->with('subscriptions')->get();
+        // Only eager load subscriptions in cloud-hosted mode
+        $ownersQuery = $this->owners();
+        if (!config('settings.is_self_hosted')) {
+            $ownersQuery = $ownersQuery->with('subscriptions');
+        }
+        
+        $owners = $ownersQuery->get();
         foreach ($owners as $owner) {
             if ($owner->hasPro()) {
                 return true;
