@@ -2,15 +2,15 @@
 
 namespace App\Models;
 
+use App\Enums\DisplayStatus;
+use App\Helpers\DisplaySettings;
 use App\Traits\HasUlid;
-use Illuminate\Support\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use App\Enums\DisplayStatus;
-use App\Helpers\DisplaySettings;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
 class Display extends Model
 {
@@ -72,6 +72,7 @@ class Display extends Model
     public function boards(): BelongsToMany
     {
         return $this->belongsToMany(Board::class, 'board_displays')
+            ->using(BoardDisplay::class)
             ->withTimestamps();
     }
 
@@ -100,12 +101,12 @@ class Display extends Model
         return $this->status === DisplayStatus::DEACTIVATED;
     }
 
-    public function updateLastEventAt(Carbon|null $date = null): void
+    public function updateLastEventAt(?Carbon $date = null): void
     {
         $this->update(['last_event_at' => $date ?? now()]);
     }
 
-    public function updateLastSyncAt(Carbon|null $date = null): void
+    public function updateLastSyncAt(?Carbon $date = null): void
     {
         $this->update(['last_sync_at' => $date ?? now()]);
     }

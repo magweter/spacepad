@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use App\Traits\HasUlid;
 use App\Enums\DisplayStatus;
+use App\Traits\HasUlid;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -57,6 +57,7 @@ class Board extends Model
     public function displays(): BelongsToMany
     {
         return $this->belongsToMany(Display::class, 'board_displays')
+            ->using(BoardDisplay::class)
             ->withTimestamps();
     }
 
