@@ -33,7 +33,12 @@ class EventService
      */
     public function getEventsForDisplay($display): Collection
     {
-        $display = Display::query()->withCount('eventSubscriptions')->findOrFail($display);
+        $display = Display::query()
+            ->withCount(['eventSubscriptions' => function ($query) {
+                // Only count active subscriptions (exclude pending retry placeholders)
+                $query->where('subscription_id', 'not like', 'pending_%');
+            }])
+            ->findOrFail($display);
 
         // Update last sync timestamp
         $display->updateLastSyncAt();
@@ -41,7 +46,7 @@ class EventService
         // Release rooms that have not been checked in
         $this->processExpiredCheckIns($display);
 
-        // Cache events if caching is enabled and the display has an event subscription
+        // Cache events if caching is enabled and the display has an active event subscription
         $cachingEnabled = config('services.events.cache_enabled') && $display->event_subscriptions_count > 0;
         if ($cachingEnabled) {
             $events = cache()->remember(
