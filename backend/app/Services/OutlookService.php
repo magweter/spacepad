@@ -408,18 +408,18 @@ class OutlookService
         Display $display,
         string $emailAddress
     ): ?EventSubscription {
-        // Try the standard path first
+        // Try the correct path with /calendar/ first
         try {
-            return $this->createEventSubscription($outlookAccount, $display, "/users/$emailAddress/events");
+            return $this->createEventSubscription($outlookAccount, $display, "/users/$emailAddress/calendar/events");
         } catch (\Exception $e) {
-            // If it fails with a resource invalid error, try with /calendar/ path as backup
+            // If it fails with a resource invalid error, try without /calendar/ path as backup
             if (str_contains($e->getMessage(), 'Resource') && str_contains($e->getMessage(), 'invalid')) {
-                logger()->warning('Subscription failed with /events path, trying /calendar/events as backup', [
+                logger()->warning('Subscription failed with /calendar/events path, trying /events as backup', [
                     'email' => $emailAddress,
                     'display_id' => $display->id,
                     'error' => $e->getMessage(),
                 ]);
-                return $this->createEventSubscription($outlookAccount, $display, "/users/$emailAddress/calendar/events");
+                return $this->createEventSubscription($outlookAccount, $display, "/users/$emailAddress/events");
             }
             // Re-throw if it's not a resource invalid error
             throw $e;
