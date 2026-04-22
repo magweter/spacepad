@@ -3,12 +3,15 @@
 namespace App\Models;
 
 use App\Enums\RoadmapStatus;
+use App\Traits\HasUlid;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class RoadmapItem extends Model
 {
+    use HasUlid;
+
     protected $fillable = [
         'title',
         'description',
@@ -20,7 +23,7 @@ class RoadmapItem extends Model
     ];
 
     protected $casts = [
-        'status'      => RoadmapStatus::class,
+        'status' => RoadmapStatus::class,
         'expected_at' => 'date',
         'is_approved' => 'boolean',
     ];
@@ -49,6 +52,6 @@ class RoadmapItem extends Model
                 WHEN 'considering' THEN 2
                 WHEN 'shipped'     THEN 3
             END
-        ")->orderBy('sort_order')->orderBy('id');
+        ")->orderBy('sort_order')->orderBy('created_at');
     }
 }

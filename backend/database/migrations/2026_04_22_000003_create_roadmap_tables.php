@@ -10,13 +10,13 @@ return new class extends Migration
     {
         if (! Schema::hasTable('roadmap_items')) {
             Schema::create('roadmap_items', function (Blueprint $table) {
-                $table->id();
+                $table->ulid('id')->primary();
                 $table->string('title');
                 $table->text('description')->nullable();
                 $table->string('status')->default('considering');
                 $table->date('expected_at')->nullable();
                 $table->boolean('is_approved')->default(true);
-                $table->foreignId('submitted_by_user_id')->nullable()->constrained('users')->nullOnDelete();
+                $table->foreignUlid('submitted_by_user_id')->nullable()->constrained('users')->nullOnDelete();
                 $table->unsignedInteger('sort_order')->default(0);
                 $table->timestamps();
             });
@@ -24,9 +24,9 @@ return new class extends Migration
 
         if (! Schema::hasTable('roadmap_votes')) {
             Schema::create('roadmap_votes', function (Blueprint $table) {
-                $table->id();
-                $table->foreignId('roadmap_item_id')->constrained()->cascadeOnDelete();
-                $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+                $table->ulid('id')->primary();
+                $table->foreignUlid('roadmap_item_id')->constrained('roadmap_items')->cascadeOnDelete();
+                $table->foreignUlid('user_id')->constrained()->cascadeOnDelete();
                 $table->timestamp('created_at')->useCurrent();
                 $table->unique(['roadmap_item_id', 'user_id']);
             });

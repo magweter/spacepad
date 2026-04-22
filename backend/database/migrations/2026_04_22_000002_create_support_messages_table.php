@@ -13,8 +13,8 @@ return new class extends Migration
         }
 
         Schema::create('support_messages', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->ulid('id')->primary();
+            $table->foreignUlid('user_id')->constrained()->cascadeOnDelete();
             $table->text('message');
             $table->boolean('is_read')->default(false);
             $table->timestamps();
