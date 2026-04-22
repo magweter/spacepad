@@ -218,6 +218,36 @@ class DisplaySettingsController extends Controller
             }
         }
 
+        // Handle advertisement image upload/removal
+        if ($request->boolean('remove_advertisement_image')) {
+            $this->imageService->removeAdvertisementFile($display);
+            $updated = $updated && DisplaySettings::removeAdvertisementImage($display);
+        } elseif ($request->hasFile('advertisement_image')) {
+            $adPath = $this->imageService->storeAdvertisementFile($request->file('advertisement_image'), $display);
+            if ($adPath) {
+                $this->imageService->removeAdvertisementFile($display);
+                $updated = $updated && DisplaySettings::setAdvertisementImage($display, $adPath);
+            } else {
+                $updated = false;
+            }
+        }
+
+        // Handle advertisement interval
+        if ($request->filled('advertisement_interval')) {
+            $updated = $updated && DisplaySettings::setAdvertisementInterval(
+                $display,
+                (int) $request->input('advertisement_interval')
+            );
+        }
+
+        // Handle advertisement duration
+        if ($request->filled('advertisement_duration')) {
+            $updated = $updated && DisplaySettings::setAdvertisementDuration(
+                $display,
+                (int) $request->input('advertisement_duration')
+            );
+        }
+
         if (!$updated) {
             return back()->withErrors(['error' => 'Failed to update customization settings']);
         }

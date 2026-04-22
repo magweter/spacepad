@@ -52,9 +52,8 @@ class AuthService {
       );
     } catch(e) {
       if (kDebugMode) print(e);
+      await signOut();
     }
-
-    signOut();
   }
 
   Future<void> changeDisplay(Map body) async {

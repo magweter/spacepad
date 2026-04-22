@@ -226,4 +226,19 @@ class Display extends Model
     {
         return DisplaySettings::getBorderThickness($this);
     }
+
+    public function getAdvertisementImageUrl(): ?string
+    {
+        return app(\App\Services\ImageService::class)->getAdvertisementImageUrl($this);
+    }
+
+    public function getAdvertisementInterval(): int
+    {
+        return DisplaySettings::getAdvertisementInterval($this);
+    }
+
+    public function getAdvertisementDuration(): int
+    {
+        return DisplaySettings::getAdvertisementDuration($this);
+    }
 }

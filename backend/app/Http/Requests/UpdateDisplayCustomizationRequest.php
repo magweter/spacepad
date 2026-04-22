@@ -26,6 +26,10 @@ class UpdateDisplayCustomizationRequest extends FormRequest
             'remove_logo' => 'boolean',
             'remove_background_image' => 'boolean',
             'font_family' => 'nullable|string|in:Inter,Roboto,Open Sans,Lato,Poppins,Montserrat',
+            'advertisement_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:4096',
+            'remove_advertisement_image' => 'boolean',
+            'advertisement_interval' => 'nullable|integer|min:1|max:60',
+            'advertisement_duration' => 'nullable|integer|min:5|max:300',
         ];
     }
 } 

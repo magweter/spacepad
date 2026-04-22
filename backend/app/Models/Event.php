@@ -26,6 +26,7 @@ class Event extends Model
         'location',
         'timezone',
         'checked_in_at',
+        'join_url',
     ];
 
     protected $casts = [

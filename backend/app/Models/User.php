@@ -239,6 +239,16 @@ class User extends Authenticatable
         return $this->usage_type && $hasAccounts;
     }
 
+    public function featureFlags(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(UserFeatureFlag::class);
+    }
+
+    public function hasAdvertisementFeature(): bool
+    {
+        return (bool) $this->featureFlags?->advertisement;
+    }
+
     public function hasPro(): bool
     {
         if (config('settings.is_self_hosted')) {

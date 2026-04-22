@@ -151,6 +151,60 @@
                     </div>
                 </div>
 
+                @if(auth()->user()->hasAdvertisementFeature())
+                <div class="border border-gray-200 rounded-lg p-6">
+                    <h3 class="text-base font-semibold text-gray-900 mb-4">Advertisement</h3>
+                    <p class="text-sm text-gray-500 mb-4">Upload an advertisement image that will be shown on the right half of the screen at a set interval.</p>
+
+                    {{-- Current Advertisement Image --}}
+                    @if(\App\Helpers\DisplaySettings::getAdvertisementImage($display))
+                        <div class="flex items-center space-x-4 mb-4">
+                            <div class="flex-shrink-0">
+                                <img src="{{ route('displays.images', ['display' => $display, 'type' => 'advertisement']) }}?v={{ $display->updated_at->timestamp }}" alt="Current advertisement" class="h-16 w-24 object-cover border border-gray-300 rounded">
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500">Current advertisement image</p>
+                                <label class="inline-flex items-center text-sm text-red-600 hover:text-red-500 cursor-pointer">
+                                    <input type="checkbox" name="remove_advertisement_image" value="1" class="mr-1">
+                                    Remove advertisement
+                                </label>
+                            </div>
+                        </div>
+                    @endif
+
+                    {{-- Upload --}}
+                    <div class="mb-4">
+                        <label for="advertisement_image" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-oxford hover:bg-oxford-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-oxford-500 cursor-pointer">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                            </svg>
+                            Choose Advertisement Image
+                        </label>
+                        <input type="file" name="advertisement_image" id="advertisement_image" accept="image/*" class="hidden">
+                        <span id="advertisement-filename" class="ml-3 text-sm text-gray-500">No file chosen</span>
+                        <p class="mt-1 text-xs text-gray-500">Upload an image (PNG, JPG, GIF, max 4 MB). Recommended size: 960x1080px (half-screen portrait).</p>
+                    </div>
+
+                    {{-- Interval --}}
+                    <div class="mb-4">
+                        <label for="advertisement_interval" class="block text-sm font-medium text-gray-700">Show every (minutes)</label>
+                        <input type="number" name="advertisement_interval" id="advertisement_interval" min="1" max="60"
+                            value="{{ old('advertisement_interval', \App\Helpers\DisplaySettings::getAdvertisementInterval($display)) }}"
+                            class="mt-1 w-32 px-3 py-2 border rounded-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 sm:text-sm" />
+                        <p class="mt-1 text-xs text-gray-500">How often the advertisement appears (1–60 minutes). Default: 5 minutes.</p>
+                    </div>
+
+                    {{-- Duration --}}
+                    <div class="mb-2">
+                        <label for="advertisement_duration" class="block text-sm font-medium text-gray-700">Display duration (seconds)</label>
+                        <input type="number" name="advertisement_duration" id="advertisement_duration" min="5" max="300"
+                            value="{{ old('advertisement_duration', \App\Helpers\DisplaySettings::getAdvertisementDuration($display)) }}"
+                            class="mt-1 w-32 px-3 py-2 border rounded-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 sm:text-sm" />
+                        <p class="mt-1 text-xs text-gray-500">How long the advertisement stays visible (5–300 seconds). Default: 15 seconds.</p>
+                    </div>
+                </div>
+                @endif
+
                 <div class="border border-gray-200 rounded-lg p-6">
                     <h3 class="text-base font-semibold text-gray-900 mb-4">Typography</h3>
                     <div class="mb-4">
@@ -208,7 +262,7 @@
             // Handle background image file selection
             const backgroundInput = document.getElementById('background_image');
             const backgroundFilename = document.getElementById('background-filename');
-            
+
             if (backgroundInput && backgroundFilename) {
                 backgroundInput.addEventListener('change', function(e) {
                     const file = e.target.files[0];
@@ -216,6 +270,21 @@
                         backgroundFilename.textContent = file.name;
                     } else {
                         backgroundFilename.textContent = 'No file chosen';
+                    }
+                });
+            }
+
+            // Handle advertisement image file selection
+            const advertisementInput = document.getElementById('advertisement_image');
+            const advertisementFilename = document.getElementById('advertisement-filename');
+
+            if (advertisementInput && advertisementFilename) {
+                advertisementInput.addEventListener('change', function(e) {
+                    const file = e.target.files[0];
+                    if (file) {
+                        advertisementFilename.textContent = file.name;
+                    } else {
+                        advertisementFilename.textContent = 'No file chosen';
                     }
                 });
             }

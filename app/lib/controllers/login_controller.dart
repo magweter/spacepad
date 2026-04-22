@@ -95,6 +95,8 @@ class LoginController extends GetxController {
       final deviceId = await getDeviceId() ?? 'Unknown device';
       final deviceName = await getDeviceName() ?? 'Unknown model';
       await _authService.login(code.value, deviceId, deviceName);
+    } on HandshakeException {
+      Toast.showError('ssl_error'.tr);
     } catch (e) {
       Toast.showError('login_failed'.tr);
     } finally {

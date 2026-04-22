@@ -34,6 +34,11 @@ class DisplaySettingsResource extends JsonResource
 
             // Feature flags
             'has_custom_booking' => $this->hasCustomBooking(),
+
+            // Advertisement
+            'advertisement_image_url' => $this->getAdvertisementImageUrl(),
+            'advertisement_interval' => $this->getAdvertisementInterval(),
+            'advertisement_duration' => $this->getAdvertisementDuration(),
         ];
     }
 }

@@ -336,6 +336,62 @@ class _DashboardPageState extends State<DashboardPage> {
                             ),
                           ),
                         ),
+
+                      // Advertisement overlay — last in Stack so it renders above everything
+                      Obx(() {
+                        final adUrl = controller.globalSettings.value?.advertisementImageUrl;
+                        if (adUrl == null || !controller.showAdvertisement.value) {
+                          return const SizedBox.shrink();
+                        }
+                        return Align(
+                          alignment: Alignment.centerRight,
+                          child: FractionallySizedBox(
+                            widthFactor: 0.5,
+                            heightFactor: 1.0,
+                            child: Stack(
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(cornerRadius),
+                                  child: Container(
+                                    width: double.infinity,
+                                    height: double.infinity,
+                                    color: Colors.black.withValues(alpha: 0.85),
+                                    child: AuthenticatedImage(
+                                      imageUrl: adUrl,
+                                      fit: BoxFit.contain,
+                                      placeholder: const Center(
+                                        child: CircularProgressIndicator(
+                                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                        ),
+                                      ),
+                                      errorWidget: const SizedBox.shrink(),
+                                    ),
+                                  ),
+                                ),
+                                Positioned(
+                                  top: 12,
+                                  right: 12,
+                                  child: GestureDetector(
+                                    onTap: controller.dismissAdvertisement,
+                                    child: Container(
+                                      decoration: const BoxDecoration(
+                                        color: Colors.black54,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      padding: const EdgeInsets.all(6),
+                                      child: const Icon(
+                                        Icons.close,
+                                        color: Colors.white,
+                                        size: 20,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }),
                     ],
                   ),
                 ),

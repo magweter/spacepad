@@ -254,4 +254,42 @@ class DisplaySettings
         }
         return self::setSetting($display, 'border_thickness', $thickness, 'string');
     }
+
+    // Advertisement image settings
+    public static function getAdvertisementImage(Display $display): ?string
+    {
+        return self::getSetting($display, 'advertisement_image');
+    }
+
+    public static function setAdvertisementImage(Display $display, string $path): bool
+    {
+        return self::setSetting($display, 'advertisement_image', $path, 'string');
+    }
+
+    public static function removeAdvertisementImage(Display $display): bool
+    {
+        return self::deleteSetting($display, 'advertisement_image');
+    }
+
+    // Advertisement interval in minutes (default 5)
+    public static function getAdvertisementInterval(Display $display): int
+    {
+        return self::getSetting($display, 'advertisement_interval', 5);
+    }
+
+    public static function setAdvertisementInterval(Display $display, int $minutes): bool
+    {
+        return self::setSetting($display, 'advertisement_interval', $minutes, 'integer');
+    }
+
+    // Advertisement display duration in seconds (default 15)
+    public static function getAdvertisementDuration(Display $display): int
+    {
+        return self::getSetting($display, 'advertisement_duration', 15);
+    }
+
+    public static function setAdvertisementDuration(Display $display, int $seconds): bool
+    {
+        return self::setSetting($display, 'advertisement_duration', $seconds, 'integer');
+    }
 }

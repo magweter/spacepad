@@ -291,6 +291,12 @@
                                             </svg>
                                             <span class="event-time" data-start="{{ $currentEvent['start']->toIso8601String() }}" data-end="{{ $currentEvent['end']->toIso8601String() }}"></span>
                                         </div>
+                                        @if(($board->show_join_button ?? false) && !empty($currentEvent['joinUrl']))
+                                            <a href="{{ $currentEvent['joinUrl'] }}" target="_blank" class="inline-flex items-center gap-1 mt-0.5 px-2 py-0.5 rounded text-xs font-medium bg-blue-500/20 text-blue-400 border border-blue-500/30 hover:bg-blue-500/30 transition-colors">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.069A1 1 0 0121 8.845v6.31a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                                                {{ $t('boards.join_meeting') }}
+                                            </a>
+                                        @endif
                                     </div>
                                 @else
                                     @if($nextEvent)
@@ -423,6 +429,12 @@
                                             </div>
                                         @endif
                                     </div>
+                                    @if(($board->show_join_button ?? false) && !empty($currentEvent['joinUrl']))
+                                        <a href="{{ $currentEvent['joinUrl'] }}" target="_blank" class="inline-flex items-center gap-1.5 mt-1 px-2.5 py-1 rounded text-xs font-medium bg-blue-500/20 text-blue-400 border border-blue-500/30 hover:bg-blue-500/30 transition-colors">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.069A1 1 0 0121 8.845v6.31a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                                            {{ $t('boards.join_meeting') }}
+                                        </a>
+                                    @endif
                                 </div>
                             @else
                                 {{-- Available --}}
@@ -562,6 +574,12 @@
                                         </div>
                                     @endif
                                 </div>
+                                @if(($board->show_join_button ?? false) && !empty($currentEvent['joinUrl']))
+                                    <a href="{{ $currentEvent['joinUrl'] }}" target="_blank" class="inline-flex items-center gap-1.5 mt-1 px-2.5 py-1 rounded text-xs font-medium bg-blue-500/20 text-blue-400 border border-blue-500/30 hover:bg-blue-500/30 transition-colors">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.069A1 1 0 0121 8.845v6.31a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                                        {{ $t('boards.join_meeting') }}
+                                    </a>
+                                @endif
                             </div>
                         @else
                             {{-- Available --}}

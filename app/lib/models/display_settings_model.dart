@@ -16,6 +16,9 @@ class DisplaySettingsModel {
   String fontFamily;
   String cancelPermission;
   String borderThickness;
+  String? advertisementImageUrl;
+  int advertisementInterval;
+  int advertisementDuration;
 
   DisplaySettingsModel({
     required this.checkInEnabled,
@@ -35,6 +38,9 @@ class DisplaySettingsModel {
     required this.fontFamily,
     this.cancelPermission = 'all',
     this.borderThickness = 'medium',
+    this.advertisementImageUrl,
+    this.advertisementInterval = 5,
+    this.advertisementDuration = 15,
   });
 
   factory DisplaySettingsModel.fromJson(Map data) {
@@ -56,6 +62,9 @@ class DisplaySettingsModel {
       fontFamily: data['font_family'] ?? 'Inter',
       cancelPermission: data['cancel_permission'] ?? 'all',
       borderThickness: data['border_thickness'] ?? 'medium',
+      advertisementImageUrl: data['advertisement_image_url'],
+      advertisementInterval: data['advertisement_interval'] ?? 5,
+      advertisementDuration: data['advertisement_duration'] ?? 15,
     );
   }
 

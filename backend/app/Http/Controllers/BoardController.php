@@ -132,8 +132,9 @@ class BoardController extends Controller
             'language' => $validated['language'] ?? 'en',
             'view_mode' => $validated['view_mode'] ?? 'card',
             'show_meeting_title' => $validated['show_meeting_title'] ?? true,
+            'show_join_button' => $validated['show_join_button'] ?? false,
         ]);
-        
+
         // Handle logo upload after board is created
         if ($request->hasFile('logo')) {
             $logoPath = $this->imageService->storeBoardLogoFile($request->file('logo'), $board);
@@ -294,8 +295,9 @@ class BoardController extends Controller
             'language' => $validated['language'] ?? 'en',
             'view_mode' => $validated['view_mode'] ?? 'card',
             'show_meeting_title' => $validated['show_meeting_title'] ?? true,
+            'show_join_button' => $validated['show_join_button'] ?? false,
         ]);
-        
+
         // Sync displays if not showing all
         if (!$validated['show_all_displays']) {
             if (isset($validated['display_ids']) && is_array($validated['display_ids']) && count($validated['display_ids']) > 0) {
@@ -424,21 +426,24 @@ class BoardController extends Controller
                     return $text;
                 };
                 
+                $showJoinButton = $board ? ($board->show_join_button ?? false) : false;
+
                 return [
                     'display' => $display,
                     'status' => $status,
                     'statusText' => $statusText,
                     'currentEvent' => $currentEvent ? [
-                        'summary' => $truncateSummary($showMeetingTitle 
-                            ? $currentEvent->summary 
+                        'summary' => $truncateSummary($showMeetingTitle
+                            ? $currentEvent->summary
                             : (DisplaySettings::getReservedText($display) ?? 'Reserved')),
                         'start' => $currentEvent->start,
                         'end' => $currentEvent->end,
                         'organizer' => $currentEvent->user?->name ?? 'Unknown',
+                        'joinUrl' => $showJoinButton ? $currentEvent->join_url : null,
                     ] : null,
                     'nextEvent' => $nextEvent ? [
-                        'summary' => $truncateSummary($showMeetingTitle 
-                            ? $nextEvent->summary 
+                        'summary' => $truncateSummary($showMeetingTitle
+                            ? $nextEvent->summary
                             : (DisplaySettings::getReservedText($display) ?? 'Reserved')),
                         'start' => $nextEvent->start,
                         'end' => $nextEvent->end,

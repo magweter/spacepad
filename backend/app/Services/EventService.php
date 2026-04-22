@@ -518,11 +518,18 @@ class EventService
         $end = $isAllDay ? ['dateTime' => explode('T', $outlookEvent['end']['dateTime'])[0]]
             : ['dateTime' => $outlookEvent['end']['dateTime'], 'timeZone' => $outlookEvent['end']['timeZone']];
 
+        // Extract Teams join URL: prefer onlineMeeting.joinUrl (current), fall back to
+        // deprecated onlineMeetingUrl, then regex extraction from the event body
+        $joinUrl = $outlookEvent['onlineMeeting']['joinUrl']
+            ?? $outlookEvent['onlineMeetingUrl']
+            ?? $this->extractMeetingUrl($description);
+
         return [
             'id' => $outlookEvent['id'],
             'summary' => $summary,
             'location' => $location,
             'description' => $description,
+            'join_url' => $joinUrl,
             'start' => $start['dateTime'],
             'end' => $end['dateTime'],
             'timezone' => $outlookEvent['start']['timeZone'] ?? $outlookEvent['end']['timeZone'] ?? 'UTC',
@@ -542,11 +549,15 @@ class EventService
         // Handle all-day event - Google Calendar uses 'date' field for all-day events
         $isAllDay = $start->getDate() !== null;
 
+        $description = $googleEvent->getDescription();
+        $joinUrl = $googleEvent->getHangoutLink() ?? $this->extractMeetingUrl($description);
+
         return [
             'id' => $googleEvent->getId(),
             'summary' => $this->cleanSubject($googleEvent->getSummary()),
             'location' => $googleEvent->getLocation(),
-            'description' => $googleEvent->getDescription(),
+            'description' => $description,
+            'join_url' => $joinUrl,
             'start' => $isAllDay ? $start->getDate() : $start->getDateTime(),
             'end' => $isAllDay ? $end->getDate() : $end->getDateTime(),
             'timezone' => $start->getTimeZone() ?? $end->getTimeZone() ?? 'UTC',
@@ -560,16 +571,47 @@ class EventService
      */
     public function sanitizeCalDAVEvent(array $caldavEvent): array
     {
+        $description = $this->cleanBody($caldavEvent['description']);
+        $joinUrl = $this->extractMeetingUrl($caldavEvent['location'] ?? '')
+            ?? $this->extractMeetingUrl($description);
+
         return [
             'id' => $caldavEvent['id'],
             'summary' => $this->cleanSubject($caldavEvent['summary']),
             'location' => $caldavEvent['location'],
-            'description' => $this->cleanBody($caldavEvent['description']),
+            'description' => $description,
+            'join_url' => $joinUrl,
             'start' => $caldavEvent['start'],
             'end' => $caldavEvent['end'],
             'timezone' => $caldavEvent['timezone'],
             'isAllDay' => $caldavEvent['isAllDay']
         ];
+    }
+
+    private function extractMeetingUrl(?string $text): ?string
+    {
+        if (!$text) {
+            return null;
+        }
+
+        $patterns = [
+            // Microsoft Teams
+            'https://teams\.microsoft\.com/l/meetup-join/[^\s<>"\'&]+',
+            // Microsoft Teams (short link / webinar)
+            'https://teams\.live\.com/meet/[^\s<>"\'&]+',
+            // Zoom
+            'https://[a-z0-9]+\.zoom\.us/j/[^\s<>"\'&]+',
+            // Google Meet
+            'https://meet\.google\.com/[a-z\-]+',
+        ];
+
+        foreach ($patterns as $pattern) {
+            if (preg_match('#' . $pattern . '#i', $text, $matches)) {
+                return rtrim($matches[0], '.,;)');
+            }
+        }
+
+        return null;
     }
 
     private function cleanSubject(?string $subject): string
@@ -688,6 +730,7 @@ class EventService
             $event->summary = $ext['summary'];
             $event->description = $this->truncateDescription($ext['description'] ?? null);
             $event->location = $ext['location'];
+            $event->join_url = isset($ext['join_url']) ? substr($ext['join_url'], 0, 1000) : null;
             $event->timezone = $ext['timezone'];
             // Ensure status is confirmed when syncing (unless it was cancelled)
             if ($event->status !== EventStatus::CANCELLED) {

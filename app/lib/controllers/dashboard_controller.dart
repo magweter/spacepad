@@ -72,6 +72,41 @@ class DashboardController extends GetxController {
     _clock = Timer.periodic(const Duration(seconds: 1), (timer) => updateTime());
   }
 
+  void startAdvertisementTimers() {
+    _advertisementIntervalTimer?.cancel();
+    // Do not cancel _advertisementDismissTimer here — it may be actively
+    // counting down while the ad is visible, and fetchDisplayData() calls
+    // this method every 60 seconds which would otherwise kill the timer.
+
+    final adUrl = globalSettings.value?.advertisementImageUrl;
+    if (adUrl == null) return;
+
+    final intervalMinutes = globalSettings.value?.advertisementInterval ?? 5;
+
+    _advertisementIntervalTimer = Timer.periodic(
+      Duration(minutes: intervalMinutes),
+      (timer) => _showAdvertisement(),
+    );
+  }
+
+  void _showAdvertisement() {
+    final adUrl = globalSettings.value?.advertisementImageUrl;
+    if (adUrl == null) return;
+
+    final durationSeconds = globalSettings.value?.advertisementDuration ?? 15;
+
+    showAdvertisement.value = true;
+    _advertisementDismissTimer?.cancel();
+    _advertisementDismissTimer = Timer(Duration(seconds: durationSeconds), () {
+      showAdvertisement.value = false;
+    });
+  }
+
+  void dismissAdvertisement() {
+    showAdvertisement.value = false;
+    _advertisementDismissTimer?.cancel();
+  }
+
   void updateTime() {
     time.value = DateTime.now();
   }
@@ -223,10 +258,13 @@ class DashboardController extends GetxController {
         final newFontFamily = globalSettings.value?.fontFamily ?? 'Inter';
         if (currentFontFamily.value != newFontFamily) {
           currentFontFamily.value = newFontFamily;
-          
+
           // Reload the font when settings change
           await FontService.instance.reloadFont(newFontFamily);
         }
+
+        // (Re-)start advertisement timers when settings are refreshed
+        startAdvertisementTimers();
 
         AuthService.instance.currentDevice.refresh();
       }
@@ -411,12 +449,17 @@ class DashboardController extends GetxController {
 
   // Track if admin actions are temporarily visible
   final RxBool showAdminActionsTemporarily = RxBool(false);
-  
+
   // Timer for admin actions timeout
   Timer? _adminActionsTimer;
-  
+
   // Timer for long press detection (3 seconds)
   Timer? _longPressTimer;
+
+  // Advertisement state
+  final RxBool showAdvertisement = RxBool(false);
+  Timer? _advertisementIntervalTimer;
+  Timer? _advertisementDismissTimer;
 
   // Show booking options with 30-second timeout
   void toggleBookingOptions() {
@@ -522,6 +565,8 @@ class DashboardController extends GetxController {
     _bookingOptionsTimer?.cancel();
     _adminActionsTimer?.cancel();
     _longPressTimer?.cancel();
+    _advertisementIntervalTimer?.cancel();
+    _advertisementDismissTimer?.cancel();
 
     super.dispose();
   }
