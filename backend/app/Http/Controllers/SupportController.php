@@ -11,6 +11,8 @@ class SupportController extends Controller
 {
     public function store(Request $request): RedirectResponse
     {
+        abort_if(config('settings.is_self_hosted'), 404);
+
         $validated = $request->validate([
             'message' => 'required|string|min:10|max:2000',
         ]);
@@ -26,7 +28,7 @@ class SupportController extends Controller
             Mail::raw(
                 "Question from {$user->name} ({$user->email}):\n\n{$validated['message']}",
                 fn ($mail) => $mail
-                    ->to('m.wetering@cbyte.nl')
+                    ->to('support@spacepad.io')
                     ->subject("Spacepad question — {$user->name}")
                     ->replyTo($user->email, $user->name)
             );

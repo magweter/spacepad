@@ -10,12 +10,6 @@
 @section('content')
     <x-alerts.alert :errors="$errors" />
 
-    @if(session('success'))
-        <div class="mb-4 rounded-md bg-green-50 px-4 py-3 text-sm text-green-800 ring-1 ring-inset ring-green-600/20">
-            {{ session('success') }}
-        </div>
-    @endif
-
     {{-- Pending user suggestions --}}
     @php $pending = $items->where('is_approved', false); @endphp
     @if($pending->count())

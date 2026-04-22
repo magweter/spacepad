@@ -14,7 +14,7 @@ $faqs = [
         'categoryLabel' => 'Getting started',
         'accentColor' => '#3b82f6',
         'question' => 'Where do I find my connect code?',
-        'answer' => 'It\'s shown in the top right of this page once you have a display — or hit the "How to connect a tablet" button. Each code is unique to your account. If you don\'t see it, create a display first using the button above.',
+        'answer' => 'It\'s shown in the top right of your dashboard once you have a display, or hit the "How to connect a tablet" button. Each code is unique to your account. If you don\'t see it, create a display first using the button above.',
     ],
     [
         'id' => 3,
@@ -22,7 +22,7 @@ $faqs = [
         'categoryLabel' => 'Microsoft 365',
         'accentColor' => '#8b5cf6',
         'question' => 'My display shows the organizer\'s name instead of the meeting title',
-        'answer' => 'This is an Exchange Online setting on your room mailbox — not a Spacepad issue. Fix it via PowerShell: Set-CalendarProcessing -Identity "room@yourdomain.com" -AddOrganizerToSubject $false -DeleteSubject $false. You\'ll need Exchange admin access to run this command.',
+        'answer' => 'This is common behaviour, as it\'s a Microsoft default. In order to change this, you need to change a Exchange Online setting of your room mailbox. It\'s Microsoft default, not a Spacepad issue. You\'ll need Exchange admin access to run this command. The only way to change this is by using PowerShell. Open PowerShell and run: Set-CalendarProcessing -Identity "room@yourdomain.com" -AddOrganizerToSubject $false -DeleteSubject $false',
     ],
     [
         'id' => 4,
@@ -179,14 +179,20 @@ $roadmapItems = \App\Models\RoadmapItem::approved()
                 const wasVoted = item.voted;
                 item.voted = !wasVoted;
                 item.votesCount += wasVoted ? -1 : 1;
-                fetch(`/roadmap/${item.id}/vote`, {
+                const voteUrl = @json(rtrim(url('/roadmap'), '/')) + '/' + item.id + '/vote';
+                fetch(voteUrl, {
                     method: 'POST',
                     headers: {
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
                         'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
                     },
+                    credentials: 'same-origin',
                 })
-                .then(r => r.json())
+                .then(r => {
+                    if (!r.ok) throw new Error('Vote request failed');
+                    return r.json();
+                })
                 .then(data => {
                     item.voted = data.voted;
                     item.votesCount = data.votes_count;
@@ -257,7 +263,7 @@ $roadmapItems = \App\Models\RoadmapItem::approved()
                     :class="activeTab === 'roadmap' ? 'border-violet-600 text-violet-600' : 'border-transparent text-gray-500 hover:text-gray-700'"
                     class="border-b-2 pb-3 px-4 text-sm font-medium transition-colors whitespace-nowrap"
                 >
-                    Roadmap & Ideas
+                    Roadmap & requests
                     <span x-show="roadmapItems.length > 0" class="ml-1.5 inline-flex items-center rounded-full bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-600" x-text="roadmapItems.length"></span>
                 </button>
             </nav>
@@ -373,7 +379,7 @@ $roadmapItems = \App\Models\RoadmapItem::approved()
             </div>
 
             {{-- Ask a question --}}
-            <div class="mt-2 rounded-2xl bg-gradient-to-br from-slate-50 to-gray-100 border border-gray-200 p-5">
+            <div class="mt-4 rounded-2xl bg-gradient-to-br from-slate-50 to-gray-100 border border-gray-200 p-5">
                 @if(session('support_sent'))
                     <div class="flex items-start gap-3">
                         <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-green-100">
@@ -382,21 +388,22 @@ $roadmapItems = \App\Models\RoadmapItem::approved()
                             </svg>
                         </div>
                         <div>
-                            <p class="text-sm font-semibold text-gray-900">Got your message — thank you!</p>
-                            <p class="mt-0.5 text-sm text-gray-500">I'll reply to <strong>{{ auth()->user()->email }}</strong> as soon as I can.</p>
+                            <p class="text-sm font-semibold text-gray-900">Got your message. Thank you!</p>
+                            <p class="mt-0.5 text-sm text-gray-500">We'll reply to <strong>{{ auth()->user()->email }}</strong>.</p>
                         </div>
                     </div>
                 @else
                     <p class="text-sm font-semibold text-gray-900">Have a question or thought?</p>
                     <p class="mt-1 text-xs text-gray-500 leading-relaxed">
-                        Something not working, something missing, or just not sure if Spacepad is the right fit? Tell me — I read every message personally and use your feedback to improve the product.
+                        Something not working, something missing, or just not sure if Spacepad is the right fit? <br>
+                        Please tell us, we normally reply within a day and answer every message personally.
                     </p>
                     <form action="{{ route('support.ask') }}" method="POST" class="mt-3 flex flex-col gap-3">
                         @csrf
                         <textarea
                             name="message"
                             rows="4"
-                            placeholder="What's on your mind? Questions, blockers, honest feedback — all welcome."
+                            placeholder="What's your question about? Blockers, requests, honest feedback?"
                             required
                             minlength="10"
                             maxlength="2000"
@@ -406,7 +413,7 @@ $roadmapItems = \App\Models\RoadmapItem::approved()
                             <p class="text-xs text-red-600">{{ $message }}</p>
                         @enderror
                         <div class="flex items-center justify-between">
-                            <p class="text-xs text-gray-400">Reply to <span class="font-medium">{{ auth()->user()->email }}</span></p>
+                            <p class="text-xs text-gray-400">We'll reply to <span class="font-medium">{{ auth()->user()->email }}</span>.</p>
                             <button
                                 type="submit"
                                 class="inline-flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-violet-500"
@@ -483,12 +490,12 @@ $roadmapItems = \App\Models\RoadmapItem::approved()
             {{-- Empty roadmap state --}}
             <template x-if="roadmapItems.length === 0">
                 <div class="py-10 text-center">
-                    <p class="text-sm text-gray-500">No roadmap items yet — check back soon.</p>
+                    <p class="text-sm text-gray-500">No roadmap items yet. Check back soon.</p>
                 </div>
             </template>
 
-            {{-- Submit an idea --}}
-            <div class="mt-2 rounded-2xl bg-gradient-to-br from-slate-50 to-gray-100 border border-gray-200 p-5">
+            {{-- Submit a feature request --}}
+            <div class="mt-4 rounded-2xl bg-gradient-to-br from-slate-50 to-gray-100 border border-gray-200 p-5">
                 @if(session('suggestion_sent'))
                     <div class="flex items-start gap-3">
                         <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-green-100">
@@ -497,14 +504,14 @@ $roadmapItems = \App\Models\RoadmapItem::approved()
                             </svg>
                         </div>
                         <div>
-                            <p class="text-sm font-semibold text-gray-900">Got your idea — thanks!</p>
-                            <p class="mt-0.5 text-sm text-gray-500">I'll review it and add it to the roadmap if it fits. I'll let you know.</p>
+                            <p class="text-sm font-semibold text-gray-900">Request received! Thank you.</p>
+                            <p class="mt-0.5 text-sm text-gray-500">I'll read it and respond to it soon. If it's a fit, it will show up on the roadmap above or get built. Others can upvote to help prioritize what gets built next.</p>
                         </div>
                     </div>
                 @else
                     <p class="text-sm font-semibold text-gray-900">Missing something?</p>
                     <p class="mt-1 text-xs text-gray-500 leading-relaxed">
-                        Submit a feature request or idea. I review every submission and add good ones to the roadmap above.
+                        Submit a feature request or idea. I review every submission and add them to the roadmap above.
                     </p>
                     <form action="{{ route('roadmap.suggest') }}" method="POST" class="mt-3 flex flex-col gap-2.5">
                         @csrf
@@ -515,15 +522,15 @@ $roadmapItems = \App\Models\RoadmapItem::approved()
                             required
                             minlength="5"
                             maxlength="150"
-                            placeholder="Feature title (e.g. Dark mode for displays)"
+                            placeholder="Feature title (for example: dark mode for displays)"
                             class="block w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2 text-sm text-gray-900 placeholder-gray-400 shadow-sm focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500"
                         />
                         @error('suggestion_title') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                         <textarea
                             name="suggestion_description"
-                            rows="2"
+                            rows="4"
                             maxlength="1000"
-                            placeholder="Optional — more context or why it matters to you"
+                            placeholder="Description (optional, more context or why it matters to you)"
                             class="block w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 shadow-sm focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500 resize-none"
                         >{{ old('suggestion_description') }}</textarea>
                         @error('suggestion_description') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
@@ -532,7 +539,7 @@ $roadmapItems = \App\Models\RoadmapItem::approved()
                                 type="submit"
                                 class="inline-flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-violet-500"
                             >
-                                Submit idea
+                                Submit request
                                 <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/>
                                 </svg>

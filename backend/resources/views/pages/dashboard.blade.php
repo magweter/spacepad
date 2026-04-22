@@ -160,10 +160,10 @@
                     <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none flex items-center gap-2">
                         @if(! $isSelfHosted)
                             <button type="button" onclick="window.dispatchEvent(new CustomEvent('open-faq', { detail: { tab: 'roadmap' } }))" class="inline-flex items-center gap-2 rounded-md bg-white px-3 py-2 text-sm font-semibold text-violet-700 shadow-sm ring-1 ring-inset ring-violet-300 hover:bg-violet-50 transition-colors">
-                                <svg class="h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18"/>
+                                <svg class="h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"/>
                                 </svg>
-                                Share an idea
+                                Make a request
                             </button>
                             <button type="button" onclick="window.dispatchEvent(new CustomEvent('open-faq', { detail: { tab: 'help' } }))" class="inline-flex items-center gap-2 rounded-md bg-violet-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-violet-500 transition-colors">
                                 <svg class="h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -188,30 +188,29 @@
                     </div>
                 </div>
 
-                <div class="mt-6 flow-root">
-                    <div class="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
-                        <div class="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
-                            <table class="min-w-full divide-y divide-gray-300">
-                                <thead>
+                <div class="mt-6 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm ring-1 ring-gray-900/5">
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50/90">
                                 <tr>
-                                    <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-0">Name</th>
-                                    <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Account</th>
-                                    <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Status</th>
-                                    <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Activity</th>
-                                    <th scope="col" class="relative py-3.5 pr-4 pl-3 sm:pr-0">
+                                    <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Name</th>
+                                    <th scope="col" class="px-3 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Calendar account</th>
+                                    <th scope="col" class="px-3 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Status</th>
+                                    <th scope="col" class="px-3 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Devices & sync</th>
+                                    <th scope="col" class="relative py-3.5 pr-4 pl-3 text-right">
                                         <span class="sr-only">Actions</span>
                                     </th>
                                 </tr>
                                 </thead>
-                                <tbody class="divide-y divide-gray-200" id="displays-table">
+                                <tbody class="divide-y divide-gray-100 bg-white" id="displays-table">
                                 @forelse($displays as $display)
                                     <x-displays.table-row :display="$display" />
                                 @empty
                                     <tr>
-                                        <td colspan="5" class="py-16 text-center">
+                                        <td colspan="5" class="px-6 py-16 text-center">
                                             <div class="flex flex-col items-center justify-center">
-                                                <x-icons.display class="h-12 w-12 text-orange mb-3" />
-                                                <h3 class="mb-2 text-md font-semibold text-gray-900">
+                                                <x-icons.display class="mx-auto mb-3 h-10 w-10 text-gray-400" />
+                                                <h3 class="mb-2 text-base font-semibold text-gray-900">
                                                     One more step and you're set up
                                                 </h3>
                                                 <p class="mb-6 text-sm text-gray-500 max-w-sm">Pick the calendar or room you would like to synchronize. You are able to connect multiple tablets to one display.</p>
@@ -235,7 +234,6 @@
                                 @endforelse
                                 </tbody>
                             </table>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -272,45 +270,45 @@
                         </div>
                     </div>
 
-                    <div class="mt-6 flow-root">
-                        <div class="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
-                            <div class="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
-                                <table class="min-w-full divide-y divide-gray-300">
-                                    <thead>
+                    <div class="mt-6 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm ring-1 ring-gray-900/5">
+                        <div class="overflow-x-auto">
+                                <table class="min-w-full divide-y divide-gray-200">
+                                    <thead class="bg-gray-50/90">
                                     <tr>
-                                        <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-0">Name</th>
-                                        <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Displays</th>
-                                        <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Type</th>
-                                        <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Created by</th>
-                                        <th scope="col" class="relative py-3.5 pr-4 pl-3 sm:pr-0">
+                                        <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Name</th>
+                                        <th scope="col" class="px-3 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Displays</th>
+                                        <th scope="col" class="px-3 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Scope</th>
+                                        <th scope="col" class="px-3 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Created by</th>
+                                        <th scope="col" class="relative py-3.5 pr-4 pl-3 text-right">
                                             <span class="sr-only">Actions</span>
                                         </th>
                                     </tr>
                                     </thead>
-                                    <tbody class="divide-y divide-gray-200">
+                                    <tbody class="divide-y divide-gray-100 bg-white">
                                     @forelse($boards as $board)
-                                        <tr>
-                                            <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0">
-                                                {{ $board->name }}
+                                        <tr class="transition-colors hover:bg-gray-50/90">
+                                            <td class="whitespace-nowrap py-4 pl-4 pr-3 align-middle sm:pl-4">
+                                                <div class="text-sm font-semibold text-gray-900">{{ $board->name }}</div>
                                             </td>
-                                            <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                                                {{ $board->display_count }} {{ $board->display_count === 1 ? 'display' : 'displays' }}
+                                            <td class="whitespace-nowrap px-3 py-4 align-middle text-sm text-gray-600">
+                                                <span class="font-medium text-gray-900">{{ $board->display_count }}</span>
+                                                <span class="text-gray-500">{{ $board->display_count === 1 ? 'display' : 'displays' }}</span>
                                             </td>
-                                            <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                            <td class="whitespace-nowrap px-3 py-4 align-middle text-sm">
                                                 @if($board->show_all_displays)
-                                                    <span class="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
+                                                    <span class="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-800 ring-1 ring-inset ring-emerald-600/15">
                                                         Show all
                                                     </span>
                                                 @else
-                                                    <span class="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20">
+                                                    <span class="inline-flex items-center rounded-full bg-sky-50 px-2.5 py-1 text-xs font-semibold text-sky-800 ring-1 ring-inset ring-sky-600/15">
                                                         Selected
                                                     </span>
                                                 @endif
                                             </td>
-                                            <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                            <td class="whitespace-nowrap px-3 py-4 align-middle text-sm font-medium text-gray-900">
                                                 {{ $board->user->name }}
                                             </td>
-                                            <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-0">
+                                            <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right align-middle text-sm font-medium sm:pr-4">
                                                 <div class="flex justify-end gap-x-2">
                                                     <a href="{{ route('boards.show', $board) }}" target="_blank" class="inline-flex items-center rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50" title="Open board in new tab">
                                                         <x-icons.external class="h-4 w-4" />
@@ -334,13 +332,13 @@
                                         </tr>
                                     @empty
                                         <tr>
-                                            <td colspan="5" class="py-16 text-center">
+                                            <td colspan="5" class="px-6 py-16 text-center">
                                                 <div class="flex flex-col items-center justify-center">
-                                                    <x-icons.display class="h-12 w-12 text-orange mb-3" />
-                                                    <h3 class="mb-2 text-md font-semibold text-gray-900">
+                                                    <x-icons.building class="mx-auto mb-3 h-10 w-10 text-gray-400" />
+                                                    <h3 class="mb-2 text-base font-semibold text-gray-900">
                                                         No boards yet
                                                     </h3>
-                                                    <p class="mb-6 text-sm text-gray-500 max-w-sm">Create your first board to display room availability on a big screen.</p>
+                                                    <p class="mb-6 text-sm text-gray-500 max-w-sm">Create your first board to show room availability on a lobby or hallway screen.</p>
                                                     <a href="{{ route('boards.create') }}" class="inline-flex items-center rounded-md bg-oxford px-3 py-2 text-center text-sm font-semibold text-white">
                                                         <x-icons.plus class="h-5 w-5 mr-1" />
                                                         Create new board
@@ -351,7 +349,6 @@
                                     @endforelse
                                     </tbody>
                                 </table>
-                            </div>
                         </div>
                     </div>
                 </div>
