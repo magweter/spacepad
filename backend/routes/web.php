@@ -20,6 +20,9 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\WorkspaceController;
 use App\Http\Controllers\BoardController;
 use App\Http\Controllers\UsageController;
+use App\Http\Controllers\SupportController;
+use App\Http\Controllers\RoadmapController;
+use App\Http\Controllers\AdminRoadmapController;
 
 Route::get('/login', [LoginController::class, 'create'])
     ->middleware('guest')
@@ -141,4 +144,20 @@ Route::middleware(['auth', 'user.update-last-activity', 'gtm'])->group(function 
 
     // Usage routes
     Route::get('/usage', [UsageController::class, 'index'])->name('usage.index');
+
+    // Support / FAQ
+    Route::post('/support/ask', [SupportController::class, 'store'])->name('support.ask');
+
+    // Roadmap
+    Route::post('/roadmap/{roadmapItem}/vote', [RoadmapController::class, 'vote'])->name('roadmap.vote');
+    Route::post('/roadmap/suggest', [RoadmapController::class, 'suggest'])->name('roadmap.suggest');
+
+    // Admin — Roadmap
+    Route::get('/admin/roadmap', [AdminRoadmapController::class, 'index'])->name('admin.roadmap.index');
+    Route::get('/admin/roadmap/create', [AdminRoadmapController::class, 'create'])->name('admin.roadmap.create');
+    Route::post('/admin/roadmap', [AdminRoadmapController::class, 'store'])->name('admin.roadmap.store');
+    Route::get('/admin/roadmap/{roadmapItem}/edit', [AdminRoadmapController::class, 'edit'])->name('admin.roadmap.edit');
+    Route::put('/admin/roadmap/{roadmapItem}', [AdminRoadmapController::class, 'update'])->name('admin.roadmap.update');
+    Route::post('/admin/roadmap/{roadmapItem}/approve', [AdminRoadmapController::class, 'approve'])->name('admin.roadmap.approve');
+    Route::delete('/admin/roadmap/{roadmapItem}', [AdminRoadmapController::class, 'destroy'])->name('admin.roadmap.destroy');
 });
