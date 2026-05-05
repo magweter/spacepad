@@ -5,6 +5,8 @@ on:
     branches:
       - main
       - dev
+    tags:
+      - 'v*'
     paths:
       - 'backend/**'
       - '.github/workflows/docker-build.yml'
@@ -51,17 +53,23 @@ jobs:
             type=raw,value=stable,enable=${{ github.ref == 'refs/heads/main' }}
             # For dev branch
             type=raw,value=dev,enable=${{ github.ref == 'refs/heads/dev' }}
+            # For version tags: v1.7.0 → image tags 1.7.0 and 1.7
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
             # Common tags
             type=ref,event=branch
             type=sha,format=short
-            type=raw,value=${{ github.ref_name }}-${{ github.sha }},enable=${{ github.ref != 'refs/heads/main' }}
 
-      - name: Get git tag
-        id: git_tag
+      - name: Determine version
+        id: version
         run: |
-          GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || echo "")
-          echo "tag=${GIT_TAG}" >> $GITHUB_OUTPUT
-          echo "Found tag: ${GIT_TAG}"
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            # Strip leading 'v' so the app displays "v1.7.0" not "vv1.7.0"
+            VERSION="${{ github.ref_name }}"
+            echo "git_tag=${VERSION#v}" >> $GITHUB_OUTPUT
+          else
+            echo "git_tag=" >> $GITHUB_OUTPUT
+          fi
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
@@ -72,7 +80,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            GIT_TAG=${{ steps.git_tag.outputs.tag }}
+            GIT_TAG=${{ steps.version.outputs.git_tag }}
             GIT_COMMIT=${{ github.sha }}
           cache-from: type=gha
-          cache-to: type=gha,mode=max 
+          cache-to: type=gha,mode=max
