@@ -334,14 +334,15 @@
                     </div>
                     <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none flex items-center gap-2">
                         @if(auth()->user()->hasProForCurrentWorkspace() && $displays->isNotEmpty())
-                            <a href="{{ route('diagnostics.index') }}"
-                               class="inline-flex items-center gap-1.5 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-600 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
-                               title="Troubleshoot calendar sync issues">
+                            <button type="button"
+                                    onclick="window.dispatchEvent(new CustomEvent('open-diagnostics'))"
+                                    class="inline-flex items-center gap-1.5 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-600 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+                                    title="Troubleshoot calendar sync issues">
                                 <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
                                 </svg>
                                 Troubleshoot
-                            </a>
+                            </button>
                         @endif
                         @if(auth()->user()->can('create', \App\Models\Display::class))
                             @if(auth()->user()->shouldUpgradeForCurrentWorkspace())
@@ -801,4 +802,5 @@
     <x-modals.select-permission provider="google" />
     <x-modals.select-google-booking-method />
     <x-modals.google-service-account />
+    <x-modals.diagnostics :displays="$displays" />
 @endpush

@@ -51,7 +51,7 @@ class DashboardController extends Controller
         // Get displays from selected workspace only
         if ($selectedWorkspace) {
             $displays = Display::where('workspace_id', $selectedWorkspace->id)
-                ->with(['workspace', 'calendar.outlookAccount', 'calendar.googleAccount', 'calendar.caldavAccount'])
+                ->with(['workspace', 'calendar.outlookAccount', 'calendar.googleAccount', 'calendar.caldavAccount', 'calendar.room'])
                 ->get();
             
             // Get boards for the selected workspace

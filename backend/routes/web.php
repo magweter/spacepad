@@ -139,9 +139,8 @@ Route::middleware(['auth', 'user.update-last-activity', 'gtm'])->group(function 
     Route::get('/displays/{display}/images/{type}', [DisplaySettingsController::class, 'serveImage'])
         ->name('displays.images');
 
-    // Diagnostics — global page with display selector
-    Route::get('/diagnostics', [DisplayDiagnosticsController::class, 'index'])
-        ->name('diagnostics.index');
+    // Diagnostics — modal, run endpoint only (index redirects for old bookmarks)
+    Route::get('/diagnostics', fn() => redirect()->route('dashboard'))->name('diagnostics.index');
     Route::get('/displays/{display}/diagnostics/run', [DisplayDiagnosticsController::class, 'run'])
         ->name('displays.diagnostics.run');
 
