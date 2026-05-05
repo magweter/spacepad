@@ -172,6 +172,16 @@ class Display extends Model
         return DisplaySettings::setCalendarEnabled($this, $enabled);
     }
 
+    public function isTimelineWidgetEnabled(): bool
+    {
+        return DisplaySettings::isTimelineWidgetEnabled($this);
+    }
+
+    public function setTimelineWidgetEnabled(bool $enabled): bool
+    {
+        return DisplaySettings::setTimelineWidgetEnabled($this, $enabled);
+    }
+
     public function getAvailableText(): ?string
     {
         return DisplaySettings::getAvailableText($this);
@@ -225,6 +235,16 @@ class Display extends Model
     public function getBorderThickness(): string
     {
         return DisplaySettings::getBorderThickness($this);
+    }
+
+    public function isAdvertisementEnabled(): bool
+    {
+        return DisplaySettings::isAdvertisementEnabled($this);
+    }
+
+    public function setAdvertisementEnabled(bool $enabled): bool
+    {
+        return DisplaySettings::setAdvertisementEnabled($this, $enabled);
     }
 
     public function getAdvertisementImageUrl(): ?string

@@ -16,9 +16,11 @@ class DisplaySettingsModel {
   String fontFamily;
   String cancelPermission;
   String borderThickness;
+  bool advertisementEnabled;
   String? advertisementImageUrl;
   int advertisementInterval;
   int advertisementDuration;
+  bool timelineWidgetEnabled;
 
   DisplaySettingsModel({
     required this.checkInEnabled,
@@ -38,9 +40,11 @@ class DisplaySettingsModel {
     required this.fontFamily,
     this.cancelPermission = 'all',
     this.borderThickness = 'medium',
+    this.advertisementEnabled = false,
     this.advertisementImageUrl,
     this.advertisementInterval = 5,
     this.advertisementDuration = 15,
+    this.timelineWidgetEnabled = false,
   });
 
   factory DisplaySettingsModel.fromJson(Map data) {
@@ -62,9 +66,11 @@ class DisplaySettingsModel {
       fontFamily: data['font_family'] ?? 'Inter',
       cancelPermission: data['cancel_permission'] ?? 'all',
       borderThickness: data['border_thickness'] ?? 'medium',
+      advertisementEnabled: data['advertisement_enabled'] ?? false,
       advertisementImageUrl: data['advertisement_image_url'],
       advertisementInterval: data['advertisement_interval'] ?? 5,
       advertisementDuration: data['advertisement_duration'] ?? 15,
+      timelineWidgetEnabled: data['timeline_widget_enabled'] ?? false,
     );
   }
 

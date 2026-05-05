@@ -78,10 +78,17 @@ class DashboardController extends GetxController {
     // counting down while the ad is visible, and fetchDisplayData() calls
     // this method every 60 seconds which would otherwise kill the timer.
 
-    final adUrl = globalSettings.value?.advertisementImageUrl;
+    final settings = globalSettings.value;
+    if (settings?.advertisementEnabled != true) {
+      showAdvertisement.value = false;
+      _advertisementDismissTimer?.cancel();
+      return;
+    }
+
+    final adUrl = settings?.advertisementImageUrl;
     if (adUrl == null) return;
 
-    final intervalMinutes = globalSettings.value?.advertisementInterval ?? 5;
+    final intervalMinutes = settings?.advertisementInterval ?? 5;
 
     _advertisementIntervalTimer = Timer.periodic(
       Duration(minutes: intervalMinutes),
@@ -90,10 +97,13 @@ class DashboardController extends GetxController {
   }
 
   void _showAdvertisement() {
-    final adUrl = globalSettings.value?.advertisementImageUrl;
+    final settings = globalSettings.value;
+    if (settings?.advertisementEnabled != true) return;
+
+    final adUrl = settings?.advertisementImageUrl;
     if (adUrl == null) return;
 
-    final durationSeconds = globalSettings.value?.advertisementDuration ?? 15;
+    final durationSeconds = settings?.advertisementDuration ?? 15;
 
     showAdvertisement.value = true;
     _advertisementDismissTimer?.cancel();
@@ -434,6 +444,10 @@ class DashboardController extends GetxController {
 
   bool get calendarEnabled {
     return globalSettings.value?.calendarEnabled ?? false;
+  }
+
+  bool get timelineWidgetEnabled {
+    return globalSettings.value?.timelineWidgetEnabled ?? false;
   }
 
   // Track if booking options are shown

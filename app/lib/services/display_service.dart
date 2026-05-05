@@ -1,5 +1,6 @@
 import 'package:spacepad/models/display_model.dart';
 import 'package:spacepad/models/display_data_model.dart';
+import 'package:spacepad/models/event_model.dart';
 import 'package:spacepad/services/api_service.dart';
 
 class DisplayService {
@@ -57,6 +58,13 @@ class DisplayService {
   bool _isRouteNotFoundError(dynamic e) {
     // Check if the error is a 404 or similar
     return e.toString().contains('404');
+  }
+
+  Future<List<EventModel>> getEventsForDate(String displayId, DateTime date) async {
+    final dateStr = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+    Map body = await ApiService.get('displays/$displayId/events?date=$dateStr');
+    List data = body['data'] as List;
+    return data.map((e) => EventModel.fromJson(e)).toList();
   }
 
   Future<void> cancelEvent(String displayId, String eventId) async {

@@ -275,6 +275,17 @@ class DisplaySettings
         return self::setSetting($display, 'border_thickness', $thickness, 'string');
     }
 
+    // Advertisement enabled toggle
+    public static function isAdvertisementEnabled(Display $display): bool
+    {
+        return self::getSetting($display, 'advertisement_enabled', false);
+    }
+
+    public static function setAdvertisementEnabled(Display $display, bool $enabled): bool
+    {
+        return self::setSetting($display, 'advertisement_enabled', $enabled, 'boolean');
+    }
+
     // Advertisement image settings
     public static function getAdvertisementImage(Display $display): ?string
     {

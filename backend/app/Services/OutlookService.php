@@ -223,15 +223,26 @@ class OutlookService
         $this->ensureAuthenticated($outlookAccount);
 
         $params = [
-            'startDateTime' => $startDateTime->toIso8601String(),
-            'endDateTime' => $endDateTime->toIso8601String(),
+            'startDateTime' => $startDateTime->utc()->toIso8601String(),
+            'endDateTime' => $endDateTime->utc()->toIso8601String(),
             '$select' => 'id,lastModifiedDateTime,subject,body,bodyPreview,isAllDay,location,start,end,onlineMeetingUrl,onlineMeeting',
             '$orderby' => 'createdDateTime',
             '$top' => 100
         ];
 
         $response = Http::withToken($outlookAccount->token)
+            ->withHeaders(['Prefer' => 'outlook.timezone="UTC"'])
             ->get("https://graph.microsoft.com/v1.0/users/$emailAddress/calendarview", $params);
+
+        if (!$response->successful()) {
+            $error = Arr::get($response->json(), 'error.message', $response->body());
+            logger()->error('Outlook fetchEventsByUser failed', [
+                'status' => $response->status(),
+                'email' => $emailAddress,
+                'error' => $error,
+            ]);
+            throw new \Exception("Outlook API error for $emailAddress: $error", $response->status());
+        }
 
         return Arr::get($response->json(), 'value') ?? [];
     }
@@ -255,15 +266,26 @@ class OutlookService
         $this->ensureAuthenticated($outlookAccount);
 
         $params = [
-            'startDateTime' => $startDateTime->toIso8601String(),
-            'endDateTime' => $endDateTime->toIso8601String(),
+            'startDateTime' => $startDateTime->utc()->toIso8601String(),
+            'endDateTime' => $endDateTime->utc()->toIso8601String(),
             '$select' => 'id,lastModifiedDateTime,subject,body,bodyPreview,isAllDay,location,start,end,onlineMeetingUrl,onlineMeeting',
             '$orderby' => 'createdDateTime',
             '$top' => 100
         ];
 
         $response = Http::withToken($outlookAccount->token)
+            ->withHeaders(['Prefer' => 'outlook.timezone="UTC"'])
             ->get("https://graph.microsoft.com/v1.0/me/calendars/$calendarId/calendarview", $params);
+
+        if (!$response->successful()) {
+            $error = Arr::get($response->json(), 'error.message', $response->body());
+            logger()->error('Outlook fetchEventsByCalendar failed', [
+                'status' => $response->status(),
+                'calendar_id' => $calendarId,
+                'error' => $error,
+            ]);
+            throw new \Exception("Outlook API error for calendar $calendarId: $error", $response->status());
+        }
 
         return Arr::get($response->json(), 'value') ?? [];
     }

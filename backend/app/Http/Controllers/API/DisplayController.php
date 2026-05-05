@@ -14,6 +14,7 @@ use App\Services\DisplayService;
 use App\Services\EventService;
 use App\Services\ImageService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
 
@@ -61,6 +62,30 @@ class DisplayController extends ApiController
         ]);
 
         return $this->success(data: DisplayResource::collection($displays));
+    }
+
+    public function getEvents(Request $request, string $displayId): JsonResponse
+    {
+        /** @var Device $device */
+        $device = auth()->user();
+
+        $permission = $this->displayService->validateDisplayPermission($displayId, $device->id);
+        if (! $permission->permitted) {
+            return $this->error(message: $permission->message, code: $permission->code);
+        }
+
+        try {
+            $date = $request->query('date')
+                ? Carbon::parse($request->query('date'))->startOfDay()
+                : null;
+
+            $events = $this->eventService->getEventsForDisplay($displayId, $date);
+
+            return $this->success(data: EventResource::collection($events));
+        } catch (\Exception $e) {
+            report($e);
+            return $this->error(message: 'Something went wrong while fetching events.', code: 500);
+        }
     }
 
     public function getData(string $displayId): JsonResponse

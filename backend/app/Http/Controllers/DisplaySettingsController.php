@@ -230,6 +230,9 @@ class DisplaySettingsController extends Controller
             }
         }
 
+        // Handle advertisement enabled toggle
+        $updated = $updated && DisplaySettings::setAdvertisementEnabled($display, $request->boolean('advertisement_enabled'));
+
         // Handle advertisement image upload/removal
         if ($request->boolean('remove_advertisement_image')) {
             $this->imageService->removeAdvertisementFile($display);

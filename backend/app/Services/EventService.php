@@ -30,7 +30,7 @@ class EventService
      * Fetch events for a display, without storing external events in the database.
      * @throws Exception
      */
-    public function getEventsForDisplay($display): Collection
+    public function getEventsForDisplay($display, ?Carbon $forDate = null): Collection
     {
         $display = Display::query()
             ->withCount(['eventSubscriptions' => function ($query) {
@@ -38,6 +38,13 @@ class EventService
                 $query->where('subscription_id', 'not like', 'pending_%');
             }])
             ->findOrFail($display);
+
+        // When fetching for a specific date, skip caching and side-effects
+        if ($forDate !== null) {
+            $start = $forDate->copy()->startOfDay();
+            $end = $forDate->copy()->endOfDay();
+            return $this->getAllEvents($display, $start, $end);
+        }
 
         // Update last sync timestamp
         $display->updateLastSyncAt();
@@ -327,12 +334,19 @@ class EventService
         // Handle all-day event
         $isAllDay = $outlookEvent['isAllDay'] ?? false;
 
-        // Extract date for all-day events, or dateTime with timeZone for regular events
-        $start = $isAllDay ? ['dateTime' => explode('T', $outlookEvent['start']['dateTime'])[0]]
-            : ['dateTime' => $outlookEvent['start']['dateTime'], 'timeZone' => $outlookEvent['start']['timeZone']];
-
-        $end = $isAllDay ? ['dateTime' => explode('T', $outlookEvent['end']['dateTime'])[0]]
-            : ['dateTime' => $outlookEvent['end']['dateTime'], 'timeZone' => $outlookEvent['end']['timeZone']];
+        // Extract date for all-day events, or dateTime for regular events.
+        // With the Prefer: outlook.timezone="UTC" header, Outlook returns times as UTC
+        // strings without a timezone suffix (e.g. "2026-05-05T07:00:00.0000000").
+        // We strip any existing trailing Z or fractional seconds suffix, then add 'Z'
+        // so Carbon always parses them unambiguously as UTC.
+        if ($isAllDay) {
+            $startDateStr = explode('T', $outlookEvent['start']['dateTime'])[0];
+            $endDateStr = explode('T', $outlookEvent['end']['dateTime'])[0];
+        } else {
+            // Strip trailing Z if present, then re-add it to normalise the format
+            $startDateStr = rtrim($outlookEvent['start']['dateTime'], 'Z') . 'Z';
+            $endDateStr = rtrim($outlookEvent['end']['dateTime'], 'Z') . 'Z';
+        }
 
         // Extract Teams join URL: prefer onlineMeeting.joinUrl (current), fall back to
         // deprecated onlineMeetingUrl, then regex extraction from the event body
@@ -346,9 +360,9 @@ class EventService
             'location' => $location,
             'description' => $description,
             'join_url' => $joinUrl,
-            'start' => $start['dateTime'],
-            'end' => $end['dateTime'],
-            'timezone' => $outlookEvent['start']['timeZone'] ?? $outlookEvent['end']['timeZone'] ?? 'UTC',
+            'start' => $startDateStr,
+            'end' => $endDateStr,
+            'timezone' => 'UTC',
             'isAllDay' => $isAllDay
         ];
     }
@@ -410,32 +424,52 @@ class EventService
      * Only custom events and tablet bookings are persisted in the database.
      * @throws Exception
      */
-    private function getAllEvents(Display $display): Collection
+    private function getAllEvents(Display $display, ?Carbon $start = null, ?Carbon $end = null): Collection
     {
+        $start = $start ?? $display->getStartTime();
+        $end = $end ?? $display->getEndTime();
+
         $calendar = $display->calendar()
             ->with(['googleAccount', 'outlookAccount', 'caldavAccount', 'room'])
             ->first();
+
+        logger()->debug('getAllEvents: starting fetch', [
+            'display_id' => $display->id,
+            'display_name' => $display->name ?? null,
+            'start' => $start->toIso8601String(),
+            'end' => $end->toIso8601String(),
+            'calendar_id_db' => $calendar?->id,
+            'calendar_type' => $calendar ? ($calendar->google_account_id ? 'google' : ($calendar->outlook_account_id ? 'outlook' : ($calendar->caldav_account_id ? 'caldav' : 'unknown'))) : null,
+            'calendar_resource_id' => $calendar?->calendar_id,
+            'is_room' => $calendar?->room ? true : false,
+        ]);
 
         // Fetch raw event data from external calendar APIs
         $rawExternal = collect();
         if ($calendar?->google_account_id) {
             $rawExternal = $rawExternal->concat(
-                $this->fetchGoogleEvents($calendar, $display)
+                $this->fetchGoogleEvents($calendar, $display, $start, $end)
                     ->map(fn($e) => $e + ['source' => EventSource::GOOGLE])
             );
         }
         if ($calendar?->outlook_account_id) {
             $rawExternal = $rawExternal->concat(
-                $this->fetchOutlookEvents($calendar, $display)
+                $this->fetchOutlookEvents($calendar, $display, $start, $end)
                     ->map(fn($e) => $e + ['source' => EventSource::OUTLOOK])
             );
         }
         if ($calendar?->caldav_account_id) {
             $rawExternal = $rawExternal->concat(
-                $this->fetchCalDAVEvents($calendar, $display)
+                $this->fetchCalDAVEvents($calendar, $display, $start, $end)
                     ->map(fn($e) => $e + ['source' => EventSource::CALDAV])
             );
         }
+
+        logger()->debug('getAllEvents: raw external events fetched', [
+            'display_id' => $display->id,
+            'raw_count' => $rawExternal->count(),
+            'all_day_filtered' => $rawExternal->filter(fn($e) => $e['isAllDay'])->count(),
+        ]);
 
         // Load persisted DB events: custom events and tablet bookings only
         $dbEvents = Event::query()
@@ -444,8 +478,8 @@ class EventService
                 $q->where('source', EventSource::CUSTOM)
                   ->orWhereNotNull('calendar_id');
             })
-            ->where('start', '>=', $display->getStartTime())
-            ->where('start', '<', $display->getEndTime())
+            ->where('start', '>=', $start)
+            ->where('start', '<', $end)
             ->where('status', '!=', EventStatus::CANCELLED)
             ->orderBy('start')
             ->get();
@@ -601,17 +635,33 @@ class EventService
      * @return Collection
      * @throws Exception
      */
-    private function fetchOutlookEvents(Calendar $calendar, Display $display): Collection
+    private function fetchOutlookEvents(Calendar $calendar, Display $display, ?Carbon $start = null, ?Carbon $end = null): Collection
     {
+        $start = $start ?? $display->getStartTime();
+        $end = $end ?? $display->getEndTime();
         $events = [];
+
+        $outlookAccount = $calendar->outlookAccount;
+        logger()->debug('fetchOutlookEvents: starting', [
+            'display_id' => $display->id,
+            'calendar_resource_id' => $calendar->calendar_id,
+            'is_room' => $calendar->room ? true : false,
+            'outlook_account_id' => $outlookAccount?->id,
+            'outlook_account_email' => $outlookAccount?->email,
+            'token_expires_at' => $outlookAccount?->token_expires_at?->toIso8601String(),
+            'token_expired' => $outlookAccount ? now()->gt($outlookAccount->token_expires_at) : null,
+            'account_status' => $outlookAccount?->status,
+            'start' => $start->toIso8601String(),
+            'end' => $end->toIso8601String(),
+        ]);
 
         // Fetch events by user (room)
         if ($calendar->room) {
             $events = $this->outlookService->fetchEventsByUser(
                 outlookAccount: $calendar->outlookAccount,
                 emailAddress: $calendar->calendar_id,
-                startDateTime: $display->getStartTime(),
-                endDateTime: $display->getEndTime(),
+                startDateTime: $start,
+                endDateTime: $end,
             );
         }
 
@@ -620,10 +670,16 @@ class EventService
             $events = $this->outlookService->fetchEventsByCalendar(
                 outlookAccount: $calendar->outlookAccount,
                 calendarId: $calendar->calendar_id,
-                startDateTime: $display->getStartTime(),
-                endDateTime: $display->getEndTime(),
+                startDateTime: $start,
+                endDateTime: $end,
             );
         }
+
+        logger()->debug('fetchOutlookEvents: raw events from API', [
+            'display_id' => $display->id,
+            'count' => count($events),
+            'first_event_summary' => count($events) > 0 ? ($events[0]['subject'] ?? 'no subject') : null,
+        ]);
 
         return collect($events)->map(fn($e) => $this->sanitizeOutlookEvent($e));
     }
@@ -634,13 +690,13 @@ class EventService
      * @return Collection
      * @throws \Exception
      */
-    private function fetchGoogleEvents(Calendar $calendar, Display $display): Collection
+    private function fetchGoogleEvents(Calendar $calendar, Display $display, ?Carbon $start = null, ?Carbon $end = null): Collection
     {
         $events = $this->googleService->fetchEvents(
             googleAccount: $calendar->googleAccount,
             calendarId: $calendar->calendar_id,
-            startDateTime: $display->getStartTime(),
-            endDateTime: $display->getEndTime(),
+            startDateTime: $start ?? $display->getStartTime(),
+            endDateTime: $end ?? $display->getEndTime(),
         );
 
         // Get room email if this calendar has a room
@@ -679,13 +735,13 @@ class EventService
      * @return Collection
      * @throws Exception
      */
-    private function fetchCalDAVEvents(Calendar $calendar, Display $display): Collection
+    private function fetchCalDAVEvents(Calendar $calendar, Display $display, ?Carbon $start = null, ?Carbon $end = null): Collection
     {
         $events = $this->caldavService->fetchEvents(
             caldavAccount: $calendar->caldavAccount,
             calendarId: $calendar->calendar_id,
-            startDateTime: $display->getStartTime(),
-            endDateTime: $display->getEndTime(),
+            startDateTime: $start ?? $display->getStartTime(),
+            endDateTime: $end ?? $display->getEndTime(),
         );
 
         return collect($events)->map(fn($e) => $this->sanitizeCalDAVEvent($e));

@@ -153,54 +153,65 @@
 
                 @if(auth()->user()->hasAdvertisementFeature())
                 <div class="border border-gray-200 rounded-lg p-6">
-                    <h3 class="text-base font-semibold text-gray-900 mb-4">Advertisement</h3>
+                    {{-- Header with enable toggle --}}
+                    <div class="flex items-center justify-between mb-1">
+                        <h3 class="text-base font-semibold text-gray-900">Advertisement</h3>
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <span class="text-sm text-gray-500">Enable</span>
+                            <input type="checkbox" name="advertisement_enabled" value="1" id="advertisement_enabled"
+                                {{ \App\Helpers\DisplaySettings::isAdvertisementEnabled($display) ? 'checked' : '' }}
+                                class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600">
+                        </label>
+                    </div>
                     <p class="text-sm text-gray-500 mb-4">Upload an advertisement image that will be shown on the right half of the screen at a set interval.</p>
 
-                    {{-- Current Advertisement Image --}}
-                    @if(\App\Helpers\DisplaySettings::getAdvertisementImage($display))
-                        <div class="flex items-center space-x-4 mb-4">
-                            <div class="flex-shrink-0">
-                                <img src="{{ route('displays.images', ['display' => $display, 'type' => 'advertisement']) }}?v={{ $display->updated_at->timestamp }}" alt="Current advertisement" class="h-16 w-24 object-cover border border-gray-300 rounded">
+                    <div id="advertisement-settings" class="{{ \App\Helpers\DisplaySettings::isAdvertisementEnabled($display) ? '' : 'opacity-40 pointer-events-none' }}">
+                        {{-- Current Advertisement Image --}}
+                        @if(\App\Helpers\DisplaySettings::getAdvertisementImage($display))
+                            <div class="flex items-center space-x-4 mb-4">
+                                <div class="flex-shrink-0">
+                                    <img src="{{ route('displays.images', ['display' => $display, 'type' => 'advertisement']) }}?v={{ $display->updated_at->timestamp }}" alt="Current advertisement" class="h-16 w-24 object-cover border border-gray-300 rounded">
+                                </div>
+                                <div>
+                                    <p class="text-sm text-gray-500">Current advertisement image</p>
+                                    <label class="inline-flex items-center text-sm text-red-600 hover:text-red-500 cursor-pointer">
+                                        <input type="checkbox" name="remove_advertisement_image" value="1" class="mr-1">
+                                        Remove advertisement image
+                                    </label>
+                                </div>
                             </div>
-                            <div>
-                                <p class="text-sm text-gray-500">Current advertisement image</p>
-                                <label class="inline-flex items-center text-sm text-red-600 hover:text-red-500 cursor-pointer">
-                                    <input type="checkbox" name="remove_advertisement_image" value="1" class="mr-1">
-                                    Remove advertisement
-                                </label>
-                            </div>
+                        @endif
+
+                        {{-- Upload --}}
+                        <div class="mb-4">
+                            <label for="advertisement_image" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-oxford hover:bg-oxford-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-oxford-500 cursor-pointer">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                                </svg>
+                                Choose Advertisement Image
+                            </label>
+                            <input type="file" name="advertisement_image" id="advertisement_image" accept="image/*" class="hidden">
+                            <span id="advertisement-filename" class="ml-3 text-sm text-gray-500">No file chosen</span>
+                            <p class="mt-1 text-xs text-gray-500">Upload an image (PNG, JPG, GIF, max 4 MB). Recommended size: 960x1080px (half-screen portrait).</p>
                         </div>
-                    @endif
 
-                    {{-- Upload --}}
-                    <div class="mb-4">
-                        <label for="advertisement_image" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-oxford hover:bg-oxford-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-oxford-500 cursor-pointer">
-                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-                            </svg>
-                            Choose Advertisement Image
-                        </label>
-                        <input type="file" name="advertisement_image" id="advertisement_image" accept="image/*" class="hidden">
-                        <span id="advertisement-filename" class="ml-3 text-sm text-gray-500">No file chosen</span>
-                        <p class="mt-1 text-xs text-gray-500">Upload an image (PNG, JPG, GIF, max 4 MB). Recommended size: 960x1080px (half-screen portrait).</p>
-                    </div>
+                        {{-- Interval --}}
+                        <div class="mb-4">
+                            <label for="advertisement_interval" class="block text-sm font-medium text-gray-700">Show every (minutes)</label>
+                            <input type="number" name="advertisement_interval" id="advertisement_interval" min="1" max="60"
+                                value="{{ old('advertisement_interval', \App\Helpers\DisplaySettings::getAdvertisementInterval($display)) }}"
+                                class="mt-1 w-32 px-3 py-2 border rounded-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 sm:text-sm" />
+                            <p class="mt-1 text-xs text-gray-500">How often the advertisement appears (1–60 minutes). Default: 5 minutes.</p>
+                        </div>
 
-                    {{-- Interval --}}
-                    <div class="mb-4">
-                        <label for="advertisement_interval" class="block text-sm font-medium text-gray-700">Show every (minutes)</label>
-                        <input type="number" name="advertisement_interval" id="advertisement_interval" min="1" max="60"
-                            value="{{ old('advertisement_interval', \App\Helpers\DisplaySettings::getAdvertisementInterval($display)) }}"
-                            class="mt-1 w-32 px-3 py-2 border rounded-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 sm:text-sm" />
-                        <p class="mt-1 text-xs text-gray-500">How often the advertisement appears (1–60 minutes). Default: 5 minutes.</p>
-                    </div>
-
-                    {{-- Duration --}}
-                    <div class="mb-2">
-                        <label for="advertisement_duration" class="block text-sm font-medium text-gray-700">Display duration (seconds)</label>
-                        <input type="number" name="advertisement_duration" id="advertisement_duration" min="5" max="300"
-                            value="{{ old('advertisement_duration', \App\Helpers\DisplaySettings::getAdvertisementDuration($display)) }}"
-                            class="mt-1 w-32 px-3 py-2 border rounded-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 sm:text-sm" />
-                        <p class="mt-1 text-xs text-gray-500">How long the advertisement stays visible (5–300 seconds). Default: 15 seconds.</p>
+                        {{-- Duration --}}
+                        <div class="mb-2">
+                            <label for="advertisement_duration" class="block text-sm font-medium text-gray-700">Display duration (seconds)</label>
+                            <input type="number" name="advertisement_duration" id="advertisement_duration" min="5" max="300"
+                                value="{{ old('advertisement_duration', \App\Helpers\DisplaySettings::getAdvertisementDuration($display)) }}"
+                                class="mt-1 w-32 px-3 py-2 border rounded-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 sm:text-sm" />
+                            <p class="mt-1 text-xs text-gray-500">How long the advertisement stays visible (5–300 seconds). Default: 15 seconds.</p>
+                        </div>
                     </div>
                 </div>
                 @endif
@@ -285,6 +296,20 @@
                         advertisementFilename.textContent = file.name;
                     } else {
                         advertisementFilename.textContent = 'No file chosen';
+                    }
+                });
+            }
+
+            // Toggle advertisement settings panel enabled/disabled
+            const advertisementEnabledToggle = document.getElementById('advertisement_enabled');
+            const advertisementSettingsPanel = document.getElementById('advertisement-settings');
+
+            if (advertisementEnabledToggle && advertisementSettingsPanel) {
+                advertisementEnabledToggle.addEventListener('change', function() {
+                    if (this.checked) {
+                        advertisementSettingsPanel.classList.remove('opacity-40', 'pointer-events-none');
+                    } else {
+                        advertisementSettingsPanel.classList.add('opacity-40', 'pointer-events-none');
                     }
                 });
             }

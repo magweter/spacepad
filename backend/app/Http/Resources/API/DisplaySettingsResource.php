@@ -36,9 +36,13 @@ class DisplaySettingsResource extends JsonResource
             'has_custom_booking' => $this->hasCustomBooking(),
 
             // Advertisement
-            'advertisement_image_url' => $this->getAdvertisementImageUrl(),
+            'advertisement_enabled' => $this->isAdvertisementEnabled(),
+            'advertisement_image_url' => $this->isAdvertisementEnabled() ? $this->getAdvertisementImageUrl() : null,
             'advertisement_interval' => $this->getAdvertisementInterval(),
             'advertisement_duration' => $this->getAdvertisementDuration(),
+
+            // Timeline widget
+            'timeline_widget_enabled' => $this->isTimelineWidgetEnabled(),
         ];
     }
 }

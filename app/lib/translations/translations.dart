@@ -73,6 +73,10 @@ class AppTranslations extends Translations {
       'now': 'Now',
       'max': 'Max',
       'book': 'Book',
+      'timeline_today': 'Today',
+      'timeline_tomorrow': 'Tomorrow',
+      'timeline_yesterday': 'Yesterday',
+      'timeline_no_events': 'No meetings',
     },
     'nl_NL': {
       'introduction_title': 'Welkom bij Spacepad!',
@@ -144,6 +148,10 @@ class AppTranslations extends Translations {
       'now': 'Nu',
       'max': 'Max',
       'book': 'Boek',
+      'timeline_today': 'Vandaag',
+      'timeline_tomorrow': 'Morgen',
+      'timeline_yesterday': 'Gisteren',
+      'timeline_no_events': 'Geen vergaderingen',
     },
     'es_ES': {
       'introduction_title': '¡Bienvenido a Spacepad!',
@@ -215,6 +223,10 @@ class AppTranslations extends Translations {
       'now': 'Ahora',
       'max': 'Máx',
       'book': 'Reservar',
+      'timeline_today': 'Hoy',
+      'timeline_tomorrow': 'Mañana',
+      'timeline_yesterday': 'Ayer',
+      'timeline_no_events': 'Sin reuniones',
     },
     'fr_FR': {
       'introduction_title': 'Bienvenue sur Spacepad !',
@@ -286,6 +298,10 @@ class AppTranslations extends Translations {
       'now': 'Maintenant',
       'max': 'Max',
       'book': 'Réserver',
+      'timeline_today': 'Aujourd\'hui',
+      'timeline_tomorrow': 'Demain',
+      'timeline_yesterday': 'Hier',
+      'timeline_no_events': 'Pas de réunions',
     },
     'de_DE': {
       'introduction_title': 'Willkommen bei Spacepad!',
@@ -357,6 +373,10 @@ class AppTranslations extends Translations {
       'now': 'Jetzt',
       'max': 'Max',
       'book': 'Buchen',
+      'timeline_today': 'Heute',
+      'timeline_tomorrow': 'Morgen',
+      'timeline_yesterday': 'Gestern',
+      'timeline_no_events': 'Keine Besprechungen',
     },
     'sv_SE': {
       'introduction_title': 'Välkommen till Spacepad!',
@@ -428,6 +448,10 @@ class AppTranslations extends Translations {
       'now': 'Nu',
       'max': 'Max',
       'book': 'Boka',
+      'timeline_today': 'Idag',
+      'timeline_tomorrow': 'Imorgon',
+      'timeline_yesterday': 'Igår',
+      'timeline_no_events': 'Inga möten',
     },
   };
 }
