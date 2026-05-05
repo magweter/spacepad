@@ -261,4 +261,14 @@ class Display extends Model
     {
         return DisplaySettings::getAdvertisementDuration($this);
     }
+
+    public function isExtendEnabled(): bool
+    {
+        return DisplaySettings::isExtendEnabled($this);
+    }
+
+    public function setExtendEnabled(bool $enabled): bool
+    {
+        return DisplaySettings::setExtendEnabled($this, $enabled);
+    }
 }

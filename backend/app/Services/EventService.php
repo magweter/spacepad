@@ -312,6 +312,95 @@ class EventService
     }
 
     /**
+     * Extend the end time of the current event by adding minutes.
+     * Accepts new_end as an absolute UTC timestamp from the client.
+     */
+    public function extendEvent(string $eventId, string $displayId, Carbon $newEnd): void
+    {
+        $display = Display::query()
+            ->with(['calendar.outlookAccount', 'calendar.googleAccount', 'calendar.caldavAccount', 'calendar.room', 'settings'])
+            ->findOrFail($displayId);
+
+        if (!DisplaySettings::isExtendEnabled($display)) {
+            throw new Exception('Extending events is not allowed on this display', 403);
+        }
+
+        $event = Event::query()
+            ->where('display_id', $displayId)
+            ->find($eventId);
+
+        if ($event) {
+            $this->extendDbEvent($event, $display, $newEnd);
+            return;
+        }
+
+        // External event (not in DB) — requires write permission
+        $this->extendExternalEvent($eventId, $display, $newEnd);
+    }
+
+    private function extendDbEvent(Event $event, Display $display, Carbon $newEnd): void
+    {
+        $calendar = $display->calendar;
+
+        if ($event->external_id && $calendar) {
+            $hasWritePermissions = false;
+
+            if ($calendar->outlook_account_id && $calendar->outlookAccount) {
+                $hasWritePermissions = $calendar->outlookAccount->permission_type === PermissionType::WRITE;
+            } elseif ($calendar->google_account_id && $calendar->googleAccount) {
+                $hasWritePermissions = $calendar->googleAccount->permission_type === PermissionType::WRITE;
+            }
+
+            if ($hasWritePermissions) {
+                try {
+                    if ($calendar->outlook_account_id) {
+                        $this->outlookService->patchEventEndTime($calendar->outlookAccount, $calendar, $event->external_id, $newEnd);
+                    } elseif ($calendar->google_account_id) {
+                        $this->googleService->patchEventEndTime($calendar->googleAccount, $calendar, $event->external_id, $newEnd);
+                    }
+                } catch (\Exception $e) {
+                    logger()->warning('Failed to update DB event end time via API', [
+                        'error' => $e->getMessage(),
+                        'event_id' => $event->id,
+                    ]);
+                }
+            }
+        }
+
+        $event->update(['end' => $newEnd]);
+        Cache::forget($display->getEventsCacheKey());
+    }
+
+    private function extendExternalEvent(string $externalId, Display $display, Carbon $newEnd): void
+    {
+        $calendar = $display->calendar;
+
+        if (!$calendar) {
+            throw new Exception('No calendar linked to this display', 400);
+        }
+
+        $hasWritePermissions = false;
+
+        if ($calendar->outlook_account_id && $calendar->outlookAccount) {
+            $hasWritePermissions = $calendar->outlookAccount->permission_type === PermissionType::WRITE;
+        } elseif ($calendar->google_account_id && $calendar->googleAccount) {
+            $hasWritePermissions = $calendar->googleAccount->permission_type === PermissionType::WRITE;
+        }
+
+        if (!$hasWritePermissions) {
+            throw new Exception('Cannot extend this event — write permission is required', 403);
+        }
+
+        if ($calendar->outlook_account_id) {
+            $this->outlookService->patchEventEndTime($calendar->outlookAccount, $calendar, $externalId, $newEnd);
+        } elseif ($calendar->google_account_id) {
+            $this->googleService->patchEventEndTime($calendar->googleAccount, $calendar, $externalId, $newEnd);
+        }
+
+        Cache::forget($display->getEventsCacheKey());
+    }
+
+    /**
      * Check if there are any conflicting events for a display in a given time range.
      */
     public function hasConflictingEvents(string $displayId, Carbon $start, Carbon $end): bool

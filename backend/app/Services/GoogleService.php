@@ -296,6 +296,35 @@ class GoogleService
     }
 
     /**
+     * Patch the end time of an existing Google Calendar event.
+     */
+    public function patchEventEndTime(
+        GoogleAccount $googleAccount,
+        Calendar $calendar,
+        string $eventId,
+        Carbon $newEnd
+    ): void {
+        $bookingMethod = $googleAccount->booking_method ?? GoogleBookingMethod::USER_ACCOUNT;
+
+        $this->ensureAuthenticated($googleAccount);
+        $calendarService = new GoogleCalendar($this->client);
+
+        $patch = new GoogleEvent();
+        $endDateTime = new \Google\Service\Calendar\EventDateTime();
+        $endDateTime->setDateTime($newEnd->toRfc3339String());
+        $endDateTime->setTimeZone('UTC');
+        $patch->setEnd($endDateTime);
+
+        $calendarId = $calendar->room ? 'primary' : $calendar->calendar_id;
+
+        try {
+            $calendarService->events->patch($calendarId, $eventId, $patch, ['sendUpdates' => 'none']);
+        } catch (\Exception $e) {
+            throw new Exception('Failed to update Google event end time: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Delete an event from Google Calendar.
      *
      * @param GoogleAccount $googleAccount

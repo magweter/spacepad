@@ -43,6 +43,9 @@ class DisplaySettingsResource extends JsonResource
 
             // Timeline widget
             'timeline_widget_enabled' => $this->isTimelineWidgetEnabled(),
+
+            // Extend meeting
+            'extend_enabled' => $this->isExtendEnabled(),
         ];
     }
 }

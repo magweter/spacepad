@@ -446,6 +446,53 @@ class DashboardController extends GetxController {
     }
   }
 
+  bool get extendEnabled {
+    return globalSettings.value?.extendEnabled ?? false;
+  }
+
+  List<int> get availableExtendDurations {
+    if (currentEvent == null) return [];
+    final base = [15, 30, 60];
+    if (upcomingEvents.isNotEmpty) {
+      final minutesUntilNext = upcomingEvents.first.start.difference(currentEvent!.end).inMinutes;
+      return base.where((min) => min <= minutesUntilNext).toList();
+    }
+    return base;
+  }
+
+  void toggleExtendOptions() {
+    showExtendOptions.value = true;
+    _extendOptionsTimer?.cancel();
+    _extendOptionsTimer = Timer(const Duration(seconds: 30), () {
+      showExtendOptions.value = false;
+    });
+  }
+
+  void hideExtendOptions() {
+    showExtendOptions.value = false;
+    _extendOptionsTimer?.cancel();
+  }
+
+  Future<void> extendCurrentEvent(int minutes) async {
+    if (isExtending.value || currentEvent == null) return;
+
+    try {
+      isExtending.value = true;
+      extendDuration.value = minutes;
+      final newEnd = currentEvent!.end.add(Duration(minutes: minutes));
+      await DisplayService.instance.extendEvent(displayId.value, currentEvent!.id, newEnd);
+      await fetchDisplayData();
+      Toast.showSuccess('event_extended'.tr);
+      _extendOptionsTimer?.cancel();
+      showExtendOptions.value = false;
+    } catch (e) {
+      Toast.showError('could_not_extend_event'.tr);
+    } finally {
+      isExtending.value = false;
+      extendDuration.value = null;
+    }
+  }
+
   bool get calendarEnabled {
     return globalSettings.value?.calendarEnabled ?? false;
   }
@@ -461,6 +508,10 @@ class DashboardController extends GetxController {
   final RxBool isBooking = RxBool(false);
   final Rx<int?> bookingDuration = Rx<int?>(null); // Track which duration button was clicked
   final RxBool isCancelling = RxBool(false);
+  final RxBool isExtending = RxBool(false);
+  final Rx<int?> extendDuration = Rx<int?>(null);
+  final RxBool showExtendOptions = RxBool(false);
+  Timer? _extendOptionsTimer;
   
   // Timer for booking options timeout
   Timer? _bookingOptionsTimer;
@@ -585,6 +636,7 @@ class DashboardController extends GetxController {
     _longPressTimer?.cancel();
     _advertisementIntervalTimer?.cancel();
     _advertisementDismissTimer?.cancel();
+    _extendOptionsTimer?.cancel();
 
     super.dispose();
   }

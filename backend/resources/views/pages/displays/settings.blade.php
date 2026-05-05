@@ -196,6 +196,24 @@
                     </div>
                 </div>
 
+                <!-- Extend Meeting Settings -->
+                <div class="border border-gray-200 rounded-lg p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <h3 class="text-base font-semibold text-gray-900">Extend Meeting</h3>
+                            <p class="text-sm text-gray-500">Allow users to extend the current meeting directly from this display</p>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="checkbox" id="extend_enabled" name="extend_enabled" value="1"
+                                   {{ $display->isExtendEnabled() ? 'checked' : '' }}
+                                   class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600">
+                        </div>
+                    </div>
+                    <div class="text-sm text-gray-600">
+                        <p>When enabled, users can extend an ongoing meeting by +15, +30, or +60 minutes directly from this display. For external calendar events, write permission on the connected account is required.</p>
+                    </div>
+                </div>
+
                 <!-- Border Thickness Settings -->
                 <div class="border border-gray-200 rounded-lg p-6">
                     <div class="mb-4">

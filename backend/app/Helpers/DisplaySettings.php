@@ -323,4 +323,15 @@ class DisplaySettings
     {
         return self::setSetting($display, 'advertisement_duration', $seconds, 'integer');
     }
+
+    // Extend meeting enabled toggle
+    public static function isExtendEnabled(Display $display): bool
+    {
+        return self::getSetting($display, 'extend_enabled', false);
+    }
+
+    public static function setExtendEnabled(Display $display, bool $enabled): bool
+    {
+        return self::setSetting($display, 'extend_enabled', $enabled, 'boolean');
+    }
 }

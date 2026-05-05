@@ -73,6 +73,12 @@ class DisplayService {
     await ApiService.delete('displays/$displayId/events/$eventId');
   }
 
+  Future<void> extendEvent(String displayId, String eventId, DateTime newEnd) async {
+    await ApiService.post('displays/$displayId/events/$eventId/extend', {
+      'new_end': newEnd.toUtc().toIso8601String(),
+    });
+  }
+
   Future<void> checkInToEvent(String displayId, String eventId) async {
     await ApiService.post('displays/$displayId/events/$eventId/check-in', {});
   }

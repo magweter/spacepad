@@ -47,6 +47,7 @@ class DisplaySettingsController extends Controller
             'hide_admin_actions' => 'boolean',
             'timeline_widget_enabled' => 'boolean',
             'allow_future_bookings' => 'boolean',
+            'extend_enabled' => 'boolean',
             'check_in_minutes' => 'nullable|integer|min:1|max:60',
             'check_in_grace_period' => 'nullable|integer|min:1|max:30',
             'cancel_permission' => 'nullable|in:all,tablet_only,none',
@@ -118,6 +119,11 @@ class DisplaySettingsController extends Controller
                 $request->input('border_thickness')
             );
         }
+
+        $updated = $updated && DisplaySettings::setExtendEnabled(
+            $display,
+            $request->boolean('extend_enabled')
+        );
 
         if (!$updated) {
             return back()->withErrors(['error' => 'Failed to update settings']);

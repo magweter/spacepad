@@ -441,6 +441,39 @@ class OutlookService
     }
 
     /**
+     * Patch the end time of an existing Outlook calendar event.
+     */
+    public function patchEventEndTime(
+        OutlookAccount $outlookAccount,
+        Calendar $calendar,
+        string $eventId,
+        Carbon $newEnd
+    ): void {
+        $this->ensureAuthenticated($outlookAccount);
+
+        if ($calendar->room) {
+            $endpoint = "https://graph.microsoft.com/v1.0/users/{$calendar->calendar_id}/calendar/events/{$eventId}";
+        } elseif ($calendar->is_primary) {
+            $endpoint = "https://graph.microsoft.com/v1.0/me/calendar/events/{$eventId}";
+        } else {
+            $endpoint = "https://graph.microsoft.com/v1.0/me/calendars/{$calendar->calendar_id}/events/{$eventId}";
+        }
+
+        $response = Http::acceptJson()
+            ->withHeaders(['Authorization' => 'Bearer ' . $outlookAccount->token])
+            ->patch($endpoint, [
+                'end' => [
+                    'dateTime' => $newEnd->utc()->toIso8601String(),
+                    'timeZone' => 'UTC',
+                ],
+            ]);
+
+        if (!$response->successful()) {
+            throw new \Exception('Failed to update Outlook event end time: ' . $response->body());
+        }
+    }
+
+    /**
      * Create an event subscription for Outlook calendar events.
      *
      * @param OutlookAccount $outlookAccount

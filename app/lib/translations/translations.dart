@@ -80,6 +80,9 @@ class AppTranslations extends Translations {
       'booking_date': 'Date',
       'booking_description': 'Description',
       'booking_attendees': 'Attendees',
+      'extend': 'Extend',
+      'event_extended': 'Meeting extended!',
+      'could_not_extend_event': 'Could not extend the meeting',
     },
     'nl_NL': {
       'introduction_title': 'Welkom bij Spacepad!',
@@ -158,6 +161,9 @@ class AppTranslations extends Translations {
       'booking_date': 'Datum',
       'booking_description': 'Beschrijving',
       'booking_attendees': 'Deelnemers',
+      'extend': 'Verlengen',
+      'event_extended': 'Vergadering verlengd!',
+      'could_not_extend_event': 'Kon vergadering niet verlengen',
     },
     'es_ES': {
       'introduction_title': '¡Bienvenido a Spacepad!',
@@ -236,6 +242,9 @@ class AppTranslations extends Translations {
       'booking_date': 'Fecha',
       'booking_description': 'Descripción',
       'booking_attendees': 'Asistentes',
+      'extend': 'Extender',
+      'event_extended': '¡Reunión extendida!',
+      'could_not_extend_event': 'No se pudo extender la reunión',
     },
     'fr_FR': {
       'introduction_title': 'Bienvenue sur Spacepad !',
@@ -314,6 +323,9 @@ class AppTranslations extends Translations {
       'booking_date': 'Date',
       'booking_description': 'Description',
       'booking_attendees': 'Participants',
+      'extend': 'Prolonger',
+      'event_extended': 'Réunion prolongée !',
+      'could_not_extend_event': 'Impossible de prolonger la réunion',
     },
     'de_DE': {
       'introduction_title': 'Willkommen bei Spacepad!',
@@ -392,6 +404,9 @@ class AppTranslations extends Translations {
       'booking_date': 'Datum',
       'booking_description': 'Beschreibung',
       'booking_attendees': 'Teilnehmer',
+      'extend': 'Verlängern',
+      'event_extended': 'Besprechung verlängert!',
+      'could_not_extend_event': 'Besprechung konnte nicht verlängert werden',
     },
     'sv_SE': {
       'introduction_title': 'Välkommen till Spacepad!',
@@ -470,6 +485,9 @@ class AppTranslations extends Translations {
       'booking_date': 'Datum',
       'booking_description': 'Beskrivning',
       'booking_attendees': 'Deltagare',
+      'extend': 'Förläng',
+      'event_extended': 'Mötet förlängt!',
+      'could_not_extend_event': 'Kunde inte förlänga mötet',
     },
   };
 }
