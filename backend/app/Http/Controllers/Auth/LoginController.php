@@ -52,7 +52,7 @@ class LoginController extends Controller
             ]);
         }
 
-        $loginUrl = MagicLink::create(new LoginAction($user))->url;
+        $loginUrl = MagicLink::create(new LoginAction($user), 60 * 24)->url;
         $user->notify(new MagicLoginNotification($loginUrl));
 
         return redirect()

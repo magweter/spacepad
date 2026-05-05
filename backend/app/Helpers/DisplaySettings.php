@@ -167,6 +167,26 @@ class DisplaySettings
         return self::setSetting($display, 'calendar_enabled', $enabled, 'boolean');
     }
 
+    public static function isTimelineWidgetEnabled(Display $display): bool
+    {
+        return self::getSetting($display, 'timeline_widget_enabled', false);
+    }
+
+    public static function setTimelineWidgetEnabled(Display $display, bool $enabled): bool
+    {
+        return self::setSetting($display, 'timeline_widget_enabled', $enabled, 'boolean');
+    }
+
+    public static function isFutureBookingEnabled(Display $display): bool
+    {
+        return self::getSetting($display, 'allow_future_bookings', false);
+    }
+
+    public static function setFutureBookingEnabled(Display $display, bool $enabled): bool
+    {
+        return self::setSetting($display, 'allow_future_bookings', $enabled, 'boolean');
+    }
+
     // Customizable display state texts (shorter keys)
     public static function getAvailableText(Display $display): ?string
     {

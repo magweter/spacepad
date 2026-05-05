@@ -50,6 +50,14 @@ class OutlookService
      * @param PermissionType $permissionType 'read' or 'write', or PermissionType enum
      * @return string
      */
+    public function getAdminConsentUrl(): string
+    {
+        return 'https://login.microsoftonline.com/common/adminconsent?' . http_build_query([
+            'client_id'    => $this->clientId,
+            'redirect_uri' => $this->redirectUri,
+        ]);
+    }
+
     public function getAuthUrl(PermissionType $permissionType = PermissionType::READ): string
     {
         $oauthEndpoint = "https://login.microsoftonline.com/{$this->tenantId}/oauth2/v2.0/authorize";

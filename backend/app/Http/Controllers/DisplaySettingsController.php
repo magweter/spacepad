@@ -45,6 +45,8 @@ class DisplaySettingsController extends Controller
             'booking_enabled' => 'boolean',
             'calendar_enabled' => 'boolean',
             'hide_admin_actions' => 'boolean',
+            'timeline_widget_enabled' => 'boolean',
+            'allow_future_bookings' => 'boolean',
             'check_in_minutes' => 'nullable|integer|min:1|max:60',
             'check_in_grace_period' => 'nullable|integer|min:1|max:30',
             'cancel_permission' => 'nullable|in:all,tablet_only,none',
@@ -66,6 +68,16 @@ class DisplaySettingsController extends Controller
         $updated = $updated && DisplaySettings::setCalendarEnabled(
             $display,
             $request->boolean('calendar_enabled')
+        );
+
+        $updated = $updated && DisplaySettings::setTimelineWidgetEnabled(
+            $display,
+            $request->boolean('timeline_widget_enabled')
+        );
+
+        $updated = $updated && DisplaySettings::setFutureBookingEnabled(
+            $display,
+            $request->boolean('allow_future_bookings')
         );
 
         $updated = $updated && DisplaySettings::setAdminActionsHidden(

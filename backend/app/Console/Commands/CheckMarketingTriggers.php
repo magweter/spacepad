@@ -2,12 +2,21 @@
 
 namespace App\Console\Commands;
 
+use App\Events\AccountConnectedNoDisplay;
+use App\Events\DisplayCreatedNoDevice;
+use App\Events\TrialDayThree;
+use App\Events\TrialEndingSoon;
+use App\Events\TrialEndingTomorrow;
 use App\Events\TrialExpiredOrCancelled;
 use App\Events\UserActivatedAfter24h;
 use App\Events\UserInactive;
 use App\Events\UserNotActivatedAfter24h;
 use App\Events\UserPassive;
+use App\Models\CalDAVAccount;
+use App\Models\GoogleAccount;
+use App\Models\OutlookAccount;
 use App\Models\User;
+use LemonSqueezy\Laravel\Subscription;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Cache;
 
@@ -48,6 +57,21 @@ class CheckMarketingTriggers extends Command
 
         // Check trial expired or cancelled
         $this->checkTrialExpiredOrCancelled();
+
+        // Check users with account but no display after 4h
+        $this->checkAccountConnectedNoDisplay();
+
+        // Check users with display but no device after 24h
+        $this->checkDisplayCreatedNoDevice();
+
+        // Check trial day 3
+        $this->checkTrialDayThree();
+
+        // Check trial ending in 7 days
+        $this->checkTrialEndingSoon();
+
+        // Check trial ending tomorrow
+        $this->checkTrialEndingTomorrow();
 
         $this->info('Marketing triggers check completed.');
 
@@ -163,6 +187,141 @@ class CheckMarketingTriggers extends Command
                 event(new UserInactive($user));
                 Cache::put($cacheKey, true, now()->addDays(7)); // Prevent duplicate events for 7 days
                 $this->line("Fired UserInactive for user {$user->email}");
+            }
+        }
+    }
+
+    /**
+     * Check users who connected an account 4h ago but haven't created a display
+     */
+    private function checkAccountConnectedNoDisplay(): void
+    {
+        $window = [now()->subHours(5), now()->subHours(4)];
+
+        $outlookUserIds = OutlookAccount::whereBetween('created_at', $window)->pluck('user_id');
+        $googleUserIds  = GoogleAccount::whereBetween('created_at', $window)->pluck('user_id');
+        $caldavUserIds  = CalDAVAccount::whereBetween('created_at', $window)->pluck('user_id');
+
+        $userIds = $outlookUserIds->merge($googleUserIds)->merge($caldavUserIds)->unique();
+
+        $users = User::whereNull('deleted_at')
+            ->whereIn('id', $userIds)
+            ->whereDoesntHave('displays')
+            ->get();
+
+        foreach ($users as $user) {
+            $cacheKey = "marketing:account_connected_no_display:{$user->id}";
+            if (!Cache::has($cacheKey)) {
+                event(new AccountConnectedNoDisplay($user));
+                Cache::put($cacheKey, true, now()->addDays(7));
+                $this->line("Fired AccountConnectedNoDisplay for user {$user->email}");
+            }
+        }
+    }
+
+    /**
+     * Check users who created a display 24h ago but haven't connected a device
+     */
+    private function checkDisplayCreatedNoDevice(): void
+    {
+        $users = User::whereNull('deleted_at')
+            ->whereHas('displays', function ($q) {
+                $q->where('created_at', '<=', now()->subHours(24))
+                  ->where('created_at', '>', now()->subHours(25));
+            })
+            ->whereDoesntHave('devices')
+            ->get();
+
+        foreach ($users as $user) {
+            $cacheKey = "marketing:display_created_no_device:{$user->id}";
+            if (!Cache::has($cacheKey)) {
+                event(new DisplayCreatedNoDevice($user));
+                Cache::put($cacheKey, true, now()->addDays(7));
+                $this->line("Fired DisplayCreatedNoDevice for user {$user->email}");
+            }
+        }
+    }
+
+    /**
+     * Check users on day 3 of their trial
+     */
+    private function checkTrialDayThree(): void
+    {
+        if (config('settings.is_self_hosted')) {
+            return;
+        }
+
+        $users = User::whereNull('deleted_at')
+            ->where('is_unlimited', false)
+            ->whereHas('subscriptions', function ($query) {
+                $query->where('status', Subscription::STATUS_ON_TRIAL)
+                      ->where('created_at', '<=', now()->subDays(3))
+                      ->where('created_at', '>', now()->subDays(4));
+            })
+            ->get();
+
+        foreach ($users as $user) {
+            $cacheKey = "marketing:trial_day_three:{$user->id}";
+            if (!Cache::has($cacheKey)) {
+                event(new TrialDayThree($user));
+                Cache::put($cacheKey, true, now()->addDays(7));
+                $this->line("Fired TrialDayThree for user {$user->email}");
+            }
+        }
+    }
+
+    /**
+     * Check users whose trial ends in 7-8 days
+     */
+    private function checkTrialEndingSoon(): void
+    {
+        if (config('settings.is_self_hosted')) {
+            return;
+        }
+
+        $users = User::whereNull('deleted_at')
+            ->where('is_unlimited', false)
+            ->whereHas('subscriptions', function ($query) {
+                $query->where('status', Subscription::STATUS_ON_TRIAL)
+                      ->where('trial_ends_at', '>=', now()->addDays(7))
+                      ->where('trial_ends_at', '<', now()->addDays(8));
+            })
+            ->get();
+
+        foreach ($users as $user) {
+            $cacheKey = "marketing:trial_ending_soon:{$user->id}";
+            if (!Cache::has($cacheKey)) {
+                event(new TrialEndingSoon($user));
+                Cache::put($cacheKey, true, now()->addDays(7));
+                $this->line("Fired TrialEndingSoon for user {$user->email}");
+            }
+        }
+    }
+
+    /**
+     * Check users whose trial ends tomorrow
+     */
+    private function checkTrialEndingTomorrow(): void
+    {
+        if (config('settings.is_self_hosted')) {
+            return;
+        }
+
+        $users = User::whereNull('deleted_at')
+            ->where('is_unlimited', false)
+            ->whereHas('subscriptions', function ($query) {
+                $query->where('status', Subscription::STATUS_ON_TRIAL)
+                      ->where('trial_ends_at', '>=', now()->addDay())
+                      ->where('trial_ends_at', '<', now()->addDays(2));
+            })
+            ->get();
+
+        foreach ($users as $user) {
+            $cacheKey = "marketing:trial_ending_tomorrow:{$user->id}";
+            if (!Cache::has($cacheKey)) {
+                event(new TrialEndingTomorrow($user));
+                Cache::put($cacheKey, true, now()->addDays(7));
+                $this->line("Fired TrialEndingTomorrow for user {$user->email}");
             }
         }
     }

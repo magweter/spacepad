@@ -90,13 +90,24 @@
                             <p class="text-sm text-gray-500">Allow users to book rooms directly from this display</p>
                         </div>
                         <div class="flex items-center">
-                            <input type="checkbox" id="booking_enabled" name="booking_enabled" value="1" 
+                            <input type="checkbox" id="booking_enabled" name="booking_enabled" value="1"
                                    {{ $display->isBookingEnabled() ? 'checked' : '' }}
                                    class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600">
                         </div>
                     </div>
                     <div class="text-sm text-gray-600">
                         <p>When enabled, users can book the room for immediate use directly from this display. This is a Pro feature that allows quick room reservations.</p>
+                    </div>
+                    <div id="futureBookingInput" class="mt-4 pt-4 border-t border-gray-100" style="display: {{ $display->isBookingEnabled() ? 'block' : 'none' }};">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <label for="allow_future_bookings" class="text-sm font-medium text-gray-700">Allow future bookings</label>
+                                <p class="text-xs text-gray-500 mt-0.5">Allow users to book rooms for days other than today</p>
+                            </div>
+                            <input type="checkbox" id="allow_future_bookings" name="allow_future_bookings" value="1"
+                                   {{ \App\Helpers\DisplaySettings::isFutureBookingEnabled($display) ? 'checked' : '' }}
+                                   class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600">
+                        </div>
                     </div>
                 </div>
 
@@ -108,13 +119,24 @@
                             <p class="text-sm text-gray-500">Allow users to view today's schedule on this display</p>
                         </div>
                         <div class="flex items-center">
-                            <input type="checkbox" id="calendar_enabled" name="calendar_enabled" value="1" 
+                            <input type="checkbox" id="calendar_enabled" name="calendar_enabled" value="1"
                                    {{ $display->isCalendarEnabled() ? 'checked' : '' }}
                                    class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600">
                         </div>
                     </div>
                     <div class="text-sm text-gray-600">
                         <p>When enabled, users can view today's schedule in a calendar view directly from this display. This allows users to see all meetings scheduled for the day.</p>
+                    </div>
+                    <div class="mt-4 pt-4 border-t border-gray-100">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <label for="timeline_widget_enabled" class="text-sm font-medium text-gray-700">Show timeline widget</label>
+                                <p class="text-xs text-gray-500 mt-0.5">Display a vertical timeline of all today's meetings directly on the room display</p>
+                            </div>
+                            <input type="checkbox" id="timeline_widget_enabled" name="timeline_widget_enabled" value="1"
+                                   {{ \App\Helpers\DisplaySettings::isTimelineWidgetEnabled($display) ? 'checked' : '' }}
+                                   class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600">
+                        </div>
                     </div>
                 </div>
 
@@ -270,6 +292,10 @@
     document.getElementById('check_in_enabled').addEventListener('change', function(e) {
         document.getElementById('gracePeriodInput').style.display = this.checked ? 'block' : 'none';
         document.getElementById('checkInMinutesInput').style.display = this.checked ? 'block' : 'none';
+    });
+    // Show/hide future booking option based on booking enabled
+    document.getElementById('booking_enabled').addEventListener('change', function(e) {
+        document.getElementById('futureBookingInput').style.display = this.checked ? 'block' : 'none';
     });
 </script>
 @endpush 
