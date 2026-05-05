@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:get/get.dart';
 import 'package:spacepad/components/toast.dart';
+import 'package:spacepad/exceptions/api_exception.dart';
 import 'package:spacepad/models/event_model.dart';
 import 'package:spacepad/models/display_data_model.dart';
 import 'package:spacepad/models/event_status.dart';
@@ -36,6 +38,11 @@ class DashboardController extends GetxController {
   final RxBool isRefreshing = RxBool(false);
   DateTime? _lastRefreshTime;
   static const int _refreshCooldownSeconds = 3;
+
+  // Stale data indicator
+  final RxBool isDataStale = RxBool(false);
+  // ignore: unused_field
+  DateTime? _lastSuccessfulFetchAt;
 
   @override
   void onInit() async {
@@ -256,14 +263,14 @@ class DashboardController extends GetxController {
   Future<void> fetchDisplayData() async {
     try {
       DisplayDataModel displayData = await DisplayService.instance.getDisplayData(displayId.value);
-      
+
       // Update global device, display, and settings
       if (AuthService.instance.currentDevice.value != null) {
         globalCurrentDevice = AuthService.instance.currentDevice.value;
         globalCurrentDevice!.display = displayData.display;
         globalDisplay = globalCurrentDevice!.display;
         globalSettings.value = globalDisplay?.settings;
-        
+
         // Update reactive font family to trigger UI rebuild
         final newFontFamily = globalSettings.value?.fontFamily ?? 'Inter';
         if (currentFontFamily.value != newFontFamily) {
@@ -287,8 +294,11 @@ class DashboardController extends GetxController {
             return e;
           })
           .toList();
+
+      isDataStale.value = false;
+      _lastSuccessfulFetchAt = DateTime.now();
     } catch (e) {
-      Toast.showError('could_not_load_data'.tr);
+      isDataStale.value = true;
     }
   }
 
@@ -316,10 +326,18 @@ class DashboardController extends GetxController {
     
     isRefreshing.value = true;
     _lastRefreshTime = DateTime.now();
-    
+
     try {
       await fetchDisplayData();
       Toast.showSuccess('display_data_refreshed'.tr);
+    } catch (e) {
+      if (_isConnectivityError(e)) {
+        Toast.showError('no_internet_connection'.tr);
+      } else if (e is ApiException) {
+        Toast.showError('could_not_load_data'.tr);
+      } else {
+        Toast.showError('could_not_load_data'.tr);
+      }
     } finally {
       isRefreshing.value = false;
     }
@@ -340,7 +358,13 @@ class DashboardController extends GetxController {
       _bookingOptionsTimer?.cancel();
       showBookingOptions.value = false;
     } catch (e) {
-      Toast.showError('could_not_book_room'.tr);
+      if (e is ApiException && e.message != null) {
+        Toast.showError(e.message!);
+      } else if (_isConnectivityError(e)) {
+        Toast.showError('no_internet_connection'.tr);
+      } else {
+        Toast.showError('could_not_book_room'.tr);
+      }
     } finally {
       isBooking.value = false;
       bookingDuration.value = null; // Clear the tracked duration
@@ -369,7 +393,13 @@ class DashboardController extends GetxController {
       _bookingOptionsTimer?.cancel();
       showBookingOptions.value = false;
     } catch (e) {
-      Toast.showError('could_not_book_room'.tr);
+      if (e is ApiException && e.message != null) {
+        Toast.showError(e.message!);
+      } else if (_isConnectivityError(e)) {
+        Toast.showError('no_internet_connection'.tr);
+      } else {
+        Toast.showError('could_not_book_room'.tr);
+      }
     } finally {
       isBooking.value = false;
       bookingDuration.value = null; // Clear the tracked duration
@@ -392,7 +422,13 @@ class DashboardController extends GetxController {
         Toast.showSuccess('event_cancelled'.tr);
       }
     } catch (e) {
-      Toast.showError('could_not_cancel_event'.tr);
+      if (e is ApiException && e.message != null) {
+        Toast.showError(e.message!);
+      } else if (_isConnectivityError(e)) {
+        Toast.showError('no_internet_connection'.tr);
+      } else {
+        Toast.showError('could_not_cancel_event'.tr);
+      }
     } finally {
       isCancelling.value = false;
     }
@@ -486,7 +522,13 @@ class DashboardController extends GetxController {
       _extendOptionsTimer?.cancel();
       showExtendOptions.value = false;
     } catch (e) {
-      Toast.showError('could_not_extend_event'.tr);
+      if (e is ApiException && e.message != null) {
+        Toast.showError(e.message!);
+      } else if (_isConnectivityError(e)) {
+        Toast.showError('no_internet_connection'.tr);
+      } else {
+        Toast.showError('could_not_extend_event'.tr);
+      }
     } finally {
       isExtending.value = false;
       extendDuration.value = null;
@@ -497,8 +539,12 @@ class DashboardController extends GetxController {
     return globalSettings.value?.calendarEnabled ?? false;
   }
 
+  String get timelineWidgetMode {
+    return globalSettings.value?.timelineWidgetMode ?? 'none';
+  }
+
   bool get timelineWidgetEnabled {
-    return globalSettings.value?.timelineWidgetEnabled ?? false;
+    return timelineWidgetMode != 'none';
   }
 
   // Track if booking options are shown
@@ -625,6 +671,16 @@ class DashboardController extends GetxController {
 
   String getReservedText() {
     return globalSettings.value?.textReserved ?? 'reserved'.tr;
+  }
+
+  bool _isConnectivityError(dynamic e) {
+    final s = e.toString().toLowerCase();
+    return e is SocketException ||
+        s.contains('socketexception') ||
+        s.contains('failed host lookup') ||
+        s.contains('network is unreachable') ||
+        s.contains('connection refused') ||
+        s.contains('no address associated');
   }
 
   @override

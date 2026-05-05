@@ -72,6 +72,28 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
+  Widget _buildStaleIndicator(BuildContext context, bool isPhone) {
+    final controller = Get.find<DashboardController>();
+    return GestureDetector(
+      onTap: () => controller.refreshDisplayData(),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.wifi_off_rounded, size: isPhone ? 14 : 16, color: const Color(0xFFFBBF24)),
+          const SizedBox(width: 6),
+          Text(
+            'data_may_be_outdated'.tr,
+            style: TextStyle(
+              color: const Color(0xFFFBBF24),
+              fontSize: isPhone ? 13 : 15,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     DashboardController controller = Get.put(DashboardController());
@@ -92,7 +114,8 @@ class _DashboardPageState extends State<DashboardPage> {
           );
         }
 
-        final timelineEnabled = controller.timelineWidgetEnabled;
+        final timelineMode = controller.timelineWidgetMode; // 'none' | 'side_panel' | 'inline'
+        final timelineEnabled = timelineMode != 'none';
         final timelineWidth = isPhone ? 220.0 : 300.0;
         final gap = isPhone ? 10.0 : 16.0;
 
@@ -243,7 +266,7 @@ class _DashboardPageState extends State<DashboardPage> {
                       ],
                     ),
                     if (controller.meetingInfoTimes == null) SizedBox(height: isPhone ? 5 : 10),
-                    if (controller.bookingEnabled || controller.checkInEnabled) ActionPanel(
+                    if (controller.bookingEnabled || controller.checkInEnabled || controller.extendEnabled) ActionPanel(
                       controller: controller,
                       isPhone: isPhone,
                       cornerRadius: cornerRadius,
@@ -281,7 +304,9 @@ class _DashboardPageState extends State<DashboardPage> {
                             ),
                           ),
                     ),
-                    if (controller.calendarEnabled)
+                    if (controller.isDataStale.value)
+                      _buildStaleIndicator(context, isPhone)
+                    else if (controller.calendarEnabled)
                       Material(
                         color: Colors.transparent,
                         child: InkWell(
@@ -402,8 +427,236 @@ class _DashboardPageState extends State<DashboardPage> {
           ),
         );
 
-        if (!timelineEnabled) return mainPanel;
+        // ── none ──────────────────────────────────────────────────────────────
+        if (timelineMode == 'none') return mainPanel;
 
+        // ── inline ────────────────────────────────────────────────────────────
+        // Timeline lives inside the main panel: header row at the top,
+        // content + timeline side by side, action bar at the bottom.
+        if (timelineMode == 'inline') {
+          final inlineChild = Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Header: clock left, admin actions + room name right
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Obx(() => Text(
+                    formatTime(context, controller.time.value),
+                    style: FontService.instance.getTextStyle(
+                      fontFamily: controller.currentFontFamily.value,
+                      fontSize: isPhone ? 20 : 28,
+                      fontWeight: FontWeight.w500,
+                      color: TWColors.white,
+                    ),
+                  )),
+                  const Spacer(),
+                  Obx(() {
+                    final hide = controller.globalSettings.value?.hideAdminActions ?? false;
+                    final showTemp = controller.showAdminActionsTemporarily.value;
+                    final show = !hide || showTemp;
+                    return Row(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        if (show) AdminActions(controller: controller, isPhone: isPhone),
+                        if (show) const SizedBox(width: 15),
+                        GestureDetector(
+                          onLongPressStart: (_) { if (hide) controller.startLongPressTimer(); },
+                          onLongPressEnd: (_) { if (hide) controller.cancelLongPressTimer(); },
+                          child: Text(
+                            controller.roomName,
+                            style: FontService.instance.getTextStyle(
+                              fontFamily: controller.currentFontFamily.value,
+                              fontSize: isPhone ? 20 : 28,
+                              fontWeight: FontWeight.w500,
+                              color: TWColors.white,
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  }),
+                ],
+              ),
+              SizedBox(height: gap),
+              // Middle: status content on the left, timeline on the right
+              Expanded(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(
+                      child: SpaceCol(
+                        spaceBetween: _getContainerPadding(context, controller) * 1.75,
+                        mainAxisSize: MainAxisSize.max,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SpaceCol(
+                            spaceBetween: controller.meetingInfoTimes != null ? (isPhone ? 5 : 10) : 0,
+                            children: [
+                              Obx(() {
+                                final logoUrl = controller.globalSettings.value?.logoUrl;
+                                if (logoUrl != null) {
+                                  return Container(
+                                    margin: EdgeInsets.only(bottom: isPhone ? 20 : 10),
+                                    child: AuthenticatedImage(
+                                      imageUrl: logoUrl,
+                                      height: isPhone ? 24 : 36,
+                                      fit: BoxFit.contain,
+                                      placeholder: Container(
+                                        height: isPhone ? 24 : 36,
+                                        child: Center(child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(TWColors.gray_300))),
+                                      ),
+                                      errorWidget: SizedBox.shrink(),
+                                    ),
+                                  );
+                                }
+                                return SizedBox.shrink();
+                              }),
+                              Obx(() => Text(controller.title,
+                                style: FontService.instance.getTextStyle(
+                                  fontFamily: controller.currentFontFamily.value,
+                                  fontSize: isPhone ? 30 : 50,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                ),
+                              )),
+                              SpaceRow(
+                                spaceBetween: isPhone ? 10 : 20,
+                                children: [
+                                  if (controller.meetingInfoTimes != null) FrostedPanel(
+                                    borderRadius: cornerRadius,
+                                    blurIntensity: 18,
+                                    padding: EdgeInsets.fromLTRB(isPhone ? 10 : 15, isPhone ? 5 : 8, isPhone ? 10 : 15, isPhone ? 5 : 8),
+                                    child: Obx(() => Text(
+                                      'meeting_info_title'.trParams({
+                                        'start': formatTime(context, controller.meetingInfoTimes?['start'] ?? DateTime.now()),
+                                        'end': formatTime(context, controller.meetingInfoTimes?['end'] ?? DateTime.now()),
+                                      }),
+                                      style: FontService.instance.getTextStyle(
+                                        fontFamily: controller.currentFontFamily.value,
+                                        fontSize: isPhone ? 24 : 32,
+                                        fontWeight: FontWeight.w400,
+                                        color: TWColors.white,
+                                      ),
+                                    )),
+                                  ),
+                                  Flexible(
+                                    child: Obx(() => Text(controller.subtitle,
+                                      style: FontService.instance.getTextStyle(
+                                        fontFamily: controller.currentFontFamily.value,
+                                        fontSize: isPhone ? 28 : 36,
+                                        fontWeight: FontWeight.w400,
+                                        color: TWColors.gray_300,
+                                      ),
+                                      softWrap: true,
+                                      overflow: TextOverflow.visible,
+                                    )),
+                                  ),
+                                ],
+                              ),
+                              if (controller.meetingInfoTimes == null) SizedBox(height: isPhone ? 5 : 10),
+                              if (controller.bookingEnabled || controller.checkInEnabled || controller.extendEnabled) ActionPanel(
+                                controller: controller,
+                                isPhone: isPhone,
+                                cornerRadius: cornerRadius,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(width: gap),
+                    SizedBox(
+                      width: timelineWidth,
+                      child: DayTimelineWidget(
+                        controller: controller,
+                        isPhone: isPhone,
+                        cornerRadius: cornerRadius,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(height: gap),
+              // Bottom bar (not in Align — Column handles vertical layout)
+              FrostedPanel(
+                borderRadius: cornerRadius,
+                blurIntensity: 18,
+                padding: EdgeInsets.all(isPhone ? 12 : 20),
+                child: SpaceRow(
+                  spaceBetween: isPhone ? 10 : 20,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: controller.upcomingEvents.isNotEmpty
+                        ? SpaceCol(
+                            spaceBetween: isPhone ? 8 : 12,
+                            children: [
+                              for (EventModel event in controller.upcomingEvents.take(1)) EventLine(event: event),
+                            ],
+                          )
+                        : Text('no_upcoming_events'.tr,
+                            style: TextStyle(color: TWColors.white, fontSize: isPhone ? 16 : 18, fontWeight: FontWeight.w500)),
+                    ),
+                    if (controller.isDataStale.value)
+                      _buildStaleIndicator(context, isPhone)
+                    else if (controller.calendarEnabled)
+                      Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          hoverColor: Colors.transparent,
+                          splashColor: Colors.transparent,
+                          highlightColor: Colors.transparent,
+                          borderRadius: BorderRadius.circular(8),
+                          onTap: () => showDialog(
+                            context: context,
+                            builder: (context) => CalendarModal(events: controller.events, selectedDate: DateTime.now()),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.calendar_today_outlined, size: 24, color: Colors.white),
+                                const SizedBox(width: 12),
+                                Text('view_schedule'.tr,
+                                  style: TextStyle(color: Colors.white, fontSize: isPhone ? 16 : 18, fontWeight: FontWeight.w500)),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          );
+
+          return Container(
+            height: double.infinity,
+            width: double.infinity,
+            clipBehavior: Clip.antiAlias,
+            decoration: BoxDecoration(
+              color: controller.isTransitioning || controller.isCheckInActive
+                  ? TWColors.amber_500
+                  : (controller.isReserved ? TWColors.rose_600 : TWColors.green_600),
+              borderRadius: BorderRadius.circular(cornerRadius),
+            ),
+            padding: EdgeInsets.all(_getContainerPadding(context, controller)),
+            child: AuthenticatedBackground(
+              imageUrl: controller.globalSettings.value?.backgroundImageUrl,
+              borderRadius: BorderRadius.circular(cornerRadius),
+              child: Padding(
+                padding: _getInnerPadding(context),
+                child: inlineChild,
+              ),
+            ),
+          );
+        }
+
+        // ── side_panel ────────────────────────────────────────────────────────
         return Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
