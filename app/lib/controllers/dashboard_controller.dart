@@ -358,13 +358,13 @@ class DashboardController extends GetxController {
     );
   }
 
-  Future<void> bookCustom(String title, DateTime startTime, DateTime endTime) async {
+  Future<void> bookCustom(String title, DateTime startTime, DateTime endTime, {String? description, List<String>? attendees}) async {
     isBooking.value = true;
     try {
-      await DisplayService.instance.bookCustom(displayId.value, title, startTime, endTime);
+      await DisplayService.instance.bookCustom(displayId.value, title, startTime, endTime, description: description, attendees: attendees);
       await fetchDisplayData();
       Toast.showSuccess('room_booked'.tr);
-      
+
       // Cancel the booking options timer since user took action
       _bookingOptionsTimer?.cancel();
       showBookingOptions.value = false;
@@ -374,6 +374,10 @@ class DashboardController extends GetxController {
       isBooking.value = false;
       bookingDuration.value = null; // Clear the tracked duration
     }
+  }
+
+  Future<List<EventModel>> getEventsForDate(DateTime date) async {
+    return DisplayService.instance.getEventsForDate(displayId.value, date);
   }
 
 

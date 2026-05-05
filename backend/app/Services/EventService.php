@@ -73,7 +73,7 @@ class EventService
      * Otherwise, creates a custom event locally.
      * Throws exception if not allowed.
      */
-    public function bookRoom(string $displayId, string $userId, string $summary, ?int $duration = null, ?Carbon $start = null, ?Carbon $end = null, ?string $description = null): Event
+    public function bookRoom(string $displayId, string $userId, string $summary, ?int $duration = null, ?Carbon $start = null, ?Carbon $end = null, ?string $description = null, array $attendees = []): Event
     {
         // Normalize summary: trim and replace empty with default
         $summary = trim($summary);
@@ -143,7 +143,8 @@ class EventService
                             $summary,
                             $start,
                             $end,
-                            $description
+                            $description,
+                            $attendees
                         );
                         $externalEventId = $eventData['id'] ?? null;
                     }
@@ -155,7 +156,8 @@ class EventService
                             $summary,
                             $start,
                             $end,
-                            $description
+                            $description,
+                            $attendees
                         );
                         $externalEventId = $googleEvent?->getId();
                     }
@@ -167,7 +169,8 @@ class EventService
                             $summary,
                             $start,
                             $end,
-                            $description
+                            $description,
+                            $attendees
                         );
                     }
 
@@ -216,6 +219,14 @@ class EventService
         }
 
         // Fall back to creating a custom event (no write permissions)
+        $fullDescription = $description;
+        if (!empty($attendees)) {
+            $attendeeList = implode(', ', $attendees);
+            $fullDescription = $fullDescription
+                ? $fullDescription . "\n\nAttendees: " . $attendeeList
+                : "Attendees: " . $attendeeList;
+        }
+
         return Event::create([
             'display_id' => $displayId,
             'user_id' => $userId,
@@ -224,7 +235,7 @@ class EventService
             'start' => $start,
             'end' => $end,
             'summary' => $summary,
-            'description' => $description,
+            'description' => $fullDescription,
             'timezone' => config('app.timezone', 'UTC'),
         ]);
     }

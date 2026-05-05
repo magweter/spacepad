@@ -19,6 +19,8 @@ class BookEventRequest extends FormRequest
             'end' => 'required_with:start|date|after:start',
             'summary' => 'nullable|string|max:255',
             'description' => 'nullable|string|max:5000',
+            'attendees' => 'nullable|array',
+            'attendees.*' => 'email|max:255',
         ];
     }
 }

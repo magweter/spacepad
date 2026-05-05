@@ -344,7 +344,9 @@ class OutlookService
         Calendar $calendar,
         string $summary,
         Carbon $start,
-        Carbon $end
+        Carbon $end,
+        ?string $description = null,
+        array $attendees = []
     ): ?array {
         $this->ensureAuthenticated($outlookAccount);
 
@@ -359,6 +361,20 @@ class OutlookService
                 'timeZone' => $end->timezone->getName(),
             ],
         ];
+
+        if ($description !== null && $description !== '') {
+            $eventData['body'] = [
+                'contentType' => 'text',
+                'content' => $description,
+            ];
+        }
+
+        if (!empty($attendees)) {
+            $eventData['attendees'] = array_map(fn($email) => [
+                'emailAddress' => ['address' => $email],
+                'type' => 'required',
+            ], $attendees);
+        }
 
         // Determine the endpoint based on whether it's a room or calendar
         if ($calendar->room) {

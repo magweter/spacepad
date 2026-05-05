@@ -77,6 +77,9 @@ class AppTranslations extends Translations {
       'timeline_tomorrow': 'Tomorrow',
       'timeline_yesterday': 'Yesterday',
       'timeline_no_events': 'No meetings',
+      'booking_date': 'Date',
+      'booking_description': 'Description',
+      'booking_attendees': 'Attendees',
     },
     'nl_NL': {
       'introduction_title': 'Welkom bij Spacepad!',
@@ -152,6 +155,9 @@ class AppTranslations extends Translations {
       'timeline_tomorrow': 'Morgen',
       'timeline_yesterday': 'Gisteren',
       'timeline_no_events': 'Geen vergaderingen',
+      'booking_date': 'Datum',
+      'booking_description': 'Beschrijving',
+      'booking_attendees': 'Deelnemers',
     },
     'es_ES': {
       'introduction_title': '¡Bienvenido a Spacepad!',
@@ -227,6 +233,9 @@ class AppTranslations extends Translations {
       'timeline_tomorrow': 'Mañana',
       'timeline_yesterday': 'Ayer',
       'timeline_no_events': 'Sin reuniones',
+      'booking_date': 'Fecha',
+      'booking_description': 'Descripción',
+      'booking_attendees': 'Asistentes',
     },
     'fr_FR': {
       'introduction_title': 'Bienvenue sur Spacepad !',
@@ -302,6 +311,9 @@ class AppTranslations extends Translations {
       'timeline_tomorrow': 'Demain',
       'timeline_yesterday': 'Hier',
       'timeline_no_events': 'Pas de réunions',
+      'booking_date': 'Date',
+      'booking_description': 'Description',
+      'booking_attendees': 'Participants',
     },
     'de_DE': {
       'introduction_title': 'Willkommen bei Spacepad!',
@@ -377,6 +389,9 @@ class AppTranslations extends Translations {
       'timeline_tomorrow': 'Morgen',
       'timeline_yesterday': 'Gestern',
       'timeline_no_events': 'Keine Besprechungen',
+      'booking_date': 'Datum',
+      'booking_description': 'Beschreibung',
+      'booking_attendees': 'Teilnehmer',
     },
     'sv_SE': {
       'introduction_title': 'Välkommen till Spacepad!',
@@ -452,6 +467,9 @@ class AppTranslations extends Translations {
       'timeline_tomorrow': 'Imorgon',
       'timeline_yesterday': 'Igår',
       'timeline_no_events': 'Inga möten',
+      'booking_date': 'Datum',
+      'booking_description': 'Beskrivning',
+      'booking_attendees': 'Deltagare',
     },
   };
 }

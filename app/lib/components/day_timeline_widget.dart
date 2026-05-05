@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
@@ -8,6 +10,9 @@ import 'package:spacepad/models/event_model.dart';
 import 'package:spacepad/services/display_service.dart';
 import 'package:spacepad/theme.dart';
 import 'package:tailwind_components/tailwind_components.dart';
+
+// Soft blue used for event blocks (less harsh than orange on a dark background).
+const _kEventColor = Color(0xFF4A86C8);
 
 class DayTimelineWidget extends StatefulWidget {
   final DashboardController controller;
@@ -27,28 +32,64 @@ class DayTimelineWidget extends StatefulWidget {
 
 class _DayTimelineWidgetState extends State<DayTimelineWidget> {
   DateTime _selectedDate = DateTime.now();
-  List<EventModel> _events = [];
+  List<EventModel> _otherDayEvents = [];
   bool _loading = false;
 
-  static const int _startHour = 7;
-  static const int _endHour = 21;
-  static const int _totalMinutes = (_endHour - _startHour) * 60;
+  // Auto-scroll state
+  late ScrollController _scrollController;
+  bool _userHasScrolled = false;
+  Timer? _autoScrollTimer;
+
+  // Full 24-hour timeline with fixed pixel height per hour.
+  static const int _startHour = 0;
+  static const int _endHour = 24;
+  static const double _hourHeight = 64.0; // px per hour
+  static const double _timelinePadding = 28.0; // extra space above 00:00 and below final 00:00
+
+  double get _totalHeight => (_endHour - _startHour) * _hourHeight + _timelinePadding * 2;
+
+  // ─── Lifecycle ────────────────────────────────────────────────────────────
 
   @override
   void initState() {
     super.initState();
-    _events = widget.controller.events.toList();
+    _scrollController = ScrollController();
+    // Scroll after first frame so the viewport dimensions are known.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToCurrentTime());
+    // Keep current time centred once per minute (unless the user has scrolled).
+    _autoScrollTimer = Timer.periodic(const Duration(minutes: 1), (_) {
+      if (!_userHasScrolled) _scrollToCurrentTime();
+    });
   }
 
   @override
-  void didUpdateWidget(DayTimelineWidget oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (_isToday(_selectedDate)) {
-      setState(() {
-        _events = widget.controller.events.toList();
-      });
-    }
+  void dispose() {
+    _scrollController.dispose();
+    _autoScrollTimer?.cancel();
+    super.dispose();
   }
+
+  // ─── Auto-scroll ──────────────────────────────────────────────────────────
+
+  void _scrollToCurrentTime() {
+    if (!_isToday(_selectedDate)) return;
+    if (_userHasScrolled) return;
+    if (!_scrollController.hasClients) return;
+
+    final now = DateTime.now();
+    final offsetY = _minutesToOffset(now.hour * 60 + now.minute);
+    final viewport = _scrollController.position.viewportDimension;
+    final maxExtent = _scrollController.position.maxScrollExtent;
+    final target = (offsetY - viewport / 2).clamp(0.0, maxExtent);
+
+    _scrollController.animateTo(
+      target,
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.easeOut,
+    );
+  }
+
+  // ─── Date helpers ─────────────────────────────────────────────────────────
 
   bool _isToday(DateTime date) {
     final now = DateTime.now();
@@ -56,13 +97,13 @@ class _DayTimelineWidgetState extends State<DayTimelineWidget> {
   }
 
   bool _isTomorrow(DateTime date) {
-    final tomorrow = DateTime.now().add(const Duration(days: 1));
-    return date.year == tomorrow.year && date.month == tomorrow.month && date.day == tomorrow.day;
+    final t = DateTime.now().add(const Duration(days: 1));
+    return date.year == t.year && date.month == t.month && date.day == t.day;
   }
 
   bool _isYesterday(DateTime date) {
-    final yesterday = DateTime.now().subtract(const Duration(days: 1));
-    return date.year == yesterday.year && date.month == yesterday.month && date.day == yesterday.day;
+    final y = DateTime.now().subtract(const Duration(days: 1));
+    return date.year == y.year && date.month == y.month && date.day == y.day;
   }
 
   String _formatSelectedDate() {
@@ -72,32 +113,28 @@ class _DayTimelineWidgetState extends State<DayTimelineWidget> {
     return DateFormat('E d MMM', Get.locale?.toString()).format(_selectedDate);
   }
 
+  // ─── Navigation ───────────────────────────────────────────────────────────
+
   Future<void> _loadEventsForDate(DateTime date) async {
     if (_isToday(date)) {
       setState(() {
         _selectedDate = date;
-        _events = widget.controller.events.toList();
-        _loading = false;
+        _userHasScrolled = false;
       });
+      // Scroll back to current time after frame
+      WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToCurrentTime());
       return;
     }
-
     setState(() {
       _selectedDate = date;
       _loading = true;
     });
-
     try {
       final events = await DisplayService.instance.getEventsForDate(
         widget.controller.displayId.value,
         date,
       );
-      if (mounted) {
-        setState(() {
-          _events = events;
-          _loading = false;
-        });
-      }
+      if (mounted) setState(() { _otherDayEvents = events; _loading = false; });
     } catch (_) {
       if (mounted) setState(() => _loading = false);
     }
@@ -125,15 +162,18 @@ class _DayTimelineWidgetState extends State<DayTimelineWidget> {
     if (picked != null) _loadEventsForDate(picked);
   }
 
-  double _minutesToOffset(int minutes, double totalHeight) {
-    final clamped = (minutes - _startHour * 60).clamp(0, _totalMinutes);
-    return clamped / _totalMinutes * totalHeight;
+  // ─── Position helper ──────────────────────────────────────────────────────
+
+  double _minutesToOffset(int minutes) {
+    final clamped = (minutes - _startHour * 60).clamp(0, (_endHour - _startHour) * 60);
+    return clamped / 60 * _hourHeight + _timelinePadding;
   }
+
+  // ─── Build ────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
-    final fontSize = widget.isPhone ? 13.0 : 15.0;
-    final headerFontSize = widget.isPhone ? 14.0 : 16.0;
+    final fontSize = widget.isPhone ? 15.0 : 17.0;
 
     return FrostedPanel(
       borderRadius: widget.cornerRadius,
@@ -141,22 +181,27 @@ class _DayTimelineWidgetState extends State<DayTimelineWidget> {
       padding: EdgeInsets.all(widget.isPhone ? 10 : 14),
       child: Column(
         children: [
-          _buildHeader(headerFontSize),
+          _buildHeader(fontSize),
           SizedBox(height: widget.isPhone ? 8 : 10),
           Expanded(
             child: _loading
-                ? const Center(
-                    child: CircularProgressIndicator(
-                      color: AppTheme.orange,
-                      strokeWidth: 2,
-                    ),
-                  )
-                : _buildTimeline(fontSize),
+                ? const Center(child: CircularProgressIndicator(color: AppTheme.orange, strokeWidth: 2))
+                : _isToday(_selectedDate)
+                    ? Obx(() {
+                        final len = widget.controller.events.length;
+                        final events = len > 0
+                            ? List<EventModel>.from(widget.controller.events)
+                            : <EventModel>[];
+                        return _buildScrollableTimeline(events, fontSize);
+                      })
+                    : _buildScrollableTimeline(_otherDayEvents, fontSize),
           ),
         ],
       ),
     );
   }
+
+  // ─── Header ───────────────────────────────────────────────────────────────
 
   Widget _buildHeader(double fontSize) {
     return Row(
@@ -172,21 +217,13 @@ class _DayTimelineWidgetState extends State<DayTimelineWidget> {
                 Flexible(
                   child: Text(
                     _formatSelectedDate(),
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: fontSize,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: TextStyle(color: Colors.white, fontSize: fontSize, fontWeight: FontWeight.w600),
                     overflow: TextOverflow.ellipsis,
                     textAlign: TextAlign.center,
                   ),
                 ),
                 const SizedBox(width: 4),
-                Icon(
-                  Icons.calendar_today_outlined,
-                  color: TWColors.gray_300,
-                  size: fontSize,
-                ),
+                Icon(Icons.calendar_today_outlined, color: TWColors.gray_300, size: fontSize),
               ],
             ),
           ),
@@ -196,40 +233,61 @@ class _DayTimelineWidgetState extends State<DayTimelineWidget> {
     );
   }
 
-  Widget _buildTimeline(double fontSize) {
-    if (_events.isEmpty) {
-      return Center(
-        child: Text(
-          'timeline_no_events'.tr,
-          style: TextStyle(color: TWColors.gray_400, fontSize: fontSize),
-        ),
-      );
-    }
+  // ─── Scrollable timeline ──────────────────────────────────────────────────
 
+  Widget _buildScrollableTimeline(List<EventModel> events, double fontSize) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final totalHeight = constraints.maxHeight;
-        final labelWidth = widget.isPhone ? 36.0 : 42.0;
-        final eventAreaWidth = constraints.maxWidth - labelWidth - 4;
+        final labelWidth = widget.isPhone ? 38.0 : 44.0;
+        final eventAreaWidth = constraints.maxWidth - labelWidth - 6;
 
         return Stack(
           children: [
-            // Hour lines and labels
-            ..._buildHourRows(totalHeight, labelWidth, eventAreaWidth, fontSize),
-            // Current time indicator
-            if (_isToday(_selectedDate)) _buildCurrentTimeIndicator(totalHeight, labelWidth, eventAreaWidth),
-            // Events
-            ..._buildEventBlocks(totalHeight, labelWidth, eventAreaWidth, fontSize),
+            NotificationListener<ScrollNotification>(
+              onNotification: (notification) {
+                // Only mark as user-scrolled when drag starts (not programmatic scroll).
+                if (notification is ScrollStartNotification &&
+                    notification.dragDetails != null) {
+                  _userHasScrolled = true;
+                }
+                return false;
+              },
+              child: SingleChildScrollView(
+                controller: _scrollController,
+                physics: const ClampingScrollPhysics(),
+                child: SizedBox(
+                  height: _totalHeight,
+                  child: Stack(
+                    clipBehavior: Clip.hardEdge,
+                    children: [
+                      ..._buildHourRows(labelWidth, eventAreaWidth, fontSize),
+                      if (_isToday(_selectedDate))
+                        _buildCurrentTimeIndicator(labelWidth, eventAreaWidth),
+                      ..._buildEventBlocks(events, labelWidth, eventAreaWidth, fontSize),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            if (events.isEmpty)
+              Center(
+                child: Text(
+                  'timeline_no_events'.tr,
+                  style: TextStyle(color: TWColors.gray_500, fontSize: fontSize - 1),
+                ),
+              ),
           ],
         );
       },
     );
   }
 
-  List<Widget> _buildHourRows(double totalHeight, double labelWidth, double eventAreaWidth, double fontSize) {
+  // ─── Hour grid ────────────────────────────────────────────────────────────
+
+  List<Widget> _buildHourRows(double labelWidth, double eventAreaWidth, double fontSize) {
     final widgets = <Widget>[];
     for (int h = _startHour; h <= _endHour; h++) {
-      final offsetY = _minutesToOffset(h * 60, totalHeight);
+      final offsetY = _minutesToOffset(h * 60);
       widgets.add(
         Positioned(
           top: offsetY,
@@ -238,12 +296,8 @@ class _DayTimelineWidgetState extends State<DayTimelineWidget> {
           child: Transform.translate(
             offset: const Offset(0, -8),
             child: Text(
-              '${h.toString().padLeft(2, '0')}:00',
-              style: TextStyle(
-                color: TWColors.gray_400,
-                fontSize: fontSize - 1,
-                height: 1,
-              ),
+              '${(h == _endHour ? 0 : h).toString().padLeft(2, '0')}:00',
+              style: TextStyle(color: TWColors.gray_400, fontSize: fontSize - 3, height: 1),
             ),
           ),
         ),
@@ -251,11 +305,11 @@ class _DayTimelineWidgetState extends State<DayTimelineWidget> {
       widgets.add(
         Positioned(
           top: offsetY,
-          left: labelWidth + 4,
+          left: labelWidth + 6,
           width: eventAreaWidth,
-          child: Container(
-            height: 0.5,
-            color: Colors.white.withValues(alpha: 0.12),
+          child: CustomPaint(
+            size: Size(eventAreaWidth, 1),
+            painter: _DashedLinePainter(color: Colors.white.withValues(alpha: 0.15)),
           ),
         ),
       );
@@ -263,54 +317,52 @@ class _DayTimelineWidgetState extends State<DayTimelineWidget> {
     return widgets;
   }
 
-  Widget _buildCurrentTimeIndicator(double totalHeight, double labelWidth, double eventAreaWidth) {
+  // ─── Current time indicator ───────────────────────────────────────────────
+
+  Widget _buildCurrentTimeIndicator(double labelWidth, double eventAreaWidth) {
     final now = DateTime.now();
-    final currentMinutes = now.hour * 60 + now.minute;
-    if (currentMinutes < _startHour * 60 || currentMinutes > _endHour * 60) {
-      return const SizedBox.shrink();
-    }
-    final offsetY = _minutesToOffset(currentMinutes, totalHeight);
+    final offsetY = _minutesToOffset(now.hour * 60 + now.minute);
     return Positioned(
-      top: offsetY - 1,
-      left: labelWidth,
+      top: offsetY - 4,
+      left: labelWidth + 2,
       width: eventAreaWidth + 4,
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
             width: 8,
             height: 8,
-            decoration: const BoxDecoration(
-              color: TWColors.red_400,
-              shape: BoxShape.circle,
-            ),
+            decoration: const BoxDecoration(color: TWColors.red_400, shape: BoxShape.circle),
           ),
-          Expanded(
-            child: Container(
-              height: 2,
-              color: TWColors.red_400,
-            ),
-          ),
+          Expanded(child: Container(height: 2, color: TWColors.red_400)),
         ],
       ),
     );
   }
 
-  List<Widget> _buildEventBlocks(double totalHeight, double labelWidth, double eventAreaWidth, double fontSize) {
+  // ─── Event blocks ─────────────────────────────────────────────────────────
+
+  List<Widget> _buildEventBlocks(
+    List<EventModel> events,
+    double labelWidth,
+    double eventAreaWidth,
+    double fontSize,
+  ) {
+    if (events.isEmpty) return [];
     final widgets = <Widget>[];
-    final groups = _groupOverlappingEvents(_events);
+    final groups = _groupOverlappingEvents(events);
 
     for (final group in groups) {
       final colCount = group.length;
       for (int i = 0; i < group.length; i++) {
         final event = group[i];
-        final startMinutes = event.start.hour * 60 + event.start.minute;
-        final endMinutes = event.end.hour * 60 + event.end.minute;
-        final topY = _minutesToOffset(startMinutes, totalHeight);
-        final bottomY = _minutesToOffset(endMinutes, totalHeight);
-        final blockHeight = (bottomY - topY).clamp(14.0, double.infinity);
-
+        final startMin = event.start.hour * 60 + event.start.minute;
+        final endMin = event.end.hour * 60 + event.end.minute;
+        final topY = _minutesToOffset(startMin);
+        final bottomY = _minutesToOffset(endMin);
+        final blockHeight = (bottomY - topY).clamp(16.0, double.infinity);
         final colWidth = (eventAreaWidth - (colCount - 1) * 3) / colCount;
-        final leftX = labelWidth + 4 + i * (colWidth + 3);
+        final leftX = labelWidth + 6 + i * (colWidth + 3);
 
         widgets.add(
           Positioned(
@@ -318,15 +370,11 @@ class _DayTimelineWidgetState extends State<DayTimelineWidget> {
             left: leftX,
             width: colWidth,
             height: blockHeight,
-            child: _EventBlock(
-              event: event,
-              fontSize: fontSize,
-            ),
+            child: _EventBlock(event: event, fontSize: fontSize),
           ),
         );
       }
     }
-
     return widgets;
   }
 
@@ -334,25 +382,45 @@ class _DayTimelineWidgetState extends State<DayTimelineWidget> {
     final sorted = [...events]..sort((a, b) => a.start.compareTo(b.start));
     final groups = <List<EventModel>>[];
     final used = <int>{};
-
     for (int i = 0; i < sorted.length; i++) {
       if (used.contains(i)) continue;
       final group = [sorted[i]];
       used.add(i);
       for (int j = i + 1; j < sorted.length; j++) {
         if (used.contains(j)) continue;
-        final overlaps = group.any((e) => e.start.isBefore(sorted[j].end) && sorted[j].start.isBefore(e.end));
-        if (overlaps) {
+        if (group.any((e) => e.start.isBefore(sorted[j].end) && sorted[j].start.isBefore(e.end))) {
           group.add(sorted[j]);
           used.add(j);
         }
       }
       groups.add(group);
     }
-
     return groups;
   }
 }
+
+// ─── Dashed line ─────────────────────────────────────────────────────────────
+
+class _DashedLinePainter extends CustomPainter {
+  final Color color;
+  const _DashedLinePainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = color..strokeWidth = 0.8;
+    const dash = 4.0, gap = 4.0;
+    double x = 0;
+    while (x < size.width) {
+      canvas.drawLine(Offset(x, 0), Offset((x + dash).clamp(0, size.width), 0), paint);
+      x += dash + gap;
+    }
+  }
+
+  @override
+  bool shouldRepaint(_DashedLinePainter old) => old.color != color;
+}
+
+// ─── Event block ─────────────────────────────────────────────────────────────
 
 class _EventBlock extends StatelessWidget {
   final EventModel event;
@@ -365,41 +433,39 @@ class _EventBlock extends StatelessWidget {
     final startStr = formatTime(context, event.start);
     final endStr = formatTime(context, event.end);
     final durationMinutes = event.end.difference(event.start).inMinutes;
-    final showEndTime = durationMinutes >= 30;
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(5),
+      borderRadius: BorderRadius.circular(4),
       child: Container(
         decoration: BoxDecoration(
-          color: AppTheme.orange.withValues(alpha: 0.85),
-          borderRadius: BorderRadius.circular(5),
-          border: Border(
-            left: BorderSide(color: AppTheme.orange, width: 2),
-          ),
+          color: _kEventColor.withValues(alpha: 0.75),
+          borderRadius: BorderRadius.circular(4),
+          border: Border(left: BorderSide(color: _kEventColor, width: 2.5)),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              event.summary,
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: fontSize - 1,
-                fontWeight: FontWeight.w600,
-                height: 1.2,
+            Flexible(
+              child: Text(
+                event.summary,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: fontSize - 2,
+                  fontWeight: FontWeight.w600,
+                  height: 1.2,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
             ),
-            if (durationMinutes >= 20) ...[
+            if (durationMinutes >= 30) ...[
               const SizedBox(height: 1),
               Text(
-                showEndTime ? '$startStr – $endStr' : startStr,
+                '$startStr – $endStr',
                 style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.8),
-                  fontSize: fontSize - 2,
+                  color: Colors.white.withValues(alpha: 0.75),
+                  fontSize: fontSize - 3,
                   height: 1.1,
                 ),
                 maxLines: 1,
@@ -413,10 +479,11 @@ class _EventBlock extends StatelessWidget {
   }
 }
 
+// ─── Nav button ──────────────────────────────────────────────────────────────
+
 class _NavButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
-
   const _NavButton({required this.icon, required this.onTap});
 
   @override

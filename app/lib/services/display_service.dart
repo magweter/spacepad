@@ -22,12 +22,14 @@ class DisplayService {
     });
   }
 
-  Future<void> bookCustom(String displayId, String title, DateTime startTime, DateTime endTime) async {
+  Future<void> bookCustom(String displayId, String title, DateTime startTime, DateTime endTime, {String? description, List<String>? attendees}) async {
     // Convert local DateTime to UTC before sending to backend
     await ApiService.post('displays/$displayId/book', {
       'start': startTime.toUtc().toIso8601String(),
       'end': endTime.toUtc().toIso8601String(),
       'summary': title,
+      if (description != null && description.isNotEmpty) 'description': description,
+      if (attendees != null && attendees.isNotEmpty) 'attendees': attendees,
     });
   }
 

@@ -233,10 +233,15 @@ class GoogleService
         Calendar $calendar,
         string $summary,
         Carbon $start,
-        Carbon $end
+        Carbon $end,
+        ?string $description = null,
+        array $attendees = []
     ): ?GoogleEvent {
         $event = new GoogleEvent();
         $event->setSummary($summary);
+        if ($description !== null && $description !== '') {
+            $event->setDescription($description);
+        }
 
         $startDateTime = new \Google\Service\Calendar\EventDateTime();
         $startDateTime->setDateTime($start->toRfc3339String());
@@ -264,17 +269,25 @@ class GoogleService
 
         $calendarId = $calendar->room ? 'primary' : $calendar->calendar_id;
 
-        // For room resources with current account method, create event on user's primary calendar and add room as attendee
-        // Room resource calendars are read-only and cannot be written to directly without service account
+        // Build attendee list: room resource (if applicable) + user-specified attendees
+        $eventAttendees = [];
         if ($calendar->room) {
+            $roomAttendee = new \Google\Service\Calendar\EventAttendee();
+            $roomAttendee->setEmail($calendar->calendar_id);
+            $eventAttendees[] = $roomAttendee;
+        }
+        foreach ($attendees as $email) {
             $attendee = new \Google\Service\Calendar\EventAttendee();
-            $attendee->setEmail($calendar->calendar_id);
-            $event->setAttendees([$attendee]);
+            $attendee->setEmail($email);
+            $eventAttendees[] = $attendee;
+        }
+        if (!empty($eventAttendees)) {
+            $event->setAttendees($eventAttendees);
         }
 
         try {
             $createdEvent = $calendarService->events->insert($calendarId, $event, [
-                'sendUpdates' => 'none'
+                'sendUpdates' => !empty($attendees) ? 'all' : 'none',
             ]);
             return $createdEvent;
         } catch (\Exception $e) {
