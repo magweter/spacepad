@@ -177,7 +177,8 @@ class DisplayController extends ApiController
                 summary: Arr::get($data, 'summary', __('Reserved')),
                 duration: $duration,
                 start: $start,
-                end: $end
+                end: $end,
+                description: Arr::get($data, 'description'),
             );
             
             logger()->info('Room booked successfully', [

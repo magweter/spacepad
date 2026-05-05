@@ -73,7 +73,7 @@ class EventService
      * Otherwise, creates a custom event locally.
      * Throws exception if not allowed.
      */
-    public function bookRoom(string $displayId, string $userId, string $summary, ?int $duration = null, ?Carbon $start = null, ?Carbon $end = null): Event
+    public function bookRoom(string $displayId, string $userId, string $summary, ?int $duration = null, ?Carbon $start = null, ?Carbon $end = null, ?string $description = null): Event
     {
         // Normalize summary: trim and replace empty with default
         $summary = trim($summary);
@@ -142,7 +142,8 @@ class EventService
                             $calendar,
                             $summary,
                             $start,
-                            $end
+                            $end,
+                            $description
                         );
                         $externalEventId = $eventData['id'] ?? null;
                     }
@@ -153,7 +154,8 @@ class EventService
                             $calendar,
                             $summary,
                             $start,
-                            $end
+                            $end,
+                            $description
                         );
                         $externalEventId = $googleEvent?->getId();
                     }
@@ -164,7 +166,8 @@ class EventService
                             $calendar->calendar_id,
                             $summary,
                             $start,
-                            $end
+                            $end,
+                            $description
                         );
                     }
 
@@ -178,7 +181,7 @@ class EventService
 
                     // Create a DB row to track this tablet booking (needed for isTabletBooking() and cancellation)
                     // calendar_id is set to mark as a tablet booking
-                    $event = DB::transaction(function () use ($displayId, $userId, $calendar, $externalEventId, $start, $end, $summary) {
+                    $event = DB::transaction(function () use ($displayId, $userId, $calendar, $externalEventId, $start, $end, $summary, $description) {
                         return Event::create([
                             'display_id' => $displayId,
                             'user_id' => $userId,
@@ -189,6 +192,7 @@ class EventService
                             'start' => $start,
                             'end' => $end,
                             'summary' => $summary,
+                            'description' => $description,
                             'timezone' => config('app.timezone', 'UTC'),
                         ]);
                     });
@@ -220,6 +224,7 @@ class EventService
             'start' => $start,
             'end' => $end,
             'summary' => $summary,
+            'description' => $description,
             'timezone' => config('app.timezone', 'UTC'),
         ]);
     }

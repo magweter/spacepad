@@ -18,6 +18,7 @@ class BookEventRequest extends FormRequest
             'start' => 'required_without:duration|date',
             'end' => 'required_with:start|date|after:start',
             'summary' => 'nullable|string|max:255',
+            'description' => 'nullable|string|max:5000',
         ];
     }
 }
