@@ -1,5 +1,10 @@
 @props(['displays' => collect()])
 
+<script>
+window.__diagRunUrls   = @json($displays->mapWithKeys(fn($d) => [$d->id => route('displays.diagnostics.run', $d)]));
+window.__diagDispNames = @json($displays->mapWithKeys(fn($d) => [$d->id => $d->name]));
+</script>
+
 <div
     x-data="{
         show: false,
@@ -10,8 +15,8 @@
         elapsed: null,
         fetchErr: null,
 
-        runUrls: {!! $displays->mapWithKeys(fn($d) => [$d->id => route('displays.diagnostics.run', $d)])->toJson() !!},
-        displayNames: {!! $displays->mapWithKeys(fn($d) => [$d->id => $d->name])->toJson() !!},
+        runUrls: window.__diagRunUrls ?? {},
+        displayNames: window.__diagDispNames ?? {},
 
         get runUrl() { return this.runUrls[this.selectedId] ?? null; },
         get displayName() { return this.displayNames[this.selectedId] ?? ''; },
