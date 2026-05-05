@@ -48,6 +48,9 @@
                         <a href="{{ route('usage.index') }}" class="rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300 hover:text-black">
                             Usage
                         </a>
+                        <a href="{{ route('diagnostics.index') }}" class="rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300 hover:text-black">
+                            Diagnostics
+                        </a>
                         <button type="button" onclick="window.dispatchEvent(new CustomEvent('open-modal', { detail: 'manage-subscription' }))" class="rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300 hover:text-black">
                             Manage subscription
                         </button>

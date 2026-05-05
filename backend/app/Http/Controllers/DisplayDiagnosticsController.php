@@ -9,6 +9,7 @@ use App\Services\GoogleService;
 use App\Services\CalDAVService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 
@@ -21,13 +22,27 @@ class DisplayDiagnosticsController extends Controller
         protected EventService $eventService,
     ) {}
 
-    public function index(Display $display): View
+    public function index(Request $request): View
     {
-        $this->authorize('update', $display);
+        $user      = auth()->user();
+        $workspace = $user->getSelectedWorkspace();
 
-        return view('pages.displays.diagnostics', [
-            'display' => $display->load(['calendar.outlookAccount', 'calendar.googleAccount', 'calendar.caldavAccount', 'calendar.room']),
-        ]);
+        $displays = $workspace
+            ? Display::where('workspace_id', $workspace->id)
+                ->with(['calendar.outlookAccount', 'calendar.googleAccount', 'calendar.caldavAccount', 'calendar.room'])
+                ->orderBy('name')
+                ->get()
+            : collect();
+
+        $selected = null;
+        if ($request->filled('display')) {
+            $selected = $displays->firstWhere('id', $request->input('display'));
+        }
+        if (!$selected) {
+            $selected = $displays->first();
+        }
+
+        return view('pages.displays.diagnostics', compact('displays', 'selected'));
     }
 
     public function run(Display $display): JsonResponse
