@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:spacepad/components/frosted_panel.dart';
 import 'package:spacepad/components/solid_button.dart';
+import 'package:spacepad/components/toast.dart';
 import 'package:spacepad/date_format_helper.dart';
 import 'package:spacepad/models/event_model.dart';
 import 'package:spacepad/theme.dart';
@@ -166,12 +167,17 @@ class _CustomBookingModalState extends State<CustomBookingModal> {
       selected = now;
     }
 
+    bool endWasReset = false;
     setState(() {
       _startTime = selected;
       if (!_endTime.isAfter(_startTime)) {
         _endTime = _startTime.add(const Duration(hours: 1));
+        endWasReset = true;
       }
     });
+    if (endWasReset) {
+      Toast.showError('end_time_adjusted'.tr);
+    }
   }
 
   Future<void> _selectEndTime() async {
@@ -196,6 +202,7 @@ class _CustomBookingModalState extends State<CustomBookingModal> {
 
     if (!selected.isAfter(_startTime)) {
       selected = minEnd;
+      Toast.showError('end_time_must_be_after_start'.tr);
     }
 
     setState(() => _endTime = selected);

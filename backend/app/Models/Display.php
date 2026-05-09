@@ -177,6 +177,11 @@ class Display extends Model
         return DisplaySettings::isTimelineWidgetEnabled($this);
     }
 
+    public function getTimelineWidgetMode(): string
+    {
+        return DisplaySettings::getTimelineWidgetMode($this);
+    }
+
     public function setTimelineWidgetEnabled(bool $enabled): bool
     {
         return DisplaySettings::setTimelineWidgetEnabled($this, $enabled);
@@ -270,5 +275,15 @@ class Display extends Model
     public function setExtendEnabled(bool $enabled): bool
     {
         return DisplaySettings::setExtendEnabled($this, $enabled);
+    }
+
+    public function isShowOrganizerEnabled(): bool
+    {
+        return DisplaySettings::isShowOrganizerEnabled($this);
+    }
+
+    public function setShowOrganizerEnabled(bool $enabled): bool
+    {
+        return DisplaySettings::setShowOrganizerEnabled($this, $enabled);
     }
 }

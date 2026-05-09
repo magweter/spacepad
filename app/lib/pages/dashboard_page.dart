@@ -72,26 +72,43 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  Widget _buildStaleIndicator(BuildContext context, bool isPhone) {
-    final controller = Get.find<DashboardController>();
-    return GestureDetector(
-      onTap: () => controller.refreshDisplayData(),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.wifi_off_rounded, size: isPhone ? 14 : 16, color: const Color(0xFFFBBF24)),
-          const SizedBox(width: 6),
-          Text(
-            'data_may_be_outdated'.tr,
-            style: TextStyle(
-              color: const Color(0xFFFBBF24),
-              fontSize: isPhone ? 13 : 15,
-              fontWeight: FontWeight.w500,
-            ),
+  Widget _buildStaleIndicator(BuildContext context, bool isPhone, DashboardController controller) {
+    return Obx(() {
+      final offline = controller.isOffline.value;
+      final serverUnreachable = controller.isServerUnreachable.value;
+      return GestureDetector(
+        onTap: () => controller.refreshDisplayData(),
+        child: Container(
+          margin: EdgeInsets.only(top: isPhone ? 2.0 : 4.0),
+          padding: EdgeInsets.symmetric(horizontal: isPhone ? 8 : 10, vertical: isPhone ? 4 : 5),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFBBF24).withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: const Color(0xFFFBBF24).withValues(alpha: 0.5), width: 1),
           ),
-        ],
-      ),
-    );
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                offline ? Icons.wifi_off_rounded : (serverUnreachable ? Icons.cloud_off_rounded : Icons.sync_problem_rounded),
+                size: isPhone ? 13 : 15, color: const Color(0xFFFBBF24),
+              ),
+              const SizedBox(width: 5),
+              Text(
+                offline ? 'no_internet_connection'.tr : (serverUnreachable ? 'server_unreachable'.tr : 'data_may_be_outdated'.tr),
+                style: TextStyle(
+                  color: const Color(0xFFFBBF24),
+                  fontSize: isPhone ? 12 : 13,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(width: 5),
+              Icon(Icons.refresh_rounded, size: isPhone ? 13 : 15, color: const Color(0xFFFBBF24)),
+            ],
+          ),
+        ),
+      );
+    });
   }
 
   @override
@@ -117,6 +134,8 @@ class _DashboardPageState extends State<DashboardPage> {
         final timelineMode = controller.timelineWidgetMode; // 'none' | 'side_panel' | 'inline'
         final timelineEnabled = timelineMode != 'none';
         final timelineWidth = isPhone ? 220.0 : 300.0;
+        final inlineTimelineWidth = isPhone ? 260.0 : 360.0;
+        final inlineTimelineMaxHeight = isPhone ? 330.0 : 484.0;
         final gap = isPhone ? 10.0 : 16.0;
 
         final mainStack = Stack(
@@ -134,6 +153,12 @@ class _DashboardPageState extends State<DashboardPage> {
               )),
             ),
             Align(
+              alignment: Alignment.topCenter,
+              child: Obx(() => controller.isDataStale.value
+                  ? _buildStaleIndicator(context, isPhone, controller)
+                  : const SizedBox.shrink()),
+            ),
+            Align(
               alignment: Alignment.topRight,
               child: Obx(() {
                 final hideAdminActions = controller.globalSettings.value?.hideAdminActions ?? false;
@@ -149,14 +174,17 @@ class _DashboardPageState extends State<DashboardPage> {
                     ),
                     if (shouldShowAdminActions) const SizedBox(width: 15),
                     if (timelineEnabled) ...[
-                      GestureDetector(
-                        onTap: () => setState(() => _timelineOpen = !_timelineOpen),
-                        child: Icon(
-                          _timelineOpen
-                              ? Icons.calendar_today
-                              : Icons.calendar_today_outlined,
-                          color: Colors.white,
-                          size: isPhone ? 20 : 24,
+                      Opacity(
+                        opacity: 0.6,
+                        child: GestureDetector(
+                          onTap: () => setState(() => _timelineOpen = !_timelineOpen),
+                          child: Icon(
+                            _timelineOpen
+                                ? Icons.calendar_today
+                                : Icons.calendar_today_outlined,
+                            color: Colors.white,
+                            size: isPhone ? 20 : 24,
+                          ),
                         ),
                       ),
                       const SizedBox(width: 15),
@@ -231,6 +259,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         if (controller.meetingInfoTimes != null) FrostedPanel(
                           borderRadius: cornerRadius,
                           blurIntensity: 18,
+                          hasBackgroundImage: controller.globalSettings.value?.backgroundImageUrl != null,
                           padding: EdgeInsets.fromLTRB(
                             isPhone ? 10 : 15,
                             isPhone ? 5 : 8,
@@ -266,6 +295,31 @@ class _DashboardPageState extends State<DashboardPage> {
                       ],
                     ),
                     if (controller.meetingInfoTimes == null) SizedBox(height: isPhone ? 5 : 10),
+                    Obx(() {
+                      final organizer = controller.currentEvent?.organizerName;
+                      if (!controller.showOrganizer || organizer == null || organizer.isEmpty) {
+                        return const SizedBox.shrink();
+                      }
+                      return Padding(
+                        padding: EdgeInsets.only(top: isPhone ? 4 : 8),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.person_outline, size: isPhone ? 14 : 16, color: TWColors.gray_300),
+                            SizedBox(width: isPhone ? 4 : 6),
+                            Text(
+                              organizer,
+                              style: FontService.instance.getTextStyle(
+                                fontFamily: controller.currentFontFamily.value,
+                                fontSize: isPhone ? 16 : 20,
+                                fontWeight: FontWeight.w400,
+                                color: TWColors.gray_300,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
                     if (controller.bookingEnabled || controller.checkInEnabled || controller.extendEnabled) ActionPanel(
                       controller: controller,
                       isPhone: isPhone,
@@ -282,6 +336,7 @@ class _DashboardPageState extends State<DashboardPage> {
               child: FrostedPanel(
                 borderRadius: cornerRadius,
                 blurIntensity: 18,
+                hasBackgroundImage: controller.globalSettings.value?.backgroundImageUrl != null,
                 padding: EdgeInsets.all(isPhone ? 12 : 20),
                 child: SpaceRow(
                   spaceBetween: isPhone ? 10 : 20,
@@ -304,9 +359,7 @@ class _DashboardPageState extends State<DashboardPage> {
                             ),
                           ),
                     ),
-                    if (controller.isDataStale.value)
-                      _buildStaleIndicator(context, isPhone)
-                    else if (controller.calendarEnabled)
+                    if (controller.calendarEnabled)
                       Material(
                         color: Colors.transparent,
                         child: InkWell(
@@ -437,7 +490,7 @@ class _DashboardPageState extends State<DashboardPage> {
           final inlineChild = Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Header: clock left, admin actions + room name right
+              // Header: clock left, stale indicator center, admin actions + room name right
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
@@ -450,6 +503,13 @@ class _DashboardPageState extends State<DashboardPage> {
                       color: TWColors.white,
                     ),
                   )),
+                  const Spacer(),
+                  Obx(() => controller.isDataStale.value
+                      ? Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          child: _buildStaleIndicator(context, isPhone, controller),
+                        )
+                      : const SizedBox.shrink()),
                   const Spacer(),
                   Obx(() {
                     final hide = controller.globalSettings.value?.hideAdminActions ?? false;
@@ -528,6 +588,7 @@ class _DashboardPageState extends State<DashboardPage> {
                                   if (controller.meetingInfoTimes != null) FrostedPanel(
                                     borderRadius: cornerRadius,
                                     blurIntensity: 18,
+                                    hasBackgroundImage: controller.globalSettings.value?.backgroundImageUrl != null,
                                     padding: EdgeInsets.fromLTRB(isPhone ? 10 : 15, isPhone ? 5 : 8, isPhone ? 10 : 15, isPhone ? 5 : 8),
                                     child: Obx(() => Text(
                                       'meeting_info_title'.trParams({
@@ -557,6 +618,31 @@ class _DashboardPageState extends State<DashboardPage> {
                                 ],
                               ),
                               if (controller.meetingInfoTimes == null) SizedBox(height: isPhone ? 5 : 10),
+                              Obx(() {
+                                final organizer = controller.currentEvent?.organizerName;
+                                if (!controller.showOrganizer || organizer == null || organizer.isEmpty) {
+                                  return const SizedBox.shrink();
+                                }
+                                return Padding(
+                                  padding: EdgeInsets.only(top: isPhone ? 4 : 8),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.person_outline, size: isPhone ? 14 : 16, color: TWColors.gray_300),
+                                      SizedBox(width: isPhone ? 4 : 6),
+                                      Text(
+                                        organizer,
+                                        style: FontService.instance.getTextStyle(
+                                          fontFamily: controller.currentFontFamily.value,
+                                          fontSize: isPhone ? 16 : 20,
+                                          fontWeight: FontWeight.w400,
+                                          color: TWColors.gray_300,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }),
                               if (controller.bookingEnabled || controller.checkInEnabled || controller.extendEnabled) ActionPanel(
                                 controller: controller,
                                 isPhone: isPhone,
@@ -568,12 +654,19 @@ class _DashboardPageState extends State<DashboardPage> {
                       ),
                     ),
                     SizedBox(width: gap),
-                    SizedBox(
-                      width: timelineWidth,
-                      child: DayTimelineWidget(
-                        controller: controller,
-                        isPhone: isPhone,
-                        cornerRadius: cornerRadius,
+                    Align(
+                      alignment: Alignment.center,
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(maxHeight: inlineTimelineMaxHeight),
+                        child: SizedBox(
+                          width: inlineTimelineWidth,
+                          child: DayTimelineWidget(
+                            controller: controller,
+                            isPhone: isPhone,
+                            cornerRadius: cornerRadius,
+                            frosted: true,
+                          ),
+                        ),
                       ),
                     ),
                   ],
@@ -584,6 +677,7 @@ class _DashboardPageState extends State<DashboardPage> {
               FrostedPanel(
                 borderRadius: cornerRadius,
                 blurIntensity: 18,
+                hasBackgroundImage: controller.globalSettings.value?.backgroundImageUrl != null,
                 padding: EdgeInsets.all(isPhone ? 12 : 20),
                 child: SpaceRow(
                   spaceBetween: isPhone ? 10 : 20,
@@ -600,9 +694,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         : Text('no_upcoming_events'.tr,
                             style: TextStyle(color: TWColors.white, fontSize: isPhone ? 16 : 18, fontWeight: FontWeight.w500)),
                     ),
-                    if (controller.isDataStale.value)
-                      _buildStaleIndicator(context, isPhone)
-                    else if (controller.calendarEnabled)
+                    if (controller.calendarEnabled)
                       Material(
                         color: Colors.transparent,
                         child: InkWell(

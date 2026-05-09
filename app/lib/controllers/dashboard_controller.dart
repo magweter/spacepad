@@ -41,6 +41,8 @@ class DashboardController extends GetxController {
 
   // Stale data indicator
   final RxBool isDataStale = RxBool(false);
+  final RxBool isOffline = RxBool(false);
+  final RxBool isServerUnreachable = RxBool(false);
   // ignore: unused_field
   DateTime? _lastSuccessfulFetchAt;
 
@@ -296,9 +298,13 @@ class DashboardController extends GetxController {
           .toList();
 
       isDataStale.value = false;
+      isOffline.value = false;
+      isServerUnreachable.value = false;
       _lastSuccessfulFetchAt = DateTime.now();
     } catch (e) {
       isDataStale.value = true;
+      isOffline.value = _isNoInternetError(e);
+      isServerUnreachable.value = !_isNoInternetError(e) && _isConnectivityError(e);
     }
   }
 
@@ -486,6 +492,10 @@ class DashboardController extends GetxController {
     return globalSettings.value?.extendEnabled ?? false;
   }
 
+  bool get showOrganizer {
+    return globalSettings.value?.showOrganizer ?? false;
+  }
+
   List<int> get availableExtendDurations {
     if (currentEvent == null) return [];
     final base = [15, 30, 60];
@@ -671,6 +681,12 @@ class DashboardController extends GetxController {
 
   String getReservedText() {
     return globalSettings.value?.textReserved ?? 'reserved'.tr;
+  }
+
+  bool _isNoInternetError(dynamic e) {
+    final s = e.toString().toLowerCase();
+    return s.contains('network is unreachable') ||
+        s.contains('no address associated');
   }
 
   bool _isConnectivityError(dynamic e) {

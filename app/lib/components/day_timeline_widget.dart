@@ -8,7 +8,6 @@ import 'package:spacepad/controllers/dashboard_controller.dart';
 import 'package:spacepad/date_format_helper.dart';
 import 'package:spacepad/models/event_model.dart';
 import 'package:spacepad/services/display_service.dart';
-import 'package:spacepad/theme.dart';
 import 'package:tailwind_components/tailwind_components.dart';
 
 // Soft blue used for event blocks (less harsh than orange on a dark background).
@@ -18,12 +17,14 @@ class DayTimelineWidget extends StatefulWidget {
   final DashboardController controller;
   final bool isPhone;
   final double cornerRadius;
+  final bool frosted;
 
   const DayTimelineWidget({
     super.key,
     required this.controller,
     required this.isPhone,
     required this.cornerRadius,
+    this.frosted = false,
   });
 
   @override
@@ -144,15 +145,18 @@ class _DayTimelineWidgetState extends State<DayTimelineWidget> {
   void _nextDay() => _loadEventsForDate(_selectedDate.add(const Duration(days: 1)));
 
   Future<void> _pickDate() async {
+    // Use GetX's root overlay context so the picker is not affected by
+    // local widget-tree rebuilds (e.g. the outer Obx refreshing every 60 s).
+    final ctx = Get.overlayContext ?? context;
     final picked = await showDatePicker(
-      context: context,
+      context: ctx,
       initialDate: _selectedDate,
       firstDate: DateTime.now().subtract(const Duration(days: 365)),
       lastDate: DateTime.now().add(const Duration(days: 365)),
       builder: (context, child) => Theme(
         data: ThemeData.dark().copyWith(
           colorScheme: const ColorScheme.dark(
-            primary: AppTheme.orange,
+            primary: _kEventColor,
             surface: Color(0xFF1E1E1E),
           ),
         ),
@@ -177,7 +181,8 @@ class _DayTimelineWidgetState extends State<DayTimelineWidget> {
 
     return FrostedPanel(
       borderRadius: widget.cornerRadius,
-      blurIntensity: 18,
+      blurIntensity: widget.frosted ? 18 : 0,
+      backgroundColor: widget.frosted ? const Color(0x14FFFFFF) : const Color(0xFF1C1C1C),
       padding: EdgeInsets.all(widget.isPhone ? 10 : 14),
       child: Column(
         children: [
@@ -185,7 +190,7 @@ class _DayTimelineWidgetState extends State<DayTimelineWidget> {
           SizedBox(height: widget.isPhone ? 8 : 10),
           Expanded(
             child: _loading
-                ? const Center(child: CircularProgressIndicator(color: AppTheme.orange, strokeWidth: 2))
+                ? const Center(child: CircularProgressIndicator(color: _kEventColor, strokeWidth: 2))
                 : _isToday(_selectedDate)
                     ? Obx(() {
                         final len = widget.controller.events.length;

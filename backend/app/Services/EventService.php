@@ -465,6 +465,7 @@ class EventService
             'location' => $location,
             'description' => $description,
             'join_url' => $joinUrl,
+            'organizer_name' => $outlookEvent['organizer']['emailAddress']['name'] ?? null,
             'start' => $startDateStr,
             'end' => $endDateStr,
             'timezone' => 'UTC',
@@ -487,12 +488,15 @@ class EventService
         $description = $googleEvent->getDescription();
         $joinUrl = $googleEvent->getHangoutLink() ?? $this->extractMeetingUrl($description);
 
+        $organizer = $googleEvent->getOrganizer();
+
         return [
             'id' => $googleEvent->getId(),
             'summary' => $this->cleanSubject($googleEvent->getSummary()),
             'location' => $googleEvent->getLocation(),
             'description' => $description,
             'join_url' => $joinUrl,
+            'organizer_name' => $organizer?->getDisplayName() ?? $organizer?->getEmail() ?? null,
             'start' => $isAllDay ? $start->getDate() : $start->getDateTime(),
             'end' => $isAllDay ? $end->getDate() : $end->getDateTime(),
             'timezone' => $start->getTimeZone() ?? $end->getTimeZone() ?? 'UTC',
@@ -516,6 +520,7 @@ class EventService
             'location' => $caldavEvent['location'],
             'description' => $description,
             'join_url' => $joinUrl,
+            'organizer_name' => $caldavEvent['organizer_name'] ?? null,
             'start' => $caldavEvent['start'],
             'end' => $caldavEvent['end'],
             'timezone' => $caldavEvent['timezone'],
@@ -626,6 +631,7 @@ class EventService
                 $event->end = $eventEnd;
                 $event->timezone = $ext['timezone'];
                 $event->checked_in_at = $checkedInAt;
+                $event->organizer_name = $ext['organizer_name'] ?? null;
 
                 return $event;
             })

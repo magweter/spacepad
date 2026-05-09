@@ -189,7 +189,7 @@ window.__diagDispNames = @json($displays->mapWithKeys(fn($d) => [$d->id => $d->n
                                               x-text="step.number"></span>
                                         <span class="flex-1 min-w-0">
                                             <span class="block text-sm font-semibold text-gray-900" x-text="step.title"></span>
-                                            <span class="block text-xs text-gray-600 truncate mt-0.5" x-text="step.message"></span>
+                                            <span class="block text-xs text-gray-600 mt-0.5" x-text="step.message"></span>
                                         </span>
                                         <span class="flex-shrink-0 inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium"
                                               :class="{
@@ -257,6 +257,10 @@ window.__diagDispNames = @json($displays->mapWithKeys(fn($d) => [$d->id => $d->n
                                         </template>
                                         <template x-if="step.data.events && step.data.events.length === 0">
                                             <p class="text-xs text-gray-400 italic">No events to show</p>
+                                        </template>
+                                        {{-- Fallback when data is an empty object {} --}}
+                                        <template x-if="!Array.isArray(step.data) && Object.keys(step.data).length === 0">
+                                            <p class="text-xs text-gray-400 italic">No additional details available.</p>
                                         </template>
                                     </div>
                                 </div>

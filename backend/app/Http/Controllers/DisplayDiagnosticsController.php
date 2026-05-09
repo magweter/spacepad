@@ -88,7 +88,43 @@ class DisplayDiagnosticsController extends Controller
             return response()->json(['steps' => $steps]);
         }
 
-        // ── Step 3: Raw API fetch ──────────────────────────────────────────────
+        // ── Step 3: Permission check ───────────────────────────────────────────
+        $permType     = $account->permission_type ?? null;
+        $permValue    = $permType instanceof \App\Enums\PermissionType ? $permType->value : (string) $permType;
+        $hasWrite     = in_array($permValue, ['write', 'read_write'], true);
+        $needsWrite   = $display->isBookingEnabled();
+
+        $permDetails  = [
+            'Granted permission level' => ucfirst($permValue ?: 'unknown'),
+            'Booking enabled on display' => $needsWrite ? 'Yes (requires write)' : 'No',
+        ];
+
+        if ($calendar->outlook_account_id) {
+            $permDetails['Granted scopes'] = $hasWrite
+                ? 'Calendars.ReadWrite.Shared'
+                : 'Calendars.Read.Shared';
+        }
+
+        if ($calendar->google_account_id) {
+            $bookingMethod = $account->booking_method ?? null;
+            $bookingMethodValue = $bookingMethod instanceof \App\Enums\GoogleBookingMethod
+                ? $bookingMethod->value
+                : (string) ($bookingMethod ?? 'oauth');
+            $permDetails['Booking method'] = $bookingMethodValue;
+
+            $permDetails['Granted scopes'] = $hasWrite
+                ? 'calendar.events + calendar.readonly'
+                : 'calendar.events.readonly + calendar.readonly';
+        }
+
+        $permStatus = ($needsWrite && !$hasWrite) ? 'warning' : 'ok';
+        $permMessage = ($needsWrite && !$hasWrite)
+            ? 'Booking is enabled but only read permission was granted — re-authenticate with write access to enable booking'
+            : ($needsWrite ? 'Write permission granted — booking is supported' : 'Read-only permission — sufficient for display only');
+
+        $steps[] = $this->step(3, 'Calendar permissions', $permStatus, $permMessage, $permDetails);
+
+        // ── Step 4: Raw API fetch ──────────────────────────────────────────────
         $start      = now()->startOfDay();
         $end        = now()->endOfDay();
         $rawNorm    = [];   // normalized for display
@@ -159,7 +195,7 @@ class DisplayDiagnosticsController extends Controller
         }
 
         if ($fetchError) {
-            $steps[] = $this->step(3, 'Fetch events from calendar API', 'error',
+            $steps[] = $this->step(4, 'Fetch events from calendar API', 'error',
                 'API call failed: ' . $fetchError,
                 ['Error' => $fetchError]
             );
@@ -173,7 +209,7 @@ class DisplayDiagnosticsController extends Controller
             ? 'No events returned by the calendar API for today'
             : "$rawCount event(s) returned by the API ($allDayCount all-day will be filtered)";
 
-        $steps[] = $this->step(3, 'Fetch events from calendar API',
+        $steps[] = $this->step(4, 'Fetch events from calendar API',
             $rawCount === 0 ? 'warning' : 'ok',
             $rawMessage,
             [
@@ -186,11 +222,11 @@ class DisplayDiagnosticsController extends Controller
         );
 
         if ($rawCount === 0) {
-            $steps[] = $this->step(4, 'Apply server-side filters', 'warning',
+            $steps[] = $this->step(5, 'Apply server-side filters', 'warning',
                 'Nothing to filter — no events came from the API.',
-                []
+                ['Note' => 'No timed events were returned so no filtering was applied.']
             );
-            $steps[] = $this->step(5, 'Events delivered to tablet', 'warning',
+            $steps[] = $this->step(6, 'Events delivered to tablet', 'warning',
                 'Tablet receives 0 events for today.',
                 ['count' => 0, 'events' => []]
             );
@@ -198,11 +234,11 @@ class DisplayDiagnosticsController extends Controller
             return response()->json(['steps' => $steps]);
         }
 
-        // ── Step 4 + 5: Let EventService run the full pipeline (no cache) ──────
+        // ── Steps 5 + 6: Let EventService run the full pipeline (no cache) ─────
         try {
             $deliveredEvents = $this->eventService->getEventsForDisplay($display->id, Carbon::today());
         } catch (\Exception $e) {
-            $steps[] = $this->step(4, 'Apply server-side filters', 'error',
+            $steps[] = $this->step(5, 'Apply server-side filters', 'error',
                 'Processing pipeline failed: ' . $e->getMessage(),
                 ['Error' => $e->getMessage()]
             );
@@ -219,7 +255,7 @@ class DisplayDiagnosticsController extends Controller
             'Remaining after filters'            => $deliveredCount,
         ];
 
-        $steps[] = $this->step(4, 'Apply server-side filters',
+        $steps[] = $this->step(5, 'Apply server-side filters',
             $deliveredCount > 0 || $timedRaw === 0 ? 'ok' : 'warning',
             "$timedRaw timed event(s) in → $deliveredCount event(s) out",
             $filterDetails
@@ -235,7 +271,7 @@ class DisplayDiagnosticsController extends Controller
         $isCached  = Cache::has($cacheKey);
         $subsCount = $display->eventSubscriptions->count();
 
-        $steps[] = $this->step(5, 'Events delivered to tablet',
+        $steps[] = $this->step(6, 'Events delivered to tablet',
             $deliveredCount > 0 ? 'ok' : 'warning',
             $deliveredCount . ' event(s) delivered to the tablet for today',
             [
@@ -267,12 +303,22 @@ class DisplayDiagnosticsController extends Controller
         $anyExpired = collect($subData)->contains(fn($s) => str_contains($s['Expired'], '⚠'));
         $subStatus  = $subsCount === 0 ? 'warning' : ($anyExpired ? 'warning' : 'ok');
 
-        $steps[] = $this->step(6, 'Webhook / real-time updates',
+        $steps[] = $this->step(7, 'Webhook / real-time updates',
             $subStatus,
             $subsCount === 0
-                ? 'No active webhook subscriptions — real-time push is off, display polls every 15 min via cache'
-                : "$subsCount subscription(s) — real-time updates active",
-            $subData
+                ? 'No webhook registered — calendar changes won\'t push instantly, but the tablet still polls every 60 s'
+                : "$subsCount subscription(s) active — real-time push enabled",
+            $subsCount === 0
+                ? [
+                    'Active subscriptions'  => 0,
+                    'Real-time push'        => 'Disabled',
+                    'Device polling'        => 'Every 60 seconds — all events stay up to date',
+                    'Impact on display'     => 'None — the display works normally without webhooks',
+                ]
+                : array_merge(
+                    ['Active subscriptions' => $subsCount],
+                    ...array_map(fn($s, $i) => ["Subscription " . ($i + 1) => "{$s['ID']} · expires {$s['Expires at']}" . ($s['Expired'] !== 'No' ? ' ⚠ EXPIRED' : '')], $subData, array_keys($subData))
+                )
         );
     }
 

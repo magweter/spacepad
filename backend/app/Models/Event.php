@@ -27,6 +27,7 @@ class Event extends Model
         'timezone',
         'checked_in_at',
         'join_url',
+        'organizer_name',
     ];
 
     protected $casts = [
@@ -117,8 +118,8 @@ class Event extends Model
      */
     public function checkInRequired(): bool
     {
-        // Never require check-in for custom events
-        if ($this->isCustomEvent()) {
+        // Never require check-in for any tablet booking
+        if ($this->isTabletBooking()) {
             return false;
         }
 

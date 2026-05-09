@@ -46,8 +46,10 @@ class DisplaySettingsController extends Controller
             'calendar_enabled' => 'boolean',
             'hide_admin_actions' => 'boolean',
             'timeline_widget_enabled' => 'boolean',
+            'timeline_widget_mode' => 'nullable|in:none,side_panel,inline',
             'allow_future_bookings' => 'boolean',
             'extend_enabled' => 'boolean',
+            'show_organizer' => 'boolean',
             'check_in_minutes' => 'nullable|integer|min:1|max:60',
             'check_in_grace_period' => 'nullable|integer|min:1|max:30',
             'cancel_permission' => 'nullable|in:all,tablet_only,none',
@@ -71,10 +73,17 @@ class DisplaySettingsController extends Controller
             $request->boolean('calendar_enabled')
         );
 
-        $updated = $updated && DisplaySettings::setTimelineWidgetEnabled(
-            $display,
-            $request->boolean('timeline_widget_enabled')
-        );
+        if ($request->has('timeline_widget_mode')) {
+            $updated = $updated && DisplaySettings::setTimelineWidgetMode(
+                $display,
+                $request->input('timeline_widget_mode')
+            );
+        } else {
+            $updated = $updated && DisplaySettings::setTimelineWidgetEnabled(
+                $display,
+                $request->boolean('timeline_widget_enabled')
+            );
+        }
 
         $updated = $updated && DisplaySettings::setFutureBookingEnabled(
             $display,
@@ -123,6 +132,11 @@ class DisplaySettingsController extends Controller
         $updated = $updated && DisplaySettings::setExtendEnabled(
             $display,
             $request->boolean('extend_enabled')
+        );
+
+        $updated = $updated && DisplaySettings::setShowOrganizerEnabled(
+            $display,
+            $request->boolean('show_organizer')
         );
 
         if (!$updated) {

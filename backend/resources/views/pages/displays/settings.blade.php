@@ -130,12 +130,15 @@
                     <div class="mt-4 pt-4 border-t border-gray-100">
                         <div class="flex items-center justify-between">
                             <div>
-                                <label for="timeline_widget_enabled" class="text-sm font-medium text-gray-700">Show timeline widget</label>
-                                <p class="text-xs text-gray-500 mt-0.5">Display a vertical timeline of all today's meetings directly on the room display</p>
+                                <label for="timeline_widget_mode" class="text-sm font-medium text-gray-700">Timeline widget</label>
+                                <p class="text-xs text-gray-500 mt-0.5">Show a timeline of today's meetings on the room display</p>
                             </div>
-                            <input type="checkbox" id="timeline_widget_enabled" name="timeline_widget_enabled" value="1"
-                                   {{ \App\Helpers\DisplaySettings::isTimelineWidgetEnabled($display) ? 'checked' : '' }}
-                                   class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600">
+                            <select id="timeline_widget_mode" name="timeline_widget_mode"
+                                    class="rounded-md border-gray-300 text-sm text-gray-700 focus:ring-blue-500 focus:border-blue-500">
+                                <option value="none" {{ \App\Helpers\DisplaySettings::getTimelineWidgetMode($display) === 'none' ? 'selected' : '' }}>Disabled</option>
+                                <option value="side_panel" {{ \App\Helpers\DisplaySettings::getTimelineWidgetMode($display) === 'side_panel' ? 'selected' : '' }}>Side panel (slide-over)</option>
+                                <option value="inline" {{ \App\Helpers\DisplaySettings::getTimelineWidgetMode($display) === 'inline' ? 'selected' : '' }}>Inline (inside display)</option>
+                            </select>
                         </div>
                     </div>
                 </div>
@@ -211,6 +214,24 @@
                     </div>
                     <div class="text-sm text-gray-600">
                         <p>When enabled, users can extend an ongoing meeting by +15, +30, or +60 minutes directly from this display. For external calendar events, write permission on the connected account is required.</p>
+                    </div>
+                </div>
+
+                <!-- Organizer Settings -->
+                <div class="border border-gray-200 rounded-lg p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <h3 class="text-base font-semibold text-gray-900">Show Organizer</h3>
+                            <p class="text-sm text-gray-500">Show the meeting organizer's name on this display</p>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="checkbox" id="show_organizer" name="show_organizer" value="1"
+                                   {{ \App\Helpers\DisplaySettings::isShowOrganizerEnabled($display) ? 'checked' : '' }}
+                                   class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600">
+                        </div>
+                    </div>
+                    <div class="text-sm text-gray-600">
+                        <p>When enabled, the name of the meeting organizer is shown on the display during an active meeting. The organizer name is retrieved from the calendar event (Google, Microsoft, or CalDAV).</p>
                     </div>
                 </div>
 

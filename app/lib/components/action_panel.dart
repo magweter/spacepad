@@ -204,7 +204,7 @@ class ActionPanel extends StatelessWidget {
             children: [
               if (controller.bookingEnabled && controller.canCancelCurrentEvent)
                 ActionButton(
-                  text: 'cancel_event',
+                  text: 'end_now',
                   onPressed: isCancelling ? null : () => controller.cancelCurrentEvent(),
                   textColor: Colors.white,
                   isPhone: isPhone,
@@ -221,7 +221,7 @@ class ActionPanel extends StatelessWidget {
                 ),
               if (controller.bookingEnabled && controller.hasCustomBooking)
                 ActionButton(
-                  text: 'reserve',
+                  text: 'book',
                   onPressed: isBooking ? null : () => controller.showCustomBookingModal(context, isPhone, cornerRadius),
                   isPhone: isPhone,
                   cornerRadius: cornerRadius,

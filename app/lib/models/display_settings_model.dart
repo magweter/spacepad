@@ -21,7 +21,9 @@ class DisplaySettingsModel {
   int advertisementInterval;
   int advertisementDuration;
   bool timelineWidgetEnabled;
+  String timelineWidgetMode;
   bool extendEnabled;
+  bool showOrganizer;
 
   DisplaySettingsModel({
     required this.checkInEnabled,
@@ -46,7 +48,9 @@ class DisplaySettingsModel {
     this.advertisementInterval = 5,
     this.advertisementDuration = 15,
     this.timelineWidgetEnabled = false,
+    this.timelineWidgetMode = 'none',
     this.extendEnabled = false,
+    this.showOrganizer = false,
   });
 
   factory DisplaySettingsModel.fromJson(Map data) {
@@ -73,7 +77,9 @@ class DisplaySettingsModel {
       advertisementInterval: data['advertisement_interval'] ?? 5,
       advertisementDuration: data['advertisement_duration'] ?? 15,
       timelineWidgetEnabled: data['timeline_widget_enabled'] ?? false,
+      timelineWidgetMode: data['timeline_widget_mode'] ?? 'none',
       extendEnabled: data['extend_enabled'] ?? false,
+      showOrganizer: data['show_organizer'] ?? false,
     );
   }
 

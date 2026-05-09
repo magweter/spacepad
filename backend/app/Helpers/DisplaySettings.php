@@ -169,12 +169,29 @@ class DisplaySettings
 
     public static function isTimelineWidgetEnabled(Display $display): bool
     {
-        return self::getSetting($display, 'timeline_widget_enabled', false);
+        return self::getTimelineWidgetMode($display) !== 'none';
     }
 
     public static function setTimelineWidgetEnabled(Display $display, bool $enabled): bool
     {
-        return self::setSetting($display, 'timeline_widget_enabled', $enabled, 'boolean');
+        // Legacy shim — maps boolean to mode
+        return self::setTimelineWidgetMode($display, $enabled ? 'side_panel' : 'none');
+    }
+
+    public static function getTimelineWidgetMode(Display $display): string
+    {
+        $mode = self::getSetting($display, 'timeline_widget_mode', null);
+        if ($mode !== null) {
+            return $mode;
+        }
+        // Backward compat: migrate old boolean setting
+        $legacy = self::getSetting($display, 'timeline_widget_enabled', false);
+        return $legacy ? 'side_panel' : 'none';
+    }
+
+    public static function setTimelineWidgetMode(Display $display, string $mode): bool
+    {
+        return self::setSetting($display, 'timeline_widget_mode', $mode, 'string');
     }
 
     public static function isFutureBookingEnabled(Display $display): bool
@@ -333,5 +350,16 @@ class DisplaySettings
     public static function setExtendEnabled(Display $display, bool $enabled): bool
     {
         return self::setSetting($display, 'extend_enabled', $enabled, 'boolean');
+    }
+
+    // Show organizer toggle
+    public static function isShowOrganizerEnabled(Display $display): bool
+    {
+        return self::getSetting($display, 'show_organizer', false);
+    }
+
+    public static function setShowOrganizerEnabled(Display $display, bool $enabled): bool
+    {
+        return self::setSetting($display, 'show_organizer', $enabled, 'boolean');
     }
 }
