@@ -238,7 +238,6 @@ class OutlookService
             $error = Arr::get($response->json(), 'error.message', $response->body());
             logger()->error('Outlook fetchEventsByUser failed', [
                 'status' => $response->status(),
-                'email' => $emailAddress,
                 'error' => $error,
             ]);
             throw new \Exception("Outlook API error for $emailAddress: $error", $response->status());
@@ -565,7 +564,7 @@ class OutlookService
                 
                 logger()->error('Creating outlook subscription failed', [
                     'statuscode' => $statusCode,
-                    'response' => $responseBody,
+                    'error' => Arr::get($responseBody, 'error.message'),
                     'is_user_error' => $isUserError,
                 ]);
                 
@@ -600,8 +599,7 @@ class OutlookService
             'outlook_account_id' => $outlookAccount->id,
         ]);
 
-        // Log the creation for debugging
-        logger()->info('Outlook subscription created', ['subscription' => $responseBody]);
+        logger()->info('Outlook subscription created', ['subscription_id' => Arr::get($responseBody, 'id')]);
 
         return $eventSubscription;
     }

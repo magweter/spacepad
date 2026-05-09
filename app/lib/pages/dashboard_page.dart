@@ -131,10 +131,8 @@ class _DashboardPageState extends State<DashboardPage> {
           );
         }
 
-        final timelineMode = controller.timelineWidgetMode; // 'none' | 'side_panel' | 'inline' | 'both'
+        final timelineMode = controller.timelineWidgetMode; // 'none' | 'side_panel' | 'inline'
         final timelineEnabled = timelineMode != 'none';
-        // 'both' renders as side_panel (the toggle icon + animated panel)
-        final effectiveTimelineMode = timelineMode == 'both' ? 'side_panel' : timelineMode;
         final timelineWidth = isPhone ? 220.0 : 300.0;
         final inlineTimelineWidth = isPhone ? 260.0 : 360.0;
         final inlineTimelineMaxHeight = isPhone ? 330.0 : 484.0;
@@ -487,12 +485,12 @@ class _DashboardPageState extends State<DashboardPage> {
         );
 
         // ── none ──────────────────────────────────────────────────────────────
-        if (effectiveTimelineMode == 'none') return mainPanel;
+        if (timelineMode == 'none') return mainPanel;
 
         // ── inline ────────────────────────────────────────────────────────────
         // Timeline lives inside the main panel: header row at the top,
         // content + timeline side by side, action bar at the bottom.
-        if (effectiveTimelineMode == 'inline') {
+        if (timelineMode == 'inline') {
           final inlineChild = Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -671,6 +669,7 @@ class _DashboardPageState extends State<DashboardPage> {
                             isPhone: isPhone,
                             cornerRadius: cornerRadius,
                             frosted: true,
+                            hasBackgroundImage: controller.globalSettings.value?.backgroundImageUrl != null,
                           ),
                         ),
                       ),

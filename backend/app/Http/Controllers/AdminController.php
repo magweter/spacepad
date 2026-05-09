@@ -557,9 +557,7 @@ class AdminController extends Controller
 
             logger()->info('User account deleted by admin', [
                 'deleted_user_id' => $user->id,
-                'deleted_user_email' => $user->email,
                 'deleted_by_admin_id' => $admin->id,
-                'deleted_by_admin_email' => $admin->email,
             ]);
         });
 
@@ -598,9 +596,7 @@ class AdminController extends Controller
 
         logger()->info('Admin started impersonating user', [
             'admin_id' => $admin->id,
-            'admin_email' => $admin->email,
             'impersonated_user_id' => $user->id,
-            'impersonated_user_email' => $user->email,
         ]);
 
         return redirect()->route('dashboard')

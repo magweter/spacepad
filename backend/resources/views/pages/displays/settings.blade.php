@@ -117,33 +117,44 @@
                         <h3 class="text-base font-semibold text-gray-900">Schedule Display</h3>
                         <p class="text-sm text-gray-500">Choose how today's meeting schedule is shown on this display</p>
                     </div>
-                    <div class="space-y-3">
-                        @php $mode = \App\Helpers\DisplaySettings::getTimelineWidgetMode($display); @endphp
+                    @php $mode = \App\Helpers\DisplaySettings::getTimelineWidgetMode($display); @endphp
+                    <div class="space-y-2">
                         <label class="flex items-start gap-3 cursor-pointer">
-                            <input type="checkbox" name="timeline_side_panel" value="1"
-                                   {{ in_array($mode, ['side_panel', 'both']) ? 'checked' : '' }}
-                                   class="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600">
+                            <input type="radio" name="timeline_widget_mode" value="none"
+                                   {{ $mode === 'none' ? 'checked' : '' }}
+                                   class="mt-0.5 h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-600">
+                            <div>
+                                <span class="text-sm font-medium text-gray-900">Disabled</span>
+                                <p class="text-xs text-gray-500">No timeline shown on the display</p>
+                            </div>
+                        </label>
+                        <label class="flex items-start gap-3 cursor-pointer">
+                            <input type="radio" name="timeline_widget_mode" value="side_panel"
+                                   {{ $mode === 'side_panel' ? 'checked' : '' }}
+                                   class="mt-0.5 h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-600">
                             <div>
                                 <span class="text-sm font-medium text-gray-900">Side panel</span>
                                 <p class="text-xs text-gray-500">A slide-over panel that opens when users tap the calendar icon</p>
                             </div>
                         </label>
                         <label class="flex items-start gap-3 cursor-pointer">
-                            <input type="checkbox" name="timeline_inline" value="1"
-                                   {{ in_array($mode, ['inline', 'both']) ? 'checked' : '' }}
-                                   class="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600">
+                            <input type="radio" name="timeline_widget_mode" value="inline"
+                                   {{ $mode === 'inline' ? 'checked' : '' }}
+                                   class="mt-0.5 h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-600">
                             <div>
                                 <span class="text-sm font-medium text-gray-900">Inline</span>
                                 <p class="text-xs text-gray-500">An always-visible timeline embedded within the display</p>
                             </div>
                         </label>
+                    </div>
+                    <div class="mt-4 pt-4 border-t border-gray-100">
                         <label class="flex items-start gap-3 cursor-pointer">
                             <input type="checkbox" name="view_schedule" value="1"
                                    {{ \App\Helpers\DisplaySettings::isCalendarEnabled($display) ? 'checked' : '' }}
                                    class="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600">
                             <div>
                                 <span class="text-sm font-medium text-gray-900">View schedule button</span>
-                                <p class="text-xs text-gray-500">A button in the bottom bar that opens today's full schedule in an overlay</p>
+                                <p class="text-xs text-gray-500">A button in the bottom bar that opens today's full schedule in an overlay. Can be combined with the options above.</p>
                             </div>
                         </label>
                     </div>

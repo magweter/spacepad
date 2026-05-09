@@ -18,6 +18,7 @@ class DayTimelineWidget extends StatefulWidget {
   final bool isPhone;
   final double cornerRadius;
   final bool frosted;
+  final bool hasBackgroundImage;
 
   const DayTimelineWidget({
     super.key,
@@ -25,6 +26,7 @@ class DayTimelineWidget extends StatefulWidget {
     required this.isPhone,
     required this.cornerRadius,
     this.frosted = false,
+    this.hasBackgroundImage = false,
   });
 
   @override
@@ -182,7 +184,9 @@ class _DayTimelineWidgetState extends State<DayTimelineWidget> {
     return FrostedPanel(
       borderRadius: widget.cornerRadius,
       blurIntensity: widget.frosted ? 18 : 0,
-      backgroundColor: widget.frosted ? const Color(0x14FFFFFF) : const Color(0xFF1C1C1C),
+      backgroundColor: widget.frosted
+          ? (widget.hasBackgroundImage ? const Color(0x33FFFFFF) : const Color(0x14FFFFFF))
+          : const Color(0xFF1C1C1C),
       padding: EdgeInsets.all(widget.isPhone ? 10 : 14),
       child: Column(
         children: [
@@ -354,6 +358,10 @@ class _DayTimelineWidgetState extends State<DayTimelineWidget> {
     double fontSize,
   ) {
     if (events.isEmpty) return [];
+
+    final dayStart = DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day);
+    final dayEnd = dayStart.add(const Duration(days: 1));
+
     final widgets = <Widget>[];
     final groups = _groupOverlappingEvents(events);
 
@@ -361,8 +369,18 @@ class _DayTimelineWidgetState extends State<DayTimelineWidget> {
       final colCount = group.length;
       for (int i = 0; i < group.length; i++) {
         final event = group[i];
-        final startMin = event.start.hour * 60 + event.start.minute;
-        final endMin = event.end.hour * 60 + event.end.minute;
+
+        // Clamp event boundaries to the visible day so cross-midnight events
+        // are rendered correctly (e.g. a 23:00–01:00 event shows as a block
+        // from 23:00→24:00 on day 1 and 00:00→01:00 on day 2).
+        final effectiveStart = event.start.isBefore(dayStart) ? dayStart : event.start;
+        final effectiveEnd = event.end.isAfter(dayEnd) ? dayEnd : event.end;
+
+        // Skip events that don't actually overlap this day.
+        if (!effectiveStart.isBefore(effectiveEnd)) continue;
+
+        final startMin = effectiveStart.difference(dayStart).inMinutes;
+        final endMin = effectiveEnd.difference(dayStart).inMinutes;
         final topY = _minutesToOffset(startMin);
         final bottomY = _minutesToOffset(endMin);
         final blockHeight = (bottomY - topY).clamp(16.0, double.infinity);
@@ -450,19 +468,18 @@ class _EventBlock extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Flexible(
-              child: Text(
-                event.summary,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: fontSize - 2,
-                  fontWeight: FontWeight.w600,
-                  height: 1.2,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+            Text(
+              event.summary,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: fontSize - 2,
+                fontWeight: FontWeight.w600,
+                height: 1.2,
               ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
             if (durationMinutes >= 30) ...[
               const SizedBox(height: 1),

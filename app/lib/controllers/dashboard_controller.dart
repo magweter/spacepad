@@ -13,7 +13,6 @@ import 'package:spacepad/pages/display_page.dart';
 import 'package:spacepad/models/device_model.dart';
 import 'package:spacepad/models/display_model.dart';
 import 'package:spacepad/models/display_settings_model.dart';
-import 'package:spacepad/services/font_service.dart';
 import 'package:flutter/material.dart';
 import 'package:spacepad/components/custom_booking_modal.dart';
 
@@ -63,9 +62,6 @@ class DashboardController extends GetxController {
 
     initializeTimers();
     await fetchDisplayData();
-    
-    // Preload fonts for better performance
-    await FontService.instance.preloadFonts();
 
     loading.value = false;
   }
@@ -297,9 +293,6 @@ class DashboardController extends GetxController {
         final newFontFamily = globalSettings.value?.fontFamily ?? 'Inter';
         if (currentFontFamily.value != newFontFamily) {
           currentFontFamily.value = newFontFamily;
-
-          // Reload the font when settings change
-          await FontService.instance.reloadFont(newFontFamily);
         }
 
         // (Re-)start advertisement timers when settings are refreshed

@@ -44,8 +44,7 @@ class DisplaySettingsController extends Controller
             'check_in_enabled' => 'boolean',
             'booking_enabled' => 'boolean',
             'hide_admin_actions' => 'boolean',
-            'timeline_side_panel' => 'boolean',
-            'timeline_inline' => 'boolean',
+            'timeline_widget_mode' => 'nullable|in:none,side_panel,inline',
             'view_schedule' => 'boolean',
             'allow_future_bookings' => 'boolean',
             'extend_enabled' => 'boolean',
@@ -68,18 +67,10 @@ class DisplaySettingsController extends Controller
             $request->boolean('booking_enabled')
         );
 
-        $sidePanel = $request->boolean('timeline_side_panel');
-        $inline = $request->boolean('timeline_inline');
-        if ($sidePanel && $inline) {
-            $mode = 'both';
-        } elseif ($sidePanel) {
-            $mode = 'side_panel';
-        } elseif ($inline) {
-            $mode = 'inline';
-        } else {
-            $mode = 'none';
-        }
-        $updated = $updated && DisplaySettings::setTimelineWidgetMode($display, $mode);
+        $updated = $updated && DisplaySettings::setTimelineWidgetMode(
+            $display,
+            $request->input('timeline_widget_mode', 'none')
+        );
 
         $updated = $updated && DisplaySettings::setCalendarEnabled(
             $display,

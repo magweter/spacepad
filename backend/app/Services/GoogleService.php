@@ -51,7 +51,6 @@ class GoogleService
             throw new Exception('Error authenticating with Google: ' . Arr::get($accessToken, 'error'));
         }
 
-        logger()->info('Received Google access token:', $accessToken);
 
         $this->client->setAccessToken($accessToken['access_token']);
 
@@ -456,8 +455,7 @@ class GoogleService
                 'google_account_id' => $googleAccount->id,
             ]);
 
-            // Log the creation for debugging
-            logger()->info('Google subscription created', ['subscription' => $response]);
+            logger()->info('Google subscription created', ['subscription_id' => $response->id ?? null]);
 
             return $eventSubscription;
         } catch (Exception $e) {
