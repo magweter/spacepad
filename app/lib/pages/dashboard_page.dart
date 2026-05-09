@@ -82,9 +82,9 @@ class _DashboardPageState extends State<DashboardPage> {
           margin: EdgeInsets.only(top: isPhone ? 2.0 : 4.0),
           padding: EdgeInsets.symmetric(horizontal: isPhone ? 8 : 10, vertical: isPhone ? 4 : 5),
           decoration: BoxDecoration(
-            color: const Color(0xFFFBBF24).withValues(alpha: 0.15),
+            color: const Color(0xFFFBBF24).withOpacity(0.15),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: const Color(0xFFFBBF24).withValues(alpha: 0.5), width: 1),
+            border: Border.all(color: const Color(0xFFFBBF24).withOpacity(0.5), width: 1),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -131,8 +131,10 @@ class _DashboardPageState extends State<DashboardPage> {
           );
         }
 
-        final timelineMode = controller.timelineWidgetMode; // 'none' | 'side_panel' | 'inline'
+        final timelineMode = controller.timelineWidgetMode; // 'none' | 'side_panel' | 'inline' | 'both'
         final timelineEnabled = timelineMode != 'none';
+        // 'both' renders as side_panel (the toggle icon + animated panel)
+        final effectiveTimelineMode = timelineMode == 'both' ? 'side_panel' : timelineMode;
         final timelineWidth = isPhone ? 220.0 : 300.0;
         final inlineTimelineWidth = isPhone ? 260.0 : 360.0;
         final inlineTimelineMaxHeight = isPhone ? 330.0 : 484.0;
@@ -433,18 +435,22 @@ class _DashboardPageState extends State<DashboardPage> {
                       Positioned(
                         top: 12,
                         right: 12,
-                        child: GestureDetector(
-                          onTap: controller.dismissAdvertisement,
-                          child: Container(
-                            decoration: const BoxDecoration(
-                              color: Colors.black54,
-                              shape: BoxShape.circle,
-                            ),
-                            padding: const EdgeInsets.all(6),
-                            child: const Icon(
-                              Icons.close,
-                              color: Colors.white,
-                              size: 20,
+                        child: Semantics(
+                          label: 'dismiss_advertisement'.tr,
+                          button: true,
+                          child: GestureDetector(
+                            onTap: controller.dismissAdvertisement,
+                            child: Container(
+                              decoration: const BoxDecoration(
+                                color: Colors.black54,
+                                shape: BoxShape.circle,
+                              ),
+                              padding: const EdgeInsets.all(6),
+                              child: const Icon(
+                                Icons.close,
+                                color: Colors.white,
+                                size: 20,
+                              ),
                             ),
                           ),
                         ),
@@ -481,12 +487,12 @@ class _DashboardPageState extends State<DashboardPage> {
         );
 
         // ── none ──────────────────────────────────────────────────────────────
-        if (timelineMode == 'none') return mainPanel;
+        if (effectiveTimelineMode == 'none') return mainPanel;
 
         // ── inline ────────────────────────────────────────────────────────────
         // Timeline lives inside the main panel: header row at the top,
         // content + timeline side by side, action bar at the bottom.
-        if (timelineMode == 'inline') {
+        if (effectiveTimelineMode == 'inline') {
           final inlineChild = Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [

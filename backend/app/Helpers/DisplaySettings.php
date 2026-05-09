@@ -159,12 +159,14 @@ class DisplaySettings
 
     public static function isCalendarEnabled(Display $display): bool
     {
-        return self::getSetting($display, 'calendar_enabled', false);
+        // Backward compat: also true if old mode-based view_schedule is stored
+        return self::getSetting($display, 'view_schedule', false)
+            || self::getSetting($display, 'timeline_widget_mode', null) === 'view_schedule';
     }
 
     public static function setCalendarEnabled(Display $display, bool $enabled): bool
     {
-        return self::setSetting($display, 'calendar_enabled', $enabled, 'boolean');
+        return self::setSetting($display, 'view_schedule', $enabled, 'boolean');
     }
 
     public static function isTimelineWidgetEnabled(Display $display): bool
@@ -181,8 +183,12 @@ class DisplaySettings
     public static function getTimelineWidgetMode(Display $display): string
     {
         $mode = self::getSetting($display, 'timeline_widget_mode', null);
-        if ($mode !== null) {
+        if ($mode !== null && $mode !== 'view_schedule') {
             return $mode;
+        }
+        // view_schedule was a former mode value — treat as no timeline widget
+        if ($mode === 'view_schedule') {
+            return 'none';
         }
         // Backward compat: migrate old boolean setting
         $legacy = self::getSetting($display, 'timeline_widget_enabled', false);

@@ -864,13 +864,16 @@ class EventService
             return null;
         }
 
+        // Decode HTML entities so &amp; becomes & before matching URLs
+        $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
         $patterns = [
             // Microsoft Teams
-            'https://teams\.microsoft\.com/l/meetup-join/[^\s<>"\'&]+',
+            'https://teams\.microsoft\.com/l/meetup-join/[^\s<>"\']+',
             // Microsoft Teams (short link / webinar)
-            'https://teams\.live\.com/meet/[^\s<>"\'&]+',
+            'https://teams\.live\.com/meet/[^\s<>"\']+',
             // Zoom
-            'https://[a-z0-9]+\.zoom\.us/j/[^\s<>"\'&]+',
+            'https://[a-z0-9]+\.zoom\.us/j/[^\s<>"\']+',
             // Google Meet
             'https://meet\.google\.com/[a-z\-]+',
         ];

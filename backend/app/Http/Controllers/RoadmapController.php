@@ -7,6 +7,7 @@ use App\Models\RoadmapVote;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
 class RoadmapController extends Controller
@@ -63,7 +64,11 @@ class RoadmapController extends Controller
                 ->subject("Spacepad request — {$validated['suggestion_title']}")
                 ->replyTo($user->email, $user->name)
             );
-        } catch (\Exception) {
+        } catch (\Exception $e) {
+            Log::error('Failed to send suggestion email', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
         }
 
         return back()->with('suggestion_sent', true);

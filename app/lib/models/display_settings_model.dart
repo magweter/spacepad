@@ -100,6 +100,16 @@ class DisplaySettingsModel {
       'logo_url': logoUrl,
       'background_image_url': backgroundImageUrl,
       'font_family': fontFamily,
+      'cancel_permission': cancelPermission,
+      'border_thickness': borderThickness,
+      'advertisement_enabled': advertisementEnabled,
+      'advertisement_image_url': advertisementImageUrl,
+      'advertisement_interval': advertisementInterval,
+      'advertisement_duration': advertisementDuration,
+      'timeline_widget_enabled': timelineWidgetEnabled,
+      'timeline_widget_mode': timelineWidgetMode,
+      'extend_enabled': extendEnabled,
+      'show_organizer': showOrganizer,
     };
   }
 } 

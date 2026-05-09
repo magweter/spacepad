@@ -15,6 +15,7 @@ return new class extends Migration
             $table->unsignedInteger('retry_count')->default(0)->after('notification_url');
             $table->timestamp('last_retry_at')->nullable()->after('retry_count');
             $table->timestamp('next_retry_at')->nullable()->after('last_retry_at');
+            $table->index('next_retry_at');
         });
     }
 
@@ -24,6 +25,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('event_subscriptions', function (Blueprint $table) {
+            $table->dropIndex(['next_retry_at']);
             $table->dropColumn(['retry_count', 'last_retry_at', 'next_retry_at']);
         });
     }

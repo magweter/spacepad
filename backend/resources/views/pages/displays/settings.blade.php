@@ -111,35 +111,41 @@
                     </div>
                 </div>
 
-                <!-- Calendar Settings -->
+                <!-- Schedule Display Settings -->
                 <div class="border border-gray-200 rounded-lg p-6">
-                    <div class="flex items-center justify-between mb-4">
-                        <div>
-                            <h3 class="text-base font-semibold text-gray-900">Calendar Settings</h3>
-                            <p class="text-sm text-gray-500">Allow users to view today's schedule on this display</p>
-                        </div>
-                        <div class="flex items-center">
-                            <input type="checkbox" id="calendar_enabled" name="calendar_enabled" value="1"
-                                   {{ $display->isCalendarEnabled() ? 'checked' : '' }}
-                                   class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600">
-                        </div>
+                    <div class="mb-4">
+                        <h3 class="text-base font-semibold text-gray-900">Schedule Display</h3>
+                        <p class="text-sm text-gray-500">Choose how today's meeting schedule is shown on this display</p>
                     </div>
-                    <div class="text-sm text-gray-600">
-                        <p>When enabled, users can view today's schedule in a calendar view directly from this display. This allows users to see all meetings scheduled for the day.</p>
-                    </div>
-                    <div class="mt-4 pt-4 border-t border-gray-100">
-                        <div class="flex items-center justify-between">
+                    <div class="space-y-3">
+                        @php $mode = \App\Helpers\DisplaySettings::getTimelineWidgetMode($display); @endphp
+                        <label class="flex items-start gap-3 cursor-pointer">
+                            <input type="checkbox" name="timeline_side_panel" value="1"
+                                   {{ in_array($mode, ['side_panel', 'both']) ? 'checked' : '' }}
+                                   class="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600">
                             <div>
-                                <label for="timeline_widget_mode" class="text-sm font-medium text-gray-700">Timeline widget</label>
-                                <p class="text-xs text-gray-500 mt-0.5">Show a timeline of today's meetings on the room display</p>
+                                <span class="text-sm font-medium text-gray-900">Side panel</span>
+                                <p class="text-xs text-gray-500">A slide-over panel that opens when users tap the calendar icon</p>
                             </div>
-                            <select id="timeline_widget_mode" name="timeline_widget_mode"
-                                    class="rounded-md border-gray-300 text-sm text-gray-700 focus:ring-blue-500 focus:border-blue-500">
-                                <option value="none" {{ \App\Helpers\DisplaySettings::getTimelineWidgetMode($display) === 'none' ? 'selected' : '' }}>Disabled</option>
-                                <option value="side_panel" {{ \App\Helpers\DisplaySettings::getTimelineWidgetMode($display) === 'side_panel' ? 'selected' : '' }}>Side panel (slide-over)</option>
-                                <option value="inline" {{ \App\Helpers\DisplaySettings::getTimelineWidgetMode($display) === 'inline' ? 'selected' : '' }}>Inline (inside display)</option>
-                            </select>
-                        </div>
+                        </label>
+                        <label class="flex items-start gap-3 cursor-pointer">
+                            <input type="checkbox" name="timeline_inline" value="1"
+                                   {{ in_array($mode, ['inline', 'both']) ? 'checked' : '' }}
+                                   class="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600">
+                            <div>
+                                <span class="text-sm font-medium text-gray-900">Inline</span>
+                                <p class="text-xs text-gray-500">An always-visible timeline embedded within the display</p>
+                            </div>
+                        </label>
+                        <label class="flex items-start gap-3 cursor-pointer">
+                            <input type="checkbox" name="view_schedule" value="1"
+                                   {{ \App\Helpers\DisplaySettings::isCalendarEnabled($display) ? 'checked' : '' }}
+                                   class="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600">
+                            <div>
+                                <span class="text-sm font-medium text-gray-900">View schedule button</span>
+                                <p class="text-xs text-gray-500">A button in the bottom bar that opens today's full schedule in an overlay</p>
+                            </div>
+                        </label>
                     </div>
                 </div>
 

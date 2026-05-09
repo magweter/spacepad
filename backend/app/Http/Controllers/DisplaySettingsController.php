@@ -43,10 +43,10 @@ class DisplaySettingsController extends Controller
         $request->validate([
             'check_in_enabled' => 'boolean',
             'booking_enabled' => 'boolean',
-            'calendar_enabled' => 'boolean',
             'hide_admin_actions' => 'boolean',
-            'timeline_widget_enabled' => 'boolean',
-            'timeline_widget_mode' => 'nullable|in:none,side_panel,inline',
+            'timeline_side_panel' => 'boolean',
+            'timeline_inline' => 'boolean',
+            'view_schedule' => 'boolean',
             'allow_future_bookings' => 'boolean',
             'extend_enabled' => 'boolean',
             'show_organizer' => 'boolean',
@@ -68,22 +68,23 @@ class DisplaySettingsController extends Controller
             $request->boolean('booking_enabled')
         );
 
+        $sidePanel = $request->boolean('timeline_side_panel');
+        $inline = $request->boolean('timeline_inline');
+        if ($sidePanel && $inline) {
+            $mode = 'both';
+        } elseif ($sidePanel) {
+            $mode = 'side_panel';
+        } elseif ($inline) {
+            $mode = 'inline';
+        } else {
+            $mode = 'none';
+        }
+        $updated = $updated && DisplaySettings::setTimelineWidgetMode($display, $mode);
+
         $updated = $updated && DisplaySettings::setCalendarEnabled(
             $display,
-            $request->boolean('calendar_enabled')
+            $request->boolean('view_schedule')
         );
-
-        if ($request->has('timeline_widget_mode')) {
-            $updated = $updated && DisplaySettings::setTimelineWidgetMode(
-                $display,
-                $request->input('timeline_widget_mode')
-            );
-        } else {
-            $updated = $updated && DisplaySettings::setTimelineWidgetEnabled(
-                $display,
-                $request->boolean('timeline_widget_enabled')
-            );
-        }
 
         $updated = $updated && DisplaySettings::setFutureBookingEnabled(
             $display,
@@ -252,6 +253,18 @@ class DisplaySettingsController extends Controller
 
         // Handle advertisement enabled toggle
         $updated = $updated && DisplaySettings::setAdvertisementEnabled($display, $request->boolean('advertisement_enabled'));
+
+        // Gate advertisement content fields behind the feature flag
+        if (
+            $request->hasFile('advertisement_image') ||
+            $request->boolean('remove_advertisement_image') ||
+            $request->filled('advertisement_interval') ||
+            $request->filled('advertisement_duration')
+        ) {
+            if (!auth()->user()->hasAdvertisementFeature()) {
+                abort(403, 'Advertisement feature is not enabled for your account.');
+            }
+        }
 
         // Handle advertisement image upload/removal
         if ($request->boolean('remove_advertisement_image')) {

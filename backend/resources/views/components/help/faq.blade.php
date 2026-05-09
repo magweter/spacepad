@@ -200,6 +200,10 @@ $roadmapItems = \App\Models\RoadmapItem::approved()
                 this.openId = this.openId === id ? null : id;
             },
             vote(item) {
+                if (item.isVoting) return;
+                const csrf = document.querySelector('meta[name="csrf-token"]')?.content;
+                if (!csrf) return;
+                item.isVoting = true;
                 const wasVoted = item.voted;
                 item.voted = !wasVoted;
                 item.votesCount += wasVoted ? -1 : 1;
@@ -207,7 +211,7 @@ $roadmapItems = \App\Models\RoadmapItem::approved()
                 fetch(voteUrl, {
                     method: 'POST',
                     headers: {
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'X-CSRF-TOKEN': csrf,
                         'Accept': 'application/json',
                         'X-Requested-With': 'XMLHttpRequest',
                     },
@@ -220,10 +224,12 @@ $roadmapItems = \App\Models\RoadmapItem::approved()
                 .then(data => {
                     item.voted = data.voted;
                     item.votesCount = data.votes_count;
+                    item.isVoting = false;
                 })
                 .catch(() => {
                     item.voted = wasVoted;
                     item.votesCount += wasVoted ? 1 : -1;
+                    item.isVoting = false;
                 });
             },
             close() {

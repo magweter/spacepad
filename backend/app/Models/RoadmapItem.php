@@ -45,13 +45,12 @@ class RoadmapItem extends Model
 
     public function scopeOrdered($query)
     {
-        return $query->orderByRaw("
-            CASE status
-                WHEN 'building'    THEN 0
-                WHEN 'planned'     THEN 1
-                WHEN 'considering' THEN 2
-                WHEN 'shipped'     THEN 3
-            END
-        ")->orderBy('sort_order')->orderBy('created_at');
+        $when = collect(RoadmapStatus::cases())
+            ->map(fn($s) => "WHEN '{$s->value}' THEN {$s->sortPriority()}")
+            ->implode(' ');
+
+        return $query->orderByRaw("CASE status {$when} END")
+            ->orderBy('sort_order')
+            ->orderBy('created_at');
     }
 }

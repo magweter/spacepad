@@ -306,14 +306,29 @@ class GoogleService
     ): void {
         $bookingMethod = $googleAccount->booking_method ?? GoogleBookingMethod::USER_ACCOUNT;
 
-        $this->ensureAuthenticated($googleAccount);
-        $calendarService = new GoogleCalendar($this->client);
-
         $patch = new GoogleEvent();
         $endDateTime = new \Google\Service\Calendar\EventDateTime();
         $endDateTime->setDateTime($newEnd->toRfc3339String());
         $endDateTime->setTimeZone('UTC');
         $patch->setEnd($endDateTime);
+
+        // For workspace accounts with room resources and service account booking method, patch directly on room calendar
+        if ($calendar->room && $googleAccount->isBusiness() &&
+            $bookingMethod === GoogleBookingMethod::SERVICE_ACCOUNT &&
+            $googleAccount->service_account_file_path) {
+            $client = $this->getServiceAccountClient($googleAccount);
+            $calendarService = new GoogleCalendar($client);
+            try {
+                $calendarService->events->patch($calendar->calendar_id, $eventId, $patch, ['sendUpdates' => 'none']);
+            } catch (\Exception $e) {
+                throw new Exception('Failed to update Google event end time: ' . $e->getMessage());
+            }
+            return;
+        }
+
+        // Fall back to user OAuth method
+        $this->ensureAuthenticated($googleAccount);
+        $calendarService = new GoogleCalendar($this->client);
 
         $calendarId = $calendar->room ? 'primary' : $calendar->calendar_id;
 

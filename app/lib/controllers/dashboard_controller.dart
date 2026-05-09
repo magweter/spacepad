@@ -82,22 +82,42 @@ class DashboardController extends GetxController {
   }
 
   void startAdvertisementTimers() {
-    _advertisementIntervalTimer?.cancel();
     // Do not cancel _advertisementDismissTimer here — it may be actively
-    // counting down while the ad is visible, and fetchDisplayData() calls
-    // this method every 60 seconds which would otherwise kill the timer.
+    // counting down while the ad is visible.
 
     final settings = globalSettings.value;
     if (settings?.advertisementEnabled != true) {
       showAdvertisement.value = false;
       _advertisementDismissTimer?.cancel();
+      _advertisementIntervalTimer?.cancel();
+      _advertisementIntervalTimer = null;
+      _lastAdUrl = null;
+      _lastAdInterval = null;
       return;
     }
 
     final adUrl = settings?.advertisementImageUrl;
-    if (adUrl == null) return;
+    if (adUrl == null) {
+      _advertisementIntervalTimer?.cancel();
+      _advertisementIntervalTimer = null;
+      _lastAdUrl = null;
+      _lastAdInterval = null;
+      return;
+    }
 
     final intervalMinutes = settings?.advertisementInterval ?? 5;
+
+    // Only recreate the timer when settings actually change to prevent
+    // fetchDisplayData() (called every 60s) from resetting it before it fires.
+    if (_advertisementIntervalTimer != null &&
+        _lastAdUrl == adUrl &&
+        _lastAdInterval == intervalMinutes) {
+      return;
+    }
+
+    _advertisementIntervalTimer?.cancel();
+    _lastAdUrl = adUrl;
+    _lastAdInterval = intervalMinutes;
 
     _advertisementIntervalTimer = Timer.periodic(
       Duration(minutes: intervalMinutes),
@@ -262,7 +282,7 @@ class DashboardController extends GetxController {
     return nextEvents;
   }
 
-  Future<void> fetchDisplayData() async {
+  Future<bool> fetchDisplayData() async {
     try {
       DisplayDataModel displayData = await DisplayService.instance.getDisplayData(displayId.value);
 
@@ -301,10 +321,12 @@ class DashboardController extends GetxController {
       isOffline.value = false;
       isServerUnreachable.value = false;
       _lastSuccessfulFetchAt = DateTime.now();
+      return true;
     } catch (e) {
       isDataStale.value = true;
       isOffline.value = _isNoInternetError(e);
       isServerUnreachable.value = !_isNoInternetError(e) && _isConnectivityError(e);
+      return false;
     }
   }
 
@@ -333,20 +355,11 @@ class DashboardController extends GetxController {
     isRefreshing.value = true;
     _lastRefreshTime = DateTime.now();
 
-    try {
-      await fetchDisplayData();
+    final success = await fetchDisplayData();
+    if (success) {
       Toast.showSuccess('display_data_refreshed'.tr);
-    } catch (e) {
-      if (_isConnectivityError(e)) {
-        Toast.showError('no_internet_connection'.tr);
-      } else if (e is ApiException) {
-        Toast.showError('could_not_load_data'.tr);
-      } else {
-        Toast.showError('could_not_load_data'.tr);
-      }
-    } finally {
-      isRefreshing.value = false;
     }
+    isRefreshing.value = false;
   }
 
   Future<void> bookRoom(int duration) async {
@@ -585,6 +598,8 @@ class DashboardController extends GetxController {
   final RxBool showAdvertisement = RxBool(false);
   Timer? _advertisementIntervalTimer;
   Timer? _advertisementDismissTimer;
+  String? _lastAdUrl;
+  int? _lastAdInterval;
 
   // Show booking options with 30-second timeout
   void toggleBookingOptions() {

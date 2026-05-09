@@ -3,7 +3,7 @@
 <div x-data="{
         show: {{ session('needs_admin_consent') ? 'true' : 'false' }},
         copied: false,
-        consentUrl: '{{ $consentUrl }}',
+        consentUrl: @js($consentUrl),
         copy() {
             navigator.clipboard.writeText(this.consentUrl);
             this.copied = true;

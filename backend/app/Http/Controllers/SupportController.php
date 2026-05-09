@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\SupportMessage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
 class SupportController extends Controller
@@ -32,8 +33,12 @@ class SupportController extends Controller
                     ->subject("Spacepad question — {$user->name}")
                     ->replyTo($user->email, $user->name)
             );
-        } catch (\Exception) {
+        } catch (\Exception $e) {
             // Email failure doesn't block the user; message is stored in DB
+            Log::error('Failed to send support email', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
         }
 
         return back()->with('support_sent', true);

@@ -75,19 +75,30 @@ class RenewEventSubscriptions extends Command
             ->get();
 
         logger()->info('Retrying ' . $retrySubscriptions->count() . ' failed subscriptions');
+        $retrySuccessCount = 0;
+        $retryFailCount = 0;
+
         foreach ($retrySubscriptions as $retrySubscription) {
             $display = $retrySubscription->display;
 
             // Retry Outlook event subscription
             if ($retrySubscription->outlookAccount) {
-                $this->retryOutlookEventSubscription($retrySubscription->outlookAccount, $display, $retrySubscription, $outlookService);
+                $this->retryOutlookEventSubscription($retrySubscription->outlookAccount, $display, $retrySubscription, $outlookService)
+                    ? $retrySuccessCount++ : $retryFailCount++;
             }
 
             // Retry Google event subscription
             if ($retrySubscription->googleAccount) {
-                $this->retryGoogleEventSubscription($retrySubscription->googleAccount, $display, $retrySubscription, $googleService);
+                $this->retryGoogleEventSubscription($retrySubscription->googleAccount, $display, $retrySubscription, $googleService)
+                    ? $retrySuccessCount++ : $retryFailCount++;
             }
         }
+
+        logger()->info('Retry phase complete', [
+            'total' => $retrySubscriptions->count(),
+            'success' => $retrySuccessCount,
+            'failed' => $retryFailCount,
+        ]);
 
         // Create new subscriptions for displays without any
         $newDisplays = Display::with(['calendar.room', 'calendar.outlookAccount', 'calendar.googleAccount'])
@@ -197,9 +208,14 @@ class RenewEventSubscriptions extends Command
      */
     private function createOutlookEventSubscription(OutlookAccount $outlookAccount, Display $display, OutlookService $outlookService): void
     {
-        try {
-            $calendar = $display->calendar;
+        $calendar = $display->calendar;
 
+        if (!$calendar) {
+            logger()->warning('Display has no calendar, skipping Outlook subscription creation', ['display_id' => $display->id]);
+            return;
+        }
+
+        try {
             if ($calendar->room) {
                 $eventSubscription = $outlookService->createEventSubscriptionByUser($outlookAccount, $display, $calendar->calendar_id);
             } else {
@@ -251,9 +267,14 @@ class RenewEventSubscriptions extends Command
      */
     private function createGoogleEventSubscription(GoogleAccount $googleAccount, Display $display, GoogleService $googleService): void
     {
-        try {
-            $calendar = $display->calendar;
+        $calendar = $display->calendar;
 
+        if (!$calendar) {
+            logger()->warning('Display has no calendar, skipping Google subscription creation', ['display_id' => $display->id]);
+            return;
+        }
+
+        try {
             // Prevent resources and groups from creating a push notification, as it is not supported by Google (pushNotSupportedForRequestedResource)
             if ($calendar->room || Str::contains($calendar->calendar_id, ['group.calendar.google.com', 'resource.calendar.google.com'])) {
                 return;
@@ -306,8 +327,15 @@ class RenewEventSubscriptions extends Command
         Display $display,
         EventSubscription $subscription,
         OutlookService $outlookService
-    ): void {
+    ): bool {
         $calendar = $display->calendar;
+
+        if (!$calendar) {
+            logger()->warning('Display has no calendar, deleting orphan Outlook subscription', ['display_id' => $display->id]);
+            $subscription->delete();
+            return false;
+        }
+
         $retryCount = $subscription->retry_count;
 
         try {
@@ -326,7 +354,18 @@ class RenewEventSubscriptions extends Command
                     'display_id' => $display->id,
                     'retry_count' => $retryCount + 1,
                 ]);
+
+                return true;
             }
+
+            // Service returned null without throwing — treat as retryable failure
+            $subscription->incrementRetry();
+
+            logger()->warning('Outlook subscription retry returned null, will retry again', [
+                'display_id' => $display->id,
+                'retry_count' => $subscription->retry_count,
+                'next_retry' => $subscription->next_retry_at,
+            ]);
         } catch (\Exception $e) {
             // Increment retry and reschedule (will keep trying every 60 minutes indefinitely)
             $subscription->incrementRetry();
@@ -341,6 +380,8 @@ class RenewEventSubscriptions extends Command
             // Report to Sentry for tracking
             report($e);
         }
+
+        return false;
     }
 
     /**
@@ -351,8 +392,15 @@ class RenewEventSubscriptions extends Command
         Display $display,
         EventSubscription $subscription,
         GoogleService $googleService
-    ): void {
+    ): bool {
         $calendar = $display->calendar;
+
+        if (!$calendar) {
+            logger()->warning('Display has no calendar, deleting orphan Google subscription', ['display_id' => $display->id]);
+            $subscription->delete();
+            return false;
+        }
+
         $retryCount = $subscription->retry_count;
 
         try {
@@ -367,7 +415,18 @@ class RenewEventSubscriptions extends Command
                     'display_id' => $display->id,
                     'retry_count' => $retryCount + 1,
                 ]);
+
+                return true;
             }
+
+            // Service returned null without throwing — treat as retryable failure
+            $subscription->incrementRetry();
+
+            logger()->warning('Google subscription retry returned null, will retry again', [
+                'display_id' => $display->id,
+                'retry_count' => $subscription->retry_count,
+                'next_retry' => $subscription->next_retry_at,
+            ]);
         } catch (\Exception $e) {
             // Increment retry and reschedule (will keep trying every 60 minutes indefinitely)
             $subscription->incrementRetry();
@@ -382,5 +441,7 @@ class RenewEventSubscriptions extends Command
             // Report to Sentry for tracking
             report($e);
         }
+
+        return false;
     }
 }
