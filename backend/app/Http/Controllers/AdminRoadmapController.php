@@ -7,10 +7,19 @@ use App\Models\RoadmapItem;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class AdminRoadmapController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware(function ($request, $next) {
+            $this->checkAccess();
+            return $next($request);
+        });
+    }
+
     private function checkAccess(): void
     {
         $user = Auth::user();
@@ -21,8 +30,6 @@ class AdminRoadmapController extends Controller
 
     public function index(): View
     {
-        $this->checkAccess();
-
         $items = RoadmapItem::withCount('votes')
             ->with('submittedBy')
             ->orderBy('is_approved')
@@ -34,19 +41,17 @@ class AdminRoadmapController extends Controller
 
     public function create(): View
     {
-        $this->checkAccess();
         $statuses = RoadmapStatus::cases();
-        return view('pages.admin.roadmap.form', compact('statuses'));
+        $defaultStatus = RoadmapStatus::Considering->value;
+        return view('pages.admin.roadmap.form', compact('statuses', 'defaultStatus'));
     }
 
     public function store(Request $request): RedirectResponse
     {
-        $this->checkAccess();
-
         $validated = $request->validate([
             'title'       => 'required|string|max:150',
             'description' => 'nullable|string|max:2000',
-            'status'      => 'required|in:considering,planned,building,shipped',
+            'status'      => ['required', Rule::enum(RoadmapStatus::class)],
             'expected_at' => 'nullable|date',
             'sort_order'  => 'nullable|integer|min:0',
         ]);
@@ -58,19 +63,17 @@ class AdminRoadmapController extends Controller
 
     public function edit(RoadmapItem $roadmapItem): View
     {
-        $this->checkAccess();
         $statuses = RoadmapStatus::cases();
-        return view('pages.admin.roadmap.form', ['item' => $roadmapItem, 'statuses' => $statuses]);
+        $defaultStatus = RoadmapStatus::Considering->value;
+        return view('pages.admin.roadmap.form', ['item' => $roadmapItem, 'statuses' => $statuses, 'defaultStatus' => $defaultStatus]);
     }
 
     public function update(Request $request, RoadmapItem $roadmapItem): RedirectResponse
     {
-        $this->checkAccess();
-
         $validated = $request->validate([
             'title'       => 'required|string|max:150',
             'description' => 'nullable|string|max:2000',
-            'status'      => 'required|in:considering,planned,building,shipped',
+            'status'      => ['required', Rule::enum(RoadmapStatus::class)],
             'expected_at' => 'nullable|date',
             'sort_order'  => 'nullable|integer|min:0',
         ]);
@@ -82,14 +85,12 @@ class AdminRoadmapController extends Controller
 
     public function approve(RoadmapItem $roadmapItem): RedirectResponse
     {
-        $this->checkAccess();
         $roadmapItem->update(['is_approved' => true]);
         return back()->with('success', 'Suggestion approved and now visible.');
     }
 
     public function destroy(RoadmapItem $roadmapItem): RedirectResponse
     {
-        $this->checkAccess();
         $roadmapItem->delete();
         return back()->with('success', 'Item deleted.');
     }

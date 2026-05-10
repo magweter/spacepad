@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:get/get.dart';
 import 'package:spacepad/components/toast.dart';
+import 'package:spacepad/exceptions/api_exception.dart';
 import 'package:spacepad/models/event_model.dart';
 import 'package:spacepad/models/display_data_model.dart';
 import 'package:spacepad/models/event_status.dart';
@@ -11,7 +13,6 @@ import 'package:spacepad/pages/display_page.dart';
 import 'package:spacepad/models/device_model.dart';
 import 'package:spacepad/models/display_model.dart';
 import 'package:spacepad/models/display_settings_model.dart';
-import 'package:spacepad/services/font_service.dart';
 import 'package:flutter/material.dart';
 import 'package:spacepad/components/custom_booking_modal.dart';
 
@@ -37,6 +38,13 @@ class DashboardController extends GetxController {
   DateTime? _lastRefreshTime;
   static const int _refreshCooldownSeconds = 3;
 
+  // Stale data indicator
+  final RxBool isDataStale = RxBool(false);
+  final RxBool isOffline = RxBool(false);
+  final RxBool isServerUnreachable = RxBool(false);
+  // ignore: unused_field
+  DateTime? _lastSuccessfulFetchAt;
+
   @override
   void onInit() async {
     super.onInit();
@@ -54,9 +62,6 @@ class DashboardController extends GetxController {
 
     initializeTimers();
     await fetchDisplayData();
-    
-    // Preload fonts for better performance
-    await FontService.instance.preloadFonts();
 
     loading.value = false;
   }
@@ -73,15 +78,42 @@ class DashboardController extends GetxController {
   }
 
   void startAdvertisementTimers() {
-    _advertisementIntervalTimer?.cancel();
     // Do not cancel _advertisementDismissTimer here — it may be actively
-    // counting down while the ad is visible, and fetchDisplayData() calls
-    // this method every 60 seconds which would otherwise kill the timer.
+    // counting down while the ad is visible.
 
-    final adUrl = globalSettings.value?.advertisementImageUrl;
-    if (adUrl == null) return;
+    final settings = globalSettings.value;
+    if (settings?.advertisementEnabled != true) {
+      showAdvertisement.value = false;
+      _advertisementDismissTimer?.cancel();
+      _advertisementIntervalTimer?.cancel();
+      _advertisementIntervalTimer = null;
+      _lastAdUrl = null;
+      _lastAdInterval = null;
+      return;
+    }
 
-    final intervalMinutes = globalSettings.value?.advertisementInterval ?? 5;
+    final adUrl = settings?.advertisementImageUrl;
+    if (adUrl == null) {
+      _advertisementIntervalTimer?.cancel();
+      _advertisementIntervalTimer = null;
+      _lastAdUrl = null;
+      _lastAdInterval = null;
+      return;
+    }
+
+    final intervalMinutes = settings?.advertisementInterval ?? 5;
+
+    // Only recreate the timer when settings actually change to prevent
+    // fetchDisplayData() (called every 60s) from resetting it before it fires.
+    if (_advertisementIntervalTimer != null &&
+        _lastAdUrl == adUrl &&
+        _lastAdInterval == intervalMinutes) {
+      return;
+    }
+
+    _advertisementIntervalTimer?.cancel();
+    _lastAdUrl = adUrl;
+    _lastAdInterval = intervalMinutes;
 
     _advertisementIntervalTimer = Timer.periodic(
       Duration(minutes: intervalMinutes),
@@ -90,10 +122,13 @@ class DashboardController extends GetxController {
   }
 
   void _showAdvertisement() {
-    final adUrl = globalSettings.value?.advertisementImageUrl;
+    final settings = globalSettings.value;
+    if (settings?.advertisementEnabled != true) return;
+
+    final adUrl = settings?.advertisementImageUrl;
     if (adUrl == null) return;
 
-    final durationSeconds = globalSettings.value?.advertisementDuration ?? 15;
+    final durationSeconds = settings?.advertisementDuration ?? 15;
 
     showAdvertisement.value = true;
     _advertisementDismissTimer?.cancel();
@@ -243,24 +278,21 @@ class DashboardController extends GetxController {
     return nextEvents;
   }
 
-  Future<void> fetchDisplayData() async {
+  Future<bool> fetchDisplayData() async {
     try {
       DisplayDataModel displayData = await DisplayService.instance.getDisplayData(displayId.value);
-      
+
       // Update global device, display, and settings
       if (AuthService.instance.currentDevice.value != null) {
         globalCurrentDevice = AuthService.instance.currentDevice.value;
         globalCurrentDevice!.display = displayData.display;
         globalDisplay = globalCurrentDevice!.display;
         globalSettings.value = globalDisplay?.settings;
-        
+
         // Update reactive font family to trigger UI rebuild
         final newFontFamily = globalSettings.value?.fontFamily ?? 'Inter';
         if (currentFontFamily.value != newFontFamily) {
           currentFontFamily.value = newFontFamily;
-
-          // Reload the font when settings change
-          await FontService.instance.reloadFont(newFontFamily);
         }
 
         // (Re-)start advertisement timers when settings are refreshed
@@ -277,8 +309,17 @@ class DashboardController extends GetxController {
             return e;
           })
           .toList();
+
+      isDataStale.value = false;
+      isOffline.value = false;
+      isServerUnreachable.value = false;
+      _lastSuccessfulFetchAt = DateTime.now();
+      return true;
     } catch (e) {
-      Toast.showError('could_not_load_data'.tr);
+      isDataStale.value = true;
+      isOffline.value = _isNoInternetError(e);
+      isServerUnreachable.value = !_isNoInternetError(e) && _isConnectivityError(e);
+      return false;
     }
   }
 
@@ -306,13 +347,12 @@ class DashboardController extends GetxController {
     
     isRefreshing.value = true;
     _lastRefreshTime = DateTime.now();
-    
-    try {
-      await fetchDisplayData();
+
+    final success = await fetchDisplayData();
+    if (success) {
       Toast.showSuccess('display_data_refreshed'.tr);
-    } finally {
-      isRefreshing.value = false;
     }
+    isRefreshing.value = false;
   }
 
   Future<void> bookRoom(int duration) async {
@@ -330,7 +370,13 @@ class DashboardController extends GetxController {
       _bookingOptionsTimer?.cancel();
       showBookingOptions.value = false;
     } catch (e) {
-      Toast.showError('could_not_book_room'.tr);
+      if (e is ApiException && e.message != null) {
+        Toast.showError(e.message!);
+      } else if (_isConnectivityError(e)) {
+        Toast.showError('no_internet_connection'.tr);
+      } else {
+        Toast.showError('could_not_book_room'.tr);
+      }
     } finally {
       isBooking.value = false;
       bookingDuration.value = null; // Clear the tracked duration
@@ -348,22 +394,32 @@ class DashboardController extends GetxController {
     );
   }
 
-  Future<void> bookCustom(String title, DateTime startTime, DateTime endTime) async {
+  Future<void> bookCustom(String title, DateTime startTime, DateTime endTime, {String? description, List<String>? attendees}) async {
     isBooking.value = true;
     try {
-      await DisplayService.instance.bookCustom(displayId.value, title, startTime, endTime);
+      await DisplayService.instance.bookCustom(displayId.value, title, startTime, endTime, description: description, attendees: attendees);
       await fetchDisplayData();
       Toast.showSuccess('room_booked'.tr);
-      
+
       // Cancel the booking options timer since user took action
       _bookingOptionsTimer?.cancel();
       showBookingOptions.value = false;
     } catch (e) {
-      Toast.showError('could_not_book_room'.tr);
+      if (e is ApiException && e.message != null) {
+        Toast.showError(e.message!);
+      } else if (_isConnectivityError(e)) {
+        Toast.showError('no_internet_connection'.tr);
+      } else {
+        Toast.showError('could_not_book_room'.tr);
+      }
     } finally {
       isBooking.value = false;
       bookingDuration.value = null; // Clear the tracked duration
     }
+  }
+
+  Future<List<EventModel>> getEventsForDate(DateTime date) async {
+    return DisplayService.instance.getEventsForDate(displayId.value, date);
   }
 
 
@@ -378,7 +434,13 @@ class DashboardController extends GetxController {
         Toast.showSuccess('event_cancelled'.tr);
       }
     } catch (e) {
-      Toast.showError('could_not_cancel_event'.tr);
+      if (e is ApiException && e.message != null) {
+        Toast.showError(e.message!);
+      } else if (_isConnectivityError(e)) {
+        Toast.showError('no_internet_connection'.tr);
+      } else {
+        Toast.showError('could_not_cancel_event'.tr);
+      }
     } finally {
       isCancelling.value = false;
     }
@@ -432,8 +494,73 @@ class DashboardController extends GetxController {
     }
   }
 
+  bool get extendEnabled {
+    return globalSettings.value?.extendEnabled ?? false;
+  }
+
+  bool get showOrganizer {
+    return globalSettings.value?.showOrganizer ?? false;
+  }
+
+  List<int> get availableExtendDurations {
+    if (currentEvent == null) return [];
+    final base = [15, 30, 60];
+    if (upcomingEvents.isNotEmpty) {
+      final minutesUntilNext = upcomingEvents.first.start.difference(currentEvent!.end).inMinutes;
+      return base.where((min) => min <= minutesUntilNext).toList();
+    }
+    return base;
+  }
+
+  void toggleExtendOptions() {
+    showExtendOptions.value = true;
+    _extendOptionsTimer?.cancel();
+    _extendOptionsTimer = Timer(const Duration(seconds: 30), () {
+      showExtendOptions.value = false;
+    });
+  }
+
+  void hideExtendOptions() {
+    showExtendOptions.value = false;
+    _extendOptionsTimer?.cancel();
+  }
+
+  Future<void> extendCurrentEvent(int minutes) async {
+    if (isExtending.value || currentEvent == null) return;
+
+    try {
+      isExtending.value = true;
+      extendDuration.value = minutes;
+      final newEnd = currentEvent!.end.add(Duration(minutes: minutes));
+      await DisplayService.instance.extendEvent(displayId.value, currentEvent!.id, newEnd);
+      await fetchDisplayData();
+      Toast.showSuccess('event_extended'.tr);
+      _extendOptionsTimer?.cancel();
+      showExtendOptions.value = false;
+    } catch (e) {
+      if (e is ApiException && e.message != null) {
+        Toast.showError(e.message!);
+      } else if (_isConnectivityError(e)) {
+        Toast.showError('no_internet_connection'.tr);
+      } else {
+        Toast.showError('could_not_extend_event'.tr);
+      }
+    } finally {
+      isExtending.value = false;
+      extendDuration.value = null;
+    }
+  }
+
   bool get calendarEnabled {
     return globalSettings.value?.calendarEnabled ?? false;
+  }
+
+  String get timelineWidgetMode {
+    return globalSettings.value?.timelineWidgetMode ?? 'none';
+  }
+
+  bool get timelineWidgetEnabled {
+    return timelineWidgetMode != 'none';
   }
 
   // Track if booking options are shown
@@ -443,6 +570,10 @@ class DashboardController extends GetxController {
   final RxBool isBooking = RxBool(false);
   final Rx<int?> bookingDuration = Rx<int?>(null); // Track which duration button was clicked
   final RxBool isCancelling = RxBool(false);
+  final RxBool isExtending = RxBool(false);
+  final Rx<int?> extendDuration = Rx<int?>(null);
+  final RxBool showExtendOptions = RxBool(false);
+  Timer? _extendOptionsTimer;
   
   // Timer for booking options timeout
   Timer? _bookingOptionsTimer;
@@ -460,6 +591,8 @@ class DashboardController extends GetxController {
   final RxBool showAdvertisement = RxBool(false);
   Timer? _advertisementIntervalTimer;
   Timer? _advertisementDismissTimer;
+  String? _lastAdUrl;
+  int? _lastAdInterval;
 
   // Show booking options with 30-second timeout
   void toggleBookingOptions() {
@@ -558,6 +691,22 @@ class DashboardController extends GetxController {
     return globalSettings.value?.textReserved ?? 'reserved'.tr;
   }
 
+  bool _isNoInternetError(dynamic e) {
+    final s = e.toString().toLowerCase();
+    return s.contains('network is unreachable') ||
+        s.contains('no address associated');
+  }
+
+  bool _isConnectivityError(dynamic e) {
+    final s = e.toString().toLowerCase();
+    return e is SocketException ||
+        s.contains('socketexception') ||
+        s.contains('failed host lookup') ||
+        s.contains('network is unreachable') ||
+        s.contains('connection refused') ||
+        s.contains('no address associated');
+  }
+
   @override
   void dispose() {
     _clock?.cancel();
@@ -567,6 +716,7 @@ class DashboardController extends GetxController {
     _longPressTimer?.cancel();
     _advertisementIntervalTimer?.cancel();
     _advertisementDismissTimer?.cancel();
+    _extendOptionsTimer?.cancel();
 
     super.dispose();
   }

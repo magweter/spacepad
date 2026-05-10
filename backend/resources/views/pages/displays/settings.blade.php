@@ -90,7 +90,7 @@
                             <p class="text-sm text-gray-500">Allow users to book rooms directly from this display</p>
                         </div>
                         <div class="flex items-center">
-                            <input type="checkbox" id="booking_enabled" name="booking_enabled" value="1" 
+                            <input type="checkbox" id="booking_enabled" name="booking_enabled" value="1"
                                    {{ $display->isBookingEnabled() ? 'checked' : '' }}
                                    class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600">
                         </div>
@@ -98,23 +98,65 @@
                     <div class="text-sm text-gray-600">
                         <p>When enabled, users can book the room for immediate use directly from this display. This is a Pro feature that allows quick room reservations.</p>
                     </div>
-                </div>
-
-                <!-- Calendar Settings -->
-                <div class="border border-gray-200 rounded-lg p-6">
-                    <div class="flex items-center justify-between mb-4">
-                        <div>
-                            <h3 class="text-base font-semibold text-gray-900">Calendar Settings</h3>
-                            <p class="text-sm text-gray-500">Allow users to view today's schedule on this display</p>
-                        </div>
-                        <div class="flex items-center">
-                            <input type="checkbox" id="calendar_enabled" name="calendar_enabled" value="1" 
-                                   {{ $display->isCalendarEnabled() ? 'checked' : '' }}
+                    <div id="futureBookingInput" class="mt-4 pt-4 border-t border-gray-100" style="display: {{ $display->isBookingEnabled() ? 'block' : 'none' }};">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <label for="allow_future_bookings" class="text-sm font-medium text-gray-700">Allow future bookings</label>
+                                <p class="text-xs text-gray-500 mt-0.5">Allow users to book rooms for days other than today</p>
+                            </div>
+                            <input type="checkbox" id="allow_future_bookings" name="allow_future_bookings" value="1"
+                                   {{ \App\Helpers\DisplaySettings::isFutureBookingEnabled($display) ? 'checked' : '' }}
                                    class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600">
                         </div>
                     </div>
-                    <div class="text-sm text-gray-600">
-                        <p>When enabled, users can view today's schedule in a calendar view directly from this display. This allows users to see all meetings scheduled for the day.</p>
+                </div>
+
+                <!-- Schedule Display Settings -->
+                <div class="border border-gray-200 rounded-lg p-6">
+                    <div class="mb-4">
+                        <h3 class="text-base font-semibold text-gray-900">Schedule Display</h3>
+                        <p class="text-sm text-gray-500">Choose how today's meeting schedule is shown on this display</p>
+                    </div>
+                    @php $mode = \App\Helpers\DisplaySettings::getTimelineWidgetMode($display); @endphp
+                    <div class="space-y-2">
+                        <label class="flex items-start gap-3 cursor-pointer">
+                            <input type="radio" name="timeline_widget_mode" value="none"
+                                   {{ $mode === 'none' ? 'checked' : '' }}
+                                   class="mt-0.5 h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-600">
+                            <div>
+                                <span class="text-sm font-medium text-gray-900">Disabled</span>
+                                <p class="text-xs text-gray-500">No timeline shown on the display</p>
+                            </div>
+                        </label>
+                        <label class="flex items-start gap-3 cursor-pointer">
+                            <input type="radio" name="timeline_widget_mode" value="side_panel"
+                                   {{ $mode === 'side_panel' ? 'checked' : '' }}
+                                   class="mt-0.5 h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-600">
+                            <div>
+                                <span class="text-sm font-medium text-gray-900">Side panel</span>
+                                <p class="text-xs text-gray-500">A slide-over panel that opens when users tap the calendar icon</p>
+                            </div>
+                        </label>
+                        <label class="flex items-start gap-3 cursor-pointer">
+                            <input type="radio" name="timeline_widget_mode" value="inline"
+                                   {{ $mode === 'inline' ? 'checked' : '' }}
+                                   class="mt-0.5 h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-600">
+                            <div>
+                                <span class="text-sm font-medium text-gray-900">Inline</span>
+                                <p class="text-xs text-gray-500">An always-visible timeline embedded within the display</p>
+                            </div>
+                        </label>
+                    </div>
+                    <div class="mt-4 pt-4 border-t border-gray-100">
+                        <label class="flex items-start gap-3 cursor-pointer">
+                            <input type="checkbox" name="view_schedule" value="1"
+                                   {{ \App\Helpers\DisplaySettings::isCalendarEnabled($display) ? 'checked' : '' }}
+                                   class="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600">
+                            <div>
+                                <span class="text-sm font-medium text-gray-900">View schedule button</span>
+                                <p class="text-xs text-gray-500">A button in the bottom bar that opens today's full schedule in an overlay. Can be combined with the options above.</p>
+                            </div>
+                        </label>
                     </div>
                 </div>
 
@@ -171,6 +213,42 @@
                                 <strong>None</strong> - Users cannot cancel any events via this tablet
                             </label>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Extend Meeting Settings -->
+                <div class="border border-gray-200 rounded-lg p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <h3 class="text-base font-semibold text-gray-900">Extend Meeting</h3>
+                            <p class="text-sm text-gray-500">Allow users to extend the current meeting directly from this display</p>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="checkbox" id="extend_enabled" name="extend_enabled" value="1"
+                                   {{ $display->isExtendEnabled() ? 'checked' : '' }}
+                                   class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600">
+                        </div>
+                    </div>
+                    <div class="text-sm text-gray-600">
+                        <p>When enabled, users can extend an ongoing meeting by +15, +30, or +60 minutes directly from this display. For external calendar events, write permission on the connected account is required.</p>
+                    </div>
+                </div>
+
+                <!-- Organizer Settings -->
+                <div class="border border-gray-200 rounded-lg p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <h3 class="text-base font-semibold text-gray-900">Show Organizer</h3>
+                            <p class="text-sm text-gray-500">Show the meeting organizer's name on this display</p>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="checkbox" id="show_organizer" name="show_organizer" value="1"
+                                   {{ \App\Helpers\DisplaySettings::isShowOrganizerEnabled($display) ? 'checked' : '' }}
+                                   class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600">
+                        </div>
+                    </div>
+                    <div class="text-sm text-gray-600">
+                        <p>When enabled, the name of the meeting organizer is shown on the display during an active meeting. The organizer name is retrieved from the calendar event (Google, Microsoft, or CalDAV).</p>
                     </div>
                 </div>
 
@@ -270,6 +348,10 @@
     document.getElementById('check_in_enabled').addEventListener('change', function(e) {
         document.getElementById('gracePeriodInput').style.display = this.checked ? 'block' : 'none';
         document.getElementById('checkInMinutesInput').style.display = this.checked ? 'block' : 'none';
+    });
+    // Show/hide future booking option based on booking enabled
+    document.getElementById('booking_enabled').addEventListener('change', function(e) {
+        document.getElementById('futureBookingInput').style.display = this.checked ? 'block' : 'none';
     });
 </script>
 @endpush 

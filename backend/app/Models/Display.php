@@ -172,6 +172,21 @@ class Display extends Model
         return DisplaySettings::setCalendarEnabled($this, $enabled);
     }
 
+    public function isTimelineWidgetEnabled(): bool
+    {
+        return DisplaySettings::isTimelineWidgetEnabled($this);
+    }
+
+    public function getTimelineWidgetMode(): string
+    {
+        return DisplaySettings::getTimelineWidgetMode($this);
+    }
+
+    public function setTimelineWidgetEnabled(bool $enabled): bool
+    {
+        return DisplaySettings::setTimelineWidgetEnabled($this, $enabled);
+    }
+
     public function getAvailableText(): ?string
     {
         return DisplaySettings::getAvailableText($this);
@@ -227,6 +242,16 @@ class Display extends Model
         return DisplaySettings::getBorderThickness($this);
     }
 
+    public function isAdvertisementEnabled(): bool
+    {
+        return DisplaySettings::isAdvertisementEnabled($this);
+    }
+
+    public function setAdvertisementEnabled(bool $enabled): bool
+    {
+        return DisplaySettings::setAdvertisementEnabled($this, $enabled);
+    }
+
     public function getAdvertisementImageUrl(): ?string
     {
         return app(\App\Services\ImageService::class)->getAdvertisementImageUrl($this);
@@ -240,5 +265,25 @@ class Display extends Model
     public function getAdvertisementDuration(): int
     {
         return DisplaySettings::getAdvertisementDuration($this);
+    }
+
+    public function isExtendEnabled(): bool
+    {
+        return DisplaySettings::isExtendEnabled($this);
+    }
+
+    public function setExtendEnabled(bool $enabled): bool
+    {
+        return DisplaySettings::setExtendEnabled($this, $enabled);
+    }
+
+    public function isShowOrganizerEnabled(): bool
+    {
+        return DisplaySettings::isShowOrganizerEnabled($this);
+    }
+
+    public function setShowOrganizerEnabled(bool $enabled): bool
+    {
+        return DisplaySettings::setShowOrganizerEnabled($this, $enabled);
     }
 }

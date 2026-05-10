@@ -65,4 +65,13 @@ class OnboardingController extends Controller
 
         return redirect()->route('dashboard');
     }
+
+    public function skip(): RedirectResponse
+    {
+        auth()->user()->update([
+            'skipped_onboarding_at' => now(),
+        ]);
+
+        return redirect()->route('dashboard');
+    }
 }

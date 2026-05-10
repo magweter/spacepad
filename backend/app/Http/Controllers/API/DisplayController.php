@@ -14,6 +14,7 @@ use App\Services\DisplayService;
 use App\Services\EventService;
 use App\Services\ImageService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
 
@@ -61,6 +62,30 @@ class DisplayController extends ApiController
         ]);
 
         return $this->success(data: DisplayResource::collection($displays));
+    }
+
+    public function getEvents(Request $request, string $displayId): JsonResponse
+    {
+        /** @var Device $device */
+        $device = auth()->user();
+
+        $permission = $this->displayService->validateDisplayPermission($displayId, $device->id);
+        if (! $permission->permitted) {
+            return $this->error(message: $permission->message, code: $permission->code);
+        }
+
+        try {
+            $date = $request->query('date')
+                ? Carbon::parse($request->query('date'))->startOfDay()
+                : null;
+
+            $events = $this->eventService->getEventsForDisplay($displayId, $date);
+
+            return $this->success(data: EventResource::collection($events));
+        } catch (\Exception $e) {
+            report($e);
+            return $this->error(message: 'Something went wrong while fetching events.', code: 500);
+        }
     }
 
     public function getData(string $displayId): JsonResponse
@@ -152,7 +177,9 @@ class DisplayController extends ApiController
                 summary: Arr::get($data, 'summary', __('Reserved')),
                 duration: $duration,
                 start: $start,
-                end: $end
+                end: $end,
+                description: Arr::get($data, 'description'),
+                attendees: Arr::get($data, 'attendees', []),
             );
             
             logger()->info('Room booked successfully', [
@@ -272,6 +299,60 @@ class DisplayController extends ApiController
             ]);
             $status = $e->getCode() === 403 ? 403 : 400;
             return $this->error(message: 'Event could not be cancelled. Please try again later.', code: $status);
+        }
+    }
+
+    /**
+     * Extend the current event's end time (Pro feature).
+     */
+    public function extend(Request $request, string $displayId, string $eventId): JsonResponse
+    {
+        /** @var Device $device */
+        $device = auth()->user();
+
+        $permission = $this->displayService->validateDisplayPermission($displayId, $device->id, ['pro' => true]);
+        if (! $permission->permitted) {
+            return $this->error(message: $permission->message, code: $permission->code);
+        }
+
+        $request->validate(['new_end' => 'required|date']);
+
+        try {
+            $newEnd = Carbon::parse($request->input('new_end'))->utc();
+
+            logger()->info('Event extend requested', [
+                'user_id' => $device->user_id,
+                'device_id' => $device->id,
+                'display_id' => $displayId,
+                'event_id' => $eventId,
+                'new_end' => $newEnd->toIso8601String(),
+                'ip' => request()->ip(),
+            ]);
+
+            $this->eventService->extendEvent($eventId, $displayId, $newEnd);
+
+            logger()->info('Event extended successfully', [
+                'user_id' => $device->user_id,
+                'device_id' => $device->id,
+                'display_id' => $displayId,
+                'event_id' => $eventId,
+                'new_end' => $newEnd->toIso8601String(),
+                'ip' => request()->ip(),
+            ]);
+
+            return $this->success(message: 'Event extended successfully');
+        } catch (\Exception $e) {
+            logger()->error('Event extend failed', [
+                'user_id' => $device->user_id,
+                'device_id' => $device->id,
+                'display_id' => $displayId,
+                'event_id' => $eventId,
+                'error' => $e->getMessage(),
+                'error_code' => $e->getCode(),
+                'ip' => request()->ip(),
+            ]);
+            $status = $e->getCode() === 403 ? 403 : 400;
+            return $this->error(message: 'Event could not be extended. Please try again later.', code: $status);
         }
     }
 

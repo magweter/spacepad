@@ -14,9 +14,10 @@ class FrostedPanel extends StatelessWidget {
     required this.child,
     this.borderRadius = 20,
     this.blurIntensity = 18,
-    this.backgroundColor = const Color(0x14FFFFFF), // Colors.white.withAlpha((0.08 * 255).toInt())
+    Color? backgroundColor,
     this.padding,
-  });
+    bool hasBackgroundImage = false,
+  }) : backgroundColor = backgroundColor ?? (hasBackgroundImage ? const Color(0x33FFFFFF) : const Color(0x14FFFFFF));
 
   /// Creates a frosted panel with gray background (for use with background images)
   factory FrostedPanel.gray({
@@ -28,7 +29,7 @@ class FrostedPanel extends StatelessWidget {
     return FrostedPanel(
       borderRadius: borderRadius,
       blurIntensity: 0, // No blur for gray panels
-      backgroundColor: hasBackgroundImage 
+      backgroundColor: hasBackgroundImage
           ? TWColors.black.withValues(alpha: 0.8)
           : TWColors.black.withValues(alpha: 0.1),
       padding: padding,
@@ -40,7 +41,7 @@ class FrostedPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final panel = Container(
       decoration: BoxDecoration(
-        color: Colors.white.withAlpha((0.1 * 255).toInt()),
+        color: backgroundColor,
         borderRadius: BorderRadius.circular(borderRadius),
       ),
       padding: padding,
@@ -64,4 +65,3 @@ class FrostedPanel extends StatelessWidget {
     );
   }
 }
-

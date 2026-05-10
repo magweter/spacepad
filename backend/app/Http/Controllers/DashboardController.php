@@ -13,6 +13,7 @@ use App\Models\OutlookAccount;
 use App\Models\GoogleAccount;
 use App\Models\CalDAVAccount;
 use App\Models\Board;
+use App\Models\Device;
 
 class DashboardController extends Controller
 {
@@ -50,7 +51,7 @@ class DashboardController extends Controller
         // Get displays from selected workspace only
         if ($selectedWorkspace) {
             $displays = Display::where('workspace_id', $selectedWorkspace->id)
-                ->with(['workspace', 'calendar.outlookAccount', 'calendar.googleAccount', 'calendar.caldavAccount'])
+                ->with(['workspace', 'calendar.outlookAccount', 'calendar.googleAccount', 'calendar.caldavAccount', 'calendar.room'])
                 ->get();
             
             // Get boards for the selected workspace
@@ -87,7 +88,20 @@ class DashboardController extends Controller
         ]);
 
         $isSelfHosted = config('settings.is_self_hosted');
-        
+
+        $hasDisplay = $displays->isNotEmpty();
+        $hasDevice = $selectedWorkspace
+            ? Device::where('workspace_id', $selectedWorkspace->id)->exists()
+            : false;
+
+        $trialSubscription = null;
+        if (!$isSelfHosted) {
+            $sub = $user->subscription();
+            if ($sub && $sub->onTrial()) {
+                $trialSubscription = $sub;
+            }
+        }
+
         return view('pages.dashboard', [
             'outlookAccounts' => $outlookAccounts,
             'googleAccounts' => $googleAccounts,
@@ -102,6 +116,9 @@ class DashboardController extends Controller
             'appEnv' => config('app.env', 'production'),
             'appUrl' => config('app.url'),
             'isSelfHosted' => $isSelfHosted,
+            'hasDisplay' => $hasDisplay,
+            'hasDevice' => $hasDevice,
+            'trialSubscription' => $trialSubscription,
         ]);
     }
 }

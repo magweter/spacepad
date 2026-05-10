@@ -33,6 +33,7 @@ class EventResource extends JsonResource
             'source' => $this['source'] ?? null,
             'isTabletBooking' => $this->isTabletBooking(),
             'joinUrl' => $this['join_url'] ?? null,
+            'organizerName' => $this['organizer_name'] ?? null,
         ];
     }
 }

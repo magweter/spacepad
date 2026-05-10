@@ -38,7 +38,22 @@ class OutlookAccountsController extends Controller
     public function callback(): RedirectResponse
     {
         if (request()->has('error')) {
-            return redirect()->route('dashboard')->with('error', 'Failed to connect to Outlook. Please try again.');
+            $error            = request('error', '');
+            $errorDescription = request('error_description', '');
+
+            $needsAdminConsent = $error === 'consent_required'
+                || $error === 'interaction_required'
+                || str_contains($errorDescription, 'AADSTS65001')
+                || ($error === 'access_denied' && str_contains(strtolower($errorDescription), 'admin'));
+
+            if ($needsAdminConsent) {
+                return redirect()->route('dashboard')->with([
+                    'needs_admin_consent' => true,
+                    'admin_consent_url'   => $this->outlookService->getAdminConsentUrl(),
+                ]);
+            }
+
+            return redirect()->route('dashboard')->with('error', 'Failed to connect to Microsoft account. Please try again.');
         }
 
         $authCode = request('code');

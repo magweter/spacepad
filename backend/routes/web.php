@@ -12,6 +12,7 @@ use App\Http\Controllers\GoogleAccountsController;
 use App\Http\Controllers\OutlookAccountsController;
 use App\Http\Controllers\DisplayController;
 use App\Http\Controllers\DisplaySettingsController;
+use App\Http\Controllers\DisplayDiagnosticsController;
 use App\Http\Controllers\OutlookWebhookController;
 use App\Http\Controllers\CalDAVAccountsController;
 use App\Http\Controllers\LicenseController;
@@ -40,6 +41,10 @@ Route::post('/register', [RegisterController::class, 'store'])
     ->middleware('guest')
     ->name('register.store');
 
+Route::post('/register/resend', [RegisterController::class, 'resend'])
+    ->middleware('guest')
+    ->name('register.resend');
+
 Route::post('/logout', [LoginController::class, 'destroy'])
     ->middleware('auth')
     ->name('logout');
@@ -56,6 +61,7 @@ Route::middleware(['auth', 'user.update-last-activity', 'gtm'])->group(function 
     Route::get('/onboarding', [OnboardingController::class, 'index'])->name('onboarding')->middleware('user.onboarding');
     Route::post('/onboarding/usage-type', [OnboardingController::class, 'updateUsageType'])->name('onboarding.usage-type');
     Route::post('/onboarding/terms', [OnboardingController::class, 'acceptTerms'])->name('onboarding.terms');
+    Route::post('/onboarding/skip', [OnboardingController::class, 'skip'])->name('onboarding.skip');
 
     Route::post('/outlook-accounts/auth', [OutlookAccountsController::class, 'auth'])->name('outlook-accounts.auth');
     Route::get('/outlook-accounts/callback', [OutlookAccountsController::class, 'callback']);
@@ -132,6 +138,11 @@ Route::middleware(['auth', 'user.update-last-activity', 'gtm'])->group(function 
     // Display image serving route
     Route::get('/displays/{display}/images/{type}', [DisplaySettingsController::class, 'serveImage'])
         ->name('displays.images');
+
+    // Diagnostics — modal, run endpoint only (index redirects for old bookmarks)
+    Route::get('/diagnostics', fn() => redirect()->route('dashboard'))->name('diagnostics.index');
+    Route::get('/displays/{display}/diagnostics/run', [DisplayDiagnosticsController::class, 'run'])
+        ->name('displays.diagnostics.run');
 
     // Boards routes
     Route::get('/boards/create', [BoardController::class, 'create'])->name('boards.create');

@@ -43,8 +43,12 @@ class DisplaySettingsController extends Controller
         $request->validate([
             'check_in_enabled' => 'boolean',
             'booking_enabled' => 'boolean',
-            'calendar_enabled' => 'boolean',
             'hide_admin_actions' => 'boolean',
+            'timeline_widget_mode' => 'nullable|in:none,side_panel,inline',
+            'view_schedule' => 'boolean',
+            'allow_future_bookings' => 'boolean',
+            'extend_enabled' => 'boolean',
+            'show_organizer' => 'boolean',
             'check_in_minutes' => 'nullable|integer|min:1|max:60',
             'check_in_grace_period' => 'nullable|integer|min:1|max:30',
             'cancel_permission' => 'nullable|in:all,tablet_only,none',
@@ -63,9 +67,19 @@ class DisplaySettingsController extends Controller
             $request->boolean('booking_enabled')
         );
 
+        $updated = $updated && DisplaySettings::setTimelineWidgetMode(
+            $display,
+            $request->input('timeline_widget_mode', 'none')
+        );
+
         $updated = $updated && DisplaySettings::setCalendarEnabled(
             $display,
-            $request->boolean('calendar_enabled')
+            $request->boolean('view_schedule')
+        );
+
+        $updated = $updated && DisplaySettings::setFutureBookingEnabled(
+            $display,
+            $request->boolean('allow_future_bookings')
         );
 
         $updated = $updated && DisplaySettings::setAdminActionsHidden(
@@ -106,6 +120,16 @@ class DisplaySettingsController extends Controller
                 $request->input('border_thickness')
             );
         }
+
+        $updated = $updated && DisplaySettings::setExtendEnabled(
+            $display,
+            $request->boolean('extend_enabled')
+        );
+
+        $updated = $updated && DisplaySettings::setShowOrganizerEnabled(
+            $display,
+            $request->boolean('show_organizer')
+        );
 
         if (!$updated) {
             return back()->withErrors(['error' => 'Failed to update settings']);
@@ -215,6 +239,21 @@ class DisplaySettingsController extends Controller
                 }
                 // Store the default background key
                 $updated = $updated && DisplaySettings::setBackgroundImage($display, $defaultKey);
+            }
+        }
+
+        // Handle advertisement enabled toggle
+        $updated = $updated && DisplaySettings::setAdvertisementEnabled($display, $request->boolean('advertisement_enabled'));
+
+        // Gate advertisement content fields behind the feature flag
+        if (
+            $request->hasFile('advertisement_image') ||
+            $request->boolean('remove_advertisement_image') ||
+            $request->filled('advertisement_interval') ||
+            $request->filled('advertisement_duration')
+        ) {
+            if (!auth()->user()->hasAdvertisementFeature()) {
+                abort(403, 'Advertisement feature is not enabled for your account.');
             }
         }
 

@@ -13,14 +13,26 @@
                 <x-alerts.alert />
 
                 @if(session('registered'))
-                    <div class="flex flex-col items-center justify-center p-8 mb-8">
+                    <div class="flex flex-col items-center justify-center pt-4 pb-2">
                         <div class="mb-4">
                             <svg class="h-12 w-12 text-orange" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
                             </svg>
                         </div>
                         <h3 class="text-xl font-semibold text-gray-900 mb-2">Please check your email</h3>
-                        <p class="text-gray-700 text-center">You should receive an e-mail with a login link shortly.</p>
+                        <p class="text-gray-600 text-center text-sm">We sent a login link to <strong>{{ session('registered_email') }}</strong>.<br>Check your spam folder if you don't see it.</p>
+
+                        <form action="{{ route('register.resend') }}" method="POST" class="mt-6 w-full">
+                            @csrf
+                            <input type="hidden" name="email" value="{{ session('registered_email') }}">
+                            <button type="submit" class="flex w-full justify-center rounded-md bg-oxford px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500">
+                                Resend email
+                            </button>
+                        </form>
+
+                        <a href="{{ route('register') }}" class="mt-3 text-sm text-gray-400 hover:text-gray-600 underline">
+                            Use a different email address
+                        </a>
                     </div>
                 @else
                     @if(! config('settings.disable_email_login'))

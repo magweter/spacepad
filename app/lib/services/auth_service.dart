@@ -5,6 +5,7 @@ import 'package:spacepad/models/device_model.dart';
 import 'package:spacepad/pages/dashboard_page.dart';
 import 'package:spacepad/pages/display_page.dart';
 import 'package:spacepad/pages/login_page.dart';
+import 'package:spacepad/exceptions/api_exception.dart';
 import 'package:spacepad/services/api_service.dart';
 
 class AuthService {
@@ -13,6 +14,7 @@ class AuthService {
 
   late SharedPreferences _sharedPrefs;
   Rxn<DeviceModel> currentDevice = Rxn<DeviceModel>();
+  bool _isSigningOut = false;
 
   Future<void> initialise() async {
     _sharedPrefs = await SharedPreferences.getInstance();
@@ -39,9 +41,12 @@ class AuthService {
 
   Future<void> verify() async {
     try {
-      Map result = await ApiService.get('devices/me');
+      final result = await ApiService.get('devices/me');
 
-      Map data = result['data'];
+      // ApiService already called signOut() for 401s and returned null.
+      if (result == null) return;
+
+      final Map data = result['data'];
 
       currentDevice.value = DeviceModel.fromJson(data);
 
@@ -52,7 +57,10 @@ class AuthService {
       );
     } catch(e) {
       if (kDebugMode) print(e);
-      await signOut();
+      // Only sign out for genuine 401 errors; ignore transient network failures.
+      if (e is ApiException && e.code == 401) {
+        await signOut();
+      }
     }
   }
 
@@ -65,12 +73,16 @@ class AuthService {
   }
 
   Future<void> signOut() async {
-    currentDevice.value = null;
-
-    await deleteAuthToken();
-    await removeCurrentDisplayId();
-
-    await Get.offAll(() => const LoginPage());
+    if (_isSigningOut) return;
+    _isSigningOut = true;
+    try {
+      currentDevice.value = null;
+      await deleteAuthToken();
+      await removeCurrentDisplayId();
+      await Get.offAll(() => const LoginPage());
+    } finally {
+      _isSigningOut = false;
+    }
   }
 
   String? getAuthToken() {

@@ -22,17 +22,42 @@
         @if($display->calendar->outlookAccount)
             <div class="flex min-w-0 max-w-[11rem] sm:max-w-xs items-center gap-2">
                 <x-icons.microsoft class="h-4 w-4 flex-shrink-0 text-gray-500" />
-                <span class="truncate font-medium text-gray-900">{{ $display->calendar->outlookAccount->name }}</span>
+                <div class="min-w-0">
+                    <div class="truncate font-medium text-gray-900">{{ $display->calendar->outlookAccount->name }}</div>
+                    @if($display->calendar->room)
+                        <div class="truncate text-xs text-gray-500">{{ $display->calendar->room->name }}</div>
+                    @elseif(filled($display->calendar->name) && !$display->calendar->is_primary)
+                        <div class="truncate text-xs text-gray-500">{{ $display->calendar->name }}</div>
+                    @elseif($display->calendar->outlookAccount->email)
+                        <div class="truncate text-xs text-gray-500">{{ $display->calendar->outlookAccount->email }}</div>
+                    @endif
+                </div>
             </div>
         @elseif($display->calendar->googleAccount)
             <div class="flex min-w-0 max-w-[11rem] sm:max-w-xs items-center gap-2">
                 <x-icons.google class="h-4 w-4 flex-shrink-0 text-gray-500" />
-                <span class="truncate font-medium text-gray-900">{{ $display->calendar->googleAccount->name }}</span>
+                <div class="min-w-0">
+                    <div class="truncate font-medium text-gray-900">{{ $display->calendar->googleAccount->name }}</div>
+                    @if($display->calendar->room)
+                        <div class="truncate text-xs text-gray-500">{{ $display->calendar->room->name }}</div>
+                    @elseif(filled($display->calendar->name) && !$display->calendar->is_primary)
+                        <div class="truncate text-xs text-gray-500">{{ $display->calendar->name }}</div>
+                    @elseif($display->calendar->googleAccount->email)
+                        <div class="truncate text-xs text-gray-500">{{ $display->calendar->googleAccount->email }}</div>
+                    @endif
+                </div>
             </div>
         @elseif($display->calendar->caldavAccount)
             <div class="flex min-w-0 max-w-[11rem] sm:max-w-xs items-center gap-2">
                 <x-icons.calendar class="h-4 w-4 flex-shrink-0 text-gray-500" />
-                <span class="truncate font-medium text-gray-900">{{ $display->calendar->caldavAccount->name }}</span>
+                <div class="min-w-0">
+                    <div class="truncate font-medium text-gray-900">{{ $display->calendar->caldavAccount->name }}</div>
+                    @if($display->calendar->room)
+                        <div class="truncate text-xs text-gray-500">{{ $display->calendar->room->name }}</div>
+                    @elseif(filled($display->calendar->name) && !$display->calendar->is_primary)
+                        <div class="truncate text-xs text-gray-500">{{ $display->calendar->name }}</div>
+                    @endif
+                </div>
             </div>
         @endif
     </td>

@@ -19,8 +19,10 @@ Route::middleware(['auth:sanctum', 'user.update-last-activity'])->group(function
 
     Route::get('displays', [DisplayController::class, 'index']);
     Route::get('displays/{display}/data', [DisplayController::class, 'getData']);
+    Route::get('displays/{display}/events', [DisplayController::class, 'getEvents']);
     Route::post('displays/{display}/book', [DisplayController::class, 'book']);
     Route::post('displays/{display}/events/{eventId}/check-in', [DisplayController::class, 'checkIn']);
+    Route::post('displays/{display}/events/{eventId}/extend', [DisplayController::class, 'extend']);
     Route::delete('displays/{display}/events/{eventId}', [DisplayController::class, 'cancel']);
 
     Route::get('events', [EventController::class, 'index']); # Deprecated > v1.2.0

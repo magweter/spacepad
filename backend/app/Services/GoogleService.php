@@ -51,7 +51,6 @@ class GoogleService
             throw new Exception('Error authenticating with Google: ' . Arr::get($accessToken, 'error'));
         }
 
-        logger()->info('Received Google access token:', $accessToken);
 
         $this->client->setAccessToken($accessToken['access_token']);
 
@@ -233,10 +232,15 @@ class GoogleService
         Calendar $calendar,
         string $summary,
         Carbon $start,
-        Carbon $end
+        Carbon $end,
+        ?string $description = null,
+        array $attendees = []
     ): ?GoogleEvent {
         $event = new GoogleEvent();
         $event->setSummary($summary);
+        if ($description !== null && $description !== '') {
+            $event->setDescription($description);
+        }
 
         $startDateTime = new \Google\Service\Calendar\EventDateTime();
         $startDateTime->setDateTime($start->toRfc3339String());
@@ -264,21 +268,73 @@ class GoogleService
 
         $calendarId = $calendar->room ? 'primary' : $calendar->calendar_id;
 
-        // For room resources with current account method, create event on user's primary calendar and add room as attendee
-        // Room resource calendars are read-only and cannot be written to directly without service account
+        // Build attendee list: room resource (if applicable) + user-specified attendees
+        $eventAttendees = [];
         if ($calendar->room) {
+            $roomAttendee = new \Google\Service\Calendar\EventAttendee();
+            $roomAttendee->setEmail($calendar->calendar_id);
+            $eventAttendees[] = $roomAttendee;
+        }
+        foreach ($attendees as $email) {
             $attendee = new \Google\Service\Calendar\EventAttendee();
-            $attendee->setEmail($calendar->calendar_id);
-            $event->setAttendees([$attendee]);
+            $attendee->setEmail($email);
+            $eventAttendees[] = $attendee;
+        }
+        if (!empty($eventAttendees)) {
+            $event->setAttendees($eventAttendees);
         }
 
         try {
             $createdEvent = $calendarService->events->insert($calendarId, $event, [
-                'sendUpdates' => 'none'
+                'sendUpdates' => !empty($attendees) ? 'all' : 'none',
             ]);
             return $createdEvent;
         } catch (\Exception $e) {
             throw new Exception('Failed to create Google event: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Patch the end time of an existing Google Calendar event.
+     */
+    public function patchEventEndTime(
+        GoogleAccount $googleAccount,
+        Calendar $calendar,
+        string $eventId,
+        Carbon $newEnd
+    ): void {
+        $bookingMethod = $googleAccount->booking_method ?? GoogleBookingMethod::USER_ACCOUNT;
+
+        $patch = new GoogleEvent();
+        $endDateTime = new \Google\Service\Calendar\EventDateTime();
+        $endDateTime->setDateTime($newEnd->toRfc3339String());
+        $endDateTime->setTimeZone('UTC');
+        $patch->setEnd($endDateTime);
+
+        // For workspace accounts with room resources and service account booking method, patch directly on room calendar
+        if ($calendar->room && $googleAccount->isBusiness() &&
+            $bookingMethod === GoogleBookingMethod::SERVICE_ACCOUNT &&
+            $googleAccount->service_account_file_path) {
+            $client = $this->getServiceAccountClient($googleAccount);
+            $calendarService = new GoogleCalendar($client);
+            try {
+                $calendarService->events->patch($calendar->calendar_id, $eventId, $patch, ['sendUpdates' => 'none']);
+            } catch (\Exception $e) {
+                throw new Exception('Failed to update Google event end time: ' . $e->getMessage());
+            }
+            return;
+        }
+
+        // Fall back to user OAuth method
+        $this->ensureAuthenticated($googleAccount);
+        $calendarService = new GoogleCalendar($this->client);
+
+        $calendarId = $calendar->room ? 'primary' : $calendar->calendar_id;
+
+        try {
+            $calendarService->events->patch($calendarId, $eventId, $patch, ['sendUpdates' => 'none']);
+        } catch (\Exception $e) {
+            throw new Exception('Failed to update Google event end time: ' . $e->getMessage());
         }
     }
 
@@ -399,8 +455,7 @@ class GoogleService
                 'google_account_id' => $googleAccount->id,
             ]);
 
-            // Log the creation for debugging
-            logger()->info('Google subscription created', ['subscription' => $response]);
+            logger()->info('Google subscription created', ['subscription_id' => $response->id ?? null]);
 
             return $eventSubscription;
         } catch (Exception $e) {

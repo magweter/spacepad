@@ -47,7 +47,7 @@
                                 class="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                             >
                                 @foreach($statuses as $status)
-                                    <option value="{{ $status->value }}" {{ old('status', $item->status->value ?? 'considering') === $status->value ? 'selected' : '' }}>
+                                    <option value="{{ $status->value }}" {{ old('status', $item->status->value ?? $defaultStatus) === $status->value ? 'selected' : '' }}>
                                         {{ $status->label() }}
                                     </option>
                                 @endforeach

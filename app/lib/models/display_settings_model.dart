@@ -16,9 +16,14 @@ class DisplaySettingsModel {
   String fontFamily;
   String cancelPermission;
   String borderThickness;
+  bool advertisementEnabled;
   String? advertisementImageUrl;
   int advertisementInterval;
   int advertisementDuration;
+  bool timelineWidgetEnabled;
+  String timelineWidgetMode;
+  bool extendEnabled;
+  bool showOrganizer;
 
   DisplaySettingsModel({
     required this.checkInEnabled,
@@ -38,9 +43,14 @@ class DisplaySettingsModel {
     required this.fontFamily,
     this.cancelPermission = 'all',
     this.borderThickness = 'medium',
+    this.advertisementEnabled = false,
     this.advertisementImageUrl,
     this.advertisementInterval = 5,
     this.advertisementDuration = 15,
+    this.timelineWidgetEnabled = false,
+    this.timelineWidgetMode = 'none',
+    this.extendEnabled = false,
+    this.showOrganizer = false,
   });
 
   factory DisplaySettingsModel.fromJson(Map data) {
@@ -62,9 +72,14 @@ class DisplaySettingsModel {
       fontFamily: data['font_family'] ?? 'Inter',
       cancelPermission: data['cancel_permission'] ?? 'all',
       borderThickness: data['border_thickness'] ?? 'medium',
+      advertisementEnabled: data['advertisement_enabled'] ?? false,
       advertisementImageUrl: data['advertisement_image_url'],
       advertisementInterval: data['advertisement_interval'] ?? 5,
       advertisementDuration: data['advertisement_duration'] ?? 15,
+      timelineWidgetEnabled: data['timeline_widget_enabled'] ?? false,
+      timelineWidgetMode: data['timeline_widget_mode'] ?? 'none',
+      extendEnabled: data['extend_enabled'] ?? false,
+      showOrganizer: data['show_organizer'] ?? false,
     );
   }
 
@@ -85,6 +100,16 @@ class DisplaySettingsModel {
       'logo_url': logoUrl,
       'background_image_url': backgroundImageUrl,
       'font_family': fontFamily,
+      'cancel_permission': cancelPermission,
+      'border_thickness': borderThickness,
+      'advertisement_enabled': advertisementEnabled,
+      'advertisement_image_url': advertisementImageUrl,
+      'advertisement_interval': advertisementInterval,
+      'advertisement_duration': advertisementDuration,
+      'timeline_widget_enabled': timelineWidgetEnabled,
+      'timeline_widget_mode': timelineWidgetMode,
+      'extend_enabled': extendEnabled,
+      'show_organizer': showOrganizer,
     };
   }
 } 

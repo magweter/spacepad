@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Notifications\MagicLoginNotification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -58,11 +59,38 @@ class RegisterController extends Controller
             ]);
         }
 
-        $loginUrl = MagicLink::create(new LoginAction($user))->url;
+        $loginUrl = MagicLink::create(new LoginAction($user), 60 * 24)->url;
         $user->notify(new MagicLoginNotification($loginUrl));
 
         return redirect()
             ->back()
-            ->with('registered', true);
+            ->with('registered', true)
+            ->with('registered_email', $data['email']);
+    }
+
+    public function resend(Request $request): RedirectResponse
+    {
+        $request->validate(['email' => 'required|email']);
+
+        $key = 'resend:' . $request->email;
+        if (RateLimiter::tooManyAttempts($key, 3)) {
+            $seconds = RateLimiter::availableIn($key);
+            return redirect()->route('register')
+                ->with('registered', true)
+                ->with('registered_email', $request->email)
+                ->with('error', "Too many resend attempts. Please wait {$seconds} seconds before trying again.");
+        }
+        RateLimiter::hit($key, 600); // 3 attempts per 10 minutes per email
+
+        $user = User::where('email', $request->email)->first();
+        if ($user) {
+            $loginUrl = MagicLink::create(new LoginAction($user), 60 * 24)->url;
+            $user->notify(new MagicLoginNotification($loginUrl));
+        }
+
+        return redirect()->route('register')
+            ->with('registered', true)
+            ->with('registered_email', $request->email)
+            ->with('success', 'Email resent! Check your inbox (and spam folder).');
     }
 }

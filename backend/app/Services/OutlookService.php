@@ -50,6 +50,14 @@ class OutlookService
      * @param PermissionType $permissionType 'read' or 'write', or PermissionType enum
      * @return string
      */
+    public function getAdminConsentUrl(): string
+    {
+        return 'https://login.microsoftonline.com/common/adminconsent?' . http_build_query([
+            'client_id'    => $this->clientId,
+            'redirect_uri' => $this->redirectUri,
+        ]);
+    }
+
     public function getAuthUrl(PermissionType $permissionType = PermissionType::READ): string
     {
         $oauthEndpoint = "https://login.microsoftonline.com/{$this->tenantId}/oauth2/v2.0/authorize";
@@ -215,15 +223,25 @@ class OutlookService
         $this->ensureAuthenticated($outlookAccount);
 
         $params = [
-            'startDateTime' => $startDateTime->toIso8601String(),
-            'endDateTime' => $endDateTime->toIso8601String(),
+            'startDateTime' => $startDateTime->utc()->toIso8601String(),
+            'endDateTime' => $endDateTime->utc()->toIso8601String(),
             '$select' => 'id,lastModifiedDateTime,subject,body,bodyPreview,isAllDay,location,start,end,onlineMeetingUrl,onlineMeeting',
             '$orderby' => 'createdDateTime',
             '$top' => 100
         ];
 
         $response = Http::withToken($outlookAccount->token)
+            ->withHeaders(['Prefer' => 'outlook.timezone="UTC"'])
             ->get("https://graph.microsoft.com/v1.0/users/$emailAddress/calendarview", $params);
+
+        if (!$response->successful()) {
+            $error = Arr::get($response->json(), 'error.message', $response->body());
+            logger()->error('Outlook fetchEventsByUser failed', [
+                'status' => $response->status(),
+                'error' => $error,
+            ]);
+            throw new \Exception("Outlook API error for $emailAddress: $error", $response->status());
+        }
 
         return Arr::get($response->json(), 'value') ?? [];
     }
@@ -247,15 +265,26 @@ class OutlookService
         $this->ensureAuthenticated($outlookAccount);
 
         $params = [
-            'startDateTime' => $startDateTime->toIso8601String(),
-            'endDateTime' => $endDateTime->toIso8601String(),
+            'startDateTime' => $startDateTime->utc()->toIso8601String(),
+            'endDateTime' => $endDateTime->utc()->toIso8601String(),
             '$select' => 'id,lastModifiedDateTime,subject,body,bodyPreview,isAllDay,location,start,end,onlineMeetingUrl,onlineMeeting',
             '$orderby' => 'createdDateTime',
             '$top' => 100
         ];
 
         $response = Http::withToken($outlookAccount->token)
+            ->withHeaders(['Prefer' => 'outlook.timezone="UTC"'])
             ->get("https://graph.microsoft.com/v1.0/me/calendars/$calendarId/calendarview", $params);
+
+        if (!$response->successful()) {
+            $error = Arr::get($response->json(), 'error.message', $response->body());
+            logger()->error('Outlook fetchEventsByCalendar failed', [
+                'status' => $response->status(),
+                'calendar_id' => $calendarId,
+                'error' => $error,
+            ]);
+            throw new \Exception("Outlook API error for calendar $calendarId: $error", $response->status());
+        }
 
         return Arr::get($response->json(), 'value') ?? [];
     }
@@ -314,7 +343,9 @@ class OutlookService
         Calendar $calendar,
         string $summary,
         Carbon $start,
-        Carbon $end
+        Carbon $end,
+        ?string $description = null,
+        array $attendees = []
     ): ?array {
         $this->ensureAuthenticated($outlookAccount);
 
@@ -329,6 +360,20 @@ class OutlookService
                 'timeZone' => $end->timezone->getName(),
             ],
         ];
+
+        if ($description !== null && $description !== '') {
+            $eventData['body'] = [
+                'contentType' => 'text',
+                'content' => $description,
+            ];
+        }
+
+        if (!empty($attendees)) {
+            $eventData['attendees'] = array_map(fn($email) => [
+                'emailAddress' => ['address' => $email],
+                'type' => 'required',
+            ], $attendees);
+        }
 
         // Determine the endpoint based on whether it's a room or calendar
         if ($calendar->room) {
@@ -391,6 +436,39 @@ class OutlookService
 
         if (!$response->successful()) {
             throw new Exception('Failed to delete Outlook event: ' . $response->body());
+        }
+    }
+
+    /**
+     * Patch the end time of an existing Outlook calendar event.
+     */
+    public function patchEventEndTime(
+        OutlookAccount $outlookAccount,
+        Calendar $calendar,
+        string $eventId,
+        Carbon $newEnd
+    ): void {
+        $this->ensureAuthenticated($outlookAccount);
+
+        if ($calendar->room) {
+            $endpoint = "https://graph.microsoft.com/v1.0/users/{$calendar->calendar_id}/calendar/events/{$eventId}";
+        } elseif ($calendar->is_primary) {
+            $endpoint = "https://graph.microsoft.com/v1.0/me/calendar/events/{$eventId}";
+        } else {
+            $endpoint = "https://graph.microsoft.com/v1.0/me/calendars/{$calendar->calendar_id}/events/{$eventId}";
+        }
+
+        $response = Http::acceptJson()
+            ->withHeaders(['Authorization' => 'Bearer ' . $outlookAccount->token])
+            ->patch($endpoint, [
+                'end' => [
+                    'dateTime' => $newEnd->utc()->toIso8601String(),
+                    'timeZone' => 'UTC',
+                ],
+            ]);
+
+        if (!$response->successful()) {
+            throw new \Exception('Failed to update Outlook event end time: ' . $response->body());
         }
     }
 
@@ -486,7 +564,7 @@ class OutlookService
                 
                 logger()->error('Creating outlook subscription failed', [
                     'statuscode' => $statusCode,
-                    'response' => $responseBody,
+                    'error' => Arr::get($responseBody, 'error.message'),
                     'is_user_error' => $isUserError,
                 ]);
                 
@@ -521,8 +599,7 @@ class OutlookService
             'outlook_account_id' => $outlookAccount->id,
         ]);
 
-        // Log the creation for debugging
-        logger()->info('Outlook subscription created', ['subscription' => $responseBody]);
+        logger()->info('Outlook subscription created', ['subscription_id' => Arr::get($responseBody, 'id')]);
 
         return $eventSubscription;
     }

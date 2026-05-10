@@ -62,14 +62,13 @@ class UpdateLemonSqueezySubscriptions extends Command
                     $this->updateQuantityBasedBilling($user, $totalUsage);
                     $this->updateUsageBasedBilling($user, $totalUsage);
                     $successCount++;
-                    $this->info("Updated subscription for user {$user->email} with {$totalUsage} total usage units (displays + boards*2)");
+                    $this->info("Updated subscription for user {$user->id} with {$totalUsage} total usage units (displays + boards*2)");
                 }
             } catch (\Exception $e) {
                 $errorCount++;
-                $this->error("Failed to update subscription for user {$user->email}: {$e->getMessage()}");
+                $this->error("Failed to update subscription for user {$user->id}: {$e->getMessage()}");
                 Log::error('Subscription update failed', [
                     'user_id' => $user->id,
-                    'user_email' => $user->email,
                     'error' => $e->getMessage(),
                     'trace' => $e->getTraceAsString()
                 ]);

@@ -1,18 +1,25 @@
 @extends('layouts.base')
-@section('title', 'Management dashboard')
+@section('title', 'Dashboard')
 
 @section('actions')
-    {{-- Connect Code --}}
-    @if((auth()->user()->hasAnyDisplay() || auth()->user()->workspaces()->count() > 1) && $connectCode)
-        <div class="items-center flex ml-auto gap-4">
-            <div class="flex border border-dashed rounded-lg px-4 h-14 items-center border-gray-400">
-                <h3 class="text-sm font-semibold text-gray-900 mr-8 flex items-center">Connect code</h3>
-                <div class="flex-1 text-sm text-gray-500">
-                    <p class="font-mono">{{ chunk_split($connectCode, 3, ' ') }}</p>
-                </div>
+    <div class="flex items-center gap-3 ml-auto">
+        @if(! config('settings.is_self_hosted'))
+            <button type="button" onclick="window.dispatchEvent(new CustomEvent('open-faq', { detail: { tab: 'roadmap' } }))" class="inline-flex items-center gap-1.5 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-600 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 transition-colors">
+                <svg class="h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"/></svg>
+                Make a request
+            </button>
+            <button type="button" onclick="window.dispatchEvent(new CustomEvent('open-faq', { detail: { tab: 'help' } }))" class="inline-flex items-center gap-1.5 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-600 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 transition-colors">
+                <svg class="h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z"/></svg>
+                Need help?
+            </button>
+        @endif
+        @if((auth()->user()->hasAnyDisplay() || auth()->user()->workspaces()->count() > 1) && $connectCode)
+            <div class="flex border border-dashed rounded-lg px-4 h-10 items-center border-gray-300 gap-3">
+                <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Connect code</span>
+                <span class="font-mono text-sm text-gray-900">{{ chunk_split($connectCode, 3, ' ') }}</span>
             </div>
-        </div>
-    @endif
+        @endif
+    </div>
 @endsection
 
 @section('content')
@@ -28,7 +35,7 @@
     {{-- Google Workspace Booking Method Selection Warnings --}}
     @foreach($googleAccounts as $googleAccount)
         @if($googleAccount->permission_type === \App\Enums\PermissionType::WRITE && $googleAccount->isBusiness() && $googleAccount->booking_method === null)
-            <div class="mb-4 rounded-md bg-yellow-50 ring-1 ring-inset ring-yellow-600 p-4 flex items-start gap-4" x-data>
+            <div class="mb-4 rounded-xl bg-yellow-50 border border-yellow-200 p-4 flex items-start gap-4" x-data>
                 <div class="flex-shrink-0 mt-1">
                     <span class="inline-flex items-center justify-center h-10 w-10 rounded-full bg-yellow-100">
                         <svg class="h-6 w-6 text-yellow-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -57,7 +64,7 @@
     {{-- Service Account Warnings --}}
     @foreach($googleAccounts as $googleAccount)
         @if($googleAccount->isBusiness() && $googleAccount->booking_method === \App\Enums\GoogleBookingMethod::SERVICE_ACCOUNT && !$googleAccount->service_account_file_path)
-            <div class="mb-4 rounded-md bg-yellow-50 ring-1 ring-inset ring-yellow-600 p-4 flex items-start gap-4" x-data>
+            <div class="mb-4 rounded-xl bg-yellow-50 border border-yellow-200 p-4 flex items-start gap-4" x-data>
                 <div class="flex-shrink-0 mt-1">
                     <span class="inline-flex items-center justify-center h-10 w-10 rounded-full bg-yellow-100">
                         <svg class="h-6 w-6 text-yellow-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -86,9 +93,12 @@
     {{-- License Key Modal --}}
     <x-modals.license-key />
 
+    {{-- Microsoft Admin Consent Modal --}}
+    <x-modals.microsoft-admin-consent />
+
     {{-- Commercial Banner --}}
     @if(! auth()->user()->hasProForCurrentWorkspace() && auth()->user()->hasAnyDisplay())
-        <div class="mb-4 rounded-lg bg-indigo-50 border border-indigo-200 p-4 flex items-start gap-4">
+        <div class="mb-4 rounded-xl bg-indigo-50 border border-indigo-200 p-4 flex items-start gap-4">
             <div class="flex-shrink-0 mt-1">
                 <span class="inline-flex items-center justify-center h-10 w-10 rounded-full bg-indigo-100">
                     <x-icons.settings class="h-6 w-6 text-indigo-500" />
@@ -113,6 +123,171 @@
                         Try Pro 14 days for free
                     </x-lemon-button>
                 @endif
+            </div>
+        </div>
+    @endif
+
+    {{-- Trial Countdown Banner --}}
+    @if(!$isSelfHosted && $trialSubscription && $trialSubscription->trial_ends_at)
+        @php $trialDaysLeft = (int) now()->diffInDays($trialSubscription->trial_ends_at, false) @endphp
+        @if($trialDaysLeft >= 0 && $trialDaysLeft <= 14)
+            <div class="mb-4 rounded-xl bg-amber-50 border border-amber-200 p-4 flex items-center gap-4">
+                <div class="flex-shrink-0">
+                    <span class="inline-flex items-center justify-center h-10 w-10 rounded-full bg-amber-100">
+                        <svg class="h-5 w-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
+                        </svg>
+                    </span>
+                </div>
+                <div class="flex-1">
+                    <h3 class="text-sm font-semibold text-amber-900">
+                        @if($trialDaysLeft === 0)
+                            Your trial expires today
+                        @elseif($trialDaysLeft === 1)
+                            Your trial expires tomorrow
+                        @else
+                            Your trial expires in {{ $trialDaysLeft }} days
+                        @endif
+                    </h3>
+                    <p class="text-sm text-amber-800">Subscribe now to keep all your displays running without interruption.</p>
+                </div>
+                <div class="flex-shrink-0">
+                    @php $checkout = auth()->user()->getCheckoutUrl(route('billing.thanks')) @endphp
+                    <x-lemon-button :href="$checkout" class="inline-flex items-center rounded-md bg-amber-600 px-3 py-2 text-sm font-semibold text-white shadow-xs hover:bg-amber-700">
+                        Subscribe now
+                    </x-lemon-button>
+                </div>
+            </div>
+        @endif
+    @endif
+
+    {{-- Getting Started Checklist --}}
+    @php
+        $hasAccount = $outlookAccounts->isNotEmpty() || $googleAccounts->isNotEmpty() || $caldavAccounts->isNotEmpty();
+        $checklistDone = $hasAccount && $hasDisplay && $hasDevice;
+        $doneCount = ($hasAccount ? 1 : 0) + ($hasDisplay ? 1 : 0) + ($hasDevice ? 1 : 0);
+        $progressPct = (int) round($doneCount / 3 * 100);
+    @endphp
+    @if(!$checklistDone)
+        <div class="mb-4 rounded-xl bg-white border border-gray-200 shadow-sm overflow-hidden">
+
+            {{-- Header --}}
+            <div class="px-6 pt-5 pb-3 flex items-center justify-between">
+                <div>
+                    <h3 class="text-base font-semibold text-gray-900">Getting started</h3>
+                    <p class="text-sm text-gray-500 mt-0.5">{{ $doneCount }} of 3 steps completed</p>
+                </div>
+                <span class="text-2xl font-bold text-gray-200 select-none">{{ $progressPct }}%</span>
+            </div>
+
+            {{-- Progress bar --}}
+            <div class="mx-6 mb-5 h-1.5 rounded-full bg-gray-100 overflow-hidden">
+                <div class="h-full rounded-full bg-blue-500 transition-all duration-500" style="width: {{ $progressPct }}%"></div>
+            </div>
+
+            {{-- Steps --}}
+            <div class="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-gray-100">
+
+                {{-- Step 1: Connect account --}}
+                <div class="relative px-6 py-5 {{ $hasAccount ? 'bg-gray-50/60' : 'bg-white' }}">
+                    @if(!$hasAccount && $hasAccount === false)
+                        <div class="absolute left-0 top-0 bottom-0 w-0.5 bg-blue-500 rounded-l-xl sm:hidden"></div>
+                    @endif
+                    <div class="flex items-start gap-4">
+                        <div class="shrink-0">
+                            @if($hasAccount)
+                                <span class="flex h-9 w-9 items-center justify-center rounded-full bg-green-100 ring-4 ring-green-50">
+                                    <svg class="h-4 w-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+                                </span>
+                            @else
+                                <span class="flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 ring-4 ring-blue-50 text-white text-sm font-bold shadow-sm">1</span>
+                            @endif
+                        </div>
+                        <div class="flex-1 min-w-0 pt-0.5">
+                            <p class="text-sm font-semibold {{ $hasAccount ? 'text-gray-400' : 'text-gray-900' }}">Connect a calendar</p>
+                            <p class="text-xs text-gray-400 mt-1 leading-relaxed">Link your Microsoft 365, Google or CalDAV account to access room calendars.</p>
+                            @if(!$hasAccount)
+                                <div class="mt-4 flex flex-wrap gap-2">
+                                    @if(config('services.microsoft.enabled'))
+                                        <button type="button"
+                                            onclick="window.dispatchEvent(new CustomEvent('open-permission-modal', { detail: { provider: 'outlook' } }))"
+                                            class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-xs hover:border-blue-400 hover:text-blue-600 transition-colors">
+                                            <x-icons.microsoft class="h-3.5 w-3.5" /> Microsoft
+                                        </button>
+                                    @endif
+                                    @if(config('services.google.enabled'))
+                                        <button type="button"
+                                            onclick="window.dispatchEvent(new CustomEvent('open-permission-modal', { detail: { provider: 'google' } }))"
+                                            class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-xs hover:border-red-400 hover:text-red-600 transition-colors">
+                                            <x-icons.google class="h-3.5 w-3.5" /> Google
+                                        </button>
+                                    @endif
+                                    @if(config('services.caldav.enabled'))
+                                        <a href="{{ route('caldav-accounts.create') }}"
+                                            class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-xs hover:border-gray-400 transition-colors">
+                                            <x-icons.caldav class="h-3.5 w-3.5" /> CalDAV
+                                        </a>
+                                    @endif
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Step 2: Create display --}}
+                <div class="relative px-6 py-5 {{ $hasDisplay ? 'bg-gray-50/60' : ($hasAccount ? 'bg-white' : 'bg-gray-50/40') }}">
+                    <div class="flex items-start gap-4">
+                        <div class="shrink-0">
+                            @if($hasDisplay)
+                                <span class="flex h-9 w-9 items-center justify-center rounded-full bg-green-100 ring-4 ring-green-50">
+                                    <svg class="h-4 w-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+                                </span>
+                            @elseif($hasAccount)
+                                <span class="flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 ring-4 ring-blue-50 text-white text-sm font-bold shadow-sm">2</span>
+                            @else
+                                <span class="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 ring-4 ring-gray-50 text-gray-400 text-sm font-bold">2</span>
+                            @endif
+                        </div>
+                        <div class="flex-1 min-w-0 pt-0.5">
+                            <p class="text-sm font-semibold {{ $hasDisplay ? 'text-gray-400' : ($hasAccount ? 'text-gray-900' : 'text-gray-400') }}">Create a display</p>
+                            <p class="text-xs text-gray-400 mt-1 leading-relaxed">Set up a display and pick which calendar room to show on it.</p>
+                            @if($hasAccount && !$hasDisplay)
+                                <p class="mt-4 text-xs text-blue-600 font-medium flex items-center gap-1">
+                                    <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"/></svg>
+                                    Use the Displays tab below ↓
+                                </p>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Step 3: Connect device --}}
+                <div class="relative px-6 py-5 {{ $hasDevice ? 'bg-gray-50/60' : ($hasDisplay ? 'bg-white' : 'bg-gray-50/40') }}">
+                    <div class="flex items-start gap-4">
+                        <div class="shrink-0">
+                            @if($hasDevice)
+                                <span class="flex h-9 w-9 items-center justify-center rounded-full bg-green-100 ring-4 ring-green-50">
+                                    <svg class="h-4 w-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+                                </span>
+                            @elseif($hasDisplay)
+                                <span class="flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 ring-4 ring-blue-50 text-white text-sm font-bold shadow-sm">3</span>
+                            @else
+                                <span class="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 ring-4 ring-gray-50 text-gray-400 text-sm font-bold">3</span>
+                            @endif
+                        </div>
+                        <div class="flex-1 min-w-0 pt-0.5">
+                            <p class="text-sm font-semibold {{ $hasDevice ? 'text-gray-400' : ($hasDisplay ? 'text-gray-900' : 'text-gray-400') }}">Connect a device</p>
+                            <p class="text-xs text-gray-400 mt-1 leading-relaxed">Open the Spacepad app on a tablet or TV and enter your connect code.</p>
+                            @if($hasDisplay && !$hasDevice && $connectCode)
+                                <div class="mt-4 inline-flex items-center gap-2 rounded-lg bg-blue-50 border border-blue-100 px-3 py-2">
+                                    <svg class="h-4 w-4 text-blue-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 0 0 6 3.75v16.5a2.25 2.25 0 0 0 2.25 2.25h7.5A2.25 2.25 0 0 0 18 20.25V3.75a2.25 2.25 0 0 0-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 8.25h3m-3 3h3m-3 3h3"/></svg>
+                                    <span class="text-sm font-mono font-semibold text-blue-700 tracking-widest">{{ chunk_split($connectCode, 3, ' ') }}</span>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
     @endif
@@ -158,18 +333,15 @@
                         </p>
                     </div>
                     <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none flex items-center gap-2">
-                        @if(! $isSelfHosted)
-                            <button type="button" onclick="window.dispatchEvent(new CustomEvent('open-faq', { detail: { tab: 'roadmap' } }))" class="inline-flex items-center gap-2 rounded-md bg-white px-3 py-2 text-sm font-semibold text-violet-700 shadow-sm ring-1 ring-inset ring-violet-300 hover:bg-violet-50 transition-colors">
-                                <svg class="h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"/>
+                        @if(auth()->user()->hasProForCurrentWorkspace() && $displays->isNotEmpty())
+                            <button type="button"
+                                    onclick="window.dispatchEvent(new CustomEvent('open-diagnostics'))"
+                                    class="inline-flex items-center gap-1.5 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-600 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+                                    title="Troubleshoot calendar sync issues">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
                                 </svg>
-                                Make a request
-                            </button>
-                            <button type="button" onclick="window.dispatchEvent(new CustomEvent('open-faq', { detail: { tab: 'help' } }))" class="inline-flex items-center gap-2 rounded-md bg-violet-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-violet-500 transition-colors">
-                                <svg class="h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z"/>
-                                </svg>
-                                Need help?
+                                Troubleshoot
                             </button>
                         @endif
                         @if(auth()->user()->can('create', \App\Models\Display::class))
@@ -188,7 +360,7 @@
                     </div>
                 </div>
 
-                <div class="mt-6 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm ring-1 ring-gray-900/5">
+                <div class="mt-6 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
                     <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-200">
                                 <thead class="bg-gray-50/90">
@@ -270,7 +442,7 @@
                         </div>
                     </div>
 
-                    <div class="mt-6 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm ring-1 ring-gray-900/5">
+                    <div class="mt-6 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
                         <div class="overflow-x-auto">
                                 <table class="min-w-full divide-y divide-gray-200">
                                     <thead class="bg-gray-50/90">
@@ -630,4 +802,5 @@
     <x-modals.select-permission provider="google" />
     <x-modals.select-google-booking-method />
     <x-modals.google-service-account />
+    <x-modals.diagnostics :displays="$displays" />
 @endpush
