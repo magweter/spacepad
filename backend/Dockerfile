@@ -21,9 +21,11 @@ COPY package.json pnpm-lock.yaml ./
 COPY vite.config.js ./
 COPY resources ./resources
 
-ENV PNPM_CONFIG_ONLY_BUILT_DEPENDENCIES_NONE=true
+# Clear any previous pnpm config and force the allowed list
+RUN pnpm config set only-built-dependencies @tailwindcss/oxide,esbuild
 
-RUN pnpm install --config.only-built-dependencies-none=true && pnpm run build
+# Now run the install
+RUN pnpm install --no-frozen-lockfile && pnpm run build
 
 # Set our base image
 FROM serversideup/php:8.4-fpm-nginx AS base
