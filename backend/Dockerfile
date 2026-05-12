@@ -21,11 +21,12 @@ COPY package.json pnpm-lock.yaml ./
 COPY vite.config.js ./
 COPY resources ./resources
 
-# Clear any previous pnpm config and force the allowed list
-RUN pnpm config set only-built-dependencies @tailwindcss/oxide,esbuild
+# Create a local .npmrc file to authorize the build scripts
+RUN echo "only-built-dependencies[]=@tailwindcss/oxide" > .npmrc && \
+    echo "only-built-dependencies[]=esbuild" >> .npmrc
 
-# Now run the install
-RUN pnpm install --no-frozen-lockfile && pnpm run build
+# Now run the install (no special flags needed, the .npmrc handles it)
+RUN pnpm install && pnpm run build
 
 # Set our base image
 FROM serversideup/php:8.4-fpm-nginx AS base
