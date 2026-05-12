@@ -21,6 +21,8 @@ COPY package.json pnpm-lock.yaml ./
 COPY vite.config.js ./
 COPY resources ./resources
 
+ENV PNPM_CONFIG_ONLY_BUILT_DEPENDENCIES_NONE=true
+
 RUN pnpm install --config.only-built-dependencies-none=true && pnpm run build
 
 # Set our base image
