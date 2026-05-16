@@ -24,6 +24,7 @@ use App\Http\Controllers\UsageController;
 use App\Http\Controllers\SupportController;
 use App\Http\Controllers\RoadmapController;
 use App\Http\Controllers\AdminRoadmapController;
+use App\Http\Controllers\ProfileController;
 
 Route::get('/login', [LoginController::class, 'create'])
     ->middleware('guest')
@@ -129,6 +130,9 @@ Route::middleware(['auth', 'user.update-last-activity', 'gtm'])->group(function 
         return redirect()->route('dashboard');
     })->name('billing.thanks');
 
+    Route::get('/account', [ProfileController::class, 'show'])->name('profile.show');
+    Route::delete('/account', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
     Route::get('/admin', [AdminController::class, 'index'])->name('admin.index');
     Route::get('/admin/users/{user}', [AdminController::class, 'showUser'])->name('admin.users.show');
     Route::delete('/admin/users/{user}', [AdminController::class, 'deleteUser'])->name('admin.users.delete');
@@ -153,8 +157,6 @@ Route::middleware(['auth', 'user.update-last-activity', 'gtm'])->group(function 
     Route::delete('/boards/{board}', [BoardController::class, 'destroy'])->name('boards.destroy');
     Route::get('/boards/{board}/images/logo', [BoardController::class, 'serveLogo'])->name('boards.images.logo');
 
-    // Usage routes
-    Route::get('/usage', [UsageController::class, 'index'])->name('usage.index');
 
     // Support / FAQ
     Route::post('/support/ask', [SupportController::class, 'store'])->name('support.ask');

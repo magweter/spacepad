@@ -15,7 +15,7 @@ enum DisplayStatus: string
             self::READY => 'Ready',
             self::ACTIVE => 'Active',
             self::DEACTIVATED => 'Deactivated',
-            self::ERROR => 'Error - try recreating',
+            self::ERROR => 'Error',
         };
     }
 

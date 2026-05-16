@@ -803,12 +803,21 @@ class EventService
      */
     private function fetchGoogleEvents(Calendar $calendar, Display $display, ?Carbon $start = null, ?Carbon $end = null): Collection
     {
-        $events = $this->googleService->fetchEvents(
-            googleAccount: $calendar->googleAccount,
-            calendarId: $calendar->calendar_id,
-            startDateTime: $start ?? $display->getStartTime(),
-            endDateTime: $end ?? $display->getEndTime(),
-        );
+        try {
+            $events = $this->googleService->fetchEvents(
+                googleAccount: $calendar->googleAccount,
+                calendarId: $calendar->calendar_id,
+                startDateTime: $start ?? $display->getStartTime(),
+                endDateTime: $end ?? $display->getEndTime(),
+            );
+        } catch (\Exception $e) {
+            logger()->error('Failed to fetch Google events, returning empty', [
+                'google_account_id' => $calendar->googleAccount->id,
+                'display_id' => $display->id,
+                'error' => $e->getMessage(),
+            ]);
+            return collect();
+        }
 
         // Get room email if this calendar has a room
         $roomEmail = $calendar->room?->email_address;

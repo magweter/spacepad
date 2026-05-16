@@ -44,7 +44,7 @@ class DisplaySettingsController extends Controller
             'check_in_enabled' => 'boolean',
             'booking_enabled' => 'boolean',
             'hide_admin_actions' => 'boolean',
-            'timeline_widget_mode' => 'nullable|in:none,side_panel,inline',
+            'timeline_widget_mode' => 'nullable|in:none,side_panel,inline,full_panel',
             'view_schedule' => 'boolean',
             'allow_future_bookings' => 'boolean',
             'extend_enabled' => 'boolean',

@@ -52,6 +52,7 @@ class RegisterController extends Controller
                 'name' => $data['name'],
                 'email' => $data['email'],
                 'terms_accepted_at' => ! config('settings.is_self_hosted') ? now() : null,
+                'dpa_accepted_at' => ! config('settings.is_self_hosted') ? now() : null,
             ]);
 
             GoogleTagManager::flashPush([
