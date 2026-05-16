@@ -1,30 +1,29 @@
 <?php
 
-use App\Http\Controllers\Auth\GoogleController;
-use App\Http\Controllers\Auth\MicrosoftController;
-use App\Http\Controllers\Auth\LoginController;
-use App\Http\Controllers\Auth\RegisterController;
-use App\Http\Controllers\CalendarController;
-use App\Http\Controllers\RoomController;
-use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\OnboardingController;
-use App\Http\Controllers\GoogleAccountsController;
-use App\Http\Controllers\OutlookAccountsController;
-use App\Http\Controllers\DisplayController;
-use App\Http\Controllers\DisplaySettingsController;
-use App\Http\Controllers\DisplayDiagnosticsController;
-use App\Http\Controllers\OutlookWebhookController;
-use App\Http\Controllers\CalDAVAccountsController;
-use App\Http\Controllers\LicenseController;
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AdminController;
-use App\Http\Controllers\WorkspaceController;
-use App\Http\Controllers\BoardController;
-use App\Http\Controllers\UsageController;
-use App\Http\Controllers\SupportController;
-use App\Http\Controllers\RoadmapController;
 use App\Http\Controllers\AdminRoadmapController;
+use App\Http\Controllers\Auth\GoogleController;
+use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Auth\MicrosoftController;
+use App\Http\Controllers\Auth\RegisterController;
+use App\Http\Controllers\BillingController;
+use App\Http\Controllers\BoardController;
+use App\Http\Controllers\CalDAVAccountsController;
+use App\Http\Controllers\CalendarController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DisplayController;
+use App\Http\Controllers\DisplayDiagnosticsController;
+use App\Http\Controllers\DisplaySettingsController;
+use App\Http\Controllers\GoogleAccountsController;
+use App\Http\Controllers\LicenseController;
+use App\Http\Controllers\OnboardingController;
+use App\Http\Controllers\OutlookAccountsController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\RoadmapController;
+use App\Http\Controllers\RoomController;
+use App\Http\Controllers\SupportController;
+use App\Http\Controllers\WorkspaceController;
+use Illuminate\Support\Facades\Route;
 
 Route::get('/login', [LoginController::class, 'create'])
     ->middleware('guest')
@@ -114,21 +113,7 @@ Route::middleware(['auth', 'user.update-last-activity', 'gtm'])->group(function 
 
     Route::post('/workspaces/switch', [WorkspaceController::class, 'switch'])->name('workspaces.switch');
 
-    Route::get('/billing/thanks', function () {
-        \Spatie\GoogleTagManager\GoogleTagManagerFacade::flashPush([
-            'event' => 'purchase',
-        ]);
-        if (config('services.google_conversion.send_to')) {
-            \Spatie\GoogleTagManager\GoogleTagManagerFacade::flashPush([
-                'event' => 'conversion',
-                'send_to' => config('services.google_conversion.send_to'),
-                'value' => config('services.google_conversion.value'),
-                'currency' => config('services.google_conversion.currency'),
-                'transaction_id' => '',
-            ]);
-        }
-        return redirect()->route('dashboard');
-    })->name('billing.thanks');
+    Route::get('/billing/thanks', [BillingController::class, 'thanks'])->name('billing.thanks');
 
     Route::get('/account', [ProfileController::class, 'show'])->name('profile.show');
     Route::delete('/account', [ProfileController::class, 'destroy'])->name('profile.destroy');
@@ -144,7 +129,7 @@ Route::middleware(['auth', 'user.update-last-activity', 'gtm'])->group(function 
         ->name('displays.images');
 
     // Diagnostics — modal, run endpoint only (index redirects for old bookmarks)
-    Route::get('/diagnostics', fn() => redirect()->route('dashboard'))->name('diagnostics.index');
+    Route::redirect('/diagnostics', '/')->name('diagnostics.index');
     Route::get('/displays/{display}/diagnostics/run', [DisplayDiagnosticsController::class, 'run'])
         ->name('displays.diagnostics.run');
 
@@ -156,7 +141,6 @@ Route::middleware(['auth', 'user.update-last-activity', 'gtm'])->group(function 
     Route::put('/boards/{board}', [BoardController::class, 'update'])->name('boards.update');
     Route::delete('/boards/{board}', [BoardController::class, 'destroy'])->name('boards.destroy');
     Route::get('/boards/{board}/images/logo', [BoardController::class, 'serveLogo'])->name('boards.images.logo');
-
 
     // Support / FAQ
     Route::post('/support/ask', [SupportController::class, 'store'])->name('support.ask');
