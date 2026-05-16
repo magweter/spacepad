@@ -128,7 +128,7 @@
                         <div class="min-w-0 text-center">
                             <p class="text-lg font-semibold leading-6 text-gray-900">Connect your calendar</p>
                             <p class="mt-2 text-sm text-gray-500 leading-relaxed max-w-sm mx-auto">
-                                Spacepad syncs your room calendars to show live availability on your display. Your data is never shared or sold.
+                                Spacepad syncs your room calendars to show live availability on your display. Your data remains private and is never stored.
                             </p>
                         </div>
 

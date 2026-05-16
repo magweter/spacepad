@@ -109,11 +109,17 @@ class ProfileController extends Controller
                 $user->subscriptions()->delete();
             }
 
+            if (method_exists($user, 'customer')) {
+                $user->customer()->delete();
+            }
+
+            $userId = $user->id;
+
             logger()->info('User account deleted by self', [
-                'deleted_user_id' => $user->id,
+                'deleted_user_id' => $userId,
             ]);
 
-            $user->delete();
+            \App\Models\User::where('id', $userId)->delete();
         });
 
         Auth::logout();

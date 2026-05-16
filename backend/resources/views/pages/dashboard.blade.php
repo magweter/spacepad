@@ -383,23 +383,9 @@
                                             <div class="flex flex-col items-center justify-center">
                                                 <x-icons.display class="mx-auto mb-3 h-10 w-10 text-gray-400" />
                                                 <h3 class="mb-2 text-base font-semibold text-gray-900">
-                                                    One more step and you're set up
+                                                    No displays yet
                                                 </h3>
-                                                <p class="mb-6 text-sm text-gray-500 max-w-sm">Pick the calendar or room you would like to synchronize. You are able to connect multiple tablets to one display.</p>
-                                                @if(! $isSelfHosted && auth()->user()->shouldUpgradeForCurrentWorkspace())
-                                                    <span class="inline-flex items-center rounded-md bg-gray-100 px-3 py-2 text-center text-sm font-semibold text-gray-400 shadow-sm ring-1 ring-inset ring-gray-200 cursor-not-allowed" title="Upgrade to Pro to create more displays">
-                                                        <x-icons.plus class="h-5 w-5 mr-1" /> Create new display <span class="ml-2 inline-flex items-center rounded-md bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600">Pro</span>
-                                                    </span>
-                                                @elseif($isSelfHosted && auth()->user()->shouldUpgradeForCurrentWorkspace())
-                                                    <span class="inline-flex items-center rounded-md bg-gray-100 px-3 py-2 text-center text-sm font-semibold text-gray-400 shadow-sm ring-1 ring-inset ring-gray-200 cursor-not-allowed" title="Upgrade to Pro to create more displays">
-                                                        <x-icons.plus class="h-5 w-5 mr-1" /> Create new display <span class="ml-2 inline-flex items-center rounded-md bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600">Pro</span>
-                                                    </span>
-                                                @else
-                                                    <a href="{{ route('displays.create') }}" class="inline-flex items-center rounded-md bg-oxford px-3 py-2 text-center text-sm font-semibold text-white">
-                                                        <x-icons.plus class="h-5 w-5 mr-1" />
-                                                        Create new display
-                                                    </a>
-                                                @endif
+                                                <p class="text-sm text-gray-500 max-w-sm">Follow the getting started guide below to connect your calendar and set up your first display.</p>
                                             </div>
                                         </td>
                                     </tr>
