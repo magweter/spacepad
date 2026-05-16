@@ -280,9 +280,19 @@ class _DayTimelineWidgetState extends State<DayTimelineWidget> {
             ),
             if (events.isEmpty)
               Center(
-                child: Text(
-                  'timeline_no_events'.tr,
-                  style: TextStyle(color: TWColors.gray_500, fontSize: fontSize - 1),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.35),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    'timeline_no_events'.tr,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.75),
+                      fontSize: fontSize - 1,
+                    ),
+                  ),
                 ),
               ),
           ],
