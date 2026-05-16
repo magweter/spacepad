@@ -142,6 +142,10 @@ class GoogleService
 
     private function ensureAuthenticated(GoogleAccount $account): void
     {
+        if ($account->status === AccountStatus::ERROR) {
+            throw new Exception('Google account needs re-authentication.');
+        }
+
         if (!$account->token) {
             throw new Exception('Google account has no token.');
         }
@@ -161,7 +165,15 @@ class GoogleService
 
         $tokenData = $this->client->fetchAccessTokenWithRefreshToken($account->refresh_token);
         if (Arr::exists($tokenData, 'error')) {
-            throw new Exception('Error authenticating with Google: ' . Arr::get($tokenData, 'error'));
+            $error = Arr::get($tokenData, 'error');
+
+            // Permanent failures — mark the account so subsequent requests skip the API call
+            $permanentErrors = ['invalid_grant', 'invalid_client', 'unauthorized_client'];
+            if (in_array($error, $permanentErrors, true)) {
+                $account->update(['status' => AccountStatus::ERROR]);
+            }
+
+            throw new Exception('Error authenticating with Google: ' . $error);
         }
 
         $account->update([

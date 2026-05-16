@@ -27,6 +27,11 @@ abstract class AuthController extends Controller
             'password' => $password ? Hash::make($password) : null,
         ];
 
+        if (! config('settings.is_self_hosted')) {
+            $attributes['terms_accepted_at'] = now();
+            $attributes['dpa_accepted_at'] = now();
+        }
+
         return User::factory()->unverified()->create($attributes);
     }
 }

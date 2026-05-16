@@ -44,15 +44,10 @@
                             Admin
                         </a>
                     @endif
-                    @if(auth()->user()->hasProForCurrentWorkspace())
-                        <a href="{{ route('usage.index') }}" class="rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300 hover:text-black">
-                            Usage
-                        </a>
-                        <button type="button" onclick="window.dispatchEvent(new CustomEvent('open-modal', { detail: 'manage-subscription' }))" class="rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300 hover:text-black">
-                            Manage subscription
-                        </button>
-                    @endif
                     @auth
+                        <a href="{{ route('profile.show') }}" class="rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300 hover:text-black">
+                            Account
+                        </a>
                         <form action="{{ route('logout') }}" method="POST">
                             @csrf
                             <button type="submit" class="rounded-md px-3 py-2 text-sm border border-gray-300 font-medium text-gray-700 hover:bg-gray-300 hover:text-black">

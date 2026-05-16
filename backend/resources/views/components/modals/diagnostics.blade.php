@@ -46,7 +46,7 @@ window.__diagDispNames = @json($displays->mapWithKeys(fn($d) => [$d->id => $d->n
                 const resp = await fetch(this.runUrl, {
                     headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
                 });
-                if (!resp.ok) throw new Error('HTTP ' + resp.status + ' — ' + resp.statusText);
+                if (!resp.ok) throw new Error('HTTP ' + resp.status + ': ' + resp.statusText);
                 const json = await resp.json();
                 this.steps = json.steps ?? [];
                 this.elapsed = ((Date.now() - t0) / 1000).toFixed(1);
@@ -103,8 +103,8 @@ window.__diagDispNames = @json($displays->mapWithKeys(fn($d) => [$d->id => $d->n
                 {{-- Header --}}
                 <div class="flex items-center justify-between border-b border-gray-200 px-6 py-4">
                     <div>
-                        <h2 class="text-base font-semibold text-gray-900">Calendar Sync Diagnostics</h2>
-                        <p class="mt-0.5 text-xs text-gray-500">Trace the full event pipeline — find exactly where events disappear.</p>
+                        <h2 class="text-base font-semibold text-gray-900">Calendar sync diagnostics</h2>
+                        <p class="mt-0.5 text-xs text-gray-500">Trace the full event pipeline and find exactly where events disappear.</p>
                     </div>
                     <button type="button" @click="show = false"
                             class="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors">
@@ -132,14 +132,14 @@ window.__diagDispNames = @json($displays->mapWithKeys(fn($d) => [$d->id => $d->n
                                         <option value="{{ $d->id }}">
                                             {{ $d->name }}
                                             @if($d->calendar)
-                                                —
+                                                -
                                                 @if($d->calendar->outlook_account_id) Microsoft 365
                                                 @elseif($d->calendar->google_account_id) Google Calendar
                                                 @elseif($d->calendar->caldav_account_id) CalDAV
                                                 @endif
                                                 @if($d->calendar->room) (room) @endif
                                             @else
-                                                — no calendar
+                                                - no calendar
                                             @endif
                                         </option>
                                     @endforeach
@@ -228,7 +228,7 @@ window.__diagDispNames = @json($displays->mapWithKeys(fn($d) => [$d->id => $d->n
                                                     <template x-if="true">
                                                         <span class="contents">
                                                             <dt class="font-medium text-gray-500 whitespace-nowrap py-0.5" x-text="key"></dt>
-                                                            <dd class="text-gray-900 py-0.5" x-text="val ?? '—'"></dd>
+                                                            <dd class="text-gray-900 py-0.5" x-text="val ?? '-'"></dd>
                                                         </span>
                                                     </template>
                                                 </template>
@@ -276,7 +276,7 @@ window.__diagDispNames = @json($displays->mapWithKeys(fn($d) => [$d->id => $d->n
                                     </svg>
                                 </div>
                                 <p class="text-sm font-medium text-gray-700">Select a display and run the diagnostic</p>
-                                <p class="mt-1 text-xs text-gray-400">Calls the calendar API live — results are never cached</p>
+                                <p class="mt-1 text-xs text-gray-400">We'll call the live calendar connection and check it's configured correctly</p>
                             </div>
                         </template>
                     @endif

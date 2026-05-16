@@ -62,9 +62,33 @@
         @endif
     </td>
     <td class="whitespace-nowrap px-3 py-4 align-middle text-sm">
-        <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset {{ $statusBadgeClass }}">
-            {{ $display->status->label() }}
-        </span>
+        <div class="inline-flex items-center gap-1.5">
+            <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset {{ $statusBadgeClass }}">
+                {{ $display->status->label() }}
+            </span>
+            @if($display->status === \App\Enums\DisplayStatus::ERROR)
+                <div x-data="{ open: false, bottom: 0, right: 0 }" class="flex items-center">
+                    <button type="button"
+                            class="flex items-center text-red-400 hover:text-red-600"
+                            @mouseenter="let r = $el.getBoundingClientRect(); bottom = window.innerHeight - r.top + 8; right = window.innerWidth - r.right; open = true"
+                            @mouseleave="open = false">
+                        <x-icons.information class="h-3.5 w-3.5" />
+                    </button>
+                    <template x-teleport="body">
+                        <div x-show="open" x-cloak
+                             :style="`bottom: ${bottom}px; right: ${right}px`"
+                             class="fixed z-[9999] w-56 whitespace-normal rounded-lg bg-gray-900 px-3 py-2.5 text-xs text-white shadow-lg">
+                            <p class="font-medium mb-1">Calendar sync failed</p>
+                            <ol class="list-decimal list-inside space-y-0.5 text-gray-300">
+                                <li>Try reconnecting your calendar account</li>
+                                <li>Press the play button to resume</li>
+                            </ol>
+                            <div class="absolute right-2 top-full h-0 w-0 border-x-4 border-t-4 border-transparent border-t-gray-900"></div>
+                        </div>
+                    </template>
+                </div>
+            @endif
+        </div>
     </td>
     <td class="px-3 py-4 align-middle text-sm text-gray-600">
         <div class="flex flex-col gap-1">

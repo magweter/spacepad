@@ -65,6 +65,7 @@ class User extends Authenticatable
         'last_activity_at',
         'is_unlimited',
         'terms_accepted_at',
+        'dpa_accepted_at',
         'is_admin',
         'skipped_onboarding_at',
     ];
@@ -91,6 +92,7 @@ class User extends Authenticatable
         'is_unlimited' => 'boolean',
         'usage_type' => UsageType::class,
         'terms_accepted_at' => 'datetime',
+        'dpa_accepted_at' => 'datetime',
         'skipped_onboarding_at' => 'datetime',
         'is_admin' => 'boolean',
     ];

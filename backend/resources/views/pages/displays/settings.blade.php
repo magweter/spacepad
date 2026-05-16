@@ -143,7 +143,16 @@
                                    class="mt-0.5 h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-600">
                             <div>
                                 <span class="text-sm font-medium text-gray-900">Inline</span>
-                                <p class="text-xs text-gray-500">An always-visible timeline embedded within the display</p>
+                                <p class="text-xs text-gray-500">An always-visible timeline embedded within the display, centered vertically alongside the content</p>
+                            </div>
+                        </label>
+                        <label class="flex items-start gap-3 cursor-pointer">
+                            <input type="radio" name="timeline_widget_mode" value="full_panel"
+                                   {{ $mode === 'full_panel' ? 'checked' : '' }}
+                                   class="mt-0.5 h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-600">
+                            <div>
+                                <span class="text-sm font-medium text-gray-900">Full-height panel</span>
+                                <p class="text-xs text-gray-500">A full-height timeline on the right side of the display, spanning from top to bottom</p>
                             </div>
                         </label>
                     </div>

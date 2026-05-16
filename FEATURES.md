@@ -55,8 +55,9 @@ A privacy-focused room display app that shows real-time room availability, synce
 Four modes to show today's schedule — one per display:
 - **Disabled** — no schedule shown
 - **Side panel** — slides in from the side when a button is tapped
-- **Inline** — always-visible timeline embedded within the display
-- **View schedule button** — opens a full-day modal overlay
+- **Inline** — always-visible timeline embedded within the display, vertically centered alongside the content
+- **Full-height panel** — always-visible timeline spanning the full height of the right side of the display
+- **View schedule button** — opens a full-day modal overlay (can be combined with any of the above)
 
 The schedule view shows all events for today, tomorrow, and yesterday.
 
