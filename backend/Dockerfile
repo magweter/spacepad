@@ -15,7 +15,7 @@ FROM node:22-alpine AS node_builder
 WORKDIR /app
 
 # Install pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable && corepack prepare pnpm@10.11.0 --activate
 
 COPY package.json pnpm-lock.yaml ./
 COPY vite.config.js ./
