@@ -134,9 +134,10 @@ class _DashboardPageState extends State<DashboardPage> {
         final timelineMode = controller.timelineWidgetMode; // 'none' | 'side_panel' | 'inline'
         final timelineEnabled = timelineMode != 'none';
         final timelineWidth = isPhone ? 220.0 : 300.0;
-        final inlineTimelineWidth = isPhone ? 220.0 : 300.0;
+        final inlineTimelineWidth = isPhone ? 260.0 : 360.0;
         final inlineTimelineMaxHeight = isPhone ? 330.0 : 484.0;
         final gap = isPhone ? 10.0 : 16.0;
+        final portraitTimelineHeight = isPhone ? 200.0 : 260.0;
 
         final mainStack = Stack(
           children: [
@@ -491,6 +492,113 @@ class _DashboardPageState extends State<DashboardPage> {
         // Timeline lives inside the main panel: header row at the top,
         // content + timeline side by side, action bar at the bottom.
         if (timelineMode == 'inline') {
+          final inlineContentWidget = SpaceCol(
+            spaceBetween: _getContainerPadding(context, controller) * 1.75,
+            mainAxisSize: MainAxisSize.max,
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SpaceCol(
+                spaceBetween: controller.meetingInfoTimes != null ? (isPhone ? 5 : 10) : 0,
+                children: [
+                  Obx(() {
+                    final logoUrl = controller.globalSettings.value?.logoUrl;
+                    if (logoUrl != null) {
+                      return Container(
+                        margin: EdgeInsets.only(bottom: isPhone ? 20 : 10),
+                        child: AuthenticatedImage(
+                          imageUrl: logoUrl,
+                          height: isPhone ? 24 : 36,
+                          fit: BoxFit.contain,
+                          placeholder: Container(
+                            height: isPhone ? 24 : 36,
+                            child: Center(child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(TWColors.gray_300))),
+                          ),
+                          errorWidget: SizedBox.shrink(),
+                        ),
+                      );
+                    }
+                    return SizedBox.shrink();
+                  }),
+                  Obx(() => Text(controller.title,
+                    style: FontService.instance.getTextStyle(
+                      fontFamily: controller.currentFontFamily.value,
+                      fontSize: isPhone ? 30 : 50,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  )),
+                  SpaceRow(
+                    spaceBetween: isPhone ? 10 : 20,
+                    children: [
+                      if (controller.meetingInfoTimes != null) FrostedPanel(
+                        borderRadius: cornerRadius,
+                        blurIntensity: 18,
+                        hasBackgroundImage: controller.globalSettings.value?.backgroundImageUrl != null,
+                        padding: EdgeInsets.fromLTRB(isPhone ? 10 : 15, isPhone ? 5 : 8, isPhone ? 10 : 15, isPhone ? 5 : 8),
+                        child: Obx(() => Text(
+                          'meeting_info_title'.trParams({
+                            'start': formatTime(context, controller.meetingInfoTimes?['start'] ?? DateTime.now()),
+                            'end': formatTime(context, controller.meetingInfoTimes?['end'] ?? DateTime.now()),
+                          }),
+                          style: FontService.instance.getTextStyle(
+                            fontFamily: controller.currentFontFamily.value,
+                            fontSize: isPhone ? 24 : 32,
+                            fontWeight: FontWeight.w400,
+                            color: TWColors.white,
+                          ),
+                        )),
+                      ),
+                      Flexible(
+                        child: Obx(() => Text(controller.subtitle,
+                          style: FontService.instance.getTextStyle(
+                            fontFamily: controller.currentFontFamily.value,
+                            fontSize: isPhone ? 28 : 36,
+                            fontWeight: FontWeight.w400,
+                            color: TWColors.gray_300,
+                          ),
+                          softWrap: true,
+                          overflow: TextOverflow.visible,
+                        )),
+                      ),
+                    ],
+                  ),
+                  if (controller.meetingInfoTimes == null) SizedBox(height: isPhone ? 5 : 10),
+                  Obx(() {
+                    final organizer = controller.currentEvent?.organizerName;
+                    if (!controller.showOrganizer || organizer == null || organizer.isEmpty) {
+                      return const SizedBox.shrink();
+                    }
+                    return Padding(
+                      padding: EdgeInsets.only(top: isPhone ? 4 : 8),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.person_outline, size: isPhone ? 14 : 16, color: TWColors.gray_300),
+                          SizedBox(width: isPhone ? 4 : 6),
+                          Text(
+                            organizer,
+                            style: FontService.instance.getTextStyle(
+                              fontFamily: controller.currentFontFamily.value,
+                              fontSize: isPhone ? 16 : 20,
+                              fontWeight: FontWeight.w400,
+                              color: TWColors.gray_300,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+                  if (controller.bookingEnabled || controller.checkInEnabled || controller.extendEnabled) ActionPanel(
+                    controller: controller,
+                    isPhone: isPhone,
+                    cornerRadius: cornerRadius,
+                  ),
+                ],
+              ),
+            ],
+          );
+
           final inlineChild = Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -544,126 +652,16 @@ class _DashboardPageState extends State<DashboardPage> {
                 ],
               ),
               SizedBox(height: gap),
-              // Middle: status content on the left, timeline on the right
+              // Middle: portrait → content above, timeline below; landscape → side by side
               Expanded(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Expanded(
-                      child: SpaceCol(
-                        spaceBetween: _getContainerPadding(context, controller) * 1.75,
-                        mainAxisSize: MainAxisSize.max,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          SpaceCol(
-                            spaceBetween: controller.meetingInfoTimes != null ? (isPhone ? 5 : 10) : 0,
-                            children: [
-                              Obx(() {
-                                final logoUrl = controller.globalSettings.value?.logoUrl;
-                                if (logoUrl != null) {
-                                  return Container(
-                                    margin: EdgeInsets.only(bottom: isPhone ? 20 : 10),
-                                    child: AuthenticatedImage(
-                                      imageUrl: logoUrl,
-                                      height: isPhone ? 24 : 36,
-                                      fit: BoxFit.contain,
-                                      placeholder: Container(
-                                        height: isPhone ? 24 : 36,
-                                        child: Center(child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(TWColors.gray_300))),
-                                      ),
-                                      errorWidget: SizedBox.shrink(),
-                                    ),
-                                  );
-                                }
-                                return SizedBox.shrink();
-                              }),
-                              Obx(() => Text(controller.title,
-                                style: FontService.instance.getTextStyle(
-                                  fontFamily: controller.currentFontFamily.value,
-                                  fontSize: isPhone ? 30 : 50,
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.white,
-                                ),
-                              )),
-                              SpaceRow(
-                                spaceBetween: isPhone ? 10 : 20,
-                                children: [
-                                  if (controller.meetingInfoTimes != null) FrostedPanel(
-                                    borderRadius: cornerRadius,
-                                    blurIntensity: 18,
-                                    hasBackgroundImage: controller.globalSettings.value?.backgroundImageUrl != null,
-                                    padding: EdgeInsets.fromLTRB(isPhone ? 10 : 15, isPhone ? 5 : 8, isPhone ? 10 : 15, isPhone ? 5 : 8),
-                                    child: Obx(() => Text(
-                                      'meeting_info_title'.trParams({
-                                        'start': formatTime(context, controller.meetingInfoTimes?['start'] ?? DateTime.now()),
-                                        'end': formatTime(context, controller.meetingInfoTimes?['end'] ?? DateTime.now()),
-                                      }),
-                                      style: FontService.instance.getTextStyle(
-                                        fontFamily: controller.currentFontFamily.value,
-                                        fontSize: isPhone ? 24 : 32,
-                                        fontWeight: FontWeight.w400,
-                                        color: TWColors.white,
-                                      ),
-                                    )),
-                                  ),
-                                  Flexible(
-                                    child: Obx(() => Text(controller.subtitle,
-                                      style: FontService.instance.getTextStyle(
-                                        fontFamily: controller.currentFontFamily.value,
-                                        fontSize: isPhone ? 28 : 36,
-                                        fontWeight: FontWeight.w400,
-                                        color: TWColors.gray_300,
-                                      ),
-                                      softWrap: true,
-                                      overflow: TextOverflow.visible,
-                                    )),
-                                  ),
-                                ],
-                              ),
-                              if (controller.meetingInfoTimes == null) SizedBox(height: isPhone ? 5 : 10),
-                              Obx(() {
-                                final organizer = controller.currentEvent?.organizerName;
-                                if (!controller.showOrganizer || organizer == null || organizer.isEmpty) {
-                                  return const SizedBox.shrink();
-                                }
-                                return Padding(
-                                  padding: EdgeInsets.only(top: isPhone ? 4 : 8),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(Icons.person_outline, size: isPhone ? 14 : 16, color: TWColors.gray_300),
-                                      SizedBox(width: isPhone ? 4 : 6),
-                                      Text(
-                                        organizer,
-                                        style: FontService.instance.getTextStyle(
-                                          fontFamily: controller.currentFontFamily.value,
-                                          fontSize: isPhone ? 16 : 20,
-                                          fontWeight: FontWeight.w400,
-                                          color: TWColors.gray_300,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              }),
-                              if (controller.bookingEnabled || controller.checkInEnabled || controller.extendEnabled) ActionPanel(
-                                controller: controller,
-                                isPhone: isPhone,
-                                cornerRadius: cornerRadius,
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    SizedBox(width: gap),
-                    Align(
-                      alignment: Alignment.center,
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(maxHeight: inlineTimelineMaxHeight),
-                        child: SizedBox(
-                          width: inlineTimelineWidth,
+                child: isPortrait
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(child: inlineContentWidget),
+                        SizedBox(height: gap),
+                        SizedBox(
+                          height: portraitTimelineHeight,
                           child: DayTimelineWidget(
                             controller: controller,
                             isPhone: isPhone,
@@ -672,10 +670,31 @@ class _DashboardPageState extends State<DashboardPage> {
                             hasBackgroundImage: controller.globalSettings.value?.backgroundImageUrl != null,
                           ),
                         ),
-                      ),
+                      ],
+                    )
+                  : Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(child: inlineContentWidget),
+                        SizedBox(width: gap),
+                        Align(
+                          alignment: Alignment.center,
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(maxHeight: inlineTimelineMaxHeight),
+                            child: SizedBox(
+                              width: inlineTimelineWidth,
+                              child: DayTimelineWidget(
+                                controller: controller,
+                                isPhone: isPhone,
+                                cornerRadius: cornerRadius,
+                                frosted: true,
+                                hasBackgroundImage: controller.globalSettings.value?.backgroundImageUrl != null,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
               ),
               SizedBox(height: gap),
               // Bottom bar (not in Align — Column handles vertical layout)
@@ -754,246 +773,257 @@ class _DashboardPageState extends State<DashboardPage> {
         }
 
         // ── full_panel ────────────────────────────────────────────────────────
-        // Full-height timeline on the right; main content (header + status + bottom
-        // bar) in a Column on the left. Same as inline but timeline is not height-
-        // constrained — it stretches to the full panel height.
+        // Full-height timeline on the right (landscape) or below content (portrait);
+        // main content (header + status + bottom bar) in a Column.
         if (timelineMode == 'full_panel') {
           final hasBackground = controller.globalSettings.value?.backgroundImageUrl != null;
 
-          final fullPanelChild = Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+          final fullPanelHeaderRow = Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+              Obx(() => Text(
+                formatTime(context, controller.time.value),
+                style: FontService.instance.getTextStyle(
+                  fontFamily: controller.currentFontFamily.value,
+                  fontSize: isPhone ? 20 : 28,
+                  fontWeight: FontWeight.w500,
+                  color: TWColors.white,
+                ),
+              )),
+              const Spacer(),
+              Obx(() => controller.isDataStale.value
+                  ? Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: _buildStaleIndicator(context, isPhone, controller),
+                    )
+                  : const SizedBox.shrink()),
+              const Spacer(),
+              Obx(() {
+                final hide = controller.globalSettings.value?.hideAdminActions ?? false;
+                final showTemp = controller.showAdminActionsTemporarily.value;
+                final show = !hide || showTemp;
+                return Row(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    // Header
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Obx(() => Text(
-                          formatTime(context, controller.time.value),
-                          style: FontService.instance.getTextStyle(
-                            fontFamily: controller.currentFontFamily.value,
-                            fontSize: isPhone ? 20 : 28,
-                            fontWeight: FontWeight.w500,
-                            color: TWColors.white,
-                          ),
-                        )),
-                        const Spacer(),
-                        Obx(() => controller.isDataStale.value
-                            ? Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 8),
-                                child: _buildStaleIndicator(context, isPhone, controller),
-                              )
-                            : const SizedBox.shrink()),
-                        const Spacer(),
-                        Obx(() {
-                          final hide = controller.globalSettings.value?.hideAdminActions ?? false;
-                          final showTemp = controller.showAdminActionsTemporarily.value;
-                          final show = !hide || showTemp;
-                          return Row(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              if (show) AdminActions(controller: controller, isPhone: isPhone),
-                              if (show) const SizedBox(width: 15),
-                              GestureDetector(
-                                onLongPressStart: (_) { if (hide) controller.startLongPressTimer(); },
-                                onLongPressEnd: (_) { if (hide) controller.cancelLongPressTimer(); },
-                                child: Text(
-                                  controller.roomName,
-                                  style: FontService.instance.getTextStyle(
-                                    fontFamily: controller.currentFontFamily.value,
-                                    fontSize: isPhone ? 20 : 28,
-                                    fontWeight: FontWeight.w500,
-                                    color: TWColors.white,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          );
-                        }),
-                      ],
-                    ),
-                    SizedBox(height: gap),
-                    // Status content
-                    Expanded(
-                      child: SpaceCol(
-                        spaceBetween: _getContainerPadding(context, controller) * 1.75,
-                        mainAxisSize: MainAxisSize.max,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          SpaceCol(
-                            spaceBetween: controller.meetingInfoTimes != null ? (isPhone ? 5 : 10) : 0,
-                            children: [
-                              Obx(() {
-                                final logoUrl = controller.globalSettings.value?.logoUrl;
-                                if (logoUrl != null) {
-                                  return Container(
-                                    margin: EdgeInsets.only(bottom: isPhone ? 20 : 10),
-                                    child: AuthenticatedImage(
-                                      imageUrl: logoUrl,
-                                      height: isPhone ? 24 : 36,
-                                      fit: BoxFit.contain,
-                                      placeholder: Container(
-                                        height: isPhone ? 24 : 36,
-                                        child: Center(child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(TWColors.gray_300))),
-                                      ),
-                                      errorWidget: const SizedBox.shrink(),
-                                    ),
-                                  );
-                                }
-                                return const SizedBox.shrink();
-                              }),
-                              Obx(() => Text(controller.title,
-                                style: FontService.instance.getTextStyle(
-                                  fontFamily: controller.currentFontFamily.value,
-                                  fontSize: isPhone ? 30 : 50,
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.white,
-                                ),
-                              )),
-                              SpaceRow(
-                                spaceBetween: isPhone ? 10 : 20,
-                                children: [
-                                  if (controller.meetingInfoTimes != null) FrostedPanel(
-                                    borderRadius: cornerRadius,
-                                    blurIntensity: 18,
-                                    hasBackgroundImage: hasBackground,
-                                    padding: EdgeInsets.fromLTRB(isPhone ? 10 : 15, isPhone ? 5 : 8, isPhone ? 10 : 15, isPhone ? 5 : 8),
-                                    child: Obx(() => Text(
-                                      'meeting_info_title'.trParams({
-                                        'start': formatTime(context, controller.meetingInfoTimes?['start'] ?? DateTime.now()),
-                                        'end': formatTime(context, controller.meetingInfoTimes?['end'] ?? DateTime.now()),
-                                      }),
-                                      style: FontService.instance.getTextStyle(
-                                        fontFamily: controller.currentFontFamily.value,
-                                        fontSize: isPhone ? 24 : 32,
-                                        fontWeight: FontWeight.w400,
-                                        color: TWColors.white,
-                                      ),
-                                    )),
-                                  ),
-                                  Flexible(
-                                    child: Obx(() => Text(controller.subtitle,
-                                      style: FontService.instance.getTextStyle(
-                                        fontFamily: controller.currentFontFamily.value,
-                                        fontSize: isPhone ? 28 : 36,
-                                        fontWeight: FontWeight.w400,
-                                        color: TWColors.gray_300,
-                                      ),
-                                      softWrap: true,
-                                      overflow: TextOverflow.visible,
-                                    )),
-                                  ),
-                                ],
-                              ),
-                              if (controller.meetingInfoTimes == null) SizedBox(height: isPhone ? 5 : 10),
-                              Obx(() {
-                                final organizer = controller.currentEvent?.organizerName;
-                                if (!controller.showOrganizer || organizer == null || organizer.isEmpty) {
-                                  return const SizedBox.shrink();
-                                }
-                                return Padding(
-                                  padding: EdgeInsets.only(top: isPhone ? 4 : 8),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(Icons.person_outline, size: isPhone ? 14 : 16, color: TWColors.gray_300),
-                                      SizedBox(width: isPhone ? 4 : 6),
-                                      Text(
-                                        organizer,
-                                        style: FontService.instance.getTextStyle(
-                                          fontFamily: controller.currentFontFamily.value,
-                                          fontSize: isPhone ? 16 : 20,
-                                          fontWeight: FontWeight.w400,
-                                          color: TWColors.gray_300,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              }),
-                              if (controller.bookingEnabled || controller.checkInEnabled || controller.extendEnabled) ActionPanel(
-                                controller: controller,
-                                isPhone: isPhone,
-                                cornerRadius: cornerRadius,
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    SizedBox(height: gap),
-                    // Bottom bar
-                    FrostedPanel(
-                      borderRadius: cornerRadius,
-                      blurIntensity: 18,
-                      hasBackgroundImage: hasBackground,
-                      padding: EdgeInsets.all(isPhone ? 12 : 20),
-                      child: SpaceRow(
-                        spaceBetween: isPhone ? 10 : 20,
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: controller.upcomingEvents.isNotEmpty
-                              ? SpaceCol(
-                                  spaceBetween: isPhone ? 8 : 12,
-                                  children: [
-                                    for (EventModel event in controller.upcomingEvents.take(1)) EventLine(event: event),
-                                  ],
-                                )
-                              : Text('no_upcoming_events'.tr,
-                                  style: TextStyle(color: TWColors.white, fontSize: isPhone ? 16 : 18, fontWeight: FontWeight.w500)),
-                          ),
-                          if (controller.calendarEnabled)
-                            Material(
-                              color: Colors.transparent,
-                              child: InkWell(
-                                hoverColor: Colors.transparent,
-                                splashColor: Colors.transparent,
-                                highlightColor: Colors.transparent,
-                                borderRadius: BorderRadius.circular(8),
-                                onTap: () => showDialog(
-                                  context: context,
-                                  builder: (context) => CalendarModal(events: controller.events, selectedDate: DateTime.now()),
-                                ),
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Icon(Icons.calendar_today_outlined, size: 24, color: Colors.white),
-                                      const SizedBox(width: 12),
-                                      Text('view_schedule'.tr,
-                                        style: TextStyle(color: Colors.white, fontSize: isPhone ? 16 : 18, fontWeight: FontWeight.w500)),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                        ],
+                    if (show) AdminActions(controller: controller, isPhone: isPhone),
+                    if (show) const SizedBox(width: 15),
+                    GestureDetector(
+                      onLongPressStart: (_) { if (hide) controller.startLongPressTimer(); },
+                      onLongPressEnd: (_) { if (hide) controller.cancelLongPressTimer(); },
+                      child: Text(
+                        controller.roomName,
+                        style: FontService.instance.getTextStyle(
+                          fontFamily: controller.currentFontFamily.value,
+                          fontSize: isPhone ? 20 : 28,
+                          fontWeight: FontWeight.w500,
+                          color: TWColors.white,
+                        ),
                       ),
                     ),
                   ],
-                ),
-              ),
-              SizedBox(width: gap),
-              // Right: full-height timeline — no height constraint, stretches with the Row
-              SizedBox(
-                width: inlineTimelineWidth,
-                child: DayTimelineWidget(
-                  controller: controller,
-                  isPhone: isPhone,
-                  cornerRadius: cornerRadius,
-                  frosted: true,
-                  hasBackgroundImage: hasBackground,
-                ),
+                );
+              }),
+            ],
+          );
+
+          final fullPanelContentWidget = SpaceCol(
+            spaceBetween: _getContainerPadding(context, controller) * 1.75,
+            mainAxisSize: MainAxisSize.max,
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SpaceCol(
+                spaceBetween: controller.meetingInfoTimes != null ? (isPhone ? 5 : 10) : 0,
+                children: [
+                  Obx(() {
+                    final logoUrl = controller.globalSettings.value?.logoUrl;
+                    if (logoUrl != null) {
+                      return Container(
+                        margin: EdgeInsets.only(bottom: isPhone ? 20 : 10),
+                        child: AuthenticatedImage(
+                          imageUrl: logoUrl,
+                          height: isPhone ? 24 : 36,
+                          fit: BoxFit.contain,
+                          placeholder: Container(
+                            height: isPhone ? 24 : 36,
+                            child: Center(child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(TWColors.gray_300))),
+                          ),
+                          errorWidget: const SizedBox.shrink(),
+                        ),
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  }),
+                  Obx(() => Text(controller.title,
+                    style: FontService.instance.getTextStyle(
+                      fontFamily: controller.currentFontFamily.value,
+                      fontSize: isPhone ? 30 : 50,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  )),
+                  SpaceRow(
+                    spaceBetween: isPhone ? 10 : 20,
+                    children: [
+                      if (controller.meetingInfoTimes != null) FrostedPanel(
+                        borderRadius: cornerRadius,
+                        blurIntensity: 18,
+                        hasBackgroundImage: hasBackground,
+                        padding: EdgeInsets.fromLTRB(isPhone ? 10 : 15, isPhone ? 5 : 8, isPhone ? 10 : 15, isPhone ? 5 : 8),
+                        child: Obx(() => Text(
+                          'meeting_info_title'.trParams({
+                            'start': formatTime(context, controller.meetingInfoTimes?['start'] ?? DateTime.now()),
+                            'end': formatTime(context, controller.meetingInfoTimes?['end'] ?? DateTime.now()),
+                          }),
+                          style: FontService.instance.getTextStyle(
+                            fontFamily: controller.currentFontFamily.value,
+                            fontSize: isPhone ? 24 : 32,
+                            fontWeight: FontWeight.w400,
+                            color: TWColors.white,
+                          ),
+                        )),
+                      ),
+                      Flexible(
+                        child: Obx(() => Text(controller.subtitle,
+                          style: FontService.instance.getTextStyle(
+                            fontFamily: controller.currentFontFamily.value,
+                            fontSize: isPhone ? 28 : 36,
+                            fontWeight: FontWeight.w400,
+                            color: TWColors.gray_300,
+                          ),
+                          softWrap: true,
+                          overflow: TextOverflow.visible,
+                        )),
+                      ),
+                    ],
+                  ),
+                  if (controller.meetingInfoTimes == null) SizedBox(height: isPhone ? 5 : 10),
+                  Obx(() {
+                    final organizer = controller.currentEvent?.organizerName;
+                    if (!controller.showOrganizer || organizer == null || organizer.isEmpty) {
+                      return const SizedBox.shrink();
+                    }
+                    return Padding(
+                      padding: EdgeInsets.only(top: isPhone ? 4 : 8),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.person_outline, size: isPhone ? 14 : 16, color: TWColors.gray_300),
+                          SizedBox(width: isPhone ? 4 : 6),
+                          Text(
+                            organizer,
+                            style: FontService.instance.getTextStyle(
+                              fontFamily: controller.currentFontFamily.value,
+                              fontSize: isPhone ? 16 : 20,
+                              fontWeight: FontWeight.w400,
+                              color: TWColors.gray_300,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+                  if (controller.bookingEnabled || controller.checkInEnabled || controller.extendEnabled) ActionPanel(
+                    controller: controller,
+                    isPhone: isPhone,
+                    cornerRadius: cornerRadius,
+                  ),
+                ],
               ),
             ],
           );
+
+          final fullPanelBottomBar = FrostedPanel(
+            borderRadius: cornerRadius,
+            blurIntensity: 18,
+            hasBackgroundImage: hasBackground,
+            padding: EdgeInsets.all(isPhone ? 12 : 20),
+            child: SpaceRow(
+              spaceBetween: isPhone ? 10 : 20,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: controller.upcomingEvents.isNotEmpty
+                    ? SpaceCol(
+                        spaceBetween: isPhone ? 8 : 12,
+                        children: [
+                          for (EventModel event in controller.upcomingEvents.take(1)) EventLine(event: event),
+                        ],
+                      )
+                    : Text('no_upcoming_events'.tr,
+                        style: TextStyle(color: TWColors.white, fontSize: isPhone ? 16 : 18, fontWeight: FontWeight.w500)),
+                ),
+                if (controller.calendarEnabled)
+                  Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      hoverColor: Colors.transparent,
+                      splashColor: Colors.transparent,
+                      highlightColor: Colors.transparent,
+                      borderRadius: BorderRadius.circular(8),
+                      onTap: () => showDialog(
+                        context: context,
+                        builder: (context) => CalendarModal(events: controller.events, selectedDate: DateTime.now()),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.calendar_today_outlined, size: 24, color: Colors.white),
+                            const SizedBox(width: 12),
+                            Text('view_schedule'.tr,
+                              style: TextStyle(color: Colors.white, fontSize: isPhone ? 16 : 18, fontWeight: FontWeight.w500)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          );
+
+          final fullPanelTimeline = DayTimelineWidget(
+            controller: controller,
+            isPhone: isPhone,
+            cornerRadius: cornerRadius,
+            frosted: true,
+            hasBackgroundImage: hasBackground,
+          );
+
+          final Widget fullPanelChild = isPortrait
+            ? Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  fullPanelHeaderRow,
+                  SizedBox(height: gap),
+                  Expanded(child: fullPanelContentWidget),
+                  SizedBox(height: gap),
+                  SizedBox(height: portraitTimelineHeight, child: fullPanelTimeline),
+                  SizedBox(height: gap),
+                  fullPanelBottomBar,
+                ],
+              )
+            : Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        fullPanelHeaderRow,
+                        SizedBox(height: gap),
+                        Expanded(child: fullPanelContentWidget),
+                        SizedBox(height: gap),
+                        fullPanelBottomBar,
+                      ],
+                    ),
+                  ),
+                  SizedBox(width: gap),
+                  SizedBox(width: inlineTimelineWidth, child: fullPanelTimeline),
+                ],
+              );
 
           return Container(
             height: double.infinity,

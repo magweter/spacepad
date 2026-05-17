@@ -66,6 +66,7 @@ Route::middleware(['auth', 'user.update-last-activity', 'gtm'])->group(function 
     Route::post('/outlook-accounts/auth', [OutlookAccountsController::class, 'auth'])->name('outlook-accounts.auth');
     Route::get('/outlook-accounts/callback', [OutlookAccountsController::class, 'callback']);
     Route::get('/outlook-accounts/calendars', [OutlookAccountsController::class, 'getCalendars']);
+    Route::post('/outlook-accounts/booking-method', [OutlookAccountsController::class, 'setBookingMethod'])->name('outlook-accounts.set-booking-method');
     Route::delete('/outlook-accounts/{outlookAccount}', [OutlookAccountsController::class, 'delete'])->name('outlook-accounts.delete');
 
     Route::post('/google-accounts/booking-method', [GoogleAccountsController::class, 'setBookingMethod'])->name('google-accounts.set-booking-method');

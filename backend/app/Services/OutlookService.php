@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\AccountStatus;
+use App\Enums\OutlookBookingMethod;
 use App\Enums\PermissionType;
 use App\Models\Calendar;
 use App\Models\Display;
@@ -55,12 +56,43 @@ class OutlookService
      *
      * @param  PermissionType  $permissionType  'read' or 'write', or PermissionType enum
      */
-    public function getAdminConsentUrl(): string
+    public function getAdminConsentUrl(?string $outlookAccountId = null): string
     {
-        return 'https://login.microsoftonline.com/common/adminconsent?'.http_build_query([
+        $params = [
             'client_id' => $this->clientId,
             'redirect_uri' => $this->redirectUri,
-        ]);
+        ];
+
+        if ($outlookAccountId) {
+            $params['state'] = 'account:'.$outlookAccountId;
+        }
+
+        return 'https://login.microsoftonline.com/common/adminconsent?'.http_build_query($params);
+    }
+
+    /**
+     * Obtain an app-only (client credentials) access token for the given tenant.
+     * Used for admin-consent room bookings that write directly to the room mailbox.
+     */
+    private function getAppOnlyToken(string $tenantId): string
+    {
+        $response = Http::asForm()->post(
+            "https://login.microsoftonline.com/{$tenantId}/oauth2/v2.0/token",
+            [
+                'grant_type' => 'client_credentials',
+                'client_id' => $this->clientId,
+                'client_secret' => $this->clientSecret,
+                'scope' => 'https://graph.microsoft.com/.default',
+            ]
+        );
+
+        $data = $response->json();
+
+        if (! $response->successful() || empty($data['access_token'])) {
+            throw new Exception('Failed to obtain app-only token: '.($data['error_description'] ?? $response->body()));
+        }
+
+        return $data['access_token'];
     }
 
     public function getAuthUrl(PermissionType $permissionType = PermissionType::READ): string
@@ -364,33 +396,52 @@ class OutlookService
             ], $attendees);
         }
 
-        // Determine the endpoint based on whether it's a room or calendar
-        if ($calendar->room) {
-            // For rooms, create the event in the user's own calendar and add the room
-            // as a resource attendee — Exchange auto-accepts on behalf of the room.
-            // Writing directly to the room mailbox requires application-level permissions
-            // that delegated (user OAuth) tokens do not have.
-            $endpoint = 'https://graph.microsoft.com/v1.0/me/calendar/events';
+        // Determine endpoint and token based on booking method and calendar type
+        $useAppToken = $calendar->room
+            && $outlookAccount->booking_method === OutlookBookingMethod::ADMIN_CONSENT
+            && $outlookAccount->isBusiness();
 
+        if ($useAppToken) {
+            // Admin consent: write directly to the room mailbox using an app-only token.
+            // The event appears on the room calendar without showing in any personal mailbox.
+            $token = $this->getAppOnlyToken($outlookAccount->tenant_id);
+            $endpoint = 'https://graph.microsoft.com/v1.0/users/'.urlencode($calendar->calendar_id).'/calendar/events';
+        } elseif ($calendar->room) {
+            // User account: create in the user's calendar and add the room as a resource
+            // attendee — Exchange auto-accepts on the room's behalf.
+            $token = $outlookAccount->token;
+            $endpoint = 'https://graph.microsoft.com/v1.0/me/calendar/events';
             $eventData['attendees'][] = [
                 'emailAddress' => ['address' => $calendar->calendar_id],
                 'type' => 'resource',
             ];
         } elseif ($calendar->is_primary) {
-            // For primary calendar, use /me/calendar/events (without calendar ID)
+            $token = $outlookAccount->token;
             $endpoint = 'https://graph.microsoft.com/v1.0/me/calendar/events';
         } else {
-            // For other calendars, use the calendar ID
+            $token = $outlookAccount->token;
             $endpoint = "https://graph.microsoft.com/v1.0/me/calendars/{$calendar->calendar_id}/events";
         }
 
         $response = Http::acceptJson()
-            ->withHeaders([
-                'Authorization' => 'Bearer '.$outlookAccount->token,
-            ])
+            ->withHeaders(['Authorization' => 'Bearer '.$token])
             ->post($endpoint, $eventData);
 
         if (! $response->successful()) {
+            $errorCode = $response->json('error.code', '');
+
+            if ($useAppToken && $errorCode === 'ErrorAccessDenied') {
+                throw new Exception(
+                    'Admin consent booking failed: the app does not have Calendars.ReadWrite application permission. '.
+                    'Add Calendars.ReadWrite as an Application permission in your Azure AD app registration and re-run admin consent.',
+                    403
+                );
+            }
+
+            if ($errorCode === 'ErrorAccessDenied') {
+                throw new Exception('Access denied by Microsoft 365 — the connected account does not have permission to book this room.', 403);
+            }
+
             throw new Exception('Failed to create Outlook event: '.$response->body());
         }
 
@@ -409,21 +460,28 @@ class OutlookService
     ): void {
         $this->ensureAuthenticated($outlookAccount);
 
-        // Determine the endpoint based on whether it's a room or calendar
         if ($calendar->room) {
-            // For rooms, use the user's calendar
-            $endpoint = "https://graph.microsoft.com/v1.0/users/{$calendar->calendar_id}/calendar/events/{$eventId}";
+            if ($outlookAccount->booking_method === OutlookBookingMethod::ADMIN_CONSENT) {
+                // Admin consent: event lives on the room calendar — delete it directly with an app-only token.
+                $token = $this->getAppOnlyToken($outlookAccount->tenant_id);
+                $endpoint = 'https://graph.microsoft.com/v1.0/users/'.urlencode($calendar->calendar_id)."/calendar/events/{$eventId}";
+            } else {
+                // User account: event was created on the user's calendar with the room as a resource attendee.
+                // Delete the user's copy; Exchange will automatically remove the room's accepted meeting.
+                $token = $outlookAccount->token;
+                $endpoint = "https://graph.microsoft.com/v1.0/me/calendar/events/{$eventId}";
+            }
         } elseif ($calendar->is_primary) {
-            // For primary calendar, use /me/calendar/events (without calendar ID)
+            $token = $outlookAccount->token;
             $endpoint = "https://graph.microsoft.com/v1.0/me/calendar/events/{$eventId}";
         } else {
-            // For other calendars, use the calendar ID
+            $token = $outlookAccount->token;
             $endpoint = "https://graph.microsoft.com/v1.0/me/calendars/{$calendar->calendar_id}/events/{$eventId}";
         }
 
         $response = Http::acceptJson()
             ->withHeaders([
-                'Authorization' => 'Bearer '.$outlookAccount->token,
+                'Authorization' => 'Bearer '.$token,
             ])
             ->delete($endpoint);
 
@@ -444,15 +502,23 @@ class OutlookService
         $this->ensureAuthenticated($outlookAccount);
 
         if ($calendar->room) {
-            $endpoint = "https://graph.microsoft.com/v1.0/users/{$calendar->calendar_id}/calendar/events/{$eventId}";
+            if ($outlookAccount->booking_method === OutlookBookingMethod::ADMIN_CONSENT) {
+                $token = $this->getAppOnlyToken($outlookAccount->tenant_id);
+                $endpoint = 'https://graph.microsoft.com/v1.0/users/'.urlencode($calendar->calendar_id)."/calendar/events/{$eventId}";
+            } else {
+                $token = $outlookAccount->token;
+                $endpoint = "https://graph.microsoft.com/v1.0/me/calendar/events/{$eventId}";
+            }
         } elseif ($calendar->is_primary) {
+            $token = $outlookAccount->token;
             $endpoint = "https://graph.microsoft.com/v1.0/me/calendar/events/{$eventId}";
         } else {
+            $token = $outlookAccount->token;
             $endpoint = "https://graph.microsoft.com/v1.0/me/calendars/{$calendar->calendar_id}/events/{$eventId}";
         }
 
         $response = Http::acceptJson()
-            ->withHeaders(['Authorization' => 'Bearer '.$outlookAccount->token])
+            ->withHeaders(['Authorization' => 'Bearer '.$token])
             ->patch($endpoint, [
                 'end' => [
                     'dateTime' => $newEnd->utc()->toIso8601String(),

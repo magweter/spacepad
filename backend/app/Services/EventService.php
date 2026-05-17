@@ -588,35 +588,67 @@ class EventService
             ->orderBy('start')
             ->get();
 
-        // External IDs already tracked as tablet bookings — exclude from raw external list
-        $tabletExternalIds = $dbEvents->whereNotNull('external_id')->pluck('external_id')->flip()->toArray();
+        // Build lookup maps so external events can be matched to their DB tablet booking.
+        // For admin_consent the external_id stored in DB equals the calendar event ID (exact match).
+        // For user_account rooms the stored external_id is the user's calendar event ID while the
+        // room's calendarview returns a different ID — fall back to matching by start-time minute.
+        $tabletById = $dbEvents->whereNotNull('external_id')->keyBy('external_id');
+        $tabletByStart = $dbEvents
+            ->filter(fn ($e) => $e->calendar_id !== null)
+            ->keyBy(fn ($e) => Carbon::parse($e->start)->utc()->format('Y-m-d H:i'));
 
         $checkInEnabled = $display->isCheckInEnabled();
         $gracePeriod = $checkInEnabled ? $display->getCheckInGracePeriod() : 0;
 
-        // Build transient Event models from external API data (not saved to DB)
+        // Build transient Event models from external API data.
+        // When an external event matches a DB tablet booking, the DB record's identity (id,
+        // calendar_id, external_id) is used so that cancel / extend / check-in operations
+        // route to the correct DB row and use the correct external calendar event ID.
+        $matchedTabletIds = [];
+
         $externalModels = $rawExternal
             ->filter(fn ($e) => ! $e['isAllDay'])
-            ->filter(fn ($e) => ! isset($tabletExternalIds[$e['id']]))
             ->filter(fn ($e) => ! $this->isEventReleased($display->id, $e['id']))
-            ->map(function ($ext) use ($display, $checkInEnabled, $gracePeriod) {
+            ->map(function ($ext) use ($display, $checkInEnabled, $gracePeriod, $tabletById, $tabletByStart, &$matchedTabletIds) {
                 $eventStart = Carbon::parse($ext['start'])->utc();
                 $eventEnd = Carbon::parse($ext['end'])->utc();
-                $checkedInAt = $this->getCheckInState($display->id, $ext['id']);
 
-                // Mark as released if check-in grace period expired without check-in
-                if ($checkInEnabled && ! $checkedInAt && $eventStart->lt(now()->subMinutes($gracePeriod))) {
-                    $this->markEventReleased($display->id, $ext['id'], $eventEnd);
+                $tabletBooking = $tabletById[$ext['id']]
+                    ?? $tabletByStart[$eventStart->format('Y-m-d H:i')]
+                    ?? null;
 
-                    return null;
+                if ($tabletBooking) {
+                    $matchedTabletIds[$tabletBooking->id] = true;
+                }
+
+                // Grace-period check only applies to pure external events; tablet bookings
+                // are handled by processExpiredCheckIns() before we get here.
+                if (! $tabletBooking) {
+                    $checkedInAt = $this->getCheckInState($display->id, $ext['id']);
+                    if ($checkInEnabled && ! $checkedInAt && $eventStart->lt(now()->subMinutes($gracePeriod))) {
+                        $this->markEventReleased($display->id, $ext['id'], $eventEnd);
+
+                        return null;
+                    }
+                } else {
+                    $checkedInAt = $tabletBooking->checked_in_at
+                        ?? $this->getCheckInState($display->id, $tabletBooking->id);
                 }
 
                 $event = new Event;
-                $event->id = $ext['id']; // Use external calendar ID as the event identifier
+                if ($tabletBooking) {
+                    // Use DB record's identity so operations (cancel, extend, check-in) find it.
+                    $event->id = $tabletBooking->id;
+                    $event->calendar_id = $tabletBooking->calendar_id;
+                    $event->external_id = $tabletBooking->external_id;
+                } else {
+                    $event->id = $ext['id'];
+                    $event->calendar_id = null;
+                    $event->external_id = $ext['id'];
+                }
                 $event->display_id = $display->id;
-                $event->user_id = $display->user_id;
+                $event->user_id = $tabletBooking?->user_id ?? $display->user_id;
                 $event->source = $ext['source'];
-                $event->external_id = $ext['id'];
                 $event->status = EventStatus::CONFIRMED;
                 $event->summary = $ext['summary'];
                 $event->description = $this->truncateDescription($ext['description'] ?? null);
@@ -632,7 +664,10 @@ class EventService
             })
             ->filter();
 
-        return $externalModels->concat($dbEvents)->sortBy('start')->values();
+        // Include only DB events that were not already represented by an external calendar event.
+        $unmatchedDbEvents = $dbEvents->filter(fn ($e) => ! isset($matchedTabletIds[$e->id]));
+
+        return $externalModels->concat($unmatchedDbEvents)->sortBy('start')->values();
     }
 
     /**

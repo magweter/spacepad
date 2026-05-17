@@ -64,6 +64,12 @@ Configuring the Outlook provider:
 1. Click 'Microsoft Graph', click 'Delegated permissions' and search for and select the following permissions `Calendars.Read.Shared`, `Place.Read.All` and `User.Read`.
    > [!NOTE]
    > If you want users to be able to write events back to their calendar (e.g., when booking rooms directly from the tablet display), you also need to add the `Calendars.ReadWrite.Shared` permission. This allows the application to create and modify calendar events on behalf of users.
+1. **Admin Consent booking method (recommended for M365 room bookings):** If you plan to use the "Admin Consent" booking method, you must also add an **Application permission** (not Delegated) to your app registration:
+   - In 'API permissions', click 'Add a permission' → 'Microsoft Graph' → **'Application permissions'**
+   - Search for and select `Calendars.ReadWrite`
+   - Click 'Grant admin consent for [your organisation]' at the top of the permissions page — this is a one-time step and requires a Global Administrator account
+   > [!IMPORTANT]
+   > Without `Calendars.ReadWrite` as an Application permission, the Admin Consent booking method will not work. The Delegated permission `Calendars.ReadWrite.Shared` alone is not sufficient for app-only access to room calendars.
 1. Save, and click on 'certificates and secrets'
 1. Create a new secret (not certificate) and copy the value
 1. Click on 'overview' and copy the 'client id'. Beware: this is the client ID value you need, not the ID of the secret you just created.

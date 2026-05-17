@@ -12,6 +12,7 @@ class DisplaySettings
         // If settings relationship is already loaded, use it to avoid N+1 queries
         if ($display->relationLoaded('settings')) {
             $setting = $display->settings->firstWhere('key', $key);
+
             return $setting?->value ?? $default;
         }
 
@@ -36,9 +37,11 @@ class DisplaySettings
                     'type' => $type,
                 ]
             );
+
             return true;
         } catch (\Exception $e) {
             report($e);
+
             return false;
         }
     }
@@ -51,6 +54,7 @@ class DisplaySettings
                 ->delete() > 0;
         } catch (\Exception $e) {
             report($e);
+
             return false;
         }
     }
@@ -159,13 +163,23 @@ class DisplaySettings
 
     public static function isCalendarEnabled(Display $display): bool
     {
-        // Backward compat: also true if old mode-based view_schedule is stored
+        // 'calendar_enabled' was the key before it was renamed to 'view_schedule'
         return self::getSetting($display, 'view_schedule', false)
+            || self::getSetting($display, 'calendar_enabled', false)
             || self::getSetting($display, 'timeline_widget_mode', null) === 'view_schedule';
     }
 
     public static function setCalendarEnabled(Display $display, bool $enabled): bool
     {
+        // Clear legacy keys so they can't override the new value
+        if (! $enabled) {
+            self::deleteSetting($display, 'calendar_enabled');
+            // timeline_widget_mode = 'view_schedule' was an old way to enable this feature
+            if (self::getSetting($display, 'timeline_widget_mode', null) === 'view_schedule') {
+                self::deleteSetting($display, 'timeline_widget_mode');
+            }
+        }
+
         return self::setSetting($display, 'view_schedule', $enabled, 'boolean');
     }
 
@@ -192,6 +206,7 @@ class DisplaySettings
         }
         // Backward compat: migrate old boolean setting
         $legacy = self::getSetting($display, 'timeline_widget_enabled', false);
+
         return $legacy ? 'side_panel' : 'none';
     }
 
@@ -215,6 +230,7 @@ class DisplaySettings
     {
         return self::getSetting($display, 'text_available');
     }
+
     public static function setAvailableText(Display $display, string $text): bool
     {
         return self::setSetting($display, 'text_available', $text, 'string');
@@ -224,6 +240,7 @@ class DisplaySettings
     {
         return self::getSetting($display, 'text_transitioning');
     }
+
     public static function setTransitioningText(Display $display, string $text): bool
     {
         return self::setSetting($display, 'text_transitioning', $text, 'string');
@@ -233,6 +250,7 @@ class DisplaySettings
     {
         return self::getSetting($display, 'text_reserved');
     }
+
     public static function setReservedText(Display $display, string $text): bool
     {
         return self::setSetting($display, 'text_reserved', $text, 'string');
@@ -242,6 +260,7 @@ class DisplaySettings
     {
         return self::getSetting($display, 'text_checkin');
     }
+
     public static function setCheckInText(Display $display, string $text): bool
     {
         return self::setSetting($display, 'text_checkin', $text, 'string');
@@ -252,6 +271,7 @@ class DisplaySettings
     {
         return self::getSetting($display, 'show_meeting_title', true);
     }
+
     public static function setShowMeetingTitle(Display $display, bool $show): bool
     {
         return self::setSetting($display, 'show_meeting_title', $show, 'boolean');
@@ -277,9 +297,10 @@ class DisplaySettings
 
     public static function setCancelPermission(Display $display, string $permission): bool
     {
-        if (!in_array($permission, ['all', 'tablet_only', 'none'])) {
+        if (! in_array($permission, ['all', 'tablet_only', 'none'])) {
             return false;
         }
+
         return self::setSetting($display, 'cancel_permission', $permission, 'string');
     }
 
@@ -292,9 +313,10 @@ class DisplaySettings
 
     public static function setBorderThickness(Display $display, string $thickness): bool
     {
-        if (!in_array($thickness, ['small', 'medium', 'large'])) {
+        if (! in_array($thickness, ['small', 'medium', 'large'])) {
             return false;
         }
+
         return self::setSetting($display, 'border_thickness', $thickness, 'string');
     }
 

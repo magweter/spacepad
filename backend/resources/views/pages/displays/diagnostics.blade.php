@@ -195,13 +195,23 @@ function renderData(data) {
 
     let html = '';
 
-    if (metaEntries.length > 0) {
+    const fixEntry   = metaEntries.find(([k]) => k === 'How to fix');
+    const otherMeta  = metaEntries.filter(([k]) => k !== 'How to fix');
+
+    if (otherMeta.length > 0) {
         html += '<dl class="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1.5 text-sm mb-3">';
-        for (const [key, val] of metaEntries) {
+        for (const [key, val] of otherMeta) {
             html += `<dt class="font-medium text-gray-500 whitespace-nowrap">${escHtml(String(key))}</dt>
                      <dd class="text-gray-900">${escHtml(String(val ?? '—'))}</dd>`;
         }
         html += '</dl>';
+    }
+
+    if (fixEntry) {
+        html += `<div class="flex items-start gap-2 rounded-md bg-amber-50 border border-amber-200 px-3 py-2.5 text-sm mt-1 mb-3">
+            <svg class="h-4 w-4 flex-shrink-0 text-amber-500 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 11-3.586-3.586l6.837-6.836m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 004.486-6.336l-3.276 3.277a3.004 3.004 0 01-2.25-2.25l3.276-3.276a4.5 4.5 0 00-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437l1.745-1.437m6.615 8.206L15.75 15.75M4.867 19.125h.008v.008h-.008v-.008z"/></svg>
+            <span class="text-amber-800"><strong>How to fix:</strong> ${escHtml(String(fixEntry[1]))}</span>
+        </div>`;
     }
 
     if (eventsEntry) {

@@ -61,6 +61,35 @@
         @endif
     @endforeach
 
+    {{-- Microsoft Booking Method Selection Warnings --}}
+    @foreach($outlookAccounts as $outlookAccount)
+        @if($outlookAccount->permission_type === \App\Enums\PermissionType::WRITE && $outlookAccount->isBusiness() && $outlookAccount->booking_method === null)
+            <div class="mb-4 rounded-xl bg-yellow-50 border border-yellow-200 p-4 flex items-start gap-4" x-data>
+                <div class="flex-shrink-0 mt-1">
+                    <span class="inline-flex items-center justify-center h-10 w-10 rounded-full bg-yellow-100">
+                        <svg class="h-6 w-6 text-yellow-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M12 9v2m0 4h.01M5.07 20A9.938 9.938 0 0 1 2 12C2 6.48 6.48 2 12 2c5.52 0 10 4.48 10 10a9.938 9.938 0 0 1-3.07 8" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </span>
+                </div>
+                <div class="flex-1">
+                    <h3 class="text-md font-semibold text-yellow-900 mb-1">Booking Method Required</h3>
+                    <p class="text-sm text-yellow-800 mb-1">
+                        Please select a booking method for your Microsoft 365 account <strong>{{ $outlookAccount->name }}</strong> ({{ $outlookAccount->email }}).
+                    </p>
+                </div>
+                <div class="flex-shrink-0 ml-4 mt-2">
+                    <button
+                        type="button"
+                        @click="$dispatch('open-microsoft-booking-method-modal', '{{ $outlookAccount->id }}')"
+                        class="inline-flex items-center rounded-md bg-yellow-600 px-3 py-2 text-sm font-semibold text-white shadow-xs hover:bg-yellow-700">
+                        Select booking method
+                    </button>
+                </div>
+            </div>
+        @endif
+    @endforeach
+
     {{-- Service Account Warnings --}}
     @foreach($googleAccounts as $googleAccount)
         @if($googleAccount->isBusiness() && $googleAccount->booking_method === \App\Enums\GoogleBookingMethod::SERVICE_ACCOUNT && !$googleAccount->service_account_file_path)
@@ -584,13 +613,41 @@
             @else
                 <div class="divide-y divide-gray-100">
                     @foreach($outlookAccounts as $outlookAccount)
-                        <div class="flex items-center gap-3 py-3">
+                        <div class="flex items-center gap-3 py-3" x-data="{ bookingInfo: false }">
                             <x-icons.microsoft class="h-5 w-5 flex-shrink-0" />
                             <div class="min-w-0 flex-1">
                                 <p class="truncate text-sm font-medium text-gray-900">{{ $outlookAccount->name }}</p>
                                 <p class="truncate text-xs text-gray-400">{{ $outlookAccount->email }}</p>
                             </div>
                             <div class="flex flex-shrink-0 items-center gap-1.5">
+                                @if($outlookAccount->permission_type === \App\Enums\PermissionType::WRITE && $outlookAccount->isBusiness())
+                                    <div class="relative">
+                                        <button type="button" @click="bookingInfo = !bookingInfo" @click.outside="bookingInfo = false"
+                                            class="rounded p-1 hover:bg-gray-100 {{ $outlookAccount->booking_method ? 'text-gray-500 hover:text-gray-700' : 'text-yellow-500 hover:text-yellow-600' }}"
+                                            title="Booking method">
+                                            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5m-9-6h.008v.008H12v-.008zM12 15h.008v.008H12V15zm0 2.25h.008v.008H12v-.008zM9.75 15h.008v.008H9.75V15zm0 2.25h.008v.008H9.75v-.008zM7.5 15h.008v.008H7.5V15zm0 2.25h.008v.008H7.5v-.008zm6.75-4.5h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V15zm0 2.25h.008v.008h-.008v-.008zm2.25-4.5h.008v.008H16.5v-.008zm0 2.25h.008v.008H16.5V15z"/></svg>
+                                        </button>
+                                        <div x-show="bookingInfo" x-cloak x-transition
+                                            class="absolute right-0 top-full mt-1.5 z-30 w-64 rounded-lg border border-gray-200 bg-white p-3 shadow-lg text-left"
+                                            style="display:none">
+                                            <p class="text-xs font-semibold text-gray-700">
+                                                Booking method: {{ $outlookAccount->booking_method?->label() ?? 'Not set' }}
+                                            </p>
+                                            <p class="mt-1 text-xs text-gray-500 leading-relaxed">
+                                                @if($outlookAccount->booking_method)
+                                                    {{ $outlookAccount->booking_method->description() }}
+                                                @else
+                                                    No booking method configured yet. Select a method to enable room bookings from the display.
+                                                @endif
+                                            </p>
+                                            <button type="button"
+                                                @click="bookingInfo = false; window.dispatchEvent(new CustomEvent('open-microsoft-booking-method-modal', { detail: { id: '{{ $outlookAccount->id }}', bookingMethod: '{{ $outlookAccount->booking_method?->value ?? '' }}' } }))"
+                                                class="mt-2.5 text-xs font-medium text-blue-600 hover:text-blue-700">
+                                                {{ $outlookAccount->booking_method ? 'Change booking method →' : 'Set booking method →' }}
+                                            </button>
+                                        </div>
+                                    </div>
+                                @endif
                                 @if($outlookAccount->permission_type)
                                     <span class="whitespace-nowrap rounded-md px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset {{ $outlookAccount->permission_type === \App\Enums\PermissionType::WRITE ? 'bg-blue-50 text-blue-700 ring-blue-600' : 'bg-gray-50 text-gray-600 ring-gray-300' }}">
                                         {{ $outlookAccount->permission_type->label() }}
@@ -613,13 +670,48 @@
                     @endforeach
 
                     @foreach($googleAccounts as $googleAccount)
-                        <div class="flex items-center gap-3 py-3">
+                        <div class="flex items-center gap-3 py-3" x-data="{ bookingInfo: false }">
                             <x-icons.google class="h-5 w-5 flex-shrink-0" />
                             <div class="min-w-0 flex-1">
                                 <p class="truncate text-sm font-medium text-gray-900">{{ $googleAccount->name }}</p>
                                 <p class="truncate text-xs text-gray-400">{{ $googleAccount->email }}</p>
                             </div>
                             <div class="flex flex-shrink-0 items-center gap-1.5">
+                                @if($googleAccount->permission_type === \App\Enums\PermissionType::WRITE)
+                                    <div class="relative">
+                                        <button type="button" @click="bookingInfo = !bookingInfo" @click.outside="bookingInfo = false"
+                                            class="rounded p-1 hover:bg-gray-100 {{ ($googleAccount->isBusiness() && !$googleAccount->booking_method) ? 'text-yellow-500 hover:text-yellow-600' : 'text-gray-500 hover:text-gray-700' }}"
+                                            title="Booking method">
+                                            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5m-9-6h.008v.008H12v-.008zM12 15h.008v.008H12V15zm0 2.25h.008v.008H12v-.008zM9.75 15h.008v.008H9.75V15zm0 2.25h.008v.008H9.75v-.008zM7.5 15h.008v.008H7.5V15zm0 2.25h.008v.008H7.5v-.008zm6.75-4.5h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V15zm0 2.25h.008v.008h-.008v-.008zm2.25-4.5h.008v.008H16.5v-.008zm0 2.25h.008v.008H16.5V15z"/></svg>
+                                        </button>
+                                        <div x-show="bookingInfo" x-cloak x-transition
+                                            class="absolute right-0 top-full mt-1.5 z-30 w-64 rounded-lg border border-gray-200 bg-white p-3 shadow-lg text-left"
+                                            style="display:none">
+                                            @if($googleAccount->isBusiness())
+                                                <p class="text-xs font-semibold text-gray-700">
+                                                    Booking method: {{ $googleAccount->booking_method?->label() ?? 'Not set' }}
+                                                </p>
+                                                <p class="mt-1 text-xs text-gray-500 leading-relaxed">
+                                                    @if($googleAccount->booking_method)
+                                                        {{ $googleAccount->booking_method->description() }}
+                                                    @else
+                                                        No booking method configured yet. Select a method to enable room bookings from the display.
+                                                    @endif
+                                                </p>
+                                                <button type="button"
+                                                    @click="bookingInfo = false; window.dispatchEvent(new CustomEvent('open-google-booking-method-modal', { detail: { id: '{{ $googleAccount->id }}', bookingMethod: '{{ $googleAccount->booking_method?->value ?? '' }}' } }))"
+                                                    class="mt-2.5 text-xs font-medium text-blue-600 hover:text-blue-700">
+                                                    {{ $googleAccount->booking_method ? 'Change booking method →' : 'Set booking method →' }}
+                                                </button>
+                                            @else
+                                                <p class="text-xs font-semibold text-gray-700">Booking method: User account</p>
+                                                <p class="mt-1 text-xs text-gray-500 leading-relaxed">
+                                                    Bookings appear in your connected Google account's calendar. Your account is listed as the organizer of every booking.
+                                                </p>
+                                            @endif
+                                        </div>
+                                    </div>
+                                @endif
                                 @if($googleAccount->permission_type)
                                     <span class="whitespace-nowrap rounded-md px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset {{ $googleAccount->permission_type === \App\Enums\PermissionType::WRITE ? 'bg-blue-50 text-blue-700 ring-blue-600' : 'bg-gray-50 text-gray-600 ring-gray-300' }}">
                                         {{ $googleAccount->permission_type->label() }}
@@ -714,6 +806,15 @@
             });
         @endif
 
+        // Show Microsoft booking method modal if needed
+        @if(session('open-microsoft-booking-method-modal'))
+            window.addEventListener('DOMContentLoaded', function() {
+                window.dispatchEvent(new CustomEvent('open-microsoft-booking-method-modal', {
+                    detail: '{{ session('open-microsoft-booking-method-modal') }}'
+                }));
+            });
+        @endif
+
         // Tab switching functionality
         function switchTab(tabName, updateUrl = true) {
             // Hide all tab contents
@@ -787,6 +888,7 @@
     <x-modals.select-permission provider="outlook" />
     <x-modals.select-permission provider="google" />
     <x-modals.select-google-booking-method />
+    <x-modals.select-microsoft-booking-method />
     <x-modals.google-service-account />
     <x-modals.diagnostics :displays="$displays" />
 @endpush

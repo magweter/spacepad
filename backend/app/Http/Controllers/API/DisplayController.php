@@ -208,8 +208,11 @@ class DisplayController extends ApiController
             ]);
             report($e);
             $status = $e->getCode() === 403 ? 403 : 400;
+            $message = $status === 403
+                ? $e->getMessage()
+                : 'Room could not be booked. There may be conflicting events during this time period. Please try a different time or duration.';
 
-            return $this->error(message: 'Room could not be booked. There may be conflicting events during this time period. Please try a different time or duration.', code: $status);
+            return $this->error(message: $message, code: $status);
         }
     }
 
