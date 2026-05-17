@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\GoogleBookingMethod;
+use App\Enums\OutlookBookingMethod;
 use App\Models\Display;
 use App\Services\CalDAVService;
 use App\Services\EventService;
@@ -90,39 +92,103 @@ class DisplayDiagnosticsController extends Controller
             return response()->json(['steps' => $steps]);
         }
 
-        // ── Step 3: Permission check ───────────────────────────────────────────
+        // ── Step 3: Permission & booking capability check ─────────────────────
         $permType = $account->permission_type ?? null;
         $permValue = $permType instanceof \App\Enums\PermissionType ? $permType->value : (string) $permType;
         $hasWrite = in_array($permValue, ['write', 'read_write'], true);
         $needsWrite = $display->isBookingEnabled();
 
+        $outlookBookingMethod = null;
+        $outlookMethodValue = null;
+        $googleBookingMethod = null;
+        $googleMethodValue = null;
+
         $permDetails = [
             'Granted permission level' => ucfirst($permValue ?: 'unknown'),
-            'Booking enabled on display' => $needsWrite ? 'Yes (requires write)' : 'No',
+            'Booking enabled on display' => $needsWrite ? 'Yes' : 'No',
         ];
 
         if ($calendar->outlook_account_id) {
-            $permDetails['Granted scopes'] = $hasWrite
+            $permDetails['OAuth scopes'] = $hasWrite
                 ? 'Calendars.ReadWrite.Shared'
                 : 'Calendars.Read.Shared';
+
+            $outlookBookingMethod = $account->booking_method instanceof OutlookBookingMethod
+                ? $account->booking_method
+                : null;
+            $outlookMethodValue = $outlookBookingMethod?->value;
+
+            if ($hasWrite) {
+                $permDetails['Booking method'] = $outlookBookingMethod
+                    ? $outlookBookingMethod->label()
+                    : 'Not set';
+            }
         }
 
         if ($calendar->google_account_id) {
-            $bookingMethod = $account->booking_method ?? null;
-            $bookingMethodValue = $bookingMethod instanceof \App\Enums\GoogleBookingMethod
-                ? $bookingMethod->value
-                : (string) ($bookingMethod ?? 'oauth');
-            $permDetails['Booking method'] = $bookingMethodValue;
-
-            $permDetails['Granted scopes'] = $hasWrite
+            $permDetails['OAuth scopes'] = $hasWrite
                 ? 'calendar.events + calendar.readonly'
                 : 'calendar.events.readonly + calendar.readonly';
+
+            $googleBookingMethod = $account->booking_method instanceof GoogleBookingMethod
+                ? $account->booking_method
+                : null;
+            $googleMethodValue = $googleBookingMethod?->value;
+
+            if ($hasWrite) {
+                $permDetails['Booking method'] = $googleBookingMethod
+                    ? $googleBookingMethod->label()
+                    : ($account->isBusiness() ? 'Not set' : 'User account (personal)');
+            }
         }
 
-        $permStatus = ($needsWrite && ! $hasWrite) ? 'warning' : 'ok';
-        $permMessage = ($needsWrite && ! $hasWrite)
-            ? 'Booking is enabled but only read permission was granted — re-authenticate with write access to enable booking'
-            : ($needsWrite ? 'Write permission granted — booking is supported' : 'Read-only permission — sufficient for display only');
+        // Determine the specific permission/booking status and actionable message
+        $permStatus = 'ok';
+        $permMessage = '';
+        $fixNote = null;
+
+        if (! $hasWrite && $needsWrite) {
+            // Booking enabled but account is read-only
+            $permStatus = 'warning';
+            $permMessage = 'Booking is enabled on this display but the account has read-only access — bookings made from the tablet will fail.';
+            $fixNote = 'Go to Accounts, disconnect this account, and reconnect it with "Read & Write" permission.';
+
+        } elseif (! $hasWrite) {
+            // Read-only, booking not needed
+            $permMessage = 'Read-only access — events are displayed on the tablet. Bookings from the tablet are not enabled for this display.';
+
+        } elseif ($needsWrite && $calendar->google_account_id && $account->isBusiness() && ! $googleMethodValue) {
+            // Write + Google Workspace but no booking method configured
+            $permStatus = 'warning';
+            $permMessage = 'Write access granted but no booking method is configured — room bookings will fail until a method is selected.';
+            $fixNote = 'Go to Accounts, click the calendar icon next to this account, and choose a booking method.';
+
+        } elseif ($needsWrite && $calendar->google_account_id && $googleMethodValue === 'service_account' && empty($account->service_account_file_path)) {
+            // Service account selected but file not uploaded
+            $permStatus = 'error';
+            $permMessage = 'Booking method is set to "Service account" but the service account JSON file has not been uploaded — bookings will fail.';
+            $fixNote = 'Go to Accounts, click the calendar icon next to this account, and upload the service account JSON file.';
+
+        } elseif ($needsWrite && $calendar->outlook_account_id && $account->isBusiness() && ! $outlookMethodValue) {
+            // Write + Microsoft business but no booking method
+            $permStatus = 'warning';
+            $permMessage = 'Write access granted but no booking method is configured — room bookings will fail until a method is selected.';
+            $fixNote = 'Go to Accounts, click the calendar icon next to this account, and choose a booking method.';
+
+        } elseif ($needsWrite && $calendar->outlook_account_id && ($outlookMethodValue ?? null) === 'admin_consent') {
+            // Admin consent method — note that admin must have approved
+            $permMessage = 'Booking method is set to "Admin consent" — room bookings use app-level permissions. Ensure your M365 tenant admin has completed the one-time consent step.';
+
+        } elseif ($needsWrite) {
+            $permMessage = 'Write access granted — bookings from the tablet are supported.';
+
+        } else {
+            $permMessage = 'Read & Write access is granted. Booking from the tablet is currently disabled in display settings.';
+        }
+
+        if ($fixNote) {
+            $permDetails['How to fix'] = $fixNote;
+        }
 
         $steps[] = $this->step(3, 'Calendar permissions', $permStatus, $permMessage, $permDetails);
 

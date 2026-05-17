@@ -2,14 +2,14 @@
 
 namespace App\Models;
 
-use App\Services\OutlookService;
+use App\Enums\AccountStatus;
+use App\Enums\OutlookBookingMethod;
+use App\Enums\PermissionType;
 use App\Traits\HasUlid;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Enums\AccountStatus;
-use App\Enums\PermissionType;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class OutlookAccount extends Model
 {
@@ -29,6 +29,7 @@ class OutlookAccount extends Model
         'token',
         'refresh_token',
         'token_expires_at',
+        'booking_method',
     ];
 
     protected $hidden = [
@@ -42,11 +43,12 @@ class OutlookAccount extends Model
         'permission_type' => PermissionType::class,
         'token' => 'encrypted',
         'refresh_token' => 'encrypted',
+        'booking_method' => OutlookBookingMethod::class,
     ];
 
     public function isBusiness(): bool
     {
-        return !empty($this->tenant_id);
+        return ! empty($this->tenant_id);
     }
 
     public function calendars(): HasMany
