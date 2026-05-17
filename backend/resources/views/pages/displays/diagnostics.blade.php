@@ -142,7 +142,7 @@ async function runDiagnostics() {
 
         // Auto-open the first non-ok step
         const firstBad = json.steps.find(s => s.status !== 'ok');
-        if (firstBad && Object.keys(firstBad.data).length > 0) {
+        if (firstBad && firstBad.data && Object.keys(firstBad.data).length > 0) {
             openDetails(firstBad.number);
         }
     } catch (err) {
@@ -250,7 +250,8 @@ function escHtml(str) {
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
 }
 </script>
 @endif

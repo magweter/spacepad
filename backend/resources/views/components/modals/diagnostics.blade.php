@@ -222,9 +222,9 @@ window.__diagDispNames = @json($displays->mapWithKeys(fn($d) => [$d->id => $d->n
                                              'border-red-200': step.status === 'error'
                                          }">
                                         {{-- Meta fields --}}
-                                        <template x-if="Object.keys(step.data).filter(k => k !== 'events').length > 0">
+                                        <template x-if="Object.keys(step.data ?? {}).filter(k => k !== 'events').length > 0">
                                             <dl class="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1 text-xs mb-3">
-                                                <template x-for="[key, val] in Object.entries(step.data).filter(([k]) => k !== 'events')" :key="key">
+                                                <template x-for="[key, val] in Object.entries(step.data ?? {}).filter(([k]) => k !== 'events')" :key="key">
                                                     <template x-if="true">
                                                         <span class="contents">
                                                             <dt class="font-medium text-gray-500 whitespace-nowrap py-0.5" x-text="key"></dt>
@@ -259,7 +259,7 @@ window.__diagDispNames = @json($displays->mapWithKeys(fn($d) => [$d->id => $d->n
                                             <p class="text-xs text-gray-400 italic">No events to show</p>
                                         </template>
                                         {{-- Fallback when data is an empty object {} --}}
-                                        <template x-if="!Array.isArray(step.data) && Object.keys(step.data).length === 0">
+                                        <template x-if="!Array.isArray(step.data ?? {}) && Object.keys(step.data ?? {}).length === 0">
                                             <p class="text-xs text-gray-400 italic">No additional details available.</p>
                                         </template>
                                     </div>

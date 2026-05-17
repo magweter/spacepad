@@ -16,9 +16,9 @@ use App\Models\CalDAVAccount;
 use App\Models\GoogleAccount;
 use App\Models\OutlookAccount;
 use App\Models\User;
-use LemonSqueezy\Laravel\Subscription;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Cache;
+use LemonSqueezy\Laravel\Subscription;
 
 class CheckMarketingTriggers extends Command
 {
@@ -91,7 +91,7 @@ class CheckMarketingTriggers extends Command
 
         foreach ($users as $user) {
             $cacheKey = "marketing:user_not_activated_24h:{$user->id}";
-            if (!Cache::has($cacheKey)) {
+            if (! Cache::has($cacheKey)) {
                 event(new UserNotActivatedAfter24h($user));
                 Cache::put($cacheKey, true, now()->addDays(7)); // Prevent duplicate events for 7 days
                 $this->line("Fired UserNotActivatedAfter24h for user {$user->email}");
@@ -113,7 +113,7 @@ class CheckMarketingTriggers extends Command
 
         foreach ($users as $user) {
             $cacheKey = "marketing:user_activated_24h:{$user->id}";
-            if (!Cache::has($cacheKey)) {
+            if (! Cache::has($cacheKey)) {
                 event(new UserActivatedAfter24h($user));
                 Cache::put($cacheKey, true, now()->addDays(7)); // Prevent duplicate events for 7 days
                 $this->line("Fired UserActivatedAfter24h for user {$user->email}");
@@ -148,7 +148,7 @@ class CheckMarketingTriggers extends Command
 
         foreach ($users as $user) {
             $cacheKey = "marketing:user_passive:{$user->id}";
-            if (!Cache::has($cacheKey)) {
+            if (! Cache::has($cacheKey)) {
                 event(new UserPassive($user));
                 Cache::put($cacheKey, true, now()->addDays(7)); // Prevent duplicate events for 7 days
                 $this->line("Fired UserPassive for user {$user->email}");
@@ -183,7 +183,7 @@ class CheckMarketingTriggers extends Command
 
         foreach ($users as $user) {
             $cacheKey = "marketing:user_inactive:{$user->id}";
-            if (!Cache::has($cacheKey)) {
+            if (! Cache::has($cacheKey)) {
                 event(new UserInactive($user));
                 Cache::put($cacheKey, true, now()->addDays(7)); // Prevent duplicate events for 7 days
                 $this->line("Fired UserInactive for user {$user->email}");
@@ -196,11 +196,11 @@ class CheckMarketingTriggers extends Command
      */
     private function checkAccountConnectedNoDisplay(): void
     {
-        $window = [now()->subHours(5), now()->subHours(4)];
+        $window = [now()->subHours(6), now()->subHours(4)];
 
         $outlookUserIds = OutlookAccount::whereBetween('created_at', $window)->pluck('user_id');
-        $googleUserIds  = GoogleAccount::whereBetween('created_at', $window)->pluck('user_id');
-        $caldavUserIds  = CalDAVAccount::whereBetween('created_at', $window)->pluck('user_id');
+        $googleUserIds = GoogleAccount::whereBetween('created_at', $window)->pluck('user_id');
+        $caldavUserIds = CalDAVAccount::whereBetween('created_at', $window)->pluck('user_id');
 
         $userIds = $outlookUserIds->merge($googleUserIds)->merge($caldavUserIds)->unique();
 
@@ -211,7 +211,7 @@ class CheckMarketingTriggers extends Command
 
         foreach ($users as $user) {
             $cacheKey = "marketing:account_connected_no_display:{$user->id}";
-            if (!Cache::has($cacheKey)) {
+            if (! Cache::has($cacheKey)) {
                 event(new AccountConnectedNoDisplay($user));
                 Cache::put($cacheKey, true, now()->addDays(7));
                 $this->line("Fired AccountConnectedNoDisplay for user {$user->email}");
@@ -227,14 +227,14 @@ class CheckMarketingTriggers extends Command
         $users = User::whereNull('deleted_at')
             ->whereHas('displays', function ($q) {
                 $q->where('created_at', '<=', now()->subHours(24))
-                  ->where('created_at', '>', now()->subHours(25));
+                    ->where('created_at', '>', now()->subHours(26));
             })
             ->whereDoesntHave('devices')
             ->get();
 
         foreach ($users as $user) {
             $cacheKey = "marketing:display_created_no_device:{$user->id}";
-            if (!Cache::has($cacheKey)) {
+            if (! Cache::has($cacheKey)) {
                 event(new DisplayCreatedNoDevice($user));
                 Cache::put($cacheKey, true, now()->addDays(7));
                 $this->line("Fired DisplayCreatedNoDevice for user {$user->email}");
@@ -255,14 +255,14 @@ class CheckMarketingTriggers extends Command
             ->where('is_unlimited', false)
             ->whereHas('subscriptions', function ($query) {
                 $query->where('status', Subscription::STATUS_ON_TRIAL)
-                      ->where('created_at', '<=', now()->subDays(3))
-                      ->where('created_at', '>', now()->subDays(4));
+                    ->where('created_at', '<=', now()->subDays(3))
+                    ->where('created_at', '>', now()->subDays(4));
             })
             ->get();
 
         foreach ($users as $user) {
             $cacheKey = "marketing:trial_day_three:{$user->id}";
-            if (!Cache::has($cacheKey)) {
+            if (! Cache::has($cacheKey)) {
                 event(new TrialDayThree($user));
                 Cache::put($cacheKey, true, now()->addDays(7));
                 $this->line("Fired TrialDayThree for user {$user->email}");
@@ -283,14 +283,14 @@ class CheckMarketingTriggers extends Command
             ->where('is_unlimited', false)
             ->whereHas('subscriptions', function ($query) {
                 $query->where('status', Subscription::STATUS_ON_TRIAL)
-                      ->where('trial_ends_at', '>=', now()->addDays(7))
-                      ->where('trial_ends_at', '<', now()->addDays(8));
+                    ->where('trial_ends_at', '>=', now()->addDays(7))
+                    ->where('trial_ends_at', '<', now()->addDays(8));
             })
             ->get();
 
         foreach ($users as $user) {
             $cacheKey = "marketing:trial_ending_soon:{$user->id}";
-            if (!Cache::has($cacheKey)) {
+            if (! Cache::has($cacheKey)) {
                 event(new TrialEndingSoon($user));
                 Cache::put($cacheKey, true, now()->addDays(7));
                 $this->line("Fired TrialEndingSoon for user {$user->email}");
@@ -311,14 +311,14 @@ class CheckMarketingTriggers extends Command
             ->where('is_unlimited', false)
             ->whereHas('subscriptions', function ($query) {
                 $query->where('status', Subscription::STATUS_ON_TRIAL)
-                      ->where('trial_ends_at', '>=', now()->addDay())
-                      ->where('trial_ends_at', '<', now()->addDays(2));
+                    ->where('trial_ends_at', '>=', now()->addDay())
+                    ->where('trial_ends_at', '<', now()->addDays(2));
             })
             ->get();
 
         foreach ($users as $user) {
             $cacheKey = "marketing:trial_ending_tomorrow:{$user->id}";
-            if (!Cache::has($cacheKey)) {
+            if (! Cache::has($cacheKey)) {
                 event(new TrialEndingTomorrow($user));
                 Cache::put($cacheKey, true, now()->addDays(7));
                 $this->line("Fired TrialEndingTomorrow for user {$user->email}");
@@ -354,7 +354,7 @@ class CheckMarketingTriggers extends Command
 
         foreach ($users as $user) {
             $cacheKey = "marketing:trial_expired:{$user->id}";
-            if (!Cache::has($cacheKey)) {
+            if (! Cache::has($cacheKey)) {
                 event(new TrialExpiredOrCancelled($user));
                 Cache::put($cacheKey, true, now()->addDays(7)); // Prevent duplicate events for 7 days
                 $this->line("Fired TrialExpiredOrCancelled for user {$user->email}");
@@ -362,4 +362,3 @@ class CheckMarketingTriggers extends Command
         }
     }
 }
-

@@ -129,8 +129,8 @@
 
     {{-- Trial Countdown Banner --}}
     @if(!$isSelfHosted && $trialSubscription && $trialSubscription->trial_ends_at)
-        @php $trialDaysLeft = (int) now()->diffInDays($trialSubscription->trial_ends_at, false) @endphp
-        @if($trialDaysLeft >= 0 && $trialDaysLeft <= 14)
+        @php $trialDaysLeft = (int) ceil(now()->diffInDays($trialSubscription->trial_ends_at, false)) @endphp
+        @if($trialSubscription->trial_ends_at->isFuture() && $trialDaysLeft <= 14)
             <div class="mb-4 rounded-xl bg-amber-50 border border-amber-200 p-4 flex items-center gap-4">
                 <div class="flex-shrink-0">
                     <span class="inline-flex items-center justify-center h-10 w-10 rounded-full bg-amber-100">
@@ -385,7 +385,7 @@
                                                 <h3 class="mb-2 text-base font-semibold text-gray-900">
                                                     No displays yet
                                                 </h3>
-                                                <p class="text-sm text-gray-500 max-w-sm">Follow the getting started guide below to connect your calendar and set up your first display.</p>
+                                                <p class="text-sm text-gray-500 max-w-sm">Follow the getting started guide to connect your calendar and set up your first display.</p>
                                             </div>
                                         </td>
                                     </tr>

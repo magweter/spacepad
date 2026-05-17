@@ -31,6 +31,7 @@ class UpdateLemonSqueezySubscriptions extends Command
     {
         if (config('settings.is_self_hosted')) {
             $this->info('Skipping subscription update - this is a self-hosted instance');
+
             return self::SUCCESS;
         }
 
@@ -39,10 +40,10 @@ class UpdateLemonSqueezySubscriptions extends Command
         // Get all users with active subscriptions
         $usersWithSubscriptions = User::where(function ($query) {
             $query->where('is_unlimited', true)
-                  ->orWhereHas('subscriptions', function ($subQuery) {
-                      $subQuery->where('ends_at', null) // Active subscription
-                               ->orWhere('ends_at', '>', now()); // Not expired
-                  });
+                ->orWhereHas('subscriptions', function ($subQuery) {
+                    $subQuery->where('ends_at', null) // Active subscription
+                        ->orWhere('ends_at', '>', now()); // Not expired
+                });
         })->get();
 
         $this->info("Found {$usersWithSubscriptions->count()} users with active subscriptions");
@@ -53,9 +54,9 @@ class UpdateLemonSqueezySubscriptions extends Command
         foreach ($usersWithSubscriptions as $user) {
             try {
                 $totalUsage = $this->getTotalUsageCount($user);
-                
+
                 if ($user->is_unlimited) {
-                    $this->line("Skipping unlimited user {$user->email} with {$totalUsage} total usage units");
+                    $this->line("Skipping unlimited user {$user->id} with {$totalUsage} total usage units");
                     $successCount++;
                 } else {
                     // Try both quantity-based and usage-based billing methods
@@ -70,13 +71,13 @@ class UpdateLemonSqueezySubscriptions extends Command
                 Log::error('Subscription update failed', [
                     'user_id' => $user->id,
                     'error' => $e->getMessage(),
-                    'trace' => $e->getTraceAsString()
+                    'trace' => $e->getTraceAsString(),
                 ]);
             }
         }
 
         $this->info("Subscription updates completed: {$successCount} successful, {$errorCount} errors");
-        
+
         return $errorCount === 0 ? self::SUCCESS : self::FAILURE;
     }
 
@@ -97,11 +98,11 @@ class UpdateLemonSqueezySubscriptions extends Command
     private function getTotalUsageCount(User $user): int
     {
         $totalUsage = 0;
-        
+
         foreach ($user->workspaces as $workspace) {
             $totalUsage += $workspace->getTotalUsageCount();
         }
-        
+
         return $totalUsage;
     }
 
@@ -117,18 +118,18 @@ class UpdateLemonSqueezySubscriptions extends Command
 
         // Get the user's active subscription
         $subscription = $user->subscriptions()
-            ->where(function($query) {
+            ->where(function ($query) {
                 $query->whereNull('ends_at')
-                      ->orWhere('ends_at', '>', now());
+                    ->orWhere('ends_at', '>', now());
             })
             ->first();
 
-        if (!$subscription) {
+        if (! $subscription) {
             return; // No subscription found, skip silently
         }
 
         $apiKey = config('lemon-squeezy.api_key');
-        if (!$apiKey) {
+        if (! $apiKey) {
             return; // No API key, skip silently
         }
 
@@ -138,14 +139,14 @@ class UpdateLemonSqueezySubscriptions extends Command
                 ->withHeaders([
                     'Accept' => 'application/vnd.api+json',
                 ])
-                ->get('https://api.lemonsqueezy.com/v1/subscriptions/' . $subscription->lemon_squeezy_id);
+                ->get('https://api.lemonsqueezy.com/v1/subscriptions/'.$subscription->lemon_squeezy_id);
 
-            if (!$subscriptionResponse->successful()) {
+            if (! $subscriptionResponse->successful()) {
                 return; // Failed to fetch subscription, skip silently
             }
 
             $subscriptionData = $subscriptionResponse->json();
-            
+
             // Get subscription items from the response (handle different response structures)
             $subscriptionItems = $this->getSubscriptionItems($subscriptionData, $apiKey, $subscription->lemon_squeezy_id);
 
@@ -157,7 +158,7 @@ class UpdateLemonSqueezySubscriptions extends Command
             $subscriptionItem = $subscriptionItems[0];
             $subscriptionItemId = $this->getSubscriptionItemId($subscriptionItem);
 
-            if (!$subscriptionItemId) {
+            if (! $subscriptionItemId) {
                 return; // Could not get subscription item ID, skip silently
             }
 
@@ -172,17 +173,16 @@ class UpdateLemonSqueezySubscriptions extends Command
                         'type' => 'subscription-items',
                         'id' => $subscriptionItemId,
                         'attributes' => [
-                            'quantity' => $displayCount
-                        ]
-                    ]
+                            'quantity' => $displayCount,
+                        ],
+                    ],
                 ]);
 
             if ($response->successful()) {
                 Log::info('Quantity-based billing updated successfully', [
                     'user_id' => $user->id,
-                    'user_email' => $user->email,
                     'subscription_item_id' => $subscriptionItemId,
-                    'display_count' => $displayCount
+                    'display_count' => $displayCount,
                 ]);
             }
 
@@ -190,7 +190,7 @@ class UpdateLemonSqueezySubscriptions extends Command
             // Log but don't throw - let the usage-based billing method try
             Log::debug('Quantity-based billing update failed', [
                 'user_id' => $user->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
         }
     }
@@ -207,18 +207,18 @@ class UpdateLemonSqueezySubscriptions extends Command
 
         // Get the user's active subscription
         $subscription = $user->subscriptions()
-            ->where(function($query) {
+            ->where(function ($query) {
                 $query->where('ends_at', null)
-                      ->orWhere('ends_at', '>', now());
+                    ->orWhere('ends_at', '>', now());
             })
             ->first();
 
-        if (!$subscription) {
+        if (! $subscription) {
             return; // No subscription found, skip silently
         }
 
         $apiKey = config('lemon-squeezy.api_key');
-        if (!$apiKey) {
+        if (! $apiKey) {
             return; // No API key, skip silently
         }
 
@@ -228,14 +228,14 @@ class UpdateLemonSqueezySubscriptions extends Command
                 ->withHeaders([
                     'Accept' => 'application/vnd.api+json',
                 ])
-                ->get('https://api.lemonsqueezy.com/v1/subscriptions/' . $subscription->lemon_squeezy_id);
+                ->get('https://api.lemonsqueezy.com/v1/subscriptions/'.$subscription->lemon_squeezy_id);
 
-            if (!$subscriptionResponse->successful()) {
+            if (! $subscriptionResponse->successful()) {
                 return; // Failed to fetch subscription, skip silently
             }
 
             $subscriptionData = $subscriptionResponse->json();
-            
+
             // Get subscription items from the response (handle different response structures)
             $subscriptionItems = $this->getSubscriptionItems($subscriptionData, $apiKey, $subscription->lemon_squeezy_id);
 
@@ -247,7 +247,7 @@ class UpdateLemonSqueezySubscriptions extends Command
             $subscriptionItem = $subscriptionItems[0];
             $subscriptionItemId = $this->getSubscriptionItemId($subscriptionItem);
 
-            if (!$subscriptionItemId) {
+            if (! $subscriptionItemId) {
                 return; // Could not get subscription item ID, skip silently
             }
 
@@ -268,19 +268,18 @@ class UpdateLemonSqueezySubscriptions extends Command
                             'subscription-item' => [
                                 'data' => [
                                     'type' => 'subscription-items',
-                                    'id' => $subscriptionItemId
-                                ]
-                            ]
-                        ]
-                    ]
+                                    'id' => $subscriptionItemId,
+                                ],
+                            ],
+                        ],
+                    ],
                 ]);
 
             if ($response->successful()) {
                 Log::info('Usage-based billing updated successfully', [
                     'user_id' => $user->id,
-                    'user_email' => $user->email,
                     'subscription_item_id' => $subscriptionItemId,
-                    'display_count' => $displayCount
+                    'display_count' => $displayCount,
                 ]);
             }
 
@@ -288,7 +287,7 @@ class UpdateLemonSqueezySubscriptions extends Command
             // Log but don't throw - let the quantity-based billing method try
             Log::debug('Usage-based billing update failed', [
                 'user_id' => $user->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
         }
     }
@@ -299,7 +298,7 @@ class UpdateLemonSqueezySubscriptions extends Command
     private function getSubscriptionItems(array $subscriptionData, string $apiKey, string $subscriptionId): array
     {
         $subscriptionItems = [];
-        
+
         // Check if subscription_items is in the attributes
         if (isset($subscriptionData['data']['attributes']['subscription_items'])) {
             $subscriptionItems = $subscriptionData['data']['attributes']['subscription_items'];
@@ -311,21 +310,20 @@ class UpdateLemonSqueezySubscriptions extends Command
         // Check if subscription_items is in the included data
         elseif (isset($subscriptionData['included'])) {
             $subscriptionItems = collect($subscriptionData['included'])
-                ->filter(fn($item) => $item['type'] === 'subscription-items')
+                ->filter(fn ($item) => $item['type'] === 'subscription-items')
                 ->toArray();
-        }
-        else {
+        } else {
             // Try to fetch subscription items directly
             $subscriptionItemsResponse = Http::withToken($apiKey)
                 ->withHeaders([
                     'Accept' => 'application/vnd.api+json',
                 ])
-                ->get('https://api.lemonsqueezy.com/v1/subscription-items?filter[subscription_id]=' . $subscriptionId);
+                ->get('https://api.lemonsqueezy.com/v1/subscription-items?filter[subscription_id]='.$subscriptionId);
 
             if ($subscriptionItemsResponse->successful()) {
                 $subscriptionItemsData = $subscriptionItemsResponse->json();
-                
-                if (isset($subscriptionItemsData['data']) && !empty($subscriptionItemsData['data'])) {
+
+                if (isset($subscriptionItemsData['data']) && ! empty($subscriptionItemsData['data'])) {
                     $subscriptionItems = $subscriptionItemsData['data'];
                 }
             }

@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Auth;
 
-use App\Events\UserRegistered;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\RegisterRequest;
 use App\Models\User;
@@ -10,8 +9,6 @@ use App\Notifications\MagicLoginNotification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use MagicLink\Actions\LoginAction;
@@ -47,7 +44,7 @@ class RegisterController extends Controller
         }
 
         $user = User::where('email', $data['email'])->first();
-        if (!$user) {
+        if (! $user) {
             $user = User::factory()->unverified()->create([
                 'name' => $data['name'],
                 'email' => $data['email'],
@@ -71,19 +68,32 @@ class RegisterController extends Controller
 
     public function resend(Request $request): RedirectResponse
     {
-        $request->validate(['email' => 'required|email']);
+        $email = strtolower(trim(session('registered_email', '')));
 
-        $key = 'resend:' . $request->email;
+        if (! $email) {
+            return redirect()->route('register');
+        }
+
+        if (config('settings.disable_email_login')) {
+            return redirect()->route('register');
+        }
+
+        if (! User::isAllowedLogin($email)) {
+            return redirect()->route('register');
+        }
+
+        $key = 'resend:'.$email;
         if (RateLimiter::tooManyAttempts($key, 3)) {
             $seconds = RateLimiter::availableIn($key);
+
             return redirect()->route('register')
                 ->with('registered', true)
-                ->with('registered_email', $request->email)
+                ->with('registered_email', $email)
                 ->with('error', "Too many resend attempts. Please wait {$seconds} seconds before trying again.");
         }
         RateLimiter::hit($key, 600); // 3 attempts per 10 minutes per email
 
-        $user = User::where('email', $request->email)->first();
+        $user = User::where('email', $email)->first();
         if ($user) {
             $loginUrl = MagicLink::create(new LoginAction($user), 60 * 24)->url;
             $user->notify(new MagicLoginNotification($loginUrl));
@@ -91,7 +101,7 @@ class RegisterController extends Controller
 
         return redirect()->route('register')
             ->with('registered', true)
-            ->with('registered_email', $request->email)
+            ->with('registered_email', $email)
             ->with('success', 'Email resent! Check your inbox (and spam folder).');
     }
 }

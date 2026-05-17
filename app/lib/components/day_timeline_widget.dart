@@ -61,6 +61,7 @@ class _DayTimelineWidgetState extends State<DayTimelineWidget> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToCurrentTime());
     // Keep current time centred once per minute (unless the user has scrolled).
     _autoScrollTimer = Timer.periodic(const Duration(minutes: 1), (_) {
+      if (mounted) setState(() {});
       if (!_userHasScrolled) _scrollToCurrentTime();
     });
   }
@@ -251,6 +252,7 @@ class _DayTimelineWidgetState extends State<DayTimelineWidget> {
         final eventAreaWidth = constraints.maxWidth - labelWidth - 6;
 
         return Stack(
+          fit: StackFit.expand,
           children: [
             NotificationListener<ScrollNotification>(
               onNotification: (notification) {

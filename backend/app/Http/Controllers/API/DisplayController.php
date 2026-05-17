@@ -24,20 +24,19 @@ class DisplayController extends ApiController
         protected EventService $eventService,
         protected DisplayService $displayService,
         protected ImageService $imageService,
-    ) {
-    }
+    ) {}
 
     public function index(): JsonResponse
     {
         /** @var Device $device */
         $device = auth()->user();
 
-        if (!$device->user_id) {
+        if (! $device->user_id) {
             return $this->success(data: []);
         }
 
         $user = User::find($device->user_id);
-        if (!$user) {
+        if (! $user) {
             return $this->success(data: []);
         }
 
@@ -74,6 +73,10 @@ class DisplayController extends ApiController
             return $this->error(message: $permission->message, code: $permission->code);
         }
 
+        if ($request->query('date')) {
+            $request->validate(['date' => 'date_format:Y-m-d']);
+        }
+
         try {
             $date = $request->query('date')
                 ? Carbon::parse($request->query('date'))->startOfDay()
@@ -84,6 +87,7 @@ class DisplayController extends ApiController
             return $this->success(data: EventResource::collection($events));
         } catch (\Exception $e) {
             report($e);
+
             return $this->error(message: 'Something went wrong while fetching events.', code: 500);
         }
     }
@@ -102,6 +106,7 @@ class DisplayController extends ApiController
                 'reason' => $permission->message,
                 'ip' => request()->ip(),
             ]);
+
             return $this->error(message: $permission->message, code: $permission->code);
         }
 
@@ -135,6 +140,7 @@ class DisplayController extends ApiController
                 'ip' => request()->ip(),
             ]);
             report($e);
+
             return $this->error(message: 'Something went wrong while fetching display data. Please try again later.', code: 500);
         }
     }
@@ -154,12 +160,12 @@ class DisplayController extends ApiController
 
         try {
             $data = $request->validated();
-            
+
             // Parse start and end times if provided, otherwise use duration
             $start = isset($data['start']) ? Carbon::parse($data['start'])->utc() : null;
             $end = isset($data['end']) ? Carbon::parse($data['end'])->utc() : null;
             $duration = isset($data['duration']) ? (int) $data['duration'] : null;
-            
+
             logger()->info('Room booking requested', [
                 'user_id' => $device->user_id,
                 'device_id' => $device->id,
@@ -170,7 +176,7 @@ class DisplayController extends ApiController
                 'summary' => Arr::get($data, 'summary', __('Reserved')),
                 'ip' => request()->ip(),
             ]);
-            
+
             $event = $this->eventService->bookRoom(
                 displayId: $displayId,
                 userId: $device->user_id,
@@ -181,7 +187,7 @@ class DisplayController extends ApiController
                 description: Arr::get($data, 'description'),
                 attendees: Arr::get($data, 'attendees', []),
             );
-            
+
             logger()->info('Room booked successfully', [
                 'user_id' => $device->user_id,
                 'device_id' => $device->id,
@@ -189,7 +195,7 @@ class DisplayController extends ApiController
                 'event_id' => $event->id ?? null,
                 'ip' => request()->ip(),
             ]);
-            
+
             return $this->success(data: new EventResource($event), code: 201);
         } catch (\Exception $e) {
             logger()->error('Room booking failed', [
@@ -202,6 +208,7 @@ class DisplayController extends ApiController
             ]);
             report($e);
             $status = $e->getCode() === 403 ? 403 : 400;
+
             return $this->error(message: 'Room could not be booked. There may be conflicting events during this time period. Please try a different time or duration.', code: $status);
         }
     }
@@ -229,7 +236,7 @@ class DisplayController extends ApiController
             ]);
 
             $this->eventService->checkInToEvent($eventId, $displayId);
-            
+
             logger()->info('Event check-in successful', [
                 'user_id' => $device->user_id,
                 'device_id' => $device->id,
@@ -250,6 +257,7 @@ class DisplayController extends ApiController
                 'ip' => request()->ip(),
             ]);
             $status = $e->getCode() === 403 ? 403 : 400;
+
             return $this->error(message: 'Could not check in to event. Please try again later.', code: $status);
         }
     }
@@ -277,7 +285,7 @@ class DisplayController extends ApiController
             ]);
 
             $this->eventService->cancelEvent($eventId, $displayId);
-            
+
             logger()->info('Event cancelled successfully', [
                 'user_id' => $device->user_id,
                 'device_id' => $device->id,
@@ -298,6 +306,7 @@ class DisplayController extends ApiController
                 'ip' => request()->ip(),
             ]);
             $status = $e->getCode() === 403 ? 403 : 400;
+
             return $this->error(message: 'Event could not be cancelled. Please try again later.', code: $status);
         }
     }
@@ -352,6 +361,7 @@ class DisplayController extends ApiController
                 'ip' => request()->ip(),
             ]);
             $status = $e->getCode() === 403 ? 403 : 400;
+
             return $this->error(message: 'Event could not be extended. Please try again later.', code: $status);
         }
     }
@@ -366,12 +376,13 @@ class DisplayController extends ApiController
 
         // Validate that the device has access to this display
         $permission = $this->displayService->validateDisplayPermission($displayId, $device->id);
-        if (!$permission->permitted) {
+        if (! $permission->permitted) {
             abort(403, 'Access denied');
         }
 
         try {
             $display = $this->displayService->getDisplay($displayId);
+
             return $this->imageService->serveImage($display, $type);
         } catch (\Exception $e) {
             abort(404, 'Image not found');

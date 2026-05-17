@@ -134,7 +134,7 @@ class _DashboardPageState extends State<DashboardPage> {
         final timelineMode = controller.timelineWidgetMode; // 'none' | 'side_panel' | 'inline'
         final timelineEnabled = timelineMode != 'none';
         final timelineWidth = isPhone ? 220.0 : 300.0;
-        final inlineTimelineWidth = isPhone ? 260.0 : 360.0;
+        final inlineTimelineWidth = isPhone ? 220.0 : 300.0;
         final inlineTimelineMaxHeight = isPhone ? 330.0 : 484.0;
         final gap = isPhone ? 10.0 : 16.0;
 
