@@ -61,6 +61,7 @@ class EventModel {
       'timezone': timezone,
       'isCheckedIn': isCheckedIn,
       'checkInRequired': checkInRequired,
+      'organizerName': organizerName,
     };
   }
 }

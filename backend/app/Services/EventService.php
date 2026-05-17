@@ -2,17 +2,17 @@
 
 namespace App\Services;
 
-use App\Enums\EventStatus;
 use App\Enums\EventSource;
+use App\Enums\EventStatus;
 use App\Enums\PermissionType;
 use App\Helpers\DisplaySettings;
+use App\Models\Calendar;
 use App\Models\Display;
 use App\Models\Event;
-use App\Models\Calendar;
 use Exception;
 use Google\Service\Calendar\Event as GoogleEvent;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -23,11 +23,11 @@ class EventService
         protected OutlookService $outlookService,
         protected GoogleService $googleService,
         protected CalDAVService $caldavService,
-    ) {
-    }
+    ) {}
 
     /**
      * Fetch events for a display, without storing external events in the database.
+     *
      * @throws Exception
      */
     public function getEventsForDisplay($display, ?Carbon $forDate = null): Collection
@@ -43,6 +43,7 @@ class EventService
         if ($forDate !== null) {
             $start = $forDate->copy()->startOfDay();
             $end = $forDate->copy()->endOfDay();
+
             return $this->getAllEvents($display, $start, $end);
         }
 
@@ -58,7 +59,7 @@ class EventService
             $events = cache()->remember(
                 key: $display->getEventsCacheKey(),
                 ttl: now()->addMinutes(15),
-                callback: fn() => $this->getAllEvents($display)
+                callback: fn () => $this->getAllEvents($display)
             );
         } else {
             $events = $this->getAllEvents($display);
@@ -83,7 +84,7 @@ class EventService
 
         // Validate duration if provided
         if ($duration !== null) {
-            if (!is_int($duration) || $duration <= 0) {
+            if (! is_int($duration) || $duration <= 0) {
                 throw new Exception('Duration must be a positive integer greater than 0');
             }
             $start = now();
@@ -94,7 +95,7 @@ class EventService
                 throw new Exception('Either duration or both start and end times must be provided');
             }
             // Validate that start is before end
-            if (!$start->lt($end)) {
+            if (! $start->lt($end)) {
                 throw new Exception('Start time must be before end time');
             }
         }
@@ -175,7 +176,7 @@ class EventService
                     }
 
                     // Validate that external event ID was returned
-                    if (!is_string($externalEventId) || $externalEventId === '') {
+                    if (! is_string($externalEventId) || $externalEventId === '') {
                         throw new Exception('External event was created but no external ID was returned. Cannot track or cancel this event.');
                     }
 
@@ -220,11 +221,11 @@ class EventService
 
         // Fall back to creating a custom event (no write permissions)
         $fullDescription = $description;
-        if (!empty($attendees)) {
+        if (! empty($attendees)) {
             $attendeeList = implode(', ', $attendees);
             $fullDescription = $fullDescription
-                ? $fullDescription . "\n\nAttendees: " . $attendeeList
-                : "Attendees: " . $attendeeList;
+                ? $fullDescription."\n\nAttendees: ".$attendeeList
+                : 'Attendees: '.$attendeeList;
         }
 
         return Event::create([
@@ -262,10 +263,11 @@ class EventService
             ->find($eventId);
 
         if ($event) {
-            if ($cancelPermission === 'tablet_only' && !$event->isTabletBooking()) {
+            if ($cancelPermission === 'tablet_only' && ! $event->isTabletBooking()) {
                 throw new Exception('Only events booked via this tablet can be cancelled');
             }
             $this->cancelDbEvent($event, $display);
+
             return;
         }
 
@@ -294,6 +296,7 @@ class EventService
                 throw new Exception('Already checked in');
             }
             $event->checkIn();
+
             return;
         }
 
@@ -321,7 +324,7 @@ class EventService
             ->with(['calendar.outlookAccount', 'calendar.googleAccount', 'calendar.caldavAccount', 'calendar.room', 'settings'])
             ->findOrFail($displayId);
 
-        if (!DisplaySettings::isExtendEnabled($display)) {
+        if (! DisplaySettings::isExtendEnabled($display)) {
             throw new Exception('Extending events is not allowed on this display', 403);
         }
 
@@ -331,6 +334,7 @@ class EventService
 
         if ($event) {
             $this->extendDbEvent($event, $display, $newEnd);
+
             return;
         }
 
@@ -375,7 +379,7 @@ class EventService
     {
         $calendar = $display->calendar;
 
-        if (!$calendar) {
+        if (! $calendar) {
             throw new Exception('No calendar linked to this display', 400);
         }
 
@@ -387,7 +391,7 @@ class EventService
             $hasWritePermissions = $calendar->googleAccount->permission_type === PermissionType::WRITE;
         }
 
-        if (!$hasWritePermissions) {
+        if (! $hasWritePermissions) {
             throw new Exception('Cannot extend this event — write permission is required', 403);
         }
 
@@ -413,16 +417,13 @@ class EventService
         return $events->contains(function ($event) use ($start, $end) {
             $eStart = $event->start;
             $eEnd = $event->end;
+
             return ($eStart >= $start && $eStart < $end)
                 || ($eEnd > $start && $eEnd <= $end)
                 || ($eStart < $start && $eEnd > $end);
         });
     }
 
-    /**
-     * @param array $outlookEvent
-     * @return array
-     */
     public function sanitizeOutlookEvent(array $outlookEvent): array
     {
         $summary = $this->cleanSubject($outlookEvent['subject']);
@@ -449,8 +450,8 @@ class EventService
             $endDateStr = explode('T', $outlookEvent['end']['dateTime'])[0];
         } else {
             // Strip trailing Z if present, then re-add it to normalise the format
-            $startDateStr = rtrim($outlookEvent['start']['dateTime'], 'Z') . 'Z';
-            $endDateStr = rtrim($outlookEvent['end']['dateTime'], 'Z') . 'Z';
+            $startDateStr = rtrim($outlookEvent['start']['dateTime'], 'Z').'Z';
+            $endDateStr = rtrim($outlookEvent['end']['dateTime'], 'Z').'Z';
         }
 
         // Extract Teams join URL: prefer onlineMeeting.joinUrl (current), fall back to
@@ -469,14 +470,10 @@ class EventService
             'start' => $startDateStr,
             'end' => $endDateStr,
             'timezone' => 'UTC',
-            'isAllDay' => $isAllDay
+            'isAllDay' => $isAllDay,
         ];
     }
 
-    /**
-     * @param GoogleEvent $googleEvent
-     * @return array
-     */
     public function sanitizeGoogleEvent(GoogleEvent $googleEvent): array
     {
         $start = $googleEvent->getStart();
@@ -500,14 +497,10 @@ class EventService
             'start' => $isAllDay ? $start->getDate() : $start->getDateTime(),
             'end' => $isAllDay ? $end->getDate() : $end->getDateTime(),
             'timezone' => $start->getTimeZone() ?? $end->getTimeZone() ?? 'UTC',
-            'isAllDay' => $isAllDay
+            'isAllDay' => $isAllDay,
         ];
     }
 
-    /**
-     * @param array $caldavEvent
-     * @return array
-     */
     public function sanitizeCalDAVEvent(array $caldavEvent): array
     {
         $description = $this->cleanBody($caldavEvent['description']);
@@ -524,7 +517,7 @@ class EventService
             'start' => $caldavEvent['start'],
             'end' => $caldavEvent['end'],
             'timezone' => $caldavEvent['timezone'],
-            'isAllDay' => $caldavEvent['isAllDay']
+            'isAllDay' => $caldavEvent['isAllDay'],
         ];
     }
 
@@ -532,6 +525,7 @@ class EventService
      * Fetch all events for a display without writing external events to the database.
      * External events from Google/Outlook/CalDAV are returned as transient (unsaved) models.
      * Only custom events and tablet bookings are persisted in the database.
+     *
      * @throws Exception
      */
     private function getAllEvents(Display $display, ?Carbon $start = null, ?Carbon $end = null): Collection
@@ -559,26 +553,26 @@ class EventService
         if ($calendar?->google_account_id) {
             $rawExternal = $rawExternal->concat(
                 $this->fetchGoogleEvents($calendar, $display, $start, $end)
-                    ->map(fn($e) => $e + ['source' => EventSource::GOOGLE])
+                    ->map(fn ($e) => $e + ['source' => EventSource::GOOGLE])
             );
         }
         if ($calendar?->outlook_account_id) {
             $rawExternal = $rawExternal->concat(
                 $this->fetchOutlookEvents($calendar, $display, $start, $end)
-                    ->map(fn($e) => $e + ['source' => EventSource::OUTLOOK])
+                    ->map(fn ($e) => $e + ['source' => EventSource::OUTLOOK])
             );
         }
         if ($calendar?->caldav_account_id) {
             $rawExternal = $rawExternal->concat(
                 $this->fetchCalDAVEvents($calendar, $display, $start, $end)
-                    ->map(fn($e) => $e + ['source' => EventSource::CALDAV])
+                    ->map(fn ($e) => $e + ['source' => EventSource::CALDAV])
             );
         }
 
         logger()->debug('getAllEvents: raw external events fetched', [
             'display_id' => $display->id,
             'raw_count' => $rawExternal->count(),
-            'all_day_filtered' => $rawExternal->filter(fn($e) => $e['isAllDay'])->count(),
+            'all_day_filtered' => $rawExternal->filter(fn ($e) => $e['isAllDay'])->count(),
         ]);
 
         // Load persisted DB events: custom events and tablet bookings only
@@ -586,10 +580,10 @@ class EventService
             ->where('display_id', $display->id)
             ->where(function ($q) {
                 $q->where('source', EventSource::CUSTOM)
-                  ->orWhereNotNull('calendar_id');
+                    ->orWhereNotNull('calendar_id');
             })
-            ->where('start', '>=', $start)
             ->where('start', '<', $end)
+            ->where('end', '>', $start)
             ->where('status', '!=', EventStatus::CANCELLED)
             ->orderBy('start')
             ->get();
@@ -602,21 +596,22 @@ class EventService
 
         // Build transient Event models from external API data (not saved to DB)
         $externalModels = $rawExternal
-            ->filter(fn($e) => !$e['isAllDay'])
-            ->filter(fn($e) => !isset($tabletExternalIds[$e['id']]))
-            ->filter(fn($e) => !$this->isEventReleased($display->id, $e['id']))
+            ->filter(fn ($e) => ! $e['isAllDay'])
+            ->filter(fn ($e) => ! isset($tabletExternalIds[$e['id']]))
+            ->filter(fn ($e) => ! $this->isEventReleased($display->id, $e['id']))
             ->map(function ($ext) use ($display, $checkInEnabled, $gracePeriod) {
                 $eventStart = Carbon::parse($ext['start'])->utc();
                 $eventEnd = Carbon::parse($ext['end'])->utc();
                 $checkedInAt = $this->getCheckInState($display->id, $ext['id']);
 
                 // Mark as released if check-in grace period expired without check-in
-                if ($checkInEnabled && !$checkedInAt && $eventStart->lt(now()->subMinutes($gracePeriod))) {
+                if ($checkInEnabled && ! $checkedInAt && $eventStart->lt(now()->subMinutes($gracePeriod))) {
                     $this->markEventReleased($display->id, $ext['id'], $eventEnd);
+
                     return null;
                 }
 
-                $event = new Event();
+                $event = new Event;
                 $event->id = $ext['id']; // Use external calendar ID as the event identifier
                 $event->display_id = $display->id;
                 $event->user_id = $display->user_id;
@@ -675,6 +670,7 @@ class EventService
                     }
 
                     $event->update(['status' => EventStatus::CANCELLED]);
+
                     return;
                 } catch (\Exception $e) {
                     logger()->warning('Failed to delete event via API, marking as cancelled', [
@@ -688,6 +684,7 @@ class EventService
         if ($event->isCustomEvent()) {
             $event->delete();
             Cache::forget($display->getEventsCacheKey());
+
             return;
         }
 
@@ -724,6 +721,7 @@ class EventService
                         $this->caldavService->deleteEvent($calendar->caldavAccount, $calendar->calendar_id, $externalId);
                     }
                     Cache::forget($display->getEventsCacheKey());
+
                     return;
                 } catch (\Exception $e) {
                     logger()->warning('Failed to delete external event via API', [
@@ -741,9 +739,6 @@ class EventService
     }
 
     /**
-     * @param Calendar $calendar
-     * @param Display $display
-     * @return Collection
      * @throws Exception
      */
     private function fetchOutlookEvents(Calendar $calendar, Display $display, ?Carbon $start = null, ?Carbon $end = null): Collection
@@ -792,13 +787,10 @@ class EventService
             'first_event_summary' => count($events) > 0 ? ($events[0]['subject'] ?? 'no subject') : null,
         ]);
 
-        return collect($events)->map(fn($e) => $this->sanitizeOutlookEvent($e));
+        return collect($events)->map(fn ($e) => $this->sanitizeOutlookEvent($e));
     }
 
     /**
-     * @param Calendar $calendar
-     * @param Display $display
-     * @return Collection
      * @throws \Exception
      */
     private function fetchGoogleEvents(Calendar $calendar, Display $display, ?Carbon $start = null, ?Carbon $end = null): Collection
@@ -816,6 +808,7 @@ class EventService
                 'display_id' => $display->id,
                 'error' => $e->getMessage(),
             ]);
+
             return collect();
         }
 
@@ -846,13 +839,10 @@ class EventService
 
                 return true;
             })
-            ->map(fn($e) => $this->sanitizeGoogleEvent($e));
+            ->map(fn ($e) => $this->sanitizeGoogleEvent($e));
     }
 
     /**
-     * @param Calendar $calendar
-     * @param Display $display
-     * @return Collection
      * @throws Exception
      */
     private function fetchCalDAVEvents(Calendar $calendar, Display $display, ?Carbon $start = null, ?Carbon $end = null): Collection
@@ -864,12 +854,12 @@ class EventService
             endDateTime: $end ?? $display->getEndTime(),
         );
 
-        return collect($events)->map(fn($e) => $this->sanitizeCalDAVEvent($e));
+        return collect($events)->map(fn ($e) => $this->sanitizeCalDAVEvent($e));
     }
 
     private function extractMeetingUrl(?string $text): ?string
     {
-        if (!$text) {
+        if (! $text) {
             return null;
         }
 
@@ -888,7 +878,7 @@ class EventService
         ];
 
         foreach ($patterns as $pattern) {
-            if (preg_match('#' . $pattern . '#i', $text, $matches)) {
+            if (preg_match('#'.$pattern.'#i', $text, $matches)) {
                 return rtrim($matches[0], '.,;)');
             }
         }
@@ -898,14 +888,16 @@ class EventService
 
     private function cleanSubject(?string $subject): string
     {
-        $subject ??= "";
+        $subject ??= '';
+
         return trim($subject);
     }
 
     private function cleanBody(?string $body): string
     {
-        $body ??= "";
+        $body ??= '';
         $body = str_replace("\r", "\n", $body);
+
         return str_replace("\n", ' ', $body);
     }
 
@@ -922,7 +914,7 @@ class EventService
         $maxLength = 10 * 1024 * 1024; // 10MB in bytes
 
         if (strlen($description) > $maxLength) {
-            return substr($description, 0, $maxLength - 3) . '...';
+            return substr($description, 0, $maxLength - 3).'...';
         }
 
         return $description;
@@ -934,6 +926,7 @@ class EventService
     private function getCheckInState(string $displayId, string $externalId): ?Carbon
     {
         $value = Cache::get("checkin:{$displayId}:{$externalId}");
+
         return $value ? Carbon::parse($value) : null;
     }
 
@@ -969,7 +962,7 @@ class EventService
      */
     private function waitForEventInApi(Calendar $calendar, string $externalEventId, Carbon $start, Carbon $end, bool $shouldExist): void
     {
-        if (!$calendar->google_account_id || !$calendar->googleAccount) {
+        if (! $calendar->google_account_id || ! $calendar->googleAccount) {
             return; // Only wait for Google Calendar API
         }
 
@@ -1004,11 +997,12 @@ class EventService
                         'actual_exists' => $eventExists,
                         'attempts' => $maxAttempts,
                     ]);
+
                     return;
                 }
 
                 $delay = $baseDelay * pow(2, $attempt - 1);
-                usleep((int)($delay * 1000000));
+                usleep((int) ($delay * 1000000));
 
             } catch (\Exception $e) {
                 logger()->warning('Error checking event in Google API during wait', [
@@ -1022,7 +1016,7 @@ class EventService
                 }
 
                 $delay = $baseDelay * pow(2, $attempt - 1);
-                usleep((int)($delay * 1000000));
+                usleep((int) ($delay * 1000000));
             }
         }
     }
@@ -1045,7 +1039,7 @@ class EventService
             ->where('display_id', $display->id)
             ->where(function ($q) {
                 $q->where('source', EventSource::CUSTOM)
-                  ->orWhereNotNull('calendar_id');
+                    ->orWhereNotNull('calendar_id');
             })
             ->whereNull('checked_in_at')
             ->where('start', '<', now()->subMinutes($gracePeriod))

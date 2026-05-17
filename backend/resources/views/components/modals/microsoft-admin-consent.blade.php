@@ -4,10 +4,14 @@
         show: {{ session('needs_admin_consent') ? 'true' : 'false' }},
         copied: false,
         consentUrl: @js($consentUrl),
-        copy() {
-            navigator.clipboard.writeText(this.consentUrl);
-            this.copied = true;
-            setTimeout(() => this.copied = false, 2000);
+        async copy() {
+            try {
+                await navigator.clipboard.writeText(this.consentUrl);
+                this.copied = true;
+                setTimeout(() => this.copied = false, 2000);
+            } catch (e) {
+                console.error('Failed to copy to clipboard', e);
+            }
         }
     }"
     x-show="show"

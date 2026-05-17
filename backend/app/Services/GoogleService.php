@@ -3,23 +3,23 @@
 namespace App\Services;
 
 use App\Enums\AccountStatus;
-use App\Models\GoogleAccount;
+use App\Enums\GoogleBookingMethod;
+use App\Enums\PermissionType;
+use App\Models\Calendar;
 use App\Models\Display;
 use App\Models\EventSubscription;
-use App\Models\Calendar;
+use App\Models\GoogleAccount;
 use Exception;
 use Google\Client;
-use Google\Service\Calendar\Channel;
-use Google\Service\Oauth2;
 use Google\Service\Calendar as GoogleCalendar;
-use Google\Service\Directory;
+use Google\Service\Calendar\Channel;
 use Google\Service\Calendar\Event as GoogleEvent;
+use Google\Service\Directory;
+use Google\Service\Oauth2;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Storage;
-use App\Enums\PermissionType;
-use App\Enums\GoogleBookingMethod;
 
 class GoogleService
 {
@@ -27,7 +27,7 @@ class GoogleService
 
     public function __construct()
     {
-        $this->client = new Client();
+        $this->client = new Client;
         $this->client->setClientId(config('services.google.client_id'));
         $this->client->setClientSecret(config('services.google.client_secret'));
         $this->client->setRedirectUri(config('services.google.calendar_redirect'));
@@ -38,19 +38,14 @@ class GoogleService
     /**
      * Handle Google OAuth callback and store tokens in the database.
      *
-     * @param string $authCode
-     * @param PermissionType $permissionType
-     * @param GoogleBookingMethod $bookingMethod
-     * @return GoogleAccount
      * @throws Exception
      */
     public function authenticateGoogleAccount(string $authCode, PermissionType $permissionType = PermissionType::READ, ?GoogleBookingMethod $bookingMethod = null): GoogleAccount
     {
         $accessToken = $this->client->fetchAccessTokenWithAuthCode($authCode);
         if (Arr::exists($accessToken, 'error')) {
-            throw new Exception('Error authenticating with Google: ' . Arr::get($accessToken, 'error'));
+            throw new Exception('Error authenticating with Google: '.Arr::get($accessToken, 'error'));
         }
-
 
         $this->client->setAccessToken($accessToken['access_token']);
 
@@ -86,7 +81,6 @@ class GoogleService
         );
     }
 
-
     /**
      * Determine if a Google account is personal or business
      */
@@ -103,21 +97,19 @@ class GoogleService
                 str_ends_with(strtolower($googleUserInfo->email), '@googlemail.com');
 
             // If it's not Gmail and has a hosted domain, it's a business account
-            return !$isGmail && isset($googleUserInfo->hd);
+            return ! $isGmail && isset($googleUserInfo->hd);
         } catch (\Exception $e) {
             logger()->error('Error checking Google account type', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
+
             return false;
         }
     }
 
     /**
      * Generate Google OAuth URL for authentication.
-     *
-     * @param PermissionType $permissionType
-     * @return string
      */
     public function getAuthUrl(PermissionType $permissionType = PermissionType::READ): string
     {
@@ -146,7 +138,7 @@ class GoogleService
             throw new Exception('Google account needs re-authentication.');
         }
 
-        if (!$account->token) {
+        if (! $account->token) {
             throw new Exception('Google account has no token.');
         }
 
@@ -173,7 +165,7 @@ class GoogleService
                 $account->update(['status' => AccountStatus::ERROR]);
             }
 
-            throw new Exception('Error authenticating with Google: ' . $error);
+            throw new Exception('Error authenticating with Google: '.$error);
         }
 
         $account->update([
@@ -201,6 +193,7 @@ class GoogleService
         $customerId = 'my_customer'; // Default customer ID for the current domain
 
         $results = $service->resources_calendars->listResourcesCalendars($customerId);
+
         return $results->getItems();
     }
 
@@ -222,7 +215,7 @@ class GoogleService
             'maxResults' => 100,
             'singleEvents' => true,
             'showDeleted' => false,
-            'orderBy' => 'startTime'
+            'orderBy' => 'startTime',
         ]);
 
         return $events->getItems();
@@ -231,12 +224,6 @@ class GoogleService
     /**
      * Create an event in Google Calendar.
      *
-     * @param GoogleAccount $googleAccount
-     * @param Calendar $calendar
-     * @param string $summary
-     * @param Carbon $start
-     * @param Carbon $end
-     * @return GoogleEvent|null
      * @throws Exception
      */
     public function createEvent(
@@ -248,18 +235,18 @@ class GoogleService
         ?string $description = null,
         array $attendees = []
     ): ?GoogleEvent {
-        $event = new GoogleEvent();
+        $event = new GoogleEvent;
         $event->setSummary($summary);
         if ($description !== null && $description !== '') {
             $event->setDescription($description);
         }
 
-        $startDateTime = new \Google\Service\Calendar\EventDateTime();
+        $startDateTime = new \Google\Service\Calendar\EventDateTime;
         $startDateTime->setDateTime($start->toRfc3339String());
         $startDateTime->setTimeZone($start->timezone->getName());
         $event->setStart($startDateTime);
 
-        $endDateTime = new \Google\Service\Calendar\EventDateTime();
+        $endDateTime = new \Google\Service\Calendar\EventDateTime;
         $endDateTime->setDateTime($end->toRfc3339String());
         $endDateTime->setTimeZone($end->timezone->getName());
         $event->setEnd($endDateTime);
@@ -268,8 +255,8 @@ class GoogleService
         $bookingMethod = $googleAccount->booking_method ?? GoogleBookingMethod::USER_ACCOUNT;
 
         // For workspace accounts with room resources and service account booking method, write directly to room calendar
-        if ($calendar->room && $googleAccount->isBusiness() && 
-            $bookingMethod === GoogleBookingMethod::SERVICE_ACCOUNT && 
+        if ($calendar->room && $googleAccount->isBusiness() &&
+            $bookingMethod === GoogleBookingMethod::SERVICE_ACCOUNT &&
             $googleAccount->service_account_file_path) {
             return $this->createRoomEventWithServiceAccount($googleAccount, $calendar, $event);
         }
@@ -283,26 +270,27 @@ class GoogleService
         // Build attendee list: room resource (if applicable) + user-specified attendees
         $eventAttendees = [];
         if ($calendar->room) {
-            $roomAttendee = new \Google\Service\Calendar\EventAttendee();
+            $roomAttendee = new \Google\Service\Calendar\EventAttendee;
             $roomAttendee->setEmail($calendar->calendar_id);
             $eventAttendees[] = $roomAttendee;
         }
         foreach ($attendees as $email) {
-            $attendee = new \Google\Service\Calendar\EventAttendee();
+            $attendee = new \Google\Service\Calendar\EventAttendee;
             $attendee->setEmail($email);
             $eventAttendees[] = $attendee;
         }
-        if (!empty($eventAttendees)) {
+        if (! empty($eventAttendees)) {
             $event->setAttendees($eventAttendees);
         }
 
         try {
             $createdEvent = $calendarService->events->insert($calendarId, $event, [
-                'sendUpdates' => !empty($attendees) ? 'all' : 'none',
+                'sendUpdates' => ! empty($attendees) ? 'all' : 'none',
             ]);
+
             return $createdEvent;
         } catch (\Exception $e) {
-            throw new Exception('Failed to create Google event: ' . $e->getMessage());
+            throw new Exception('Failed to create Google event: '.$e->getMessage());
         }
     }
 
@@ -317,10 +305,10 @@ class GoogleService
     ): void {
         $bookingMethod = $googleAccount->booking_method ?? GoogleBookingMethod::USER_ACCOUNT;
 
-        $patch = new GoogleEvent();
-        $endDateTime = new \Google\Service\Calendar\EventDateTime();
+        $patch = new GoogleEvent;
+        $endDateTime = new \Google\Service\Calendar\EventDateTime;
         $endDateTime->setDateTime($newEnd->toRfc3339String());
-        $endDateTime->setTimeZone('UTC');
+        $endDateTime->setTimeZone($newEnd->timezone->getName());
         $patch->setEnd($endDateTime);
 
         // For workspace accounts with room resources and service account booking method, patch directly on room calendar
@@ -332,8 +320,9 @@ class GoogleService
             try {
                 $calendarService->events->patch($calendar->calendar_id, $eventId, $patch, ['sendUpdates' => 'none']);
             } catch (\Exception $e) {
-                throw new Exception('Failed to update Google event end time: ' . $e->getMessage());
+                throw new Exception('Failed to update Google event end time: '.$e->getMessage());
             }
+
             return;
         }
 
@@ -346,17 +335,13 @@ class GoogleService
         try {
             $calendarService->events->patch($calendarId, $eventId, $patch, ['sendUpdates' => 'none']);
         } catch (\Exception $e) {
-            throw new Exception('Failed to update Google event end time: ' . $e->getMessage());
+            throw new Exception('Failed to update Google event end time: '.$e->getMessage());
         }
     }
 
     /**
      * Delete an event from Google Calendar.
      *
-     * @param GoogleAccount $googleAccount
-     * @param Calendar $calendar
-     * @param string $eventId
-     * @return void
      * @throws Exception
      */
     public function deleteEvent(
@@ -368,10 +353,11 @@ class GoogleService
         $bookingMethod = $googleAccount->booking_method ?? GoogleBookingMethod::USER_ACCOUNT;
 
         // For workspace accounts with room resources and service account booking method, delete directly from room calendar
-        if ($calendar->room && $googleAccount->isBusiness() && 
-            $bookingMethod === GoogleBookingMethod::SERVICE_ACCOUNT && 
+        if ($calendar->room && $googleAccount->isBusiness() &&
+            $bookingMethod === GoogleBookingMethod::SERVICE_ACCOUNT &&
             $googleAccount->service_account_file_path) {
             $this->deleteRoomEventWithServiceAccount($googleAccount, $calendar, $eventId);
+
             return;
         }
 
@@ -384,11 +370,11 @@ class GoogleService
                 $this->deleteRoomEvent($calendarService, $calendar, $eventId);
             } else {
                 $calendarService->events->delete($calendar->calendar_id, $eventId, [
-                    'sendUpdates' => 'none'
+                    'sendUpdates' => 'none',
                 ]);
             }
         } catch (\Exception $e) {
-            throw new Exception('Failed to delete Google event: ' . $e->getMessage());
+            throw new Exception('Failed to delete Google event: '.$e->getMessage());
         }
     }
 
@@ -397,10 +383,6 @@ class GoogleService
      * For room resources, events are created on the user's primary calendar,
      * but the eventId we receive is from the room's calendar (from fetchEvents).
      *
-     * @param GoogleCalendar $calendarService
-     * @param Calendar $calendar
-     * @param string $eventId
-     * @return void
      * @throws Exception
      */
     private function deleteRoomEvent(
@@ -411,13 +393,13 @@ class GoogleService
         // Try deleting from primary calendar first (where we created it)
         try {
             $calendarService->events->delete('primary', $eventId, [
-                'sendUpdates' => 'none'
+                'sendUpdates' => 'none',
             ]);
         } catch (\Exception $e) {
             // If that fails, try deleting from the room calendar
             // The event might have a different ID on the room calendar
             $calendarService->events->delete($calendar->calendar_id, $eventId, [
-                'sendUpdates' => 'none'
+                'sendUpdates' => 'none',
             ]);
         }
     }
@@ -425,10 +407,6 @@ class GoogleService
     /**
      * Create a webhook subscription for Google Calendar events.
      *
-     * @param GoogleAccount $googleAccount
-     * @param Display $display
-     * @param string $calendarId
-     * @return EventSubscription|null
      * @throws Exception
      */
     public function createEventSubscription(
@@ -441,7 +419,7 @@ class GoogleService
         $calendarService = new GoogleCalendar($this->client);
 
         try {
-            $channel = new Channel();
+            $channel = new Channel;
             $channel->setId(str()->uuid());
             $channel->setType('web_hook');
             $channel->setAddress(config('services.google.webhook_url'));
@@ -449,12 +427,12 @@ class GoogleService
 
             $response = $calendarService->events->watch($calendarId, $channel);
 
-            if (!$response->getId()) {
+            if (! $response->getId()) {
                 logger()->error('Creating Google subscription failed - no subscription ID returned', [
                     'response' => $response,
                 ]);
                 // This is likely a user error (invalid calendar, permissions, etc.)
-                throw new Exception("Failed to create Google subscription: No subscription ID returned");
+                throw new Exception('Failed to create Google subscription: No subscription ID returned');
             }
 
             // Create the subscription record in the database
@@ -475,14 +453,14 @@ class GoogleService
             if (str_contains($e->getMessage(), 'Failed to create Google subscription')) {
                 throw $e;
             }
-            
+
             // Check if this is a Google API exception with HTTP status code
             $statusCode = $e->getCode();
             $isUserError = $statusCode >= 400 && $statusCode < 500;
-            
+
             // Check exception class name for Google API exceptions
             $exceptionClass = get_class($e);
-            
+
             logger()->error('Error creating Google subscription', [
                 'error' => $e->getMessage(),
                 'calendarId' => $calendarId,
@@ -490,13 +468,13 @@ class GoogleService
                 'is_user_error' => $isUserError,
                 'exception_type' => $exceptionClass,
             ]);
-            
+
             // Throw exception for user errors (4xx) so the command can handle it
             // Return null for server errors (5xx) or connection errors to avoid marking display as error
             if ($isUserError) {
-                throw new Exception("Failed to create Google subscription: HTTP {$statusCode} - " . $e->getMessage());
+                throw new Exception("Failed to create Google subscription: HTTP {$statusCode} - ".$e->getMessage());
             }
-            
+
             // For connection errors, timeouts, etc., don't throw - these are transient
             return null;
         }
@@ -505,10 +483,6 @@ class GoogleService
     /**
      * Delete a webhook subscription for Google Calendar events.
      *
-     * @param GoogleAccount $googleAccount
-     * @param EventSubscription $eventSubscription
-     * @param bool $useApi
-     * @return void
      * @throws Exception
      */
     public function deleteEventSubscription(
@@ -521,7 +495,7 @@ class GoogleService
 
             try {
                 $calendarService = new GoogleCalendar($this->client);
-                $channel = new Channel();
+                $channel = new Channel;
                 $channel->setId($eventSubscription->subscription_id);
                 $channel->setResourceId($eventSubscription->resource);
 
@@ -530,7 +504,7 @@ class GoogleService
                 report($e);
                 logger()->error('Error stopping Google subscription', [
                     'error' => $e->getMessage(),
-                    'subscriptionId' => $eventSubscription->subscription_id
+                    'subscriptionId' => $eventSubscription->subscription_id,
                 ]);
             }
         }
@@ -545,42 +519,40 @@ class GoogleService
     /**
      * Create a Google Calendar client authenticated with service account.
      *
-     * @param GoogleAccount $googleAccount
-     * @return Client
      * @throws Exception
      */
     private function getServiceAccountClient(GoogleAccount $googleAccount): Client
     {
-        if (!$googleAccount->service_account_file_path) {
+        if (! $googleAccount->service_account_file_path) {
             throw new Exception('Service account file path not set for Google account.');
         }
 
-        if (!Storage::exists($googleAccount->service_account_file_path)) {
-            throw new Exception('Service account file not found: ' . $googleAccount->service_account_file_path);
+        if (! Storage::exists($googleAccount->service_account_file_path)) {
+            throw new Exception('Service account file not found: '.$googleAccount->service_account_file_path);
         }
 
         // Read and decrypt the encrypted service account file
         $encryptedContent = Storage::get($googleAccount->service_account_file_path);
         $decryptedContent = Crypt::decryptString($encryptedContent);
-        
+
         // Parse the JSON content
         $serviceAccountData = json_decode($decryptedContent, true);
-        if (!$serviceAccountData) {
+        if (! $serviceAccountData) {
             throw new Exception('Invalid service account JSON file.');
         }
 
-        $client = new Client();
+        $client = new Client;
         // setAuthConfig() can accept either a file path or an array
         // Using array avoids creating temporary files with sensitive data
         $client->setAuthConfig($serviceAccountData);
-        
+
         $scopes = [
             GoogleCalendar::CALENDAR_READONLY,
             GoogleCalendar::CALENDAR_EVENTS,
         ];
-        
+
         $client->setScopes($scopes);
-        
+
         // For domain-wide delegation, impersonate the user who owns the Google account
         // This allows the service account to access resources on behalf of the user
         if ($googleAccount->email) {
@@ -594,10 +566,6 @@ class GoogleService
      * Create an event directly on a room resource calendar using service account.
      * This allows booking rooms without using a user's calendar for workspace accounts.
      *
-     * @param GoogleAccount $googleAccount
-     * @param Calendar $calendar
-     * @param GoogleEvent $event
-     * @return GoogleEvent
      * @throws Exception
      */
     private function createRoomEventWithServiceAccount(
@@ -611,21 +579,18 @@ class GoogleService
         try {
             // With service account and proper permissions, we can write directly to room calendars
             $createdEvent = $calendarService->events->insert($calendar->calendar_id, $event, [
-                'sendUpdates' => 'none'
+                'sendUpdates' => 'none',
             ]);
+
             return $createdEvent;
         } catch (\Exception $e) {
-            throw new Exception('Failed to create Google room event with service account: ' . $e->getMessage());
+            throw new Exception('Failed to create Google room event with service account: '.$e->getMessage());
         }
     }
 
     /**
      * Delete an event directly from a room resource calendar using service account.
      *
-     * @param GoogleAccount $googleAccount
-     * @param Calendar $calendar
-     * @param string $eventId
-     * @return void
      * @throws Exception
      */
     private function deleteRoomEventWithServiceAccount(
@@ -639,10 +604,10 @@ class GoogleService
         try {
             // With service account and proper permissions, we can delete directly from room calendars
             $calendarService->events->delete($calendar->calendar_id, $eventId, [
-                'sendUpdates' => 'none'
+                'sendUpdates' => 'none',
             ]);
         } catch (\Exception $e) {
-            throw new Exception('Failed to delete Google room event with service account: ' . $e->getMessage());
+            throw new Exception('Failed to delete Google room event with service account: '.$e->getMessage());
         }
     }
 }

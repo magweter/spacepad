@@ -24,7 +24,6 @@
 
                         <form action="{{ route('register.resend') }}" method="POST" class="mt-6 w-full">
                             @csrf
-                            <input type="hidden" name="email" value="{{ session('registered_email') }}">
                             <button type="submit" class="flex w-full justify-center rounded-md bg-oxford px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500">
                                 Resend email
                             </button>
