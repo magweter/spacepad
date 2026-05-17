@@ -106,7 +106,7 @@ abstract class SocialAuthController extends AuthController
             empty($socialUser->getEmail())) {
             logger()->error('One or more required properties were empty during OAuth2 authentication', [
                 'provider' => $this->driver,
-                'user' => $socialUser,
+                'user_id' => $socialUser?->getId(),
             ]);
 
             throw_if(empty($socialUser), ValidationException::withMessages(['token' => ['required']]));

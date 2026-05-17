@@ -82,7 +82,7 @@ class LoginController extends GetxController {
 
         var trimmedUrl = url.value.endsWith('/') ? url.value.substring(0, url.value.length - 1) : url.value;
         if (!await _serverService.isServerReachable(trimmedUrl)) {
-          Toast.showError('server_unreachable'.tr);
+          Toast.showError('server_unreachable_self_hosted'.tr);
           return;
         }
 
@@ -95,6 +95,8 @@ class LoginController extends GetxController {
       final deviceId = await getDeviceId() ?? 'Unknown device';
       final deviceName = await getDeviceName() ?? 'Unknown model';
       await _authService.login(code.value, deviceId, deviceName);
+    } on HandshakeException {
+      Toast.showError('ssl_error'.tr);
     } catch (e) {
       Toast.showError('login_failed'.tr);
     } finally {

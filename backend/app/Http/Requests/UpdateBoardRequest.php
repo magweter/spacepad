@@ -42,6 +42,7 @@ class UpdateBoardRequest extends FormRequest
             'language' => 'nullable|string|in:en,nl,fr,de,es,sv',
             'view_mode' => 'nullable|string|in:card,table,grid',
             'show_meeting_title' => 'nullable|boolean',
+            'show_join_button' => 'nullable|boolean',
             'display_ids' => [
                 'nullable',
                 'array',
@@ -88,6 +89,7 @@ class UpdateBoardRequest extends FormRequest
             'show_transitioning' => $this->has('show_transitioning') && filter_var($this->show_transitioning, FILTER_VALIDATE_BOOLEAN),
             'transitioning_minutes' => $this->has('transitioning_minutes') ? (int) $this->transitioning_minutes : ($board?->transitioning_minutes ?? 10),
             'show_meeting_title' => $this->has('show_meeting_title') && filter_var($this->show_meeting_title, FILTER_VALIDATE_BOOLEAN),
+            'show_join_button' => $this->has('show_join_button') && filter_var($this->show_join_button, FILTER_VALIDATE_BOOLEAN),
         ]);
 
         // Ensure display_ids is an array

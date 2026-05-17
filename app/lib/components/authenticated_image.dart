@@ -11,6 +11,7 @@ class AuthenticatedImage extends StatefulWidget {
   final BoxFit fit;
   final Widget? placeholder;
   final Widget? errorWidget;
+  final VoidCallback? onError;
 
   const AuthenticatedImage({
     Key? key,
@@ -20,6 +21,7 @@ class AuthenticatedImage extends StatefulWidget {
     this.fit = BoxFit.cover,
     this.placeholder,
     this.errorWidget,
+    this.onError,
   }) : super(key: key);
 
   @override
@@ -94,6 +96,7 @@ class _AuthenticatedImageState extends State<AuthenticatedImage> {
           _isLoading = false;
           _hasError = true;
         });
+        widget.onError?.call();
       }
     } catch (e) {
       if (mounted) {
@@ -101,6 +104,7 @@ class _AuthenticatedImageState extends State<AuthenticatedImage> {
           _isLoading = false;
           _hasError = true;
         });
+        widget.onError?.call();
       }
     }
   }

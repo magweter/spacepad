@@ -1,25 +1,29 @@
 <?php
 
-use App\Http\Controllers\Auth\GoogleController;
-use App\Http\Controllers\Auth\MicrosoftController;
-use App\Http\Controllers\Auth\LoginController;
-use App\Http\Controllers\Auth\RegisterController;
-use App\Http\Controllers\CalendarController;
-use App\Http\Controllers\RoomController;
-use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\OnboardingController;
-use App\Http\Controllers\GoogleAccountsController;
-use App\Http\Controllers\OutlookAccountsController;
-use App\Http\Controllers\DisplayController;
-use App\Http\Controllers\DisplaySettingsController;
-use App\Http\Controllers\OutlookWebhookController;
-use App\Http\Controllers\CalDAVAccountsController;
-use App\Http\Controllers\LicenseController;
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AdminController;
-use App\Http\Controllers\WorkspaceController;
+use App\Http\Controllers\AdminRoadmapController;
+use App\Http\Controllers\Auth\GoogleController;
+use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Auth\MicrosoftController;
+use App\Http\Controllers\Auth\RegisterController;
+use App\Http\Controllers\BillingController;
 use App\Http\Controllers\BoardController;
-use App\Http\Controllers\UsageController;
+use App\Http\Controllers\CalDAVAccountsController;
+use App\Http\Controllers\CalendarController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DisplayController;
+use App\Http\Controllers\DisplayDiagnosticsController;
+use App\Http\Controllers\DisplaySettingsController;
+use App\Http\Controllers\GoogleAccountsController;
+use App\Http\Controllers\LicenseController;
+use App\Http\Controllers\OnboardingController;
+use App\Http\Controllers\OutlookAccountsController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\RoadmapController;
+use App\Http\Controllers\RoomController;
+use App\Http\Controllers\SupportController;
+use App\Http\Controllers\WorkspaceController;
+use Illuminate\Support\Facades\Route;
 
 Route::get('/login', [LoginController::class, 'create'])
     ->middleware('guest')
@@ -37,6 +41,10 @@ Route::post('/register', [RegisterController::class, 'store'])
     ->middleware('guest')
     ->name('register.store');
 
+Route::post('/register/resend', [RegisterController::class, 'resend'])
+    ->middleware('guest')
+    ->name('register.resend');
+
 Route::post('/logout', [LoginController::class, 'destroy'])
     ->middleware('auth')
     ->name('logout');
@@ -53,6 +61,7 @@ Route::middleware(['auth', 'user.update-last-activity', 'gtm'])->group(function 
     Route::get('/onboarding', [OnboardingController::class, 'index'])->name('onboarding')->middleware('user.onboarding');
     Route::post('/onboarding/usage-type', [OnboardingController::class, 'updateUsageType'])->name('onboarding.usage-type');
     Route::post('/onboarding/terms', [OnboardingController::class, 'acceptTerms'])->name('onboarding.terms');
+    Route::post('/onboarding/skip', [OnboardingController::class, 'skip'])->name('onboarding.skip');
 
     Route::post('/outlook-accounts/auth', [OutlookAccountsController::class, 'auth'])->name('outlook-accounts.auth');
     Route::get('/outlook-accounts/callback', [OutlookAccountsController::class, 'callback']);
@@ -104,21 +113,10 @@ Route::middleware(['auth', 'user.update-last-activity', 'gtm'])->group(function 
 
     Route::post('/workspaces/switch', [WorkspaceController::class, 'switch'])->name('workspaces.switch');
 
-    Route::get('/billing/thanks', function () {
-        \Spatie\GoogleTagManager\GoogleTagManagerFacade::flashPush([
-            'event' => 'purchase',
-        ]);
-        if (config('services.google_conversion.send_to')) {
-            \Spatie\GoogleTagManager\GoogleTagManagerFacade::flashPush([
-                'event' => 'conversion',
-                'send_to' => config('services.google_conversion.send_to'),
-                'value' => config('services.google_conversion.value'),
-                'currency' => config('services.google_conversion.currency'),
-                'transaction_id' => '',
-            ]);
-        }
-        return redirect()->route('dashboard');
-    })->name('billing.thanks');
+    Route::get('/billing/thanks', [BillingController::class, 'thanks'])->name('billing.thanks');
+
+    Route::get('/account', [ProfileController::class, 'show'])->name('profile.show');
+    Route::delete('/account', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     Route::get('/admin', [AdminController::class, 'index'])->name('admin.index');
     Route::get('/admin/users/{user}', [AdminController::class, 'showUser'])->name('admin.users.show');
@@ -130,6 +128,11 @@ Route::middleware(['auth', 'user.update-last-activity', 'gtm'])->group(function 
     Route::get('/displays/{display}/images/{type}', [DisplaySettingsController::class, 'serveImage'])
         ->name('displays.images');
 
+    // Diagnostics — modal, run endpoint only (index redirects for old bookmarks)
+    Route::redirect('/diagnostics', '/')->name('diagnostics.index');
+    Route::get('/displays/{display}/diagnostics/run', [DisplayDiagnosticsController::class, 'run'])
+        ->name('displays.diagnostics.run');
+
     // Boards routes
     Route::get('/boards/create', [BoardController::class, 'create'])->name('boards.create');
     Route::post('/boards', [BoardController::class, 'store'])->name('boards.store');
@@ -139,6 +142,19 @@ Route::middleware(['auth', 'user.update-last-activity', 'gtm'])->group(function 
     Route::delete('/boards/{board}', [BoardController::class, 'destroy'])->name('boards.destroy');
     Route::get('/boards/{board}/images/logo', [BoardController::class, 'serveLogo'])->name('boards.images.logo');
 
-    // Usage routes
-    Route::get('/usage', [UsageController::class, 'index'])->name('usage.index');
+    // Support / FAQ
+    Route::post('/support/ask', [SupportController::class, 'store'])->name('support.ask');
+
+    // Roadmap
+    Route::post('/roadmap/{roadmapItem}/vote', [RoadmapController::class, 'vote'])->name('roadmap.vote');
+    Route::post('/roadmap/suggest', [RoadmapController::class, 'suggest'])->name('roadmap.suggest');
+
+    // Admin — Roadmap
+    Route::get('/admin/roadmap', [AdminRoadmapController::class, 'index'])->name('admin.roadmap.index');
+    Route::get('/admin/roadmap/create', [AdminRoadmapController::class, 'create'])->name('admin.roadmap.create');
+    Route::post('/admin/roadmap', [AdminRoadmapController::class, 'store'])->name('admin.roadmap.store');
+    Route::get('/admin/roadmap/{roadmapItem}/edit', [AdminRoadmapController::class, 'edit'])->name('admin.roadmap.edit');
+    Route::put('/admin/roadmap/{roadmapItem}', [AdminRoadmapController::class, 'update'])->name('admin.roadmap.update');
+    Route::post('/admin/roadmap/{roadmapItem}/approve', [AdminRoadmapController::class, 'approve'])->name('admin.roadmap.approve');
+    Route::delete('/admin/roadmap/{roadmapItem}', [AdminRoadmapController::class, 'destroy'])->name('admin.roadmap.destroy');
 });

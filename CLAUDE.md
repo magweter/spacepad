@@ -152,6 +152,10 @@ php artisan test
 - **Cross-platform**: Flutter app supports iOS and Android
 - **Internationalization**: Support for English, Dutch, French, Spanish, and German
 
+## Feature Documentation
+
+`FEATURES.md` in the project root is a structured overview of all user-facing features. Keep it up to date whenever you add, change, or remove a feature. Update the relevant section immediately after implementing the change — don't leave it for later.
+
 ## Security Considerations
 
 - API authentication via Laravel Sanctum tokens

@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use App\Traits\HasUlid;
 use App\Enums\DisplayStatus;
+use App\Traits\HasUlid;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -32,6 +32,7 @@ class Board extends Model
         'language',
         'view_mode',
         'show_meeting_title',
+        'show_join_button',
     ];
 
     protected $casts = [
@@ -42,6 +43,7 @@ class Board extends Model
         'show_transitioning' => 'boolean',
         'transitioning_minutes' => 'integer',
         'show_meeting_title' => 'boolean',
+        'show_join_button' => 'boolean',
     ];
 
     public function workspace(): BelongsTo
@@ -57,6 +59,7 @@ class Board extends Model
     public function displays(): BelongsToMany
     {
         return $this->belongsToMany(Display::class, 'board_displays')
+            ->using(BoardDisplay::class)
             ->withTimestamps();
     }
 

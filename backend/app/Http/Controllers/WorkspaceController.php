@@ -39,7 +39,6 @@ class WorkspaceController extends Controller
         logger()->info('User switched workspace', [
             'user_id' => $user->id,
             'workspace_id' => $workspace->id,
-            'workspace_name' => $workspace->name,
             'is_impersonating' => session()->has('impersonating'),
         ]);
         

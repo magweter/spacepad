@@ -1,84 +1,137 @@
 @props(['display'])
 
-<tr>
-    <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0">
-        <div class="font-medium text-gray-900">{{ $display->name }}</div>
-        <div class="text-gray-500">{{ $display->display_name }}</div>
-    </td>
-    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-        <div class="flex flex-col gap-1">
-            @if($display->calendar->outlookAccount)
-                <div class="flex items-center">
-                    <x-icons.microsoft class="h-4 w-4 text-gray-900 mr-2" />
-                    <span class="text-gray-900">{{ $display->calendar->outlookAccount->name }}</span>
-                </div>
+@php
+    $statusBadgeClass = match ($display->status) {
+        \App\Enums\DisplayStatus::READY => 'bg-sky-50 text-sky-800 ring-sky-600/15',
+        \App\Enums\DisplayStatus::ACTIVE => 'bg-emerald-50 text-emerald-800 ring-emerald-600/15',
+        \App\Enums\DisplayStatus::DEACTIVATED => 'bg-gray-100 text-gray-700 ring-gray-600/10',
+        \App\Enums\DisplayStatus::ERROR => 'bg-red-50 text-red-800 ring-red-600/15',
+    };
+@endphp
+
+<tr class="transition-colors hover:bg-gray-50/90">
+    <td class="whitespace-nowrap py-4 pl-4 pr-3 align-middle sm:pl-4">
+        <div class="min-w-0 max-w-xs sm:max-w-sm">
+            <div class="text-sm font-semibold leading-6 text-gray-900 truncate">{{ $display->name }}</div>
+            @if(filled($display->display_name))
+                <div class="text-xs leading-5 text-gray-500 truncate">{{ $display->display_name }}</div>
             @endif
-            @if($display->calendar->googleAccount)
-                <div class="flex items-center">
-                    <x-icons.google class="h-4 w-4 text-gray-900 mr-2" />
-                    <span class="text-gray-900">{{ $display->calendar->googleAccount->name }}</span>
-                </div>
-            @endif
-            @if($display->calendar->caldavAccount)
-                <div class="flex items-center">
-                    <x-icons.calendar class="h-4 w-4 text-gray-900 mr-2" />
-                    <span class="text-gray-900">{{ $display->calendar->caldavAccount->name }}</span>
-                </div>
-            @endif
-            <div class="text-gray-500">{{ $display->calendar->name }}</div>
         </div>
     </td>
-    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-        <span class="inline-flex items-center rounded-md bg-{{ $display->status->color() }}-50 px-2 py-1 text-xs font-medium text-{{ $display->status->color() }}-700 ring-1 ring-inset ring-{{ $display->status->color() }}-600">
-            {{ $display->status->label() }}
-        </span>
-    </td>
-    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-        <div class="flex flex-col gap-1">
-            <div class="flex items-center gap-x-1.5">
-                @if($display->devices->isNotEmpty())
-                    <div class="flex-none rounded-full bg-emerald-500/20 p-1">
-                        <div class="h-2 w-2 rounded-full bg-emerald-500"></div>
-                    </div>
-                    <div class="group relative">
-                        <button type="button" class="flex items-center gap-x-1 text-sm text-gray-500 hover:text-gray-900">
-                            <span>{{ $display->devices->count() }} device{{ $display->devices->count() > 1 ? 's' : '' }}</span>
-                            <x-icons.information class="h-4 w-4 text-gray-400" />
-                        </button>
-                        <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block">
-                            <div class="rounded-md bg-gray-900 px-2 py-1 text-xs text-white shadow-lg">
-                                <div class="whitespace-nowrap">
-                                    @foreach($display->devices as $device)
-                                        <div class="flex items-center gap-x-1">
-                                            <span>{{ $device->name }}</span>
-                                            @if($device->last_activity_at)
-                                                <span class="text-gray-400">({{ $device->last_activity_at->diffForHumans() }})</span>
-                                            @endif
-                                        </div>
-                                    @endforeach
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                @else
-                    <div class="flex-none rounded-full bg-gray-500/20 p-1">
-                        <div class="h-2 w-2 rounded-full bg-gray-500"></div>
-                    </div>
-                    <span class="text-gray-500">No devices</span>
-                @endif
+    <td class="whitespace-nowrap px-3 py-4 align-middle text-sm">
+        @if($display->calendar->outlookAccount)
+            <div class="flex min-w-0 max-w-[11rem] sm:max-w-xs items-center gap-2">
+                <x-icons.microsoft class="h-4 w-4 flex-shrink-0 text-gray-500" />
+                <div class="min-w-0">
+                    <div class="truncate font-medium text-gray-900">{{ $display->calendar->outlookAccount->name }}</div>
+                    @if($display->calendar->room)
+                        <div class="truncate text-xs text-gray-500">{{ $display->calendar->room->name }}</div>
+                    @elseif(filled($display->calendar->name) && !$display->calendar->is_primary)
+                        <div class="truncate text-xs text-gray-500">{{ $display->calendar->name }}</div>
+                    @elseif($display->calendar->outlookAccount->email)
+                        <div class="truncate text-xs text-gray-500">{{ $display->calendar->outlookAccount->email }}</div>
+                    @endif
+                </div>
             </div>
-            @if($display->last_sync_at)
-                <div class="text-gray-400 text-xs">Last sync {{ $display->last_sync_at->diffForHumans() }}</div>
+        @elseif($display->calendar->googleAccount)
+            <div class="flex min-w-0 max-w-[11rem] sm:max-w-xs items-center gap-2">
+                <x-icons.google class="h-4 w-4 flex-shrink-0 text-gray-500" />
+                <div class="min-w-0">
+                    <div class="truncate font-medium text-gray-900">{{ $display->calendar->googleAccount->name }}</div>
+                    @if($display->calendar->room)
+                        <div class="truncate text-xs text-gray-500">{{ $display->calendar->room->name }}</div>
+                    @elseif(filled($display->calendar->name) && !$display->calendar->is_primary)
+                        <div class="truncate text-xs text-gray-500">{{ $display->calendar->name }}</div>
+                    @elseif($display->calendar->googleAccount->email)
+                        <div class="truncate text-xs text-gray-500">{{ $display->calendar->googleAccount->email }}</div>
+                    @endif
+                </div>
+            </div>
+        @elseif($display->calendar->caldavAccount)
+            <div class="flex min-w-0 max-w-[11rem] sm:max-w-xs items-center gap-2">
+                <x-icons.calendar class="h-4 w-4 flex-shrink-0 text-gray-500" />
+                <div class="min-w-0">
+                    <div class="truncate font-medium text-gray-900">{{ $display->calendar->caldavAccount->name }}</div>
+                    @if($display->calendar->room)
+                        <div class="truncate text-xs text-gray-500">{{ $display->calendar->room->name }}</div>
+                    @elseif(filled($display->calendar->name) && !$display->calendar->is_primary)
+                        <div class="truncate text-xs text-gray-500">{{ $display->calendar->name }}</div>
+                    @endif
+                </div>
+            </div>
+        @endif
+    </td>
+    <td class="whitespace-nowrap px-3 py-4 align-middle text-sm">
+        <div class="inline-flex items-center gap-1.5">
+            <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset {{ $statusBadgeClass }}">
+                {{ $display->status->label() }}
+            </span>
+            @if($display->status === \App\Enums\DisplayStatus::ERROR)
+                <div x-data="{ open: false, bottom: 0, right: 0 }" class="flex items-center">
+                    <button type="button"
+                            class="flex items-center text-red-400 hover:text-red-600"
+                            @mouseenter="let r = $el.getBoundingClientRect(); bottom = window.innerHeight - r.top + 8; right = window.innerWidth - r.right; open = true"
+                            @mouseleave="open = false">
+                        <x-icons.information class="h-3.5 w-3.5" />
+                    </button>
+                    <template x-teleport="body">
+                        <div x-show="open" x-cloak
+                             :style="`bottom: ${bottom}px; right: ${right}px`"
+                             class="fixed z-[9999] w-56 whitespace-normal rounded-lg bg-gray-900 px-3 py-2.5 text-xs text-white shadow-lg">
+                            <p class="font-medium mb-1">Calendar sync failed</p>
+                            <ol class="list-decimal list-inside space-y-0.5 text-gray-300">
+                                <li>Try reconnecting your calendar account</li>
+                                <li>Press the play button to resume</li>
+                            </ol>
+                            <div class="absolute right-2 top-full h-0 w-0 border-x-4 border-t-4 border-transparent border-t-gray-900"></div>
+                        </div>
+                    </template>
+                </div>
             @endif
         </div>
     </td>
-    <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-0">
+    <td class="px-3 py-4 align-middle text-sm text-gray-600">
+        <div class="flex flex-col gap-1">
+            @if($display->devices->isNotEmpty())
+                <div class="group relative inline-flex w-fit">
+                    <button type="button" class="text-left text-sm font-medium text-gray-900 hover:text-gray-700">
+                        {{ $display->devices->count() }} device{{ $display->devices->count() > 1 ? 's' : '' }}
+                        <span class="ml-1 inline-block align-middle text-gray-400">
+                            <x-icons.information class="h-3.5 w-3.5" />
+                        </span>
+                    </button>
+                    <div class="absolute bottom-full left-0 z-20 mb-2 hidden w-max max-w-xs rounded-lg bg-gray-900 px-3 py-2 text-xs text-white shadow-lg group-hover:block group-focus-within:block">
+                        <div class="space-y-1.5">
+                            @foreach($display->devices as $device)
+                                <div class="flex flex-wrap items-baseline gap-x-1.5 gap-y-0">
+                                    <span class="font-medium">{{ $device->name }}</span>
+                                    @if($device->last_activity_at)
+                                        <span class="text-gray-400">· {{ $device->last_activity_at->diffForHumans() }}</span>
+                                    @endif
+                                </div>
+                            @endforeach
+                        </div>
+                        <div class="absolute left-4 top-full h-0 w-0 border-x-4 border-t-4 border-transparent border-t-gray-900"></div>
+                    </div>
+                </div>
+                @if($display->last_sync_at)
+                    <span class="text-xs text-gray-500">Synced {{ $display->last_sync_at->diffForHumans() }}</span>
+                @endif
+            @else
+                <span class="text-sm text-gray-500">No devices linked</span>
+                @if($display->last_sync_at)
+                    <span class="text-xs text-gray-500">Last calendar sync {{ $display->last_sync_at->diffForHumans() }}</span>
+                @endif
+            @endif
+        </div>
+    </td>
+    <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right align-middle text-sm font-medium sm:pr-4">
         <div class="flex justify-end gap-x-2">
             <form action="{{ route('displays.updateStatus', $display) }}" method="POST" class="inline">
                 @csrf
                 @method('PATCH')
                 <input type="hidden" name="status" value="{{ $display->status === \App\Enums\DisplayStatus::ACTIVE ? 'deactivated' : 'active' }}">
-                <button type="submit" class="inline-flex items-center rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
+                <button type="submit" class="inline-flex items-center rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50" title="{{ $display->status === \App\Enums\DisplayStatus::ACTIVE ? 'Pause display' : 'Resume display' }}">
                     @if($display->status === \App\Enums\DisplayStatus::ACTIVE)
                         <x-icons.pause class="h-4 w-4" />
                     @else
@@ -111,4 +164,3 @@
         </div>
     </td>
 </tr>
-

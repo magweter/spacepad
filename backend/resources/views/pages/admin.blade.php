@@ -2,6 +2,12 @@
 
 @section('title', 'Admin dashboard')
 
+@section('actions')
+    <a href="{{ route('admin.roadmap.index') }}" class="ml-auto inline-flex items-center rounded-md bg-violet-600 px-3 py-2 text-sm font-semibold text-white hover:bg-violet-500">
+        Roadmap
+    </a>
+@endsection
+
 @section('content')
     <div x-data="{ activeTab: 'users-overview' }">
         <!-- Tab Navigation -->

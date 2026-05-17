@@ -250,6 +250,15 @@
                             </label>
                         </div>
                         <p class="ml-7 text-sm text-gray-500">If unchecked, meeting titles will be hidden for privacy-sensitive environments.</p>
+                        <div class="flex items-center mt-3">
+                            <input id="show_join_button" name="show_join_button" type="checkbox" value="1"
+                                   class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600"
+                                   {{ old('show_join_button', $board?->show_join_button ?? false) ? 'checked' : '' }}>
+                            <label for="show_join_button" class="ml-3 block text-sm font-medium leading-6 text-gray-900">
+                                Show join meeting button
+                            </label>
+                        </div>
+                        <p class="ml-7 text-sm text-gray-500">When enabled, a join button appears on cards where the calendar event contains a Teams, Zoom, or Google Meet link.</p>
                     </div>
                 </div>
 

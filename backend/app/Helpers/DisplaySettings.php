@@ -159,12 +159,55 @@ class DisplaySettings
 
     public static function isCalendarEnabled(Display $display): bool
     {
-        return self::getSetting($display, 'calendar_enabled', false);
+        // Backward compat: also true if old mode-based view_schedule is stored
+        return self::getSetting($display, 'view_schedule', false)
+            || self::getSetting($display, 'timeline_widget_mode', null) === 'view_schedule';
     }
 
     public static function setCalendarEnabled(Display $display, bool $enabled): bool
     {
-        return self::setSetting($display, 'calendar_enabled', $enabled, 'boolean');
+        return self::setSetting($display, 'view_schedule', $enabled, 'boolean');
+    }
+
+    public static function isTimelineWidgetEnabled(Display $display): bool
+    {
+        return self::getTimelineWidgetMode($display) !== 'none';
+    }
+
+    public static function setTimelineWidgetEnabled(Display $display, bool $enabled): bool
+    {
+        // Legacy shim — maps boolean to mode
+        return self::setTimelineWidgetMode($display, $enabled ? 'side_panel' : 'none');
+    }
+
+    public static function getTimelineWidgetMode(Display $display): string
+    {
+        $mode = self::getSetting($display, 'timeline_widget_mode', null);
+        if ($mode !== null && $mode !== 'view_schedule') {
+            return $mode;
+        }
+        // view_schedule was a former mode value — treat as no timeline widget
+        if ($mode === 'view_schedule') {
+            return 'none';
+        }
+        // Backward compat: migrate old boolean setting
+        $legacy = self::getSetting($display, 'timeline_widget_enabled', false);
+        return $legacy ? 'side_panel' : 'none';
+    }
+
+    public static function setTimelineWidgetMode(Display $display, string $mode): bool
+    {
+        return self::setSetting($display, 'timeline_widget_mode', $mode, 'string');
+    }
+
+    public static function isFutureBookingEnabled(Display $display): bool
+    {
+        return self::getSetting($display, 'allow_future_bookings', false);
+    }
+
+    public static function setFutureBookingEnabled(Display $display, bool $enabled): bool
+    {
+        return self::setSetting($display, 'allow_future_bookings', $enabled, 'boolean');
     }
 
     // Customizable display state texts (shorter keys)
@@ -253,5 +296,76 @@ class DisplaySettings
             return false;
         }
         return self::setSetting($display, 'border_thickness', $thickness, 'string');
+    }
+
+    // Advertisement enabled toggle
+    public static function isAdvertisementEnabled(Display $display): bool
+    {
+        return self::getSetting($display, 'advertisement_enabled', false);
+    }
+
+    public static function setAdvertisementEnabled(Display $display, bool $enabled): bool
+    {
+        return self::setSetting($display, 'advertisement_enabled', $enabled, 'boolean');
+    }
+
+    // Advertisement image settings
+    public static function getAdvertisementImage(Display $display): ?string
+    {
+        return self::getSetting($display, 'advertisement_image');
+    }
+
+    public static function setAdvertisementImage(Display $display, string $path): bool
+    {
+        return self::setSetting($display, 'advertisement_image', $path, 'string');
+    }
+
+    public static function removeAdvertisementImage(Display $display): bool
+    {
+        return self::deleteSetting($display, 'advertisement_image');
+    }
+
+    // Advertisement interval in minutes (default 5)
+    public static function getAdvertisementInterval(Display $display): int
+    {
+        return self::getSetting($display, 'advertisement_interval', 5);
+    }
+
+    public static function setAdvertisementInterval(Display $display, int $minutes): bool
+    {
+        return self::setSetting($display, 'advertisement_interval', $minutes, 'integer');
+    }
+
+    // Advertisement display duration in seconds (default 15)
+    public static function getAdvertisementDuration(Display $display): int
+    {
+        return self::getSetting($display, 'advertisement_duration', 15);
+    }
+
+    public static function setAdvertisementDuration(Display $display, int $seconds): bool
+    {
+        return self::setSetting($display, 'advertisement_duration', $seconds, 'integer');
+    }
+
+    // Extend meeting enabled toggle
+    public static function isExtendEnabled(Display $display): bool
+    {
+        return self::getSetting($display, 'extend_enabled', false);
+    }
+
+    public static function setExtendEnabled(Display $display, bool $enabled): bool
+    {
+        return self::setSetting($display, 'extend_enabled', $enabled, 'boolean');
+    }
+
+    // Show organizer toggle
+    public static function isShowOrganizerEnabled(Display $display): bool
+    {
+        return self::getSetting($display, 'show_organizer', false);
+    }
+
+    public static function setShowOrganizerEnabled(Display $display, bool $enabled): bool
+    {
+        return self::setSetting($display, 'show_organizer', $enabled, 'boolean');
     }
 }

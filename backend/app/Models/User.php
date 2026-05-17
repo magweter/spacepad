@@ -65,7 +65,9 @@ class User extends Authenticatable
         'last_activity_at',
         'is_unlimited',
         'terms_accepted_at',
+        'dpa_accepted_at',
         'is_admin',
+        'skipped_onboarding_at',
     ];
 
     /**
@@ -90,6 +92,8 @@ class User extends Authenticatable
         'is_unlimited' => 'boolean',
         'usage_type' => UsageType::class,
         'terms_accepted_at' => 'datetime',
+        'dpa_accepted_at' => 'datetime',
+        'skipped_onboarding_at' => 'datetime',
         'is_admin' => 'boolean',
     ];
 
@@ -232,11 +236,23 @@ class User extends Authenticatable
             }
         }
 
+        $skipped = $this->skipped_onboarding_at !== null;
+
         if (config('settings.is_self_hosted')) {
-            return $this->usage_type && $this->terms_accepted_at && $hasAccounts;
+            return $this->usage_type && $this->terms_accepted_at && ($hasAccounts || $skipped);
         }
 
-        return $this->usage_type && $hasAccounts;
+        return $this->usage_type && ($hasAccounts || $skipped);
+    }
+
+    public function featureFlags(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(UserFeatureFlag::class);
+    }
+
+    public function hasAdvertisementFeature(): bool
+    {
+        return (bool) $this->featureFlags?->advertisement;
     }
 
     public function hasPro(): bool

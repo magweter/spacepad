@@ -13,6 +13,7 @@ class EventModel {
   bool checkInRequired;
   String? source;
   bool isTabletBooking;
+  String? organizerName;
 
   EventModel({
     required this.id,
@@ -27,6 +28,7 @@ class EventModel {
     this.checkInRequired = false,
     this.source,
     this.isTabletBooking = false,
+    this.organizerName,
   });
 
   factory EventModel.fromJson(Map<String, dynamic> data) {
@@ -43,6 +45,7 @@ class EventModel {
       checkInRequired: data['checkInRequired'] ?? false,
       source: data['source'],
       isTabletBooking: data['isTabletBooking'] ?? false,
+      organizerName: data['organizerName'],
     );
   }
 
@@ -58,6 +61,7 @@ class EventModel {
       'timezone': timezone,
       'isCheckedIn': isCheckedIn,
       'checkInRequired': checkInRequired,
+      'organizerName': organizerName,
     };
   }
 }

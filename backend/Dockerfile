@@ -10,12 +10,12 @@ RUN composer install --no-cache --no-dev --no-scripts --no-autoloader --ansi --n
     && composer dump-autoload -o --ignore-platform-reqs --no-scripts
 
 # Node.js builder stage
-FROM node:20-alpine AS node_builder
+FROM node:22-alpine AS node_builder
 
 WORKDIR /app
 
 # Install pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable && corepack prepare pnpm@10.11.0 --activate
 
 COPY package.json pnpm-lock.yaml ./
 COPY vite.config.js ./
@@ -24,7 +24,7 @@ COPY resources ./resources
 RUN pnpm install --config.only-built-dependencies-none=true && pnpm run build
 
 # Set our base image
-FROM serversideup/php:8.4-unit AS base
+FROM serversideup/php:8.4-fpm-nginx AS base
 
 # Switch to root before installing our PHP extensions
 USER root

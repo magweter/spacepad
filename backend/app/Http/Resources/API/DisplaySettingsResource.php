@@ -34,6 +34,22 @@ class DisplaySettingsResource extends JsonResource
 
             // Feature flags
             'has_custom_booking' => $this->hasCustomBooking(),
+
+            // Advertisement
+            'advertisement_enabled' => $this->isAdvertisementEnabled(),
+            'advertisement_image_url' => $this->isAdvertisementEnabled() ? $this->getAdvertisementImageUrl() : null,
+            'advertisement_interval' => $this->getAdvertisementInterval(),
+            'advertisement_duration' => $this->getAdvertisementDuration(),
+
+            // Timeline widget
+            'timeline_widget_enabled' => $this->isTimelineWidgetEnabled(),
+            'timeline_widget_mode' => $this->getTimelineWidgetMode(),
+
+            // Extend meeting
+            'extend_enabled' => $this->isExtendEnabled(),
+
+            // Organizer
+            'show_organizer' => $this->isShowOrganizerEnabled(),
         ];
     }
 }
