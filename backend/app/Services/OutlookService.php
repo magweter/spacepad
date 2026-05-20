@@ -186,7 +186,7 @@ class OutlookService
             $outlookAccount->update([
                 'status' => AccountStatus::ERROR,
             ]);
-            throw new Exception('Error refreshing Outlook token: ' . Arr::get($tokenData, 'error.message'));
+            throw new Exception('Error refreshing Outlook token: ' . ($tokenData['error'] ?? '') . ' - ' . ($tokenData['error_description'] ?? ''));
         }
 
         $outlookAccount->update([
