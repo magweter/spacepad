@@ -17,6 +17,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Lang;
+use Illuminate\Support\Str;
 
 class BoardController extends Controller
 {
@@ -114,6 +115,8 @@ class BoardController extends Controller
             return redirect()->back()->with('error', 'You do not have access to this workspace.');
         }
         
+        $isPublic = $validated['is_public'] ?? false;
+
         // Create the board first
         $board = Board::create([
             'workspace_id' => $validated['workspace_id'],
@@ -133,6 +136,8 @@ class BoardController extends Controller
             'view_mode' => $validated['view_mode'] ?? 'card',
             'show_meeting_title' => $validated['show_meeting_title'] ?? true,
             'show_join_button' => $validated['show_join_button'] ?? false,
+            'is_public' => $isPublic,
+            'public_token' => $isPublic ? Str::random(32) : null,
         ]);
 
         // Handle logo upload after board is created
@@ -278,6 +283,14 @@ class BoardController extends Controller
             $logoPath = $this->imageService->storeBoardLogoFile($request->file('logo'), $board);
         }
         
+        $isPublic = $validated['is_public'] ?? false;
+        $publicToken = $board->public_token;
+        if ($isPublic && !$publicToken) {
+            $publicToken = Str::random(32);
+        } elseif (!$isPublic) {
+            $publicToken = null;
+        }
+
         // Update the board
         $board->update([
             'name' => $validated['name'],
@@ -296,6 +309,8 @@ class BoardController extends Controller
             'view_mode' => $validated['view_mode'] ?? 'card',
             'show_meeting_title' => $validated['show_meeting_title'] ?? true,
             'show_join_button' => $validated['show_join_button'] ?? false,
+            'is_public' => $isPublic,
+            'public_token' => $publicToken,
         ]);
 
         // Sync displays if not showing all
@@ -350,6 +365,32 @@ class BoardController extends Controller
     public function serveLogo(Board $board)
     {
         $this->authorize('view', $board);
+        return $this->imageService->serveBoardLogo($board);
+    }
+
+    /**
+     * Display a public board by its token (no authentication required)
+     */
+    public function public(string $token): View|Factory|Application
+    {
+        $board = Board::where('public_token', $token)->where('is_public', true)->firstOrFail();
+
+        $displays = $board->getDisplaysToShow();
+        $displayData = $this->getDisplayStatusData($displays, $board);
+
+        return view('pages.boards.show', [
+            'board' => $board,
+            'displays' => $displayData,
+            'workspace' => $board->workspace,
+        ]);
+    }
+
+    /**
+     * Serve logo for a public board (no authentication required)
+     */
+    public function servePublicLogo(string $token)
+    {
+        $board = Board::where('public_token', $token)->where('is_public', true)->firstOrFail();
         return $this->imageService->serveBoardLogo($board);
     }
 

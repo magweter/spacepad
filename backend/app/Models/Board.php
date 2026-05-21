@@ -33,6 +33,8 @@ class Board extends Model
         'view_mode',
         'show_meeting_title',
         'show_join_button',
+        'is_public',
+        'public_token',
     ];
 
     protected $casts = [
@@ -44,6 +46,7 @@ class Board extends Model
         'transitioning_minutes' => 'integer',
         'show_meeting_title' => 'boolean',
         'show_join_button' => 'boolean',
+        'is_public' => 'boolean',
     ];
 
     public function workspace(): BelongsTo
