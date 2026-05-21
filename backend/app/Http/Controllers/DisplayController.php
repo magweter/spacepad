@@ -21,6 +21,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use App\Models\GoogleAccount;
 
 class DisplayController extends Controller
@@ -115,6 +116,7 @@ class DisplayController extends Controller
                 'display_name' => $validatedData['displayName'],
                 'status' => DisplayStatus::READY,
                 'calendar_id' => $calendar->id,
+                'display_token' => Str::random(32),
             ]);
         });
 

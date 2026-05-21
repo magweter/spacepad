@@ -139,20 +139,16 @@
                     @endif
                 </button>
             </form>
-            @if(auth()->user()->hasProForCurrentWorkspace())
-                <a href="{{ route('displays.customization', $display) }}" class="inline-flex items-center rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-indigo-600 shadow-sm ring-1 ring-inset ring-indigo-300 hover:bg-indigo-50" title="Customize display (Pro)">
-                    <x-icons.brush class="h-4 w-4" />
-                </a>
-                <a href="{{ route('displays.settings.index', $display) }}" class="inline-flex items-center rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-blue-600 shadow-sm ring-1 ring-inset ring-blue-300 hover:bg-blue-50" title="Display settings (Pro)">
-                    <x-icons.settings class="h-4 w-4" />
-                </a>
-            @else
-                <span class="inline-flex items-center rounded-md bg-gray-100 px-2.5 py-1.5 text-sm font-semibold text-gray-400 shadow-sm ring-1 ring-inset ring-gray-200 cursor-not-allowed" title="Upgrade to Pro to unlock customization">
-                    <x-icons.brush class="h-4 w-4" />
-                </span>
-                <span class="inline-flex items-center rounded-md bg-gray-100 px-2.5 py-1.5 text-sm font-semibold text-gray-400 shadow-sm ring-1 ring-inset ring-gray-200 cursor-not-allowed" title="Upgrade to Pro to unlock settings">
-                    <x-icons.settings class="h-4 w-4" />
-                </span>
+            <a href="{{ route('displays.customization', $display) }}" class="inline-flex items-center rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-indigo-600 shadow-sm ring-1 ring-inset ring-indigo-300 hover:bg-indigo-50" title="Customize display">
+                <x-icons.brush class="h-4 w-4" />
+            </a>
+            <a href="{{ route('displays.settings.index', $display) }}" class="inline-flex items-center rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-blue-600 shadow-sm ring-1 ring-inset ring-blue-300 hover:bg-blue-50" title="Display settings">
+                <x-icons.settings class="h-4 w-4" />
+            </a>
+            @if($display->display_token)
+            <a href="{{ route('displays.public', $display->display_token) }}" target="_blank" class="inline-flex items-center rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-emerald-600 shadow-sm ring-1 ring-inset ring-emerald-300 hover:bg-emerald-50" title="Open web display">
+                <x-icons.external class="h-4 w-4" />
+            </a>
             @endif
             <form action="{{ route('displays.delete', $display) }}" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to delete this display?');">
                 @csrf

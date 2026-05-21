@@ -25,7 +25,8 @@ class Display extends Model
         'calendar_id',
         'status',
         'last_sync_at',
-        'last_event_at'
+        'last_event_at',
+        'display_token',
     ];
 
     protected $casts = [

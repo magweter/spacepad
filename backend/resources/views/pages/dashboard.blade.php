@@ -389,6 +389,45 @@
                     </div>
                 </div>
 
+            {{-- Connect Instructions Modal --}}
+            <div id="connectModal" class="relative z-10 hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+                <div class="fixed inset-0 bg-gray-500 opacity-75 transition-opacity"></div>
+
+                <div class="fixed inset-0 z-10 overflow-y-auto">
+                    <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+                        <div class="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
+                            <div>
+                                <div class="mt-2 text-center">
+                                    <h3 class="text-lg font-semibold leading-6 text-gray-900" id="modal-title">Instructions on connecting a new device</h3>
+                                    <div class="mt-2 mx-auto max-w-md">
+                                        <p class="text-sm text-gray-700">Connect a new device like a tablet or phone by downloading the app from the <a target="_blank" href="https://play.google.com/store/apps/details?id=com.magweter.spacepad" class="text-blue-600 hover:text-blue-500">Play Store</a> or <a target="_blank" href="https://apps.apple.com/nl/app/spacepad/id6745528995" class="text-blue-600 hover:text-blue-500">App Store</a>.</p>
+                                    </div>
+                                    <div class="mt-6 mx-auto max-w-md text-center">
+                                        <p class="text-sm text-gray-700">Enter the following connect code:</p>
+                                    </div>
+                                    <div class="mt-4 p-4 bg-gray-50 rounded-lg">
+                                        <p class="text-2xl font-mono text-center">{{ chunk_split($connectCode, 3, ' ') }}</p>
+                                    </div>
+                                    <div class="mt-6 border-t border-gray-200 pt-5 text-left">
+                                        <h4 class="text-sm font-semibold text-gray-900 mb-1">Web display (no app required)</h4>
+                                        <p class="text-sm text-gray-600 mb-3">Open this URL on any browser-enabled device (TV, Chromebook, etc.) and enter the connect code above to select a display.</p>
+                                        <div class="p-3 bg-gray-50 rounded-lg flex items-center gap-2">
+                                            <code class="flex-1 text-sm text-gray-800 break-all">{{ route('displays.connect') }}</code>
+                                            <button onclick="navigator.clipboard.writeText('{{ route('displays.connect') }}')" type="button" class="flex-shrink-0 text-gray-400 hover:text-gray-600">
+                                                <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 011.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 00-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.75a1.125 1.125 0 01-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5a3.375 3.375 0 00-3.375-3.375H9.75" /></svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-5 sm:mt-8">
+                                <button type="button" onclick="closeConnectModal()" class="inline-flex w-full justify-center rounded-md bg-oxford px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-oxford-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-oxford-600">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
                 <div class="mt-6 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
                     <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-200">

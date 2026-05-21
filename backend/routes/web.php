@@ -15,10 +15,10 @@ use App\Http\Controllers\DisplayController;
 use App\Http\Controllers\DisplayDiagnosticsController;
 use App\Http\Controllers\DisplaySettingsController;
 use App\Http\Controllers\GoogleAccountsController;
-use App\Http\Controllers\LicenseController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\OutlookAccountsController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PublicDisplayController;
 use App\Http\Controllers\RoadmapController;
 use App\Http\Controllers\RoomController;
 use App\Http\Controllers\SupportController;
@@ -30,6 +30,13 @@ Route::middleware('throttle:public_tokens')->group(function () {
     Route::get('/b/{token}', [BoardController::class, 'public'])->name('boards.public');
     Route::get('/b/{token}/logo', [BoardController::class, 'servePublicLogo'])->name('boards.public.logo');
 });
+
+// Public display routes (no authentication required)
+Route::get('/display/connect', [PublicDisplayController::class, 'connectForm'])->name('displays.connect');
+Route::post('/display/connect', [PublicDisplayController::class, 'connectLookup'])->name('displays.connect.lookup');
+Route::get('/d/{token}', [PublicDisplayController::class, 'show'])->name('displays.public');
+Route::get('/d/{token}/images/{type}', [PublicDisplayController::class, 'image'])->name('displays.public.image');
+Route::post('/d/{token}/book', [PublicDisplayController::class, 'book'])->name('displays.public.book');
 
 Route::get('/login', [LoginController::class, 'create'])
     ->middleware('guest')
