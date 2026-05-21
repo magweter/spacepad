@@ -190,7 +190,7 @@
         <div class="flex items-center gap-5">
             @if($board->logo)
                 <div class="flex-shrink-0">
-                    <img src="{{ route('boards.images.logo', $board) }}?v={{ $board->updated_at->timestamp }}" alt="Board logo" class="h-14 w-auto object-contain">
+                    <img src="{{ $board->is_public && $board->public_token ? route('boards.public.logo', $board->public_token) : route('boards.images.logo', $board) }}?v={{ $board->updated_at->timestamp }}" alt="Board logo" class="h-14 w-auto object-contain">
                 </div>
             @else
                 <div class="h-14 w-14 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold text-xl">

@@ -21,6 +21,10 @@ use App\Http\Controllers\WorkspaceController;
 use App\Http\Controllers\BoardController;
 use App\Http\Controllers\UsageController;
 
+// Public board routes (no authentication required)
+Route::get('/b/{token}', [BoardController::class, 'public'])->name('boards.public');
+Route::get('/b/{token}/logo', [BoardController::class, 'servePublicLogo'])->name('boards.public.logo');
+
 Route::get('/login', [LoginController::class, 'create'])
     ->middleware('guest')
     ->name('login');
