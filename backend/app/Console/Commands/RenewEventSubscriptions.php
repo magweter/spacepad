@@ -133,8 +133,10 @@ class RenewEventSubscriptions extends Command
         try {
             $calendar = $display->calendar;
 
+            // Room mailboxes cannot be subscribed to via delegated auth in Microsoft Graph
+            // (/users/{room-email}/events is rejected for Exchange resource mailboxes).
+            // Events are still fetched via polling — skip silently like Google rooms do.
             if ($calendar->room) {
-                $outlookService->createEventSubscriptionByUser($outlookAccount, $display, $calendar->calendar_id);
                 return;
             }
 

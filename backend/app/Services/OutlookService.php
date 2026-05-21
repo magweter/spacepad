@@ -11,6 +11,7 @@ use App\Models\OutlookAccount;
 use Exception;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 
 class OutlookService
@@ -40,8 +41,24 @@ class OutlookService
             return;
         }
 
-        // Set the access token for API requests
-        $this->refreshToken($outlookAccount);
+        // Use a lock to prevent concurrent refreshes causing rotating refresh token invalidation.
+        // Multiple PHP processes hitting an expired token simultaneously would each try to refresh,
+        // but only the first succeeds — subsequent ones use the now-rotated (invalid) old token.
+        $lock = Cache::lock('outlook_token_refresh_' . $outlookAccount->id, 30);
+        $lock->block(15);
+
+        try {
+            // Re-read from DB — another process may have already refreshed while we waited
+            $outlookAccount = $outlookAccount->fresh();
+
+            if (now()->lte($outlookAccount->token_expires_at)) {
+                return;
+            }
+
+            $this->refreshToken($outlookAccount);
+        } finally {
+            $lock->release();
+        }
     }
 
     /**
@@ -186,7 +203,7 @@ class OutlookService
             $outlookAccount->update([
                 'status' => AccountStatus::ERROR,
             ]);
-            throw new Exception('Error refreshing Outlook token: ' . Arr::get($tokenData, 'error.message'));
+            throw new Exception('Error refreshing Outlook token: ' . ($tokenData['error'] ?? '') . ' - ' . ($tokenData['error_description'] ?? ''));
         }
 
         $outlookAccount->update([
