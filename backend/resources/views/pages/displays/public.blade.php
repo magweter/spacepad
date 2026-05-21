@@ -217,7 +217,7 @@
                 @foreach([15, 30, 45, 60, 90, 120] as $dur)
                     <button onclick="bookFromModal({{ $dur }})"
                         class="rounded-lg border border-gray-200 py-2 text-sm font-medium text-gray-700 hover:bg-emerald-50 hover:border-emerald-400 hover:text-emerald-700 transition-colors">
-                        @if($dur < 60){{ $dur }} min@else{{ $dur / 60 }}h@endif
+                        {{ $dur < 60 ? $dur . ' min' : ($dur / 60) . 'h' }}
                     </button>
                 @endforeach
             </div>
