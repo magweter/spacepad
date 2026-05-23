@@ -283,6 +283,8 @@ class OutlookService
             logger()->error('Outlook fetchEventsByUser failed', [
                 'status' => $response->status(),
                 'error' => $error,
+                'outlook_account_id' => $outlookAccount->id,
+                'email' => $emailAddress,
             ]);
             throw new \Exception("Outlook API error for $emailAddress: $error", $response->status());
         }
@@ -321,8 +323,9 @@ class OutlookService
             $error = Arr::get($response->json(), 'error.message', $response->body());
             logger()->error('Outlook fetchEventsByCalendar failed', [
                 'status' => $response->status(),
-                'calendar_id' => $calendarId,
                 'error' => $error,
+                'outlook_account_id' => $outlookAccount->id,
+                'calendar_id' => $calendarId,
             ]);
             throw new \Exception("Outlook API error for calendar $calendarId: $error", $response->status());
         }
@@ -620,7 +623,7 @@ class OutlookService
                 $statusCode = $response->status();
                 $isUserError = $statusCode >= 400 && $statusCode < 500;
 
-                logger()->error('Creating outlook subscription failed', [
+                logger()->warning('Creating outlook subscription failed', [
                     'statuscode' => $statusCode,
                     'error' => Arr::get($responseBody, 'error.message'),
                     'is_user_error' => $isUserError,

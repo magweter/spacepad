@@ -128,10 +128,10 @@ class DisplayController extends ApiController
             'user_id' => $device->user_id,
             'device_id' => $device->id,
             'display_id' => $displayId,
-            'display_name' => $display?->name ?? 'Unknown',
-            'event_count' => count($events),
-            'duration_ms' => $duration,
             'success' => $exception === null,
+            'event_count' => (string) count($events),
+            'display_name' => $display?->name ?? 'Unknown',
+            'duration_ms' => $duration,
             'ip' => request()->ip(),
         ]);
 

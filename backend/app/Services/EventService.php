@@ -28,6 +28,7 @@ class EventService
     /**
      * Fetch events for a display, without storing external events in the database.
      *
+     * @param Display|string $display Display model (ideally with event_subscriptions_count loaded) or display ID.
      * @throws Exception
      */
     public function getEventsForDisplay($display, ?Carbon $forDate = null): Collection
@@ -53,15 +54,45 @@ class EventService
         // Release DB events (custom / tablet bookings) that have not been checked in
         $this->processExpiredCheckIns($display);
 
-        // Cache events if caching is enabled and the display has an active event subscription
-        $cachingEnabled = config('services.events.cache_enabled') && $display->event_subscriptions_count > 0;
-        if ($cachingEnabled) {
+        // Cache events if caching is enabled and the display has an active event subscription.
+        // Displays with active webhook subscriptions use a long TTL (15 min) — the webhook
+        // will invalidate the cache when events change.
+        // Displays without active subscriptions (no webhook) use a short TTL (2 min) to
+        // prevent hammering the Microsoft 365 / Google API on every page load for boards
+        // that include many displays, while still staying reasonably fresh.
+        $cacheEnabled = config('services.events.cache_enabled');
+        if ($cacheEnabled && $display->event_subscriptions_count > 0) {
             $events = cache()->remember(
                 key: $display->getEventsCacheKey(),
                 ttl: now()->addMinutes(15),
-                callback: fn () => $this->getAllEvents($display)
+                callback: function () use ($display) {
+                    logger()->info('Fetching events from API (cache miss)', [
+                        'display_id' => $display->id,
+                        'display_name' => $display->name,
+                    ]);
+
+                    return $this->getAllEvents($display);
+                }
+            );
+        } elseif ($cacheEnabled) {
+            $events = cache()->remember(
+                key: $display->getEventsCacheKey() . ':fallback',
+                ttl: now()->addMinutes(2),
+                callback: function () use ($display) {
+                    logger()->info('Fetching events from API (no event subscription)', [
+                        'display_id' => $display->id,
+                        'display_name' => $display->name,
+                    ]);
+
+                    return $this->getAllEvents($display);
+                }
             );
         } else {
+            logger()->info('Fetching events from API (caching disabled)', [
+                'display_id' => $display->id,
+                'display_name' => $display->name,
+            ]);
+
             $events = $this->getAllEvents($display);
         }
 

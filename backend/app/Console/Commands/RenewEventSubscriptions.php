@@ -370,15 +370,12 @@ class RenewEventSubscriptions extends Command
             // Increment retry and reschedule (will keep trying every 60 minutes indefinitely)
             $subscription->incrementRetry();
 
-            logger()->error('Outlook subscription retry failed, will retry again', [
+            logger()->warning('Outlook subscription retry failed, will retry again', [
                 'display_id' => $display->id,
                 'retry_count' => $subscription->retry_count,
                 'next_retry' => $subscription->next_retry_at,
                 'error' => $e->getMessage(),
             ]);
-
-            // Report to Sentry for tracking
-            report($e);
         }
 
         return false;
