@@ -179,10 +179,14 @@ class RenewEventSubscriptions extends Command
         try {
             $outlookService->deleteEventSubscription($outlookAccount, $eventSubscription, false);
         } catch (\Exception $e) {
-            $outlookAccount->update(['status' => AccountStatus::ERROR]);
-            $display->update(['status' => DisplayStatus::ERROR]);
-            report('Error deleting Outlook subscription for display ' . $display->id . ': ' . $e->getMessage());
-            return;
+            // Deletion is DB-only (useApi=false) so failure here is a transient DB issue,
+            // not an indication the account itself is broken. Log and continue — the old
+            // record is expired anyway and creating a new subscription is still correct.
+            logger()->warning('Failed to delete expired Outlook subscription record, continuing with renewal', [
+                'display_id' => $display->id,
+                'subscription_id' => $eventSubscription->id,
+                'error' => $e->getMessage(),
+            ]);
         }
 
         $this->createOutlookEventSubscription($outlookAccount, $display, $outlookService);
@@ -199,10 +203,12 @@ class RenewEventSubscriptions extends Command
         try {
             $googleService->deleteEventSubscription($googleAccount, $eventSubscription, false);
         } catch (\Exception $e) {
-            $googleAccount->update(['status' => AccountStatus::ERROR]);
-            $display->update(['status' => DisplayStatus::ERROR]);
-            report('Error deleting Google subscription for display ' . $display->id . ': ' . $e->getMessage());
-            return;
+            // Same reasoning as Outlook: DB-only deletion, transient failure, keep going.
+            logger()->warning('Failed to delete expired Google subscription record, continuing with renewal', [
+                'display_id' => $display->id,
+                'subscription_id' => $eventSubscription->id,
+                'error' => $e->getMessage(),
+            ]);
         }
 
         $this->createGoogleEventSubscription($googleAccount, $display, $googleService);
