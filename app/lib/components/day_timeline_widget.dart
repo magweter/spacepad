@@ -42,6 +42,7 @@ class _DayTimelineWidgetState extends State<DayTimelineWidget> {
   late ScrollController _scrollController;
   bool _userHasScrolled = false;
   Timer? _autoScrollTimer;
+  Timer? _autoResetTimer;
 
   // Full 24-hour timeline with fixed pixel height per hour.
   static const int _startHour = 0;
@@ -70,7 +71,22 @@ class _DayTimelineWidgetState extends State<DayTimelineWidget> {
   void dispose() {
     _scrollController.dispose();
     _autoScrollTimer?.cancel();
+    _autoResetTimer?.cancel();
     super.dispose();
+  }
+
+  // ─── Idle reset ───────────────────────────────────────────────────────────
+
+  /// Called whenever the user interacts with the timeline (scroll, prev/next,
+  /// date picker). Starts a 30-second countdown; if no further interaction
+  /// happens the view snaps back to the current day and time.
+  void _onUserInteraction() {
+    _autoResetTimer?.cancel();
+    _autoResetTimer = Timer(const Duration(seconds: 30), _resetToNow);
+  }
+
+  void _resetToNow() {
+    if (mounted) _loadEventsForDate(DateTime.now());
   }
 
   // ─── Auto-scroll ──────────────────────────────────────────────────────────
@@ -144,8 +160,15 @@ class _DayTimelineWidgetState extends State<DayTimelineWidget> {
     }
   }
 
-  void _prevDay() => _loadEventsForDate(_selectedDate.subtract(const Duration(days: 1)));
-  void _nextDay() => _loadEventsForDate(_selectedDate.add(const Duration(days: 1)));
+  void _prevDay() {
+    _onUserInteraction();
+    _loadEventsForDate(_selectedDate.subtract(const Duration(days: 1)));
+  }
+
+  void _nextDay() {
+    _onUserInteraction();
+    _loadEventsForDate(_selectedDate.add(const Duration(days: 1)));
+  }
 
   Future<void> _pickDate() async {
     // Use GetX's root overlay context so the picker is not affected by
@@ -166,7 +189,10 @@ class _DayTimelineWidgetState extends State<DayTimelineWidget> {
         child: child!,
       ),
     );
-    if (picked != null) _loadEventsForDate(picked);
+    if (picked != null) {
+      _onUserInteraction();
+      _loadEventsForDate(picked);
+    }
   }
 
   // ─── Position helper ──────────────────────────────────────────────────────
@@ -260,6 +286,7 @@ class _DayTimelineWidgetState extends State<DayTimelineWidget> {
                 if (notification is ScrollStartNotification &&
                     notification.dragDetails != null) {
                   _userHasScrolled = true;
+                  _onUserInteraction();
                 }
                 return false;
               },

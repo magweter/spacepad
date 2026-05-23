@@ -28,7 +28,7 @@ COPY resources ./resources
 RUN pnpm install --frozen-lockfile && pnpm run build
 
 # Base image with PHP extensions
-FROM serversideup/php:8.4-fpm-nginx-alpine AS base
+FROM serversideup/php:8.4-fpm-nginx AS base
 
 USER root
 RUN install-php-extensions opentelemetry protobuf
