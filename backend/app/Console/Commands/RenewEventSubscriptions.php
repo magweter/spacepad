@@ -100,10 +100,18 @@ class RenewEventSubscriptions extends Command
             'failed' => $retryFailCount,
         ]);
 
-        // Create new subscriptions for displays without any
+        // Create new subscriptions for displays without any.
+        // Only fetch displays that actually have a connected Outlook or Google account —
+        // CalDAV-only and account-less displays cannot receive webhook subscriptions.
         $newDisplays = Display::with(['calendar.room', 'calendar.outlookAccount', 'calendar.googleAccount'])
             ->whereIn('status', [DisplayStatus::READY, DisplayStatus::ACTIVE])
             ->doesntHave('eventSubscriptions')
+            ->whereHas('calendar', function ($query) {
+                $query->where(function ($q) {
+                    $q->whereHas('outlookAccount', fn ($q) => $q->where('status', AccountStatus::CONNECTED))
+                      ->orWhereHas('googleAccount', fn ($q) => $q->where('status', AccountStatus::CONNECTED));
+                });
+            })
             ->get();
 
         logger()->info('Creating ' . $newDisplays->count() . ' new subscriptions');
