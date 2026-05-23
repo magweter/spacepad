@@ -792,28 +792,47 @@ class EventService
             'token_expires_at' => $outlookAccount?->token_expires_at?->toIso8601String(),
             'token_expired' => $outlookAccount ? now()->gt($outlookAccount->token_expires_at) : null,
             'account_status' => $outlookAccount?->status,
+            'booking_method' => $outlookAccount?->booking_method?->value,
             'start' => $start->toIso8601String(),
             'end' => $end->toIso8601String(),
         ]);
 
-        // Fetch events by user (room)
-        if ($calendar->room) {
-            $events = $this->outlookService->fetchEventsByUser(
-                outlookAccount: $calendar->outlookAccount,
-                emailAddress: $calendar->calendar_id,
-                startDateTime: $start,
-                endDateTime: $end,
-            );
-        }
+        try {
+            // Fetch events by user (room)
+            if ($calendar->room) {
+                // Use an app-only token when the account is configured for admin-consent
+                // bookings: events live on the room calendar and a delegated token cannot
+                // access another user's mailbox without explicit "Full Access" permission.
+                $useAppOnlyToken = $outlookAccount->booking_method === \App\Enums\OutlookBookingMethod::ADMIN_CONSENT;
 
-        // Fetch events by calendar
-        if (! $calendar->room) {
-            $events = $this->outlookService->fetchEventsByCalendar(
-                outlookAccount: $calendar->outlookAccount,
-                calendarId: $calendar->calendar_id,
-                startDateTime: $start,
-                endDateTime: $end,
-            );
+                $events = $this->outlookService->fetchEventsByUser(
+                    outlookAccount: $calendar->outlookAccount,
+                    emailAddress: $calendar->calendar_id,
+                    startDateTime: $start,
+                    endDateTime: $end,
+                    useAppOnlyToken: $useAppOnlyToken,
+                );
+            }
+
+            // Fetch events by calendar
+            if (! $calendar->room) {
+                $events = $this->outlookService->fetchEventsByCalendar(
+                    outlookAccount: $calendar->outlookAccount,
+                    calendarId: $calendar->calendar_id,
+                    startDateTime: $start,
+                    endDateTime: $end,
+                );
+            }
+        } catch (\Exception $e) {
+            logger()->error('Failed to fetch Outlook events, returning empty', [
+                'outlook_account_id' => $outlookAccount?->id,
+                'calendar_id' => $calendar->calendar_id,
+                'display_id' => $display->id,
+                'booking_method' => $outlookAccount?->booking_method?->value,
+                'error' => $e->getMessage(),
+            ]);
+
+            return collect();
         }
 
         logger()->debug('fetchOutlookEvents: raw events from API', [

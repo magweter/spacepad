@@ -253,8 +253,18 @@ class OutlookService
         string $emailAddress,
         Carbon $startDateTime,
         Carbon $endDateTime,
+        bool $useAppOnlyToken = false,
     ): array {
         $this->ensureAuthenticated($outlookAccount);
+
+        // App-only (client-credentials) tokens can always read room mailboxes.
+        // Delegated tokens require the signed-in user to have "Full Access" to
+        // the room mailbox, which most tenants do not grant by default — so when
+        // the account is configured for admin-consent we use the app-only path
+        // here too.
+        $token = ($useAppOnlyToken && $outlookAccount->isBusiness())
+            ? $this->getAppOnlyToken($outlookAccount->tenant_id)
+            : $outlookAccount->token;
 
         $params = [
             'startDateTime' => $startDateTime->utc()->toIso8601String(),
@@ -264,7 +274,7 @@ class OutlookService
             '$top' => 100,
         ];
 
-        $response = Http::withToken($outlookAccount->token)
+        $response = Http::withToken($token)
             ->withHeaders(['Prefer' => 'outlook.timezone="UTC"'])
             ->get("https://graph.microsoft.com/v1.0/users/$emailAddress/calendarview", $params);
 
