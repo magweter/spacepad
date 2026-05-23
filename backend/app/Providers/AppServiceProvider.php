@@ -3,6 +3,9 @@
 namespace App\Providers;
 
 use App\Models\PersonalAccessToken;
+use Illuminate\Foundation\Events\DiagnosingHealth;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Sanctum\Sanctum;
@@ -33,6 +36,11 @@ class AppServiceProvider extends ServiceProvider
         Sanctum::usePersonalAccessTokenModel(PersonalAccessToken::class);
 
         EventModel::observe(EventObserver::class);
+
+        Event::listen(DiagnosingHealth::class, function () {
+            DB::connection()->getPdo();
+            Cache::put('health:probe', true, 10);
+        });
 
         Event::listen(function (SocialiteWasCalled $event) {
             $event->extendSocialite('microsoft', Provider::class);
