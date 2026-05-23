@@ -343,8 +343,10 @@ it('handles errors gracefully', function () {
 
     $this->app->instance(OutlookService::class, $outlookService);
 
+    // Outlook fetch errors are handled gracefully: the display still loads with
+    // an empty event list rather than returning a 500 to the tablet.
     $this->actingAs($this->device)
         ->getJson('/api/events')
-        ->assertStatus(500)
-        ->assertJson(['message' => 'Service error']);
+        ->assertStatus(200)
+        ->assertJsonPath('data', []);
 });
