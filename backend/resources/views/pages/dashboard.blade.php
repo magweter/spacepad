@@ -497,6 +497,15 @@
                                             </td>
                                             <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right align-middle text-sm font-medium sm:pr-4">
                                                 <div class="flex justify-end gap-x-2">
+                                                    @if($board->is_public && $board->public_token)
+                                                        <button type="button"
+                                                                data-public-board-id="{{ $board->id }}"
+                                                                onclick="openPublicUrlModal('{{ route('boards.public', $board->public_token) }}', '{{ e($board->name) }}')"
+                                                                class="inline-flex items-center rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-emerald-600 shadow-sm ring-1 ring-inset ring-emerald-300 hover:bg-emerald-50"
+                                                                title="Copy public URL">
+                                                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244" /></svg>
+                                                        </button>
+                                                    @endif
                                                     <a href="{{ route('boards.show', $board) }}" target="_blank" class="inline-flex items-center rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50" title="Open board in new tab">
                                                         <x-icons.external class="h-4 w-4" />
                                                     </a>
@@ -774,7 +783,7 @@
             </span>
             @if($version)
                 <span class="inline-flex items-center rounded-md bg-gray-100 px-2.5 py-1.5 text-xs font-medium text-gray-600">
-                    v{{ $version }}
+                    {{ $version }}
                 </span>
             @endif
             @if($appUrl)
@@ -860,7 +869,7 @@
             const tabFromUrl = urlParams.get('tab');
             const defaultTab = 'displays';
             const tabToShow = tabFromUrl || defaultTab;
-            
+
             // Check if the tab exists (e.g., boards tab might not exist for non-Pro users)
             const tabButton = document.getElementById('tab-' + tabToShow);
             if (tabButton) {
@@ -869,7 +878,40 @@
                 // If tab from URL doesn't exist, fall back to default
                 switchTab(defaultTab, false);
             }
+
+            // Auto-open the public URL modal when redirected from the board form
+            // after enabling public access (?show_public=<boardId>).
+            const showPublicId = urlParams.get('show_public');
+            if (showPublicId) {
+                const btn = document.querySelector(`[data-public-board-id="${showPublicId}"]`);
+                if (btn) btn.click();
+                // Clean the param from the URL without a reload
+                urlParams.delete('show_public');
+                const cleanUrl = window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '');
+                window.history.replaceState({}, '', cleanUrl);
+            }
         });
+
+        // Public URL modal helpers
+        function openPublicUrlModal(url, name) {
+            document.getElementById('public-url-modal-title').textContent = name;
+            const input = document.getElementById('public-url-modal-input');
+            input.value = url;
+            document.getElementById('public-url-modal-copy-btn').textContent = 'Copy';
+            document.getElementById('public-url-modal').classList.remove('hidden');
+        }
+
+        function closePublicUrlModal() {
+            document.getElementById('public-url-modal').classList.add('hidden');
+        }
+
+        function copyPublicUrl() {
+            const input = document.getElementById('public-url-modal-input');
+            navigator.clipboard.writeText(input.value);
+            const btn = document.getElementById('public-url-modal-copy-btn');
+            btn.textContent = 'Copied!';
+            setTimeout(() => btn.textContent = 'Copy', 2000);
+        }
 
         // Handle browser back/forward buttons
         window.addEventListener('popstate', function(event) {
@@ -891,4 +933,34 @@
     <x-modals.select-microsoft-booking-method />
     <x-modals.google-service-account />
     <x-modals.diagnostics :displays="$displays" />
+
+    {{-- Public board URL modal --}}
+    <div id="public-url-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+        {{-- Backdrop --}}
+        <div class="absolute inset-0 bg-black/40" onclick="closePublicUrlModal()"></div>
+
+        <div class="relative w-full max-w-lg rounded-xl bg-white shadow-xl p-6">
+            <div class="flex items-start justify-between mb-4">
+                <div>
+                    <h3 class="text-base font-semibold text-gray-900">Public URL</h3>
+                    <p id="public-url-modal-title" class="mt-0.5 text-sm text-gray-500"></p>
+                </div>
+                <button type="button" onclick="closePublicUrlModal()" class="ml-4 rounded-md p-1 text-gray-400 hover:text-gray-600">
+                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            <p class="mb-3 text-sm text-gray-500">Anyone with this link can view the board without logging in.</p>
+
+            <div class="flex items-center gap-2">
+                <input id="public-url-modal-input" type="text" readonly
+                       class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 bg-gray-50 shadow-sm ring-1 ring-inset ring-gray-300 sm:text-sm sm:leading-6"
+                       onclick="this.select()">
+                <button id="public-url-modal-copy-btn" type="button" onclick="copyPublicUrl()"
+                        class="shrink-0 rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700">
+                    Copy
+                </button>
+            </div>
+        </div>
+    </div>
 @endpush

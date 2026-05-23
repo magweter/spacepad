@@ -165,7 +165,8 @@ class BoardController extends Controller
             $board->displays()->detach();
         }
         
-        return redirect(route('dashboard') . '?tab=boards')
+        $query = $board->is_public ? '&show_public=' . $board->id : '';
+        return redirect(route('dashboard') . '?tab=boards' . $query)
             ->with('success', 'Board created successfully.');
     }
 
@@ -332,7 +333,8 @@ class BoardController extends Controller
             $board->displays()->detach();
         }
         
-        return redirect(route('dashboard') . '?tab=boards')
+        $query = $board->is_public ? '&show_public=' . $board->id : '';
+        return redirect(route('dashboard') . '?tab=boards' . $query)
             ->with('success', 'Board updated successfully.');
     }
 

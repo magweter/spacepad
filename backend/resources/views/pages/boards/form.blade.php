@@ -303,7 +303,7 @@
                     </div>
                 </div>
 
-                <div>
+                <div id="public-access">
                     <label class="block text-sm font-medium leading-6 text-gray-900 mb-3">Public Access</label>
                     <div class="space-y-3">
                         <div class="space-y-1">
@@ -316,7 +316,7 @@
                                     Make this board publicly accessible
                                 </label>
                             </div>
-                            <p class="ml-7 text-sm text-gray-500">Anyone with the link can view this board without logging in. Useful for displaying on a screen.</p>
+                            <p class="ml-7 text-sm text-gray-500">Anyone with the unique link can view this board without logging in.</p>
                         </div>
 
                         @if($board?->is_public && $board?->public_token)
@@ -336,7 +336,9 @@
                             </div>
                         @else
                             <div id="public_url_display" class="ml-7 mt-2 hidden">
-                                <p class="text-sm text-gray-500">A unique public URL will be generated when you save.</p>
+                                <p class="text-sm text-gray-500">
+                                    Save the board to generate a unique public URL.
+                                </p>
                             </div>
                         @endif
                     </div>

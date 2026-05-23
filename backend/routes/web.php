@@ -26,8 +26,10 @@ use App\Http\Controllers\WorkspaceController;
 use Illuminate\Support\Facades\Route;
 
 // Public board routes (no authentication required)
-Route::get('/b/{token}', [BoardController::class, 'public'])->name('boards.public');
-Route::get('/b/{token}/logo', [BoardController::class, 'servePublicLogo'])->name('boards.public.logo');
+Route::middleware('throttle:public_tokens')->group(function () {
+    Route::get('/b/{token}', [BoardController::class, 'public'])->name('boards.public');
+    Route::get('/b/{token}/logo', [BoardController::class, 'servePublicLogo'])->name('boards.public.logo');
+});
 
 Route::get('/login', [LoginController::class, 'create'])
     ->middleware('guest')
