@@ -48,9 +48,9 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            # For main branch
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
-            type=raw,value=stable,enable=${{ github.ref == 'refs/heads/main' }}
+            # latest and stable only on version tags — never on raw branch commits
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+            type=raw,value=stable,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
             # For dev branch
             type=raw,value=dev,enable=${{ github.ref == 'refs/heads/dev' }}
             # For version tags: v1.7.0 → image tags 1.7.0 and 1.7
@@ -64,11 +64,14 @@ jobs:
         id: version
         run: |
           if [[ "${{ github.ref_type }}" == "tag" ]]; then
-            # Strip leading 'v' so the app displays "v1.7.0" not "vv1.7.0"
+            # Strip leading 'v' so the app displays "1.7.0" not "v1.7.0"
             VERSION="${{ github.ref_name }}"
             echo "git_tag=${VERSION#v}" >> $GITHUB_OUTPUT
+            echo "git_commit=" >> $GITHUB_OUTPUT
           else
             echo "git_tag=" >> $GITHUB_OUTPUT
+            # Truncate to 7 chars (standard short SHA)
+            echo "git_commit=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
           fi
 
       - name: Build and push Docker image
@@ -81,6 +84,6 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             GIT_TAG=${{ steps.version.outputs.git_tag }}
-            GIT_COMMIT=${{ github.sha }}
+            GIT_COMMIT=${{ steps.version.outputs.git_commit }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

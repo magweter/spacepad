@@ -824,7 +824,7 @@ class EventService
                 );
             }
         } catch (\Exception $e) {
-            logger()->error('Failed to fetch Outlook events, returning empty', [
+            logger()->warning('Failed to fetch Outlook events, returning empty', [
                 'outlook_account_id' => $outlookAccount?->id,
                 'calendar_id' => $calendar->calendar_id,
                 'display_id' => $display->id,
@@ -857,7 +857,7 @@ class EventService
                 endDateTime: $end ?? $display->getEndTime(),
             );
         } catch (\Exception $e) {
-            logger()->error('Failed to fetch Google events, returning empty', [
+            logger()->warning('Failed to fetch Google events, returning empty', [
                 'google_account_id' => $calendar->googleAccount->id,
                 'display_id' => $display->id,
                 'error' => $e->getMessage(),

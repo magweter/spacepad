@@ -110,39 +110,45 @@ class DisplayController extends ApiController
             return $this->error(message: $permission->message, code: $permission->code);
         }
 
+        $startTime = microtime(true);
+        $exception = null;
+        $display = null;
+        $events = [];
+
         try {
-            $startTime = microtime(true);
             $display = $this->displayService->getDisplay($displayId);
             $events = $this->eventService->getEventsForDisplay($displayId);
-            $duration = round((microtime(true) - $startTime) * 1000, 2);
-
-            logger()->info('Display data retrieved successfully', [
-                'user_id' => $device->user_id,
-                'device_id' => $device->id,
-                'display_id' => $displayId,
-                'display_name' => $display->name ?? 'Unknown',
-                'event_count' => count($events),
-                'duration_ms' => $duration,
-                'ip' => request()->ip(),
-            ]);
-
-            return $this->success(data: DisplayDataResource::make([
-                'display' => $display,
-                'events' => $events,
-            ]));
         } catch (\Exception $e) {
-            logger()->error('Failed to fetch display data', [
-                'user_id' => $device->user_id,
-                'device_id' => $device->id,
+            $exception = $e;
+        }
+
+        $duration = round((microtime(true) - $startTime) * 1000, 2);
+
+        logger()->info('Display data fetched', [
+            'user_id' => $device->user_id,
+            'device_id' => $device->id,
+            'display_id' => $displayId,
+            'display_name' => $display?->name ?? 'Unknown',
+            'event_count' => count($events),
+            'duration_ms' => $duration,
+            'success' => $exception === null,
+            'ip' => request()->ip(),
+        ]);
+
+        if ($exception !== null) {
+            logger()->warning('Display data fetch failed', [
                 'display_id' => $displayId,
-                'error' => $e->getMessage(),
-                'trace' => substr($e->getTraceAsString(), 0, 500),
-                'ip' => request()->ip(),
+                'error' => $exception->getMessage(),
             ]);
-            report($e);
+            report($exception);
 
             return $this->error(message: 'Something went wrong while fetching display data. Please try again later.', code: 500);
         }
+
+        return $this->success(data: DisplayDataResource::make([
+            'display' => $display,
+            'events' => $events,
+        ]));
     }
 
     /**
