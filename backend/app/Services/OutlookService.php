@@ -288,7 +288,7 @@ class OutlookService
 
         if (! $response->successful()) {
             $error = Arr::get($response->json(), 'error.message', $response->body());
-            logger()->error('Outlook fetchEventsByUser failed', [
+            logger()->error('Outlook fetching from room failed', [
                 'status' => $response->status(),
                 'error' => $error,
                 'outlook_account_id' => $outlookAccount->id,
@@ -329,7 +329,7 @@ class OutlookService
 
         if (! $response->successful()) {
             $error = Arr::get($response->json(), 'error.message', $response->body());
-            logger()->error('Outlook fetchEventsByCalendar failed', [
+            logger()->error('Outlook fetching from calendar failed', [
                 'status' => $response->status(),
                 'error' => $error,
                 'outlook_account_id' => $outlookAccount->id,

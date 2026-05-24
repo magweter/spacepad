@@ -31,8 +31,8 @@ Route::middleware(['auth:sanctum', 'user.update-last-activity'])->group(function
     Route::get('displays/{display}/images/{type}', [DisplayController::class, 'serveImage']);
 });
 
-// Webhook endpoints with rate limiting (100 requests per minute per IP)
-Route::middleware(['throttle:100,1'])->group(function () {
+// Webhook endpoints with rate limiting (300 requests per minute per IP)
+Route::middleware(['throttle:300,1'])->group(function () {
     Route::post('webhook/outlook', [OutlookWebhookController::class, 'handleNotification']);
     Route::post('webhook/google', [GoogleWebhookController::class, 'handleNotification']);
 });

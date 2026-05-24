@@ -45,7 +45,7 @@ class ApiService {
       if (kDebugMode) print('${e.code}: ${e.message}');
 
       if (e.code == 401) {
-        AuthService.instance.signOut();
+        await AuthService.instance.signOut();
         return;
       }
 

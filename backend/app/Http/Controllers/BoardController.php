@@ -453,7 +453,7 @@ class BoardController extends Controller
                     });
                     
                     if ($checkInEvent) {
-                        $status = 'transitioning';
+                        $status = 'check_in';
                         $statusText = Lang::get('boards.check_in', [], $boardLanguage);
                     }
                 }

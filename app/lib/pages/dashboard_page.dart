@@ -35,6 +35,14 @@ class _DashboardPageState extends State<DashboardPage> {
     return shortestSide < 600;
   }
 
+  /// Proportionally scale [size] (designed for an ~800 px shortest side) to
+  /// the actual screen size so text and icons shrink/grow smoothly when the
+  /// window is resized rather than jumping between two fixed breakpoints.
+  double _sp(BuildContext context, double size) {
+    final s = MediaQuery.of(context).size.shortestSide;
+    return (size * (s / 800).clamp(0.5, 1.3)).roundToDouble();
+  }
+
   bool _isPortrait(BuildContext context) {
     final size = MediaQuery.of(context).size;
     return size.height > size.width;
@@ -147,7 +155,7 @@ class _DashboardPageState extends State<DashboardPage> {
                 formatTime(context, controller.time.value),
                 style: FontService.instance.getTextStyle(
                   fontFamily: controller.currentFontFamily.value,
-                  fontSize: isPhone ? 20 : 28,
+                  fontSize: _sp(context, 28),
                   fontWeight: FontWeight.w500,
                   color: TWColors.white,
                 ),
@@ -171,7 +179,6 @@ class _DashboardPageState extends State<DashboardPage> {
                   children: [
                     if (shouldShowAdminActions) AdminActions(
                       controller: controller,
-                      isPhone: isPhone,
                     ),
                     if (shouldShowAdminActions) const SizedBox(width: 15),
                     if (timelineEnabled) ...[
@@ -184,7 +191,7 @@ class _DashboardPageState extends State<DashboardPage> {
                                 ? Icons.calendar_today
                                 : Icons.calendar_today_outlined,
                             color: Colors.white,
-                            size: isPhone ? 20 : 24,
+                            size: _sp(context, 24),
                           ),
                         ),
                       ),
@@ -201,7 +208,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         controller.roomName,
                         style: FontService.instance.getTextStyle(
                           fontFamily: controller.currentFontFamily.value,
-                          fontSize: isPhone ? 20 : 28,
+                          fontSize: _sp(context, 28),
                           fontWeight: FontWeight.w500,
                           color: TWColors.white,
                         ),
@@ -249,7 +256,7 @@ class _DashboardPageState extends State<DashboardPage> {
                       controller.title,
                       style: FontService.instance.getTextStyle(
                         fontFamily: controller.currentFontFamily.value,
-                        fontSize: isPhone ? 30 : 50,
+                        fontSize: _sp(context, 50),
                         fontWeight: FontWeight.w700,
                         color: Colors.white,
                       ),
@@ -274,7 +281,7 @@ class _DashboardPageState extends State<DashboardPage> {
                             }),
                             style: FontService.instance.getTextStyle(
                               fontFamily: controller.currentFontFamily.value,
-                              fontSize: isPhone ? 24 : 32,
+                              fontSize: _sp(context, 32),
                               fontWeight: FontWeight.w400,
                               color: TWColors.white,
                             ),
@@ -285,7 +292,7 @@ class _DashboardPageState extends State<DashboardPage> {
                             controller.subtitle,
                             style: FontService.instance.getTextStyle(
                               fontFamily: controller.currentFontFamily.value,
-                              fontSize: isPhone ? 28 : 36,
+                              fontSize: _sp(context, 36),
                               fontWeight: FontWeight.w400,
                               color: TWColors.gray_300,
                             ),
@@ -306,13 +313,13 @@ class _DashboardPageState extends State<DashboardPage> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.person_outline, size: isPhone ? 14 : 16, color: TWColors.gray_300),
+                            Icon(Icons.person_outline, size: _sp(context, 16), color: TWColors.gray_300),
                             SizedBox(width: isPhone ? 4 : 6),
                             Text(
                               organizer,
                               style: FontService.instance.getTextStyle(
                                 fontFamily: controller.currentFontFamily.value,
-                                fontSize: isPhone ? 16 : 20,
+                                fontSize: _sp(context, 20),
                                 fontWeight: FontWeight.w400,
                                 color: TWColors.gray_300,
                               ),
@@ -355,7 +362,7 @@ class _DashboardPageState extends State<DashboardPage> {
                             'no_upcoming_events'.tr,
                             style: TextStyle(
                               color: TWColors.white,
-                              fontSize: isPhone ? 16 : 18,
+                              fontSize: _sp(context, 18),
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -392,7 +399,7 @@ class _DashboardPageState extends State<DashboardPage> {
                                   'view_schedule'.tr,
                                   style: TextStyle(
                                     color: Colors.white,
-                                    fontSize: isPhone ? 16 : 18,
+                                    fontSize: _sp(context, 18),
                                     fontWeight: FontWeight.w500,
                                   ),
                                 ),
@@ -523,7 +530,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   Obx(() => Text(controller.title,
                     style: FontService.instance.getTextStyle(
                       fontFamily: controller.currentFontFamily.value,
-                      fontSize: isPhone ? 30 : 50,
+                      fontSize: _sp(context, 50),
                       fontWeight: FontWeight.w700,
                       color: Colors.white,
                     ),
@@ -543,7 +550,7 @@ class _DashboardPageState extends State<DashboardPage> {
                           }),
                           style: FontService.instance.getTextStyle(
                             fontFamily: controller.currentFontFamily.value,
-                            fontSize: isPhone ? 24 : 32,
+                            fontSize: _sp(context, 32),
                             fontWeight: FontWeight.w400,
                             color: TWColors.white,
                           ),
@@ -553,7 +560,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         child: Obx(() => Text(controller.subtitle,
                           style: FontService.instance.getTextStyle(
                             fontFamily: controller.currentFontFamily.value,
-                            fontSize: isPhone ? 28 : 36,
+                            fontSize: _sp(context, 36),
                             fontWeight: FontWeight.w400,
                             color: TWColors.gray_300,
                           ),
@@ -574,13 +581,13 @@ class _DashboardPageState extends State<DashboardPage> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.person_outline, size: isPhone ? 14 : 16, color: TWColors.gray_300),
+                          Icon(Icons.person_outline, size: _sp(context, 16), color: TWColors.gray_300),
                           SizedBox(width: isPhone ? 4 : 6),
                           Text(
                             organizer,
                             style: FontService.instance.getTextStyle(
                               fontFamily: controller.currentFontFamily.value,
-                              fontSize: isPhone ? 16 : 20,
+                              fontSize: _sp(context, 20),
                               fontWeight: FontWeight.w400,
                               color: TWColors.gray_300,
                             ),
@@ -610,7 +617,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     formatTime(context, controller.time.value),
                     style: FontService.instance.getTextStyle(
                       fontFamily: controller.currentFontFamily.value,
-                      fontSize: isPhone ? 20 : 28,
+                      fontSize: _sp(context, 28),
                       fontWeight: FontWeight.w500,
                       color: TWColors.white,
                     ),
@@ -631,7 +638,7 @@ class _DashboardPageState extends State<DashboardPage> {
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        if (show) AdminActions(controller: controller, isPhone: isPhone),
+                        if (show) AdminActions(controller: controller),
                         if (show) const SizedBox(width: 15),
                         GestureDetector(
                           onLongPressStart: (_) { if (hide) controller.startLongPressTimer(); },
@@ -640,7 +647,7 @@ class _DashboardPageState extends State<DashboardPage> {
                             controller.roomName,
                             style: FontService.instance.getTextStyle(
                               fontFamily: controller.currentFontFamily.value,
-                              fontSize: isPhone ? 20 : 28,
+                              fontSize: _sp(context, 28),
                               fontWeight: FontWeight.w500,
                               color: TWColors.white,
                             ),
@@ -716,7 +723,7 @@ class _DashboardPageState extends State<DashboardPage> {
                             ],
                           )
                         : Text('no_upcoming_events'.tr,
-                            style: TextStyle(color: TWColors.white, fontSize: isPhone ? 16 : 18, fontWeight: FontWeight.w500)),
+                            style: TextStyle(color: TWColors.white, fontSize: _sp(context, 18), fontWeight: FontWeight.w500)),
                     ),
                     if (controller.calendarEnabled)
                       Material(
@@ -738,7 +745,7 @@ class _DashboardPageState extends State<DashboardPage> {
                                 const Icon(Icons.calendar_today_outlined, size: 24, color: Colors.white),
                                 const SizedBox(width: 12),
                                 Text('view_schedule'.tr,
-                                  style: TextStyle(color: Colors.white, fontSize: isPhone ? 16 : 18, fontWeight: FontWeight.w500)),
+                                  style: TextStyle(color: Colors.white, fontSize: _sp(context, 18), fontWeight: FontWeight.w500)),
                               ],
                             ),
                           ),
@@ -785,7 +792,7 @@ class _DashboardPageState extends State<DashboardPage> {
                 formatTime(context, controller.time.value),
                 style: FontService.instance.getTextStyle(
                   fontFamily: controller.currentFontFamily.value,
-                  fontSize: isPhone ? 20 : 28,
+                  fontSize: _sp(context, 28),
                   fontWeight: FontWeight.w500,
                   color: TWColors.white,
                 ),
@@ -806,7 +813,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    if (show) AdminActions(controller: controller, isPhone: isPhone),
+                    if (show) AdminActions(controller: controller),
                     if (show) const SizedBox(width: 15),
                     GestureDetector(
                       onLongPressStart: (_) { if (hide) controller.startLongPressTimer(); },
@@ -815,7 +822,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         controller.roomName,
                         style: FontService.instance.getTextStyle(
                           fontFamily: controller.currentFontFamily.value,
-                          fontSize: isPhone ? 20 : 28,
+                          fontSize: _sp(context, 28),
                           fontWeight: FontWeight.w500,
                           color: TWColors.white,
                         ),
@@ -858,7 +865,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   Obx(() => Text(controller.title,
                     style: FontService.instance.getTextStyle(
                       fontFamily: controller.currentFontFamily.value,
-                      fontSize: isPhone ? 30 : 50,
+                      fontSize: _sp(context, 50),
                       fontWeight: FontWeight.w700,
                       color: Colors.white,
                     ),
@@ -878,7 +885,7 @@ class _DashboardPageState extends State<DashboardPage> {
                           }),
                           style: FontService.instance.getTextStyle(
                             fontFamily: controller.currentFontFamily.value,
-                            fontSize: isPhone ? 24 : 32,
+                            fontSize: _sp(context, 32),
                             fontWeight: FontWeight.w400,
                             color: TWColors.white,
                           ),
@@ -888,7 +895,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         child: Obx(() => Text(controller.subtitle,
                           style: FontService.instance.getTextStyle(
                             fontFamily: controller.currentFontFamily.value,
-                            fontSize: isPhone ? 28 : 36,
+                            fontSize: _sp(context, 36),
                             fontWeight: FontWeight.w400,
                             color: TWColors.gray_300,
                           ),
@@ -909,13 +916,13 @@ class _DashboardPageState extends State<DashboardPage> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.person_outline, size: isPhone ? 14 : 16, color: TWColors.gray_300),
+                          Icon(Icons.person_outline, size: _sp(context, 16), color: TWColors.gray_300),
                           SizedBox(width: isPhone ? 4 : 6),
                           Text(
                             organizer,
                             style: FontService.instance.getTextStyle(
                               fontFamily: controller.currentFontFamily.value,
-                              fontSize: isPhone ? 16 : 20,
+                              fontSize: _sp(context, 20),
                               fontWeight: FontWeight.w400,
                               color: TWColors.gray_300,
                             ),
@@ -952,7 +959,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         ],
                       )
                     : Text('no_upcoming_events'.tr,
-                        style: TextStyle(color: TWColors.white, fontSize: isPhone ? 16 : 18, fontWeight: FontWeight.w500)),
+                        style: TextStyle(color: TWColors.white, fontSize: _sp(context, 18), fontWeight: FontWeight.w500)),
                 ),
                 if (controller.calendarEnabled)
                   Material(
@@ -974,7 +981,7 @@ class _DashboardPageState extends State<DashboardPage> {
                             const Icon(Icons.calendar_today_outlined, size: 24, color: Colors.white),
                             const SizedBox(width: 12),
                             Text('view_schedule'.tr,
-                              style: TextStyle(color: Colors.white, fontSize: isPhone ? 16 : 18, fontWeight: FontWeight.w500)),
+                              style: TextStyle(color: Colors.white, fontSize: _sp(context, 18), fontWeight: FontWeight.w500)),
                           ],
                         ),
                       ),

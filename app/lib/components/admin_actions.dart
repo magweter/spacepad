@@ -3,33 +3,35 @@ import 'package:get/get.dart';
 
 class AdminActions extends StatelessWidget {
   final dynamic controller;
-  final bool isPhone;
 
   const AdminActions({
     super.key,
     required this.controller,
-    required this.isPhone,
   });
 
   @override
   Widget build(BuildContext context) {
+    // Scale icon size proportionally with the shortest screen dimension so
+    // both icons stay consistent when the window is resized freely on desktop.
+    final shortestSide = MediaQuery.of(context).size.shortestSide;
+    final iconSize = (28.0 * (shortestSide / 800).clamp(0.55, 1.3)).roundToDouble();
+
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         // Refresh button
         Obx(() {
-          final iconSize = isPhone ? 20.0 : 28.0;
           return Opacity(
             opacity: 0.6,
             child: SizedBox(
-              width: 24,
+              width: iconSize,
               height: iconSize,
               child: IconButton(
                 icon: controller.isRefreshing.value
                     ? SizedBox(
                         width: iconSize - 8,
                         height: iconSize - 8,
-                        child: CircularProgressIndicator(
+                        child: const CircularProgressIndicator(
                           strokeWidth: 2,
                           valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                         ),
@@ -45,15 +47,15 @@ class AdminActions extends StatelessWidget {
             ),
           );
         }),
-        SizedBox(width: 15),
+        SizedBox(width: iconSize * 0.5),
         // Logout/Switch room button
         Opacity(
           opacity: 0.6,
           child: SizedBox(
-            width: 24,
-            height: isPhone ? 20 : 28,
+            width: iconSize,
+            height: iconSize,
             child: IconButton(
-              icon: const Icon(Icons.logout, size: 24, color: Colors.white),
+              icon: Icon(Icons.logout, size: iconSize, color: Colors.white),
               onPressed: () {
                 controller.switchRoom();
               },
@@ -67,4 +69,3 @@ class AdminActions extends StatelessWidget {
     );
   }
 }
-

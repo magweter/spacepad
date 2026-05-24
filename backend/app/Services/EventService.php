@@ -212,7 +212,7 @@ class EventService
                     }
 
                     // Clear cache to force refetch on next request
-                    Cache::forget($display->getEventsCacheKey());
+                    $this->clearEventsCache($display);
 
                     // Create a DB row to track this tablet booking (needed for isTabletBooking() and cancellation)
                     // calendar_id is set to mark as a tablet booking
@@ -341,7 +341,7 @@ class EventService
         // Invalidate cache so next fetch reflects the check-in
         $display = Display::find($displayId);
         if ($display) {
-            Cache::forget($display->getEventsCacheKey());
+            $this->clearEventsCache($display);
         }
     }
 
@@ -403,7 +403,7 @@ class EventService
         }
 
         $event->update(['end' => $newEnd]);
-        Cache::forget($display->getEventsCacheKey());
+        $this->clearEventsCache($display);
     }
 
     private function extendExternalEvent(string $externalId, Display $display, Carbon $newEnd): void
@@ -432,7 +432,7 @@ class EventService
             $this->googleService->patchEventEndTime($calendar->googleAccount, $calendar, $externalId, $newEnd);
         }
 
-        Cache::forget($display->getEventsCacheKey());
+        $this->clearEventsCache($display);
     }
 
     /**
@@ -729,7 +729,7 @@ class EventService
                         $this->caldavService->deleteEvent($calendar->caldavAccount, $calendar->calendar_id, $event->external_id);
                     }
 
-                    Cache::forget($display->getEventsCacheKey());
+                    $this->clearEventsCache($display);
 
                     if ($calendar->google_account_id) {
                         $this->waitForEventInApi($calendar, $event->external_id, $event->start, $event->end, false);
@@ -749,13 +749,13 @@ class EventService
 
         if ($event->isCustomEvent()) {
             $event->delete();
-            Cache::forget($display->getEventsCacheKey());
+            $this->clearEventsCache($display);
 
             return;
         }
 
         $event->update(['status' => EventStatus::CANCELLED]);
-        Cache::forget($display->getEventsCacheKey());
+        $this->clearEventsCache($display);
     }
 
     /**
@@ -786,7 +786,7 @@ class EventService
                     } elseif ($calendar->caldav_account_id) {
                         $this->caldavService->deleteEvent($calendar->caldavAccount, $calendar->calendar_id, $externalId);
                     }
-                    Cache::forget($display->getEventsCacheKey());
+                    $this->clearEventsCache($display);
 
                     return;
                 } catch (\Exception $e) {
@@ -801,7 +801,7 @@ class EventService
 
         // No write permission or API deletion failed: hide event from display via Redis
         $this->markEventReleased($display->id, $externalId);
-        Cache::forget($display->getEventsCacheKey());
+        $this->clearEventsCache($display);
     }
 
     /**
@@ -829,11 +829,7 @@ class EventService
         ]);
 
         try {
-            // Fetch events by user (room)
             if ($calendar->room) {
-                // Use an app-only token when the account is configured for admin-consent
-                // bookings: events live on the room calendar and a delegated token cannot
-                // access another user's mailbox without explicit "Full Access" permission.
                 $useAppOnlyToken = $outlookAccount->booking_method === \App\Enums\OutlookBookingMethod::ADMIN_CONSENT;
 
                 $events = $this->outlookService->fetchEventsByUser(
@@ -843,10 +839,8 @@ class EventService
                     endDateTime: $end,
                     useAppOnlyToken: $useAppOnlyToken,
                 );
-            }
-
-            // Fetch events by calendar
-            if (! $calendar->room) {
+            } else {
+                // Non-room calendar: fetch from the user's own named calendar.
                 $events = $this->outlookService->fetchEventsByCalendar(
                     outlookAccount: $calendar->outlookAccount,
                     calendarId: $calendar->calendar_id,
@@ -1104,6 +1098,15 @@ class EventService
                 usleep((int) ($delay * 1000000));
             }
         }
+    }
+
+    /**
+     * Clear all event cache entries for a display (both webhook-backed and fallback).
+     */
+    private function clearEventsCache(Display $display): void
+    {
+        Cache::forget($display->getEventsCacheKey());
+        Cache::forget($display->getEventsCacheKey() . ':fallback');
     }
 
     /**

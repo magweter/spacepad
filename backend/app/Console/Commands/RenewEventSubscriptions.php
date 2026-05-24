@@ -31,7 +31,6 @@ class RenewEventSubscriptions extends Command
 
     /**
      * Execute the console command.
-     * @throws \Exception
      */
     public function handle(OutlookService $outlookService, GoogleService $googleService): void
     {
@@ -49,16 +48,24 @@ class RenewEventSubscriptions extends Command
 
         logger()->info('Renewing ' . $expiredSubscriptions->count() . ' expired subscriptions');
         foreach ($expiredSubscriptions as $expiredSubscription) {
-            $display = $expiredSubscription->display;
+            try {
+                $display = $expiredSubscription->display;
 
-            // Renew Outlook event subscription
-            if ($expiredSubscription->outlookAccount) {
-                $this->renewOutlookEventSubscription($expiredSubscription->outlookAccount, $display, $expiredSubscription, $outlookService);
-            }
+                // Renew Outlook event subscription
+                if ($expiredSubscription->outlookAccount) {
+                    $this->renewOutlookEventSubscription($expiredSubscription->outlookAccount, $display, $expiredSubscription, $outlookService);
+                }
 
-            // Renew Google event subscription
-            if ($expiredSubscription->googleAccount) {
-                $this->renewGoogleEventSubscription($expiredSubscription->googleAccount, $display, $expiredSubscription, $googleService);
+                // Renew Google event subscription
+                if ($expiredSubscription->googleAccount) {
+                    $this->renewGoogleEventSubscription($expiredSubscription->googleAccount, $display, $expiredSubscription, $googleService);
+                }
+            } catch (\Throwable $e) {
+                logger()->error('Unhandled error renewing event subscription', [
+                    'subscription_id' => $expiredSubscription->id,
+                    'display_id' => $expiredSubscription->display_id,
+                    'error' => $e->getMessage(),
+                ]);
             }
         }
 
@@ -79,18 +86,27 @@ class RenewEventSubscriptions extends Command
         $retryFailCount = 0;
 
         foreach ($retrySubscriptions as $retrySubscription) {
-            $display = $retrySubscription->display;
+            try {
+                $display = $retrySubscription->display;
 
-            // Retry Outlook event subscription
-            if ($retrySubscription->outlookAccount) {
-                $this->retryOutlookEventSubscription($retrySubscription->outlookAccount, $display, $retrySubscription, $outlookService)
-                    ? $retrySuccessCount++ : $retryFailCount++;
-            }
+                // Retry Outlook event subscription
+                if ($retrySubscription->outlookAccount) {
+                    $this->retryOutlookEventSubscription($retrySubscription->outlookAccount, $display, $retrySubscription, $outlookService)
+                        ? $retrySuccessCount++ : $retryFailCount++;
+                }
 
-            // Retry Google event subscription
-            if ($retrySubscription->googleAccount) {
-                $this->retryGoogleEventSubscription($retrySubscription->googleAccount, $display, $retrySubscription, $googleService)
-                    ? $retrySuccessCount++ : $retryFailCount++;
+                // Retry Google event subscription
+                if ($retrySubscription->googleAccount) {
+                    $this->retryGoogleEventSubscription($retrySubscription->googleAccount, $display, $retrySubscription, $googleService)
+                        ? $retrySuccessCount++ : $retryFailCount++;
+                }
+            } catch (\Throwable $e) {
+                logger()->error('Unhandled error retrying event subscription', [
+                    'subscription_id' => $retrySubscription->id,
+                    'display_id' => $retrySubscription->display_id,
+                    'error' => $e->getMessage(),
+                ]);
+                $retryFailCount++;
             }
         }
 
@@ -177,16 +193,22 @@ class RenewEventSubscriptions extends Command
     private function renewOutlookEventSubscription(OutlookAccount $outlookAccount, Display $display, EventSubscription $eventSubscription, OutlookService $outlookService): void
     {
         try {
-            $outlookService->deleteEventSubscription($outlookAccount, $eventSubscription, false);
+            // useApi=true so Microsoft is also told to remove the subscription.
+            // deleteEventSubscription does not check the HTTP response, so a 404
+            // (subscription already expired on Microsoft's side) is silently ignored.
+            // Without this, every renewal left an orphaned Microsoft subscription
+            // that kept firing webhook notifications until its own expiry window passed.
+            $outlookService->deleteEventSubscription($outlookAccount, $eventSubscription, true);
         } catch (\Exception $e) {
-            // Deletion is DB-only (useApi=false) so failure here is a transient DB issue,
-            // not an indication the account itself is broken. Log and continue — the old
-            // record is expired anyway and creating a new subscription is still correct.
-            logger()->warning('Failed to delete expired Outlook subscription record, continuing with renewal', [
+            // Token refresh or network failure — still clean up the DB record and
+            // create a fresh subscription. The orphaned Microsoft subscription will
+            // expire on its own within 3 hours.
+            logger()->warning('Failed to delete expired Outlook subscription from Microsoft, continuing with renewal', [
                 'display_id' => $display->id,
                 'subscription_id' => $eventSubscription->id,
                 'error' => $e->getMessage(),
             ]);
+            $eventSubscription->delete();
         }
 
         $this->createOutlookEventSubscription($outlookAccount, $display, $outlookService);
@@ -201,14 +223,14 @@ class RenewEventSubscriptions extends Command
     private function renewGoogleEventSubscription(GoogleAccount $googleAccount, Display $display, EventSubscription $eventSubscription, GoogleService $googleService): void
     {
         try {
-            $googleService->deleteEventSubscription($googleAccount, $eventSubscription, false);
+            $googleService->deleteEventSubscription($googleAccount, $eventSubscription, true);
         } catch (\Exception $e) {
-            // Same reasoning as Outlook: DB-only deletion, transient failure, keep going.
-            logger()->warning('Failed to delete expired Google subscription record, continuing with renewal', [
+            logger()->warning('Failed to delete expired Google subscription from Google, continuing with renewal', [
                 'display_id' => $display->id,
                 'subscription_id' => $eventSubscription->id,
                 'error' => $e->getMessage(),
             ]);
+            $eventSubscription->delete();
         }
 
         $this->createGoogleEventSubscription($googleAccount, $display, $googleService);

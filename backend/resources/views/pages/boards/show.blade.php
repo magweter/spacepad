@@ -260,7 +260,7 @@
                             
                             $statusBadgeClass = match($status) {
                                 'busy' => 'bg-red-500/10 text-red-400 border-red-500/20',
-                                'transitioning' => 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+                                'transitioning', 'check_in' => 'bg-amber-500/10 text-amber-400 border-amber-500/20',
                                 'error' => 'bg-gray-500/10 text-gray-400 border-gray-500/20',
                                 default => 'bg-green-500/10 text-green-400 border-green-500/20',
                             };
@@ -358,7 +358,7 @@
                     // Status colors
                     $statusBarColor = match($status) {
                         'busy' => 'bg-red-500',
-                        'transitioning' => 'bg-amber-500',
+                        'transitioning', 'check_in' => 'bg-amber-500',
                         'error' => 'bg-gray-500',
                         default => 'bg-green-500',
                     };
@@ -506,7 +506,7 @@
                     // Status colors
                     $statusBarColor = match($status) {
                         'busy' => 'bg-red-500',
-                        'transitioning' => 'bg-amber-500',
+                        'transitioning', 'check_in' => 'bg-amber-500',
                         'error' => 'bg-gray-500',
                         default => 'bg-green-500',
                     };
@@ -532,7 +532,7 @@
                         @php
                             $statusBadgeClass = match($status) {
                                 'busy' => 'bg-red-500/10 text-red-400 border-red-500/20',
-                                'transitioning' => 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+                                'transitioning', 'check_in' => 'bg-amber-500/10 text-amber-400 border-amber-500/20',
                                 'error' => 'bg-gray-500/10 text-gray-400 border-gray-500/20',
                                 default => 'bg-green-500/10 text-green-400 border-green-500/20',
                             };
@@ -732,10 +732,11 @@
     // Update current time every second
     function updateTime() {
         const now = new Date();
-        // Format current time with seconds for the clock display
-        const timeString = now.toLocaleTimeString(undefined, { 
-            hour: 'numeric', 
-            minute: '2-digit', 
+        // Format current time with seconds for the clock display, using the board's language
+        // so English boards show 12-hour (12:31 AM) and other locales use their native format
+        const timeString = now.toLocaleTimeString(boardLanguage, {
+            hour: 'numeric',
+            minute: '2-digit',
             second: '2-digit'
         });
         document.getElementById('current-time').textContent = timeString;

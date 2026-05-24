@@ -79,10 +79,14 @@ class AuthService {
       currentDevice.value = null;
       await deleteAuthToken();
       await removeCurrentDisplayId();
-      await Get.offAll(() => const LoginPage());
     } finally {
+      // Release the guard as soon as credentials are cleared — not after
+      // navigation. If Get.offAll() ever hangs (e.g. a dialog is open or a
+      // route transition is interrupted), the flag would otherwise stay true
+      // forever, silently swallowing every subsequent logout tap until restart.
       _isSigningOut = false;
     }
+    await Get.offAll(() => const LoginPage());
   }
 
   String? getAuthToken() {
