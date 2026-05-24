@@ -15,4 +15,5 @@ return [
     'current' => 'Aktuell',
     'no_displays' => 'Keine Displays für dieses Board verfügbar.',
     'transitioning_minutes' => 'Übergang (:minutes min)',
+    'join_meeting' => 'An Besprechung teilnehmen',
 ];

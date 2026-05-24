@@ -117,11 +117,22 @@ XML;
                     $start = $vevent->DTSTART->getDateTime();
                     $end = $vevent->DTEND->getDateTime();
 
+                    $organizerName = null;
+                    if (isset($vevent->ORGANIZER)) {
+                        $cn = $vevent->ORGANIZER['CN'] ?? null;
+                        $organizerName = $cn ? (string) $cn : null;
+                        if (!$organizerName) {
+                            $val = (string) $vevent->ORGANIZER;
+                            $organizerName = str_starts_with($val, 'mailto:') ? substr($val, 7) : ($val ?: null);
+                        }
+                    }
+
                     $events[] = [
                         'id' => (string) $vevent->UID,
                         'summary' => (string) $vevent->SUMMARY,
                         'description' => (string) $vevent->DESCRIPTION,
                         'location' => (string) $vevent->LOCATION,
+                        'organizer_name' => $organizerName,
                         'start' => $start->format('Y-m-d\TH:i:sP'),
                         'end' => $end->format('Y-m-d\TH:i:sP'),
                         'timezone' => $start->getTimezone()->getName() ?? $end->getTimezone()->getName() ?? 'UTC',
@@ -152,22 +163,30 @@ XML;
         string $calendarId,
         string $summary,
         Carbon $start,
-        Carbon $end
+        Carbon $end,
+        ?string $description = null,
+        array $attendees = []
     ): ?string {
         $this->configureClient($caldavAccount);
 
         // Create VCalendar with VEvent
         $vcalendar = new VCalendar();
         $vevent = $vcalendar->createComponent('VEVENT');
-        
+
         $uid = Str::uuid()->toString();
         $vevent->UID = $uid;
         $vevent->SUMMARY = $summary;
-        
+
         // Set DTSTART and DTEND - VObject handles DateTime objects directly
         $vevent->DTSTART = $start;
         $vevent->DTEND = $end;
         $vevent->DTSTAMP = now();
+        if ($description !== null && $description !== '') {
+            $vevent->DESCRIPTION = $description;
+        }
+        foreach ($attendees as $email) {
+            $vevent->add('ATTENDEE', 'mailto:' . $email, ['RSVP' => 'TRUE', 'ROLE' => 'REQ-PARTICIPANT']);
+        }
         
         $vcalendar->add($vevent);
 

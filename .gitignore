@@ -1,3 +1,4 @@
 .env
 database.sqlite
 .claude/
+docs/private/

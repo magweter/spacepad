@@ -15,4 +15,5 @@ return [
     'current' => 'Actuel',
     'no_displays' => 'Aucun écran disponible pour ce tableau.',
     'transitioning_minutes' => 'Transition (:minutes min)',
+    'join_meeting' => 'Rejoindre la réunion',
 ];

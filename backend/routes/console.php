@@ -16,28 +16,28 @@ $validateMinute = rand(0, 59);
 
 Schedule::command(RenewEventSubscriptions::class)
     ->everyMinute()
-    ->withoutOverlapping();
+    ->withoutOverlapping(5); // Release lock after 5 minutes if still running
 
 Schedule::command(SendHeartbeat::class)
     ->when(fn() => config('settings.is_self_hosted'))
     ->hourlyAt($heartbeatMinute)
-    ->withoutOverlapping();
+    ->withoutOverlapping(10); // Release lock after 10 minutes
 
 Schedule::command(ValidateLicense::class)
     ->when(fn() => config('settings.is_self_hosted') && InstanceService::hasLicense())
     ->hourlyAt($validateMinute)
-    ->withoutOverlapping();
+    ->withoutOverlapping(10); // Release lock after 10 minutes
 
 Schedule::command(CleanupExpiredEvents::class)
     ->hourly()
-    ->withoutOverlapping();
+    ->withoutOverlapping(10); // Release lock after 10 minutes
 
 Schedule::command(UpdateLemonSqueezySubscriptions::class)
     ->when(fn() => ! config('settings.is_self_hosted'))
     ->hourly()
-    ->withoutOverlapping();
+    ->withoutOverlapping(10); // Release lock after 10 minutes
 
 Schedule::command(CheckMarketingTriggers::class)
     ->when(fn() => ! config('settings.is_self_hosted'))
     ->hourly()
-    ->withoutOverlapping();
+    ->withoutOverlapping(10); // Release lock after 10 minutes

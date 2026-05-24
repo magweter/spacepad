@@ -1,0 +1,30 @@
+# Version control
+.git
+.gitignore
+.gitattributes
+
+# Local dependencies (never committed, not present in CI)
+node_modules
+vendor
+
+# Local environment files
+.env
+.env.*
+!.env.example
+
+# Dev/test-only files (also excluded from final image via selective COPY in Dockerfile)
+tests
+requests
+docs
+phpunit.xml
+
+# Docker files themselves
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# IDE and OS files
+.idea
+.vscode
+.DS_Store
+*.log

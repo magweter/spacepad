@@ -204,7 +204,7 @@ it('returns google events in the correct format', function () {
         ->and($event['timezone'])->toBe('UTC');
 });
 
-it('does not cache events when no event subscription exists', function () {
+it('uses short-lived fallback cache when no event subscription exists', function () {
     // Create accounts and link them to the calendar
     $outlookAccount = OutlookAccount::factory()->create(['user_id' => $this->user->id]);
     $room = Room::factory()->create([
@@ -237,26 +237,27 @@ it('does not cache events when no event subscription exists', function () {
         ]
     ];
 
-    // Mock the service
+    // Mock the service — should only be called once; the second request hits the 2-min fallback cache
     $outlookService = Mockery::mock(OutlookService::class);
     $outlookService->shouldReceive('fetchEventsByUser')
-        ->twice() // Should be called twice since no caching
+        ->once()
         ->andReturn($outlookEvents);
 
     $this->app->instance(OutlookService::class, $outlookService);
 
-    // First request
+    // First request — populates fallback cache
     $this->actingAs($this->device)
         ->getJson('/api/events')
         ->assertOk();
 
-    // Second request
+    // Second request — served from fallback cache, no extra API call
     $this->actingAs($this->device)
         ->getJson('/api/events')
         ->assertOk();
 
-    // Verify no cache exists
+    // The webhook cache key is absent (no subscription), but the fallback key exists
     expect(cache()->has($this->display->getEventsCacheKey()))->toBeFalse();
+    expect(cache()->has($this->display->getEventsCacheKey() . ':fallback'))->toBeTrue();
 });
 
 it('caches events when event subscription exists', function () {
@@ -343,8 +344,10 @@ it('handles errors gracefully', function () {
 
     $this->app->instance(OutlookService::class, $outlookService);
 
+    // Outlook fetch errors are handled gracefully: the display still loads with
+    // an empty event list rather than returning a 500 to the tablet.
     $this->actingAs($this->device)
         ->getJson('/api/events')
-        ->assertStatus(500)
-        ->assertJson(['message' => 'Service error']);
+        ->assertStatus(200)
+        ->assertJsonPath('data', []);
 });

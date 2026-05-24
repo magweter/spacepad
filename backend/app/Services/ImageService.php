@@ -51,6 +51,20 @@ class ImageService
     }
 
     /**
+     * Get the advertisement image URL for a display
+     */
+    public function getAdvertisementImageUrl(Display $display): ?string
+    {
+        $advertisement = DisplaySettings::getAdvertisementImage($display);
+        if (!$advertisement) {
+            return null;
+        }
+
+        $version = $this->getImageVersion($display, 'advertisement');
+        return url('api/displays/' . $display->id . '/images/advertisement') . '?v=' . $version;
+    }
+
+    /**
      * Get the background image URL for a display
      */
     public function getBackgroundImageUrl(Display $display): ?string
@@ -75,9 +89,12 @@ class ImageService
      */
     private function getImageVersion(Display $display, string $type): string
     {
-        $imagePath = $type === 'logo'
-            ? DisplaySettings::getLogo($display)
-            : DisplaySettings::getBackgroundImage($display);
+        $imagePath = match ($type) {
+            'logo' => DisplaySettings::getLogo($display),
+            'background' => DisplaySettings::getBackgroundImage($display),
+            'advertisement' => DisplaySettings::getAdvertisementImage($display),
+            default => null,
+        };
 
         if ($imagePath && Storage::disk('public')->exists($imagePath)) {
             // Use file modification time as version
@@ -89,7 +106,7 @@ class ImageService
     }
 
     /**
-     * Serve a display image (logo or background)
+     * Serve a display image (logo, background, or advertisement)
      */
     public function serveImage(Display $display, string $type)
     {
@@ -105,6 +122,8 @@ class ImageService
                     return response()->file($publicPath);
                 }
             }
+        } elseif ($type === 'advertisement') {
+            $imagePath = DisplaySettings::getAdvertisementImage($display);
         } else {
             abort(404, 'Invalid image type');
         }
@@ -145,6 +164,20 @@ class ImageService
     }
 
     /**
+     * Store an advertisement image file and return the path
+     */
+    public function storeAdvertisementFile($file, Display $display): ?string
+    {
+        try {
+            $filename = 'advertisement_' . $display->id . '_' . time() . '.' . $file->getClientOriginalExtension();
+            $path = $file->storeAs('displays/advertisements', $filename, 'public');
+            return $path;
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
+
+    /**
      * Remove logo file from storage
      */
     public function removeLogoFile(Display $display): void
@@ -163,6 +196,17 @@ class ImageService
         $currentBackground = DisplaySettings::getBackgroundImage($display);
         if ($currentBackground && Storage::disk('public')->exists($currentBackground)) {
             Storage::disk('public')->delete($currentBackground);
+        }
+    }
+
+    /**
+     * Remove advertisement image file from storage
+     */
+    public function removeAdvertisementFile(Display $display): void
+    {
+        $currentAd = DisplaySettings::getAdvertisementImage($display);
+        if ($currentAd && Storage::disk('public')->exists($currentAd)) {
+            Storage::disk('public')->delete($currentAd);
         }
     }
 

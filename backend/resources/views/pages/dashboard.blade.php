@@ -1,18 +1,25 @@
 @extends('layouts.base')
-@section('title', 'Management dashboard')
+@section('title', 'Dashboard')
 
 @section('actions')
-    {{-- Connect Code --}}
-    @if((auth()->user()->hasAnyDisplay() || auth()->user()->workspaces()->count() > 1) && $connectCode)
-        <div class="items-center flex ml-auto gap-4">
-            <div class="flex border border-dashed rounded-lg px-4 h-14 items-center border-gray-400">
-                <h3 class="text-sm font-semibold text-gray-900 mr-8 flex items-center">Connect code</h3>
-                <div class="flex-1 text-sm text-gray-500">
-                    <p class="font-mono">{{ chunk_split($connectCode, 3, ' ') }}</p>
-                </div>
+    <div class="flex items-center gap-3 ml-auto">
+        @if(! config('settings.is_self_hosted'))
+            <button type="button" onclick="window.dispatchEvent(new CustomEvent('open-faq', { detail: { tab: 'roadmap' } }))" class="inline-flex items-center gap-1.5 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-600 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 transition-colors">
+                <svg class="h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"/></svg>
+                Make a request
+            </button>
+            <button type="button" onclick="window.dispatchEvent(new CustomEvent('open-faq', { detail: { tab: 'help' } }))" class="inline-flex items-center gap-1.5 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-600 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 transition-colors">
+                <svg class="h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z"/></svg>
+                Need help?
+            </button>
+        @endif
+        @if((auth()->user()->hasAnyDisplay() || auth()->user()->workspaces()->count() > 1) && $connectCode)
+            <div class="flex border border-dashed rounded-lg px-4 h-10 items-center border-gray-300 gap-3">
+                <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Connect code</span>
+                <span class="font-mono text-sm text-gray-900">{{ chunk_split($connectCode, 3, ' ') }}</span>
             </div>
-        </div>
-    @endif
+        @endif
+    </div>
 @endsection
 
 @section('content')
@@ -28,7 +35,7 @@
     {{-- Google Workspace Booking Method Selection Warnings --}}
     @foreach($googleAccounts as $googleAccount)
         @if($googleAccount->permission_type === \App\Enums\PermissionType::WRITE && $googleAccount->isBusiness() && $googleAccount->booking_method === null)
-            <div class="mb-4 rounded-md bg-yellow-50 ring-1 ring-inset ring-yellow-600 p-4 flex items-start gap-4" x-data>
+            <div class="mb-4 rounded-xl bg-yellow-50 border border-yellow-200 p-4 flex items-start gap-4" x-data>
                 <div class="flex-shrink-0 mt-1">
                     <span class="inline-flex items-center justify-center h-10 w-10 rounded-full bg-yellow-100">
                         <svg class="h-6 w-6 text-yellow-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -54,10 +61,39 @@
         @endif
     @endforeach
 
+    {{-- Microsoft Booking Method Selection Warnings --}}
+    @foreach($outlookAccounts as $outlookAccount)
+        @if($outlookAccount->permission_type === \App\Enums\PermissionType::WRITE && $outlookAccount->isBusiness() && $outlookAccount->booking_method === null)
+            <div class="mb-4 rounded-xl bg-yellow-50 border border-yellow-200 p-4 flex items-start gap-4" x-data>
+                <div class="flex-shrink-0 mt-1">
+                    <span class="inline-flex items-center justify-center h-10 w-10 rounded-full bg-yellow-100">
+                        <svg class="h-6 w-6 text-yellow-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M12 9v2m0 4h.01M5.07 20A9.938 9.938 0 0 1 2 12C2 6.48 6.48 2 12 2c5.52 0 10 4.48 10 10a9.938 9.938 0 0 1-3.07 8" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </span>
+                </div>
+                <div class="flex-1">
+                    <h3 class="text-md font-semibold text-yellow-900 mb-1">Booking Method Required</h3>
+                    <p class="text-sm text-yellow-800 mb-1">
+                        Please select a booking method for your Microsoft 365 account <strong>{{ $outlookAccount->name }}</strong> ({{ $outlookAccount->email }}).
+                    </p>
+                </div>
+                <div class="flex-shrink-0 ml-4 mt-2">
+                    <button
+                        type="button"
+                        @click="$dispatch('open-microsoft-booking-method-modal', '{{ $outlookAccount->id }}')"
+                        class="inline-flex items-center rounded-md bg-yellow-600 px-3 py-2 text-sm font-semibold text-white shadow-xs hover:bg-yellow-700">
+                        Select booking method
+                    </button>
+                </div>
+            </div>
+        @endif
+    @endforeach
+
     {{-- Service Account Warnings --}}
     @foreach($googleAccounts as $googleAccount)
         @if($googleAccount->isBusiness() && $googleAccount->booking_method === \App\Enums\GoogleBookingMethod::SERVICE_ACCOUNT && !$googleAccount->service_account_file_path)
-            <div class="mb-4 rounded-md bg-yellow-50 ring-1 ring-inset ring-yellow-600 p-4 flex items-start gap-4" x-data>
+            <div class="mb-4 rounded-xl bg-yellow-50 border border-yellow-200 p-4 flex items-start gap-4" x-data>
                 <div class="flex-shrink-0 mt-1">
                     <span class="inline-flex items-center justify-center h-10 w-10 rounded-full bg-yellow-100">
                         <svg class="h-6 w-6 text-yellow-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -86,9 +122,12 @@
     {{-- License Key Modal --}}
     <x-modals.license-key />
 
+    {{-- Microsoft Admin Consent Modal --}}
+    <x-modals.microsoft-admin-consent />
+
     {{-- Commercial Banner --}}
     @if(! auth()->user()->hasProForCurrentWorkspace() && auth()->user()->hasAnyDisplay())
-        <div class="mb-4 rounded-lg bg-indigo-50 border border-indigo-200 p-4 flex items-start gap-4">
+        <div class="mb-4 rounded-xl bg-indigo-50 border border-indigo-200 p-4 flex items-start gap-4">
             <div class="flex-shrink-0 mt-1">
                 <span class="inline-flex items-center justify-center h-10 w-10 rounded-full bg-indigo-100">
                     <x-icons.settings class="h-6 w-6 text-indigo-500" />
@@ -113,6 +152,171 @@
                         Try Pro 14 days for free
                     </x-lemon-button>
                 @endif
+            </div>
+        </div>
+    @endif
+
+    {{-- Trial Countdown Banner --}}
+    @if(!$isSelfHosted && $trialSubscription && $trialSubscription->trial_ends_at)
+        @php $trialDaysLeft = (int) ceil(now()->diffInDays($trialSubscription->trial_ends_at, false)) @endphp
+        @if($trialSubscription->trial_ends_at->isFuture() && $trialDaysLeft <= 14)
+            <div class="mb-4 rounded-xl bg-amber-50 border border-amber-200 p-4 flex items-center gap-4">
+                <div class="flex-shrink-0">
+                    <span class="inline-flex items-center justify-center h-10 w-10 rounded-full bg-amber-100">
+                        <svg class="h-5 w-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
+                        </svg>
+                    </span>
+                </div>
+                <div class="flex-1">
+                    <h3 class="text-sm font-semibold text-amber-900">
+                        @if($trialDaysLeft === 0)
+                            Your trial expires today
+                        @elseif($trialDaysLeft === 1)
+                            Your trial expires tomorrow
+                        @else
+                            Your trial expires in {{ $trialDaysLeft }} days
+                        @endif
+                    </h3>
+                    <p class="text-sm text-amber-800">Subscribe now to keep all your displays running without interruption.</p>
+                </div>
+                <div class="flex-shrink-0">
+                    @php $checkout = auth()->user()->getCheckoutUrl(route('billing.thanks')) @endphp
+                    <x-lemon-button :href="$checkout" class="inline-flex items-center rounded-md bg-amber-600 px-3 py-2 text-sm font-semibold text-white shadow-xs hover:bg-amber-700">
+                        Subscribe now
+                    </x-lemon-button>
+                </div>
+            </div>
+        @endif
+    @endif
+
+    {{-- Getting Started Checklist --}}
+    @php
+        $hasAccount = $outlookAccounts->isNotEmpty() || $googleAccounts->isNotEmpty() || $caldavAccounts->isNotEmpty();
+        $checklistDone = $hasAccount && $hasDisplay && $hasDevice;
+        $doneCount = ($hasAccount ? 1 : 0) + ($hasDisplay ? 1 : 0) + ($hasDevice ? 1 : 0);
+        $progressPct = (int) round($doneCount / 3 * 100);
+    @endphp
+    @if(!$checklistDone)
+        <div class="mb-4 rounded-xl bg-white border border-gray-200 shadow-sm overflow-hidden">
+
+            {{-- Header --}}
+            <div class="px-6 pt-5 pb-3 flex items-center justify-between">
+                <div>
+                    <h3 class="text-base font-semibold text-gray-900">Getting started</h3>
+                    <p class="text-sm text-gray-500 mt-0.5">{{ $doneCount }} of 3 steps completed</p>
+                </div>
+                <span class="text-2xl font-bold text-gray-200 select-none">{{ $progressPct }}%</span>
+            </div>
+
+            {{-- Progress bar --}}
+            <div class="mx-6 mb-5 h-1.5 rounded-full bg-gray-100 overflow-hidden">
+                <div class="h-full rounded-full bg-blue-500 transition-all duration-500" style="width: {{ $progressPct }}%"></div>
+            </div>
+
+            {{-- Steps --}}
+            <div class="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-gray-100">
+
+                {{-- Step 1: Connect account --}}
+                <div class="relative px-6 py-5 {{ $hasAccount ? 'bg-gray-50/60' : 'bg-white' }}">
+                    @if(!$hasAccount && $hasAccount === false)
+                        <div class="absolute left-0 top-0 bottom-0 w-0.5 bg-blue-500 rounded-l-xl sm:hidden"></div>
+                    @endif
+                    <div class="flex items-start gap-4">
+                        <div class="shrink-0">
+                            @if($hasAccount)
+                                <span class="flex h-9 w-9 items-center justify-center rounded-full bg-green-100 ring-4 ring-green-50">
+                                    <svg class="h-4 w-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+                                </span>
+                            @else
+                                <span class="flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 ring-4 ring-blue-50 text-white text-sm font-bold shadow-sm">1</span>
+                            @endif
+                        </div>
+                        <div class="flex-1 min-w-0 pt-0.5">
+                            <p class="text-sm font-semibold {{ $hasAccount ? 'text-gray-400' : 'text-gray-900' }}">Connect a calendar</p>
+                            <p class="text-xs text-gray-400 mt-1 leading-relaxed">Link your Microsoft 365, Google or CalDAV account to access room calendars.</p>
+                            @if(!$hasAccount)
+                                <div class="mt-4 flex flex-wrap gap-2">
+                                    @if(config('services.microsoft.enabled'))
+                                        <button type="button"
+                                            onclick="window.dispatchEvent(new CustomEvent('open-permission-modal', { detail: { provider: 'outlook' } }))"
+                                            class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-xs hover:border-blue-400 hover:text-blue-600 transition-colors">
+                                            <x-icons.microsoft class="h-3.5 w-3.5" /> Microsoft
+                                        </button>
+                                    @endif
+                                    @if(config('services.google.enabled'))
+                                        <button type="button"
+                                            onclick="window.dispatchEvent(new CustomEvent('open-permission-modal', { detail: { provider: 'google' } }))"
+                                            class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-xs hover:border-red-400 hover:text-red-600 transition-colors">
+                                            <x-icons.google class="h-3.5 w-3.5" /> Google
+                                        </button>
+                                    @endif
+                                    @if(config('services.caldav.enabled'))
+                                        <a href="{{ route('caldav-accounts.create') }}"
+                                            class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-xs hover:border-gray-400 transition-colors">
+                                            <x-icons.caldav class="h-3.5 w-3.5" /> CalDAV
+                                        </a>
+                                    @endif
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Step 2: Create display --}}
+                <div class="relative px-6 py-5 {{ $hasDisplay ? 'bg-gray-50/60' : ($hasAccount ? 'bg-white' : 'bg-gray-50/40') }}">
+                    <div class="flex items-start gap-4">
+                        <div class="shrink-0">
+                            @if($hasDisplay)
+                                <span class="flex h-9 w-9 items-center justify-center rounded-full bg-green-100 ring-4 ring-green-50">
+                                    <svg class="h-4 w-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+                                </span>
+                            @elseif($hasAccount)
+                                <span class="flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 ring-4 ring-blue-50 text-white text-sm font-bold shadow-sm">2</span>
+                            @else
+                                <span class="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 ring-4 ring-gray-50 text-gray-400 text-sm font-bold">2</span>
+                            @endif
+                        </div>
+                        <div class="flex-1 min-w-0 pt-0.5">
+                            <p class="text-sm font-semibold {{ $hasDisplay ? 'text-gray-400' : ($hasAccount ? 'text-gray-900' : 'text-gray-400') }}">Create a display</p>
+                            <p class="text-xs text-gray-400 mt-1 leading-relaxed">Set up a display and pick which calendar room to show on it.</p>
+                            @if($hasAccount && !$hasDisplay)
+                                <p class="mt-4 text-xs text-blue-600 font-medium flex items-center gap-1">
+                                    <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"/></svg>
+                                    Use the Displays tab below ↓
+                                </p>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Step 3: Connect device --}}
+                <div class="relative px-6 py-5 {{ $hasDevice ? 'bg-gray-50/60' : ($hasDisplay ? 'bg-white' : 'bg-gray-50/40') }}">
+                    <div class="flex items-start gap-4">
+                        <div class="shrink-0">
+                            @if($hasDevice)
+                                <span class="flex h-9 w-9 items-center justify-center rounded-full bg-green-100 ring-4 ring-green-50">
+                                    <svg class="h-4 w-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+                                </span>
+                            @elseif($hasDisplay)
+                                <span class="flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 ring-4 ring-blue-50 text-white text-sm font-bold shadow-sm">3</span>
+                            @else
+                                <span class="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 ring-4 ring-gray-50 text-gray-400 text-sm font-bold">3</span>
+                            @endif
+                        </div>
+                        <div class="flex-1 min-w-0 pt-0.5">
+                            <p class="text-sm font-semibold {{ $hasDevice ? 'text-gray-400' : ($hasDisplay ? 'text-gray-900' : 'text-gray-400') }}">Connect a device</p>
+                            <p class="text-xs text-gray-400 mt-1 leading-relaxed">Open the Spacepad app on a tablet or TV and enter your connect code.</p>
+                            @if($hasDisplay && !$hasDevice && $connectCode)
+                                <div class="mt-4 inline-flex items-center gap-2 rounded-lg bg-blue-50 border border-blue-100 px-3 py-2">
+                                    <svg class="h-4 w-4 text-blue-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 0 0 6 3.75v16.5a2.25 2.25 0 0 0 2.25 2.25h7.5A2.25 2.25 0 0 0 18 20.25V3.75a2.25 2.25 0 0 0-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 8.25h3m-3 3h3m-3 3h3"/></svg>
+                                    <span class="text-sm font-mono font-semibold text-blue-700 tracking-widest">{{ chunk_split($connectCode, 3, ' ') }}</span>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
     @endif
@@ -158,10 +362,15 @@
                         </p>
                     </div>
                     <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none flex items-center gap-2">
-                        @if(auth()->user()->hasAnyDisplay() || auth()->user()->workspaces()->count() > 1)
-                            <button type="button" onclick="openConnectModal()" class="inline-flex items-center gap-x-1.5 rounded-md bg-oxford px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-oxford-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-oxford-600">
-                                <x-icons.display class="h-4 w-4" />
-                                How to connect a tablet
+                        @if(auth()->user()->hasProForCurrentWorkspace() && $displays->isNotEmpty())
+                            <button type="button"
+                                    onclick="window.dispatchEvent(new CustomEvent('open-diagnostics'))"
+                                    class="inline-flex items-center gap-1.5 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-600 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+                                    title="Troubleshoot calendar sync issues">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+                                </svg>
+                                Troubleshoot
                             </button>
                         @endif
                         @if(auth()->user()->can('create', \App\Models\Display::class))
@@ -180,91 +389,38 @@
                     </div>
                 </div>
 
-            {{-- Connect Instructions Modal --}}
-            <div id="connectModal" class="relative z-10 hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-                <div class="fixed inset-0 bg-gray-500 opacity-75 transition-opacity"></div>
-
-                <div class="fixed inset-0 z-10 overflow-y-auto">
-                    <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
-                        <div class="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
-                            <div>
-                                <div class="mt-2 text-center">
-                                    <h3 class="text-lg font-semibold leading-6 text-gray-900" id="modal-title">Instructions on connecting a new device</h3>
-                                    <div class="mt-2 mx-auto max-w-md">
-                                        <p class="text-sm text-gray-700">Connect a new device like a tablet or phone by downloading the app from the <a target="_blank" href="https://play.google.com/store/apps/details?id=com.magweter.spacepad" class="text-blue-600 hover:text-blue-500">Play Store</a> or <a target="_blank" href="https://apps.apple.com/nl/app/spacepad/id6745528995" class="text-blue-600 hover:text-blue-500">App Store</a>.</p>
-                                    </div>
-                                    @if(config('settings.is_self_hosted'))
-                                        <div class="mt-6 mx-auto max-w-md text-center">
-                                            <p class="text-sm text-gray-700">Select 'self-hosted' and enter the following url:</p>
-                                        </div>
-                                        <div class="mt-4 p-4 bg-gray-50 rounded-lg">
-                                            <p class="text-lg font-mono text-center">{{ config('app.url') }}</p>
-                                        </div>
-                                    @endif
-                                    <div class="mt-6 mx-auto max-w-md text-center">
-                                        <p class="text-sm text-gray-700">Enter the following connect code:</p>
-                                    </div>
-                                    <div class="mt-4 p-4 bg-gray-50 rounded-lg">
-                                        <p class="text-2xl font-mono text-center">{{ chunk_split($connectCode, 3, ' ') }}</p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="mt-5 sm:mt-8">
-                                <button type="button" onclick="closeConnectModal()" class="inline-flex w-full justify-center rounded-md bg-oxford px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-oxford-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-oxford-600">Close</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-                <div class="mt-6 flow-root">
-                    <div class="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
-                        <div class="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
-                            <table class="min-w-full divide-y divide-gray-300">
-                                <thead>
+                <div class="mt-6 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50/90">
                                 <tr>
-                                    <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-0">Name</th>
-                                    <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Account</th>
-                                    <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Status</th>
-                                    <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Activity</th>
-                                    <th scope="col" class="relative py-3.5 pr-4 pl-3 sm:pr-0">
+                                    <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Name</th>
+                                    <th scope="col" class="px-3 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Calendar account</th>
+                                    <th scope="col" class="px-3 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Status</th>
+                                    <th scope="col" class="px-3 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Devices & sync</th>
+                                    <th scope="col" class="relative py-3.5 pr-4 pl-3 text-right">
                                         <span class="sr-only">Actions</span>
                                     </th>
                                 </tr>
                                 </thead>
-                                <tbody class="divide-y divide-gray-200" id="displays-table">
+                                <tbody class="divide-y divide-gray-100 bg-white" id="displays-table">
                                 @forelse($displays as $display)
                                     <x-displays.table-row :display="$display" />
                                 @empty
                                     <tr>
-                                        <td colspan="5" class="py-16 text-center">
+                                        <td colspan="5" class="px-6 py-16 text-center">
                                             <div class="flex flex-col items-center justify-center">
-                                                <x-icons.display class="h-12 w-12 text-orange mb-3" />
-                                                <h3 class="mb-2 text-md font-semibold text-gray-900">
-                                                    One more step and you're set up
+                                                <x-icons.display class="mx-auto mb-3 h-10 w-10 text-gray-400" />
+                                                <h3 class="mb-2 text-base font-semibold text-gray-900">
+                                                    No displays yet
                                                 </h3>
-                                                <p class="mb-6 text-sm text-gray-500 max-w-sm">Pick the calendar or room you would like to synchronize. You are able to connect multiple tablets to one display.</p>
-                                                @if(! $isSelfHosted && auth()->user()->shouldUpgradeForCurrentWorkspace())
-                                                    <span class="inline-flex items-center rounded-md bg-gray-100 px-3 py-2 text-center text-sm font-semibold text-gray-400 shadow-sm ring-1 ring-inset ring-gray-200 cursor-not-allowed" title="Upgrade to Pro to create more displays">
-                                                        <x-icons.plus class="h-5 w-5 mr-1" /> Create new display <span class="ml-2 inline-flex items-center rounded-md bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600">Pro</span>
-                                                    </span>
-                                                @elseif($isSelfHosted && auth()->user()->shouldUpgradeForCurrentWorkspace())
-                                                    <span class="inline-flex items-center rounded-md bg-gray-100 px-3 py-2 text-center text-sm font-semibold text-gray-400 shadow-sm ring-1 ring-inset ring-gray-200 cursor-not-allowed" title="Upgrade to Pro to create more displays">
-                                                        <x-icons.plus class="h-5 w-5 mr-1" /> Create new display <span class="ml-2 inline-flex items-center rounded-md bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600">Pro</span>
-                                                    </span>
-                                                @else
-                                                    <a href="{{ route('displays.create') }}" class="inline-flex items-center rounded-md bg-oxford px-3 py-2 text-center text-sm font-semibold text-white">
-                                                        <x-icons.plus class="h-5 w-5 mr-1" />
-                                                        Create new display
-                                                    </a>
-                                                @endif
+                                                <p class="text-sm text-gray-500 max-w-sm">Follow the getting started guide to connect your calendar and set up your first display.</p>
                                             </div>
                                         </td>
                                     </tr>
                                 @endforelse
                                 </tbody>
                             </table>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -301,46 +457,55 @@
                         </div>
                     </div>
 
-                    <div class="mt-6 flow-root">
-                        <div class="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
-                            <div class="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
-                                <table class="min-w-full divide-y divide-gray-300">
-                                    <thead>
+                    <div class="mt-6 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+                        <div class="overflow-x-auto">
+                                <table class="min-w-full divide-y divide-gray-200">
+                                    <thead class="bg-gray-50/90">
                                     <tr>
-                                        <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-0">Name</th>
-                                        <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Displays</th>
-                                        <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Type</th>
-                                        <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Created by</th>
-                                        <th scope="col" class="relative py-3.5 pr-4 pl-3 sm:pr-0">
+                                        <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Name</th>
+                                        <th scope="col" class="px-3 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Displays</th>
+                                        <th scope="col" class="px-3 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Scope</th>
+                                        <th scope="col" class="px-3 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Created by</th>
+                                        <th scope="col" class="relative py-3.5 pr-4 pl-3 text-right">
                                             <span class="sr-only">Actions</span>
                                         </th>
                                     </tr>
                                     </thead>
-                                    <tbody class="divide-y divide-gray-200">
+                                    <tbody class="divide-y divide-gray-100 bg-white">
                                     @forelse($boards as $board)
-                                        <tr>
-                                            <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0">
-                                                {{ $board->name }}
+                                        <tr class="transition-colors hover:bg-gray-50/90">
+                                            <td class="whitespace-nowrap py-4 pl-4 pr-3 align-middle sm:pl-4">
+                                                <div class="text-sm font-semibold text-gray-900">{{ $board->name }}</div>
                                             </td>
-                                            <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                                                {{ $board->display_count }} {{ $board->display_count === 1 ? 'display' : 'displays' }}
+                                            <td class="whitespace-nowrap px-3 py-4 align-middle text-sm text-gray-600">
+                                                <span class="font-medium text-gray-900">{{ $board->display_count }}</span>
+                                                <span class="text-gray-500">{{ $board->display_count === 1 ? 'display' : 'displays' }}</span>
                                             </td>
-                                            <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                            <td class="whitespace-nowrap px-3 py-4 align-middle text-sm">
                                                 @if($board->show_all_displays)
-                                                    <span class="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
+                                                    <span class="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-800 ring-1 ring-inset ring-emerald-600/15">
                                                         Show all
                                                     </span>
                                                 @else
-                                                    <span class="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20">
+                                                    <span class="inline-flex items-center rounded-full bg-sky-50 px-2.5 py-1 text-xs font-semibold text-sky-800 ring-1 ring-inset ring-sky-600/15">
                                                         Selected
                                                     </span>
                                                 @endif
                                             </td>
-                                            <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                            <td class="whitespace-nowrap px-3 py-4 align-middle text-sm font-medium text-gray-900">
                                                 {{ $board->user->name }}
                                             </td>
-                                            <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-0">
+                                            <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right align-middle text-sm font-medium sm:pr-4">
                                                 <div class="flex justify-end gap-x-2">
+                                                    @if($board->is_public && $board->public_token)
+                                                        <button type="button"
+                                                                data-public-board-id="{{ $board->id }}"
+                                                                onclick="openPublicUrlModal('{{ route('boards.public', $board->public_token) }}', '{{ e($board->name) }}')"
+                                                                class="inline-flex items-center rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-emerald-600 shadow-sm ring-1 ring-inset ring-emerald-300 hover:bg-emerald-50"
+                                                                title="Copy public URL">
+                                                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244" /></svg>
+                                                        </button>
+                                                    @endif
                                                     <a href="{{ route('boards.show', $board) }}" target="_blank" class="inline-flex items-center rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50" title="Open board in new tab">
                                                         <x-icons.external class="h-4 w-4" />
                                                     </a>
@@ -363,13 +528,13 @@
                                         </tr>
                                     @empty
                                         <tr>
-                                            <td colspan="5" class="py-16 text-center">
+                                            <td colspan="5" class="px-6 py-16 text-center">
                                                 <div class="flex flex-col items-center justify-center">
-                                                    <x-icons.display class="h-12 w-12 text-orange mb-3" />
-                                                    <h3 class="mb-2 text-md font-semibold text-gray-900">
+                                                    <x-icons.building class="mx-auto mb-3 h-10 w-10 text-gray-400" />
+                                                    <h3 class="mb-2 text-base font-semibold text-gray-900">
                                                         No boards yet
                                                     </h3>
-                                                    <p class="mb-6 text-sm text-gray-500 max-w-sm">Create your first board to display room availability on a big screen.</p>
+                                                    <p class="mb-6 text-sm text-gray-500 max-w-sm">Create your first board to show room availability on a lobby or hallway screen.</p>
                                                     <a href="{{ route('boards.create') }}" class="inline-flex items-center rounded-md bg-oxford px-3 py-2 text-center text-sm font-semibold text-white">
                                                         <x-icons.plus class="h-5 w-5 mr-1" />
                                                         Create new board
@@ -380,198 +545,231 @@
                                     @endforelse
                                     </tbody>
                                 </table>
-                            </div>
                         </div>
                     </div>
                 </div>
             @endif
         </x-cards.card>
         
-        <x-cards.card class="col-span-12 xl:col-span-4 space-y-6">
-            <div>
-                <h2 class="text-lg font-semibold leading-6 text-gray-900">Accounts</h2>
-                <p class="mt-1 text-sm text-gray-500">The accounts used to connect to calendars and rooms.</p>
-            </div>
-            <div>
-                <div class="flex flex-col md:flex-row gap-4">
-                    @if(config('services.microsoft.enabled'))
-                        <button 
-                            type="button"
-                            onclick="window.dispatchEvent(new CustomEvent('open-permission-modal', { detail: { provider: 'outlook' } }))"
-                            class="grow flex items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white p-4 shadow-sm hover:border-blue-500 hover:shadow-md transition-all duration-200">
-                            <x-icons.microsoft class="h-6 w-6" />
-                            <span class="font-medium text-gray-900">Microsoft</span>
-                        </button>
-                    @endif
-
-                    @if(config('services.google.enabled'))
-                        <button 
-                            type="button"
-                            onclick="window.dispatchEvent(new CustomEvent('open-permission-modal', { detail: { provider: 'google' } }))"
-                            class="grow flex items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white p-4 shadow-sm hover:border-blue-500 hover:shadow-md transition-all duration-200">
-                            <x-icons.google class="h-6 w-6" />
-                            <span class="font-medium text-gray-900">Google</span>
-                        </button>
-                    @endif
-
-                    @if(config('services.caldav.enabled'))
-                        <a href="{{ route('caldav-accounts.create') }}"
-                           class="grow flex items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white p-4 shadow-sm hover:border-blue-500 hover:shadow-md transition-all duration-200">
-                            <x-icons.calendar class="h-6 w-6 text-gray-600" />
-                            <span class="font-medium text-gray-900">CalDAV</span>
-                        </a>
-                    @endif
+        <x-cards.card class="col-span-12 xl:col-span-4">
+            {{-- Header + add button --}}
+            <div class="flex items-center justify-between mb-5">
+                <div>
+                    <h2 class="text-lg font-semibold leading-6 text-gray-900">Accounts</h2>
+                    <p class="mt-0.5 text-sm text-gray-500">Calendar accounts connected to your displays.</p>
                 </div>
-            </div>
-            <div class="relative">
-                <div class="absolute inset-0 flex items-center" aria-hidden="true">
-                    <div class="w-full border-t border-gray-300"></div>
-                </div>
-                <div class="relative flex justify-center">
-                    <span class="bg-white px-2 text-sm text-gray-500">Connected accounts</span>
-                </div>
-            </div>
-            @if($outlookAccounts->isEmpty() && $googleAccounts->isEmpty() && $caldavAccounts->isEmpty())
-                <div class="py-12 text-center">
-                    <div class="flex flex-col items-center justify-center">
-                        <h3 class="mb-2 text-md font-semibold text-gray-900">
-                            No accounts connected yet
-                        </h3>
-                        <p class="mb-0 text-sm text-gray-500 max-w-sm">
-                            Connect a calendar account above to get started. You can connect Microsoft, Google, or CalDAV accounts.
-                        </p>
+                <div class="relative" x-data="{ open: false }" @click.outside="open = false">
+                    <button
+                        type="button"
+                        @click="open = !open"
+                        class="inline-flex items-center gap-1.5 rounded-md bg-oxford px-3 py-2 text-sm font-semibold text-white hover:bg-oxford-600 transition-colors"
+                    >
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
+                        </svg>
+                        Connect
+                    </button>
+                    <div
+                        x-show="open"
+                        x-transition:enter="transition ease-out duration-100"
+                        x-transition:enter-start="opacity-0 scale-95"
+                        x-transition:enter-end="opacity-100 scale-100"
+                        x-transition:leave="transition ease-in duration-75"
+                        x-transition:leave-start="opacity-100 scale-100"
+                        x-transition:leave-end="opacity-0 scale-95"
+                        class="absolute right-0 top-full mt-1.5 z-20 w-44 rounded-lg border border-gray-200 bg-white shadow-lg py-1"
+                        style="display:none"
+                    >
+                        @if(config('services.microsoft.enabled'))
+                            <button
+                                type="button"
+                                @click="open = false; window.dispatchEvent(new CustomEvent('open-permission-modal', { detail: { provider: 'outlook' } }))"
+                                class="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+                            >
+                                <x-icons.microsoft class="h-4 w-4 flex-shrink-0" />
+                                Microsoft
+                            </button>
+                        @endif
+                        @if(config('services.google.enabled'))
+                            <button
+                                type="button"
+                                @click="open = false; window.dispatchEvent(new CustomEvent('open-permission-modal', { detail: { provider: 'google' } }))"
+                                class="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+                            >
+                                <x-icons.google class="h-4 w-4 flex-shrink-0" />
+                                Google
+                            </button>
+                        @endif
+                        @if(config('services.caldav.enabled'))
+                            <a
+                                href="{{ route('caldav-accounts.create') }}"
+                                class="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+                            >
+                                <x-icons.calendar class="h-4 w-4 flex-shrink-0 text-gray-500" />
+                                CalDAV
+                            </a>
+                        @endif
                     </div>
+                </div>
+            </div>
+
+            {{-- Account list --}}
+            @if($outlookAccounts->isEmpty() && $googleAccounts->isEmpty() && $caldavAccounts->isEmpty())
+                <div class="py-10 text-center">
+                    <p class="text-sm text-gray-500">No accounts connected yet.</p>
+                    <p class="mt-1 text-xs text-gray-400">Use the Connect button above to add Microsoft, Google, or CalDAV.</p>
                 </div>
             @else
-                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-1 gap-4">
+                <div class="divide-y divide-gray-100">
                     @foreach($outlookAccounts as $outlookAccount)
-                    <div class="relative flex items-center space-x-4 rounded-lg border border-gray-300 bg-white px-5 py-4 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 hover:border-gray-400">
-                        @if($outlookAccount->calendars->isEmpty())
-                            <form action="{{ route('outlook-accounts.delete', $outlookAccount) }}" method="POST" class="absolute top-4.5 right-2 z-10">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="group p-1 rounded hover:bg-gray-100" title="Disconnect">
-                                    <x-icons.trash class="h-4 w-4 text-gray-400 group-hover:text-red-600" />
-                                </button>
-                            </form>
-                        @else
-                            <span class="flex absolute top-4.5 right-2 z-10 group cursor-not-allowed" title="Delete all connected displays first before disconnecting the account">
-                                <span class="p-1 rounded">
-                                    <x-icons.trash class="h-4 w-4 text-gray-300" />
-                                </span>
-                            </span>
-                        @endif
-                        <div class="flex-shrink-0 px-1">
-                            <x-icons.microsoft class="h-12 w-12" />
-                        </div>
-                        <div class="min-w-0 flex-1">
-                            <span class="absolute inset-0" aria-hidden="true"></span>
-                            <div class="flex items-center gap-2 flex-wrap">
-                                <p class="text-md font-medium text-gray-900">{{ $outlookAccount->name }}</p>
+                        <div class="flex items-center gap-3 py-3" x-data="{ bookingInfo: false }">
+                            <x-icons.microsoft class="h-5 w-5 flex-shrink-0" />
+                            <div class="min-w-0 flex-1">
+                                <p class="truncate text-sm font-medium text-gray-900">{{ $outlookAccount->name }}</p>
+                                <p class="truncate text-xs text-gray-400">{{ $outlookAccount->email }}</p>
                             </div>
-                            <div class="truncate text-sm text-gray-500 flex items-center gap-2 flex-wrap">
-                                <span>{{ $outlookAccount->email }}</span>
-                            </div>
-                            <div class="truncate text-sm text-gray-500 flex items-center gap-2 mt-1 flex-wrap">
-                                <p class="mt-0.5 whitespace-nowrap rounded-md bg-green-50 px-1.5 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600">Connected</p>
-                                <p class="mt-0.5 whitespace-nowrap rounded-md px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset {{ $outlookAccount->isBusiness() ? 'bg-purple-50 text-purple-700 ring-purple-600' : 'bg-gray-50 text-gray-700 ring-gray-600' }}">
-                                    {{ $outlookAccount->isBusiness() ? 'Microsoft 365' : 'Personal' }}
-                                </p>
+                            <div class="flex flex-shrink-0 items-center gap-1.5">
+                                @if($outlookAccount->permission_type === \App\Enums\PermissionType::WRITE && $outlookAccount->isBusiness())
+                                    <div class="relative">
+                                        <button type="button" @click="bookingInfo = !bookingInfo" @click.outside="bookingInfo = false"
+                                            class="rounded p-1 hover:bg-gray-100 {{ $outlookAccount->booking_method ? 'text-gray-500 hover:text-gray-700' : 'text-yellow-500 hover:text-yellow-600' }}"
+                                            title="Booking method">
+                                            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5m-9-6h.008v.008H12v-.008zM12 15h.008v.008H12V15zm0 2.25h.008v.008H12v-.008zM9.75 15h.008v.008H9.75V15zm0 2.25h.008v.008H9.75v-.008zM7.5 15h.008v.008H7.5V15zm0 2.25h.008v.008H7.5v-.008zm6.75-4.5h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V15zm0 2.25h.008v.008h-.008v-.008zm2.25-4.5h.008v.008H16.5v-.008zm0 2.25h.008v.008H16.5V15z"/></svg>
+                                        </button>
+                                        <div x-show="bookingInfo" x-cloak x-transition
+                                            class="absolute right-0 top-full mt-1.5 z-30 w-64 rounded-lg border border-gray-200 bg-white p-3 shadow-lg text-left"
+                                            style="display:none">
+                                            <p class="text-xs font-semibold text-gray-700">
+                                                Booking method: {{ $outlookAccount->booking_method?->label() ?? 'Not set' }}
+                                            </p>
+                                            <p class="mt-1 text-xs text-gray-500 leading-relaxed">
+                                                @if($outlookAccount->booking_method)
+                                                    {{ $outlookAccount->booking_method->description() }}
+                                                @else
+                                                    No booking method configured yet. Select a method to enable room bookings from the display.
+                                                @endif
+                                            </p>
+                                            <button type="button"
+                                                @click="bookingInfo = false; window.dispatchEvent(new CustomEvent('open-microsoft-booking-method-modal', { detail: { id: '{{ $outlookAccount->id }}', bookingMethod: '{{ $outlookAccount->booking_method?->value ?? '' }}' } }))"
+                                                class="mt-2.5 text-xs font-medium text-blue-600 hover:text-blue-700">
+                                                {{ $outlookAccount->booking_method ? 'Change booking method →' : 'Set booking method →' }}
+                                            </button>
+                                        </div>
+                                    </div>
+                                @endif
                                 @if($outlookAccount->permission_type)
-                                    <p class="mt-0.5 whitespace-nowrap rounded-md px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset {{ $outlookAccount->permission_type === \App\Enums\PermissionType::WRITE ? 'bg-blue-50 text-blue-700 ring-blue-600' : 'bg-gray-50 text-gray-700 ring-gray-600' }}">
+                                    <span class="whitespace-nowrap rounded-md px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset {{ $outlookAccount->permission_type === \App\Enums\PermissionType::WRITE ? 'bg-blue-50 text-blue-700 ring-blue-600' : 'bg-gray-50 text-gray-600 ring-gray-300' }}">
                                         {{ $outlookAccount->permission_type->label() }}
-                                    </p>
+                                    </span>
+                                @endif
+                                @if($outlookAccount->calendars->isEmpty())
+                                    <form action="{{ route('outlook-accounts.delete', $outlookAccount) }}" method="POST">
+                                        @csrf @method('DELETE')
+                                        <button type="submit" class="group rounded p-1 hover:bg-gray-100" title="Disconnect">
+                                            <x-icons.trash class="h-4 w-4 text-gray-300 group-hover:text-red-500" />
+                                        </button>
+                                    </form>
+                                @else
+                                    <span class="cursor-not-allowed rounded p-1" title="Remove all displays using this account first">
+                                        <x-icons.trash class="h-4 w-4 text-gray-200" />
+                                    </span>
                                 @endif
                             </div>
                         </div>
-                    </div>
-                @endforeach
-                @foreach($googleAccounts as $googleAccount)
-                    <div class="relative flex items-center space-x-4 rounded-lg border border-gray-300 bg-white px-5 py-4 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 hover:border-gray-400">
-                        @if($googleAccount->calendars->isEmpty())
-                            <form action="{{ route('google-accounts.delete', $googleAccount) }}" method="POST" class="absolute top-4.5 right-2 z-10">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="group p-1 rounded hover:bg-gray-100" title="Disconnect">
-                                    <x-icons.trash class="h-4 w-4 text-gray-400 group-hover:text-red-600" />
-                                </button>
-                            </form>
-                        @else
-                            <span class="flex absolute top-4.5 right-2 z-10 group cursor-not-allowed" title="Delete all connected displays first before disconnecting the account">
-                                <span class="p-1 rounded">
-                                    <x-icons.trash class="h-4 w-4 text-gray-300" />
-                                </span>
-                            </span>
-                        @endif
-                        <div class="flex-shrink-0 px-1">
-                            <x-icons.google class="h-12 w-12" />
-                        </div>
-                        <div class="min-w-0 flex-1">
-                            <span class="absolute inset-0" aria-hidden="true"></span>
-                            <div class="flex items-center gap-2 flex-wrap">
-                                <p class="text-md font-medium text-gray-900">{{ $googleAccount->name }}</p>
+                    @endforeach
+
+                    @foreach($googleAccounts as $googleAccount)
+                        <div class="flex items-center gap-3 py-3" x-data="{ bookingInfo: false }">
+                            <x-icons.google class="h-5 w-5 flex-shrink-0" />
+                            <div class="min-w-0 flex-1">
+                                <p class="truncate text-sm font-medium text-gray-900">{{ $googleAccount->name }}</p>
+                                <p class="truncate text-xs text-gray-400">{{ $googleAccount->email }}</p>
                             </div>
-                            <div class="truncate text-sm text-gray-500 flex items-center gap-2 flex-wrap">
-                                <span>{{ $googleAccount->email }}</span>
-                            </div>
-                            <div class="truncate text-sm text-gray-500 flex items-center gap-2 mt-1 flex-wrap">
-                                <p class="mt-0.5 whitespace-nowrap rounded-md bg-green-50 px-1.5 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600">Connected</p>
-                                <p class="mt-0.5 whitespace-nowrap rounded-md px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset {{ $googleAccount->isBusiness() ? 'bg-purple-50 text-purple-700 ring-purple-600' : 'bg-gray-50 text-gray-700 ring-gray-600' }}">
-                                    {{ $googleAccount->isBusiness() ? 'Workspace' : 'Personal' }}
-                                </p>
+                            <div class="flex flex-shrink-0 items-center gap-1.5">
+                                @if($googleAccount->permission_type === \App\Enums\PermissionType::WRITE)
+                                    <div class="relative">
+                                        <button type="button" @click="bookingInfo = !bookingInfo" @click.outside="bookingInfo = false"
+                                            class="rounded p-1 hover:bg-gray-100 {{ ($googleAccount->isBusiness() && !$googleAccount->booking_method) ? 'text-yellow-500 hover:text-yellow-600' : 'text-gray-500 hover:text-gray-700' }}"
+                                            title="Booking method">
+                                            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5m-9-6h.008v.008H12v-.008zM12 15h.008v.008H12V15zm0 2.25h.008v.008H12v-.008zM9.75 15h.008v.008H9.75V15zm0 2.25h.008v.008H9.75v-.008zM7.5 15h.008v.008H7.5V15zm0 2.25h.008v.008H7.5v-.008zm6.75-4.5h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V15zm0 2.25h.008v.008h-.008v-.008zm2.25-4.5h.008v.008H16.5v-.008zm0 2.25h.008v.008H16.5V15z"/></svg>
+                                        </button>
+                                        <div x-show="bookingInfo" x-cloak x-transition
+                                            class="absolute right-0 top-full mt-1.5 z-30 w-64 rounded-lg border border-gray-200 bg-white p-3 shadow-lg text-left"
+                                            style="display:none">
+                                            @if($googleAccount->isBusiness())
+                                                <p class="text-xs font-semibold text-gray-700">
+                                                    Booking method: {{ $googleAccount->booking_method?->label() ?? 'Not set' }}
+                                                </p>
+                                                <p class="mt-1 text-xs text-gray-500 leading-relaxed">
+                                                    @if($googleAccount->booking_method)
+                                                        {{ $googleAccount->booking_method->description() }}
+                                                    @else
+                                                        No booking method configured yet. Select a method to enable room bookings from the display.
+                                                    @endif
+                                                </p>
+                                                <button type="button"
+                                                    @click="bookingInfo = false; window.dispatchEvent(new CustomEvent('open-google-booking-method-modal', { detail: { id: '{{ $googleAccount->id }}', bookingMethod: '{{ $googleAccount->booking_method?->value ?? '' }}' } }))"
+                                                    class="mt-2.5 text-xs font-medium text-blue-600 hover:text-blue-700">
+                                                    {{ $googleAccount->booking_method ? 'Change booking method →' : 'Set booking method →' }}
+                                                </button>
+                                            @else
+                                                <p class="text-xs font-semibold text-gray-700">Booking method: User account</p>
+                                                <p class="mt-1 text-xs text-gray-500 leading-relaxed">
+                                                    Bookings appear in your connected Google account's calendar. Your account is listed as the organizer of every booking.
+                                                </p>
+                                            @endif
+                                        </div>
+                                    </div>
+                                @endif
                                 @if($googleAccount->permission_type)
-                                    <p class="mt-0.5 whitespace-nowrap rounded-md px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset {{ $googleAccount->permission_type === \App\Enums\PermissionType::WRITE ? 'bg-blue-50 text-blue-700 ring-blue-600' : 'bg-gray-50 text-gray-700 ring-gray-600' }}">
+                                    <span class="whitespace-nowrap rounded-md px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset {{ $googleAccount->permission_type === \App\Enums\PermissionType::WRITE ? 'bg-blue-50 text-blue-700 ring-blue-600' : 'bg-gray-50 text-gray-600 ring-gray-300' }}">
                                         {{ $googleAccount->permission_type->label() }}
-                                    </p>
+                                    </span>
                                 @endif
-                                @if($googleAccount->isBusiness() && $googleAccount->booking_method)
-                                    <p class="mt-0.5 whitespace-nowrap rounded-md px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset {{ $googleAccount->booking_method === \App\Enums\GoogleBookingMethod::SERVICE_ACCOUNT ? 'bg-orange-50 text-orange-700 ring-orange-600' : 'bg-indigo-50 text-indigo-700 ring-indigo-600' }}">
-                                        {{ $googleAccount->booking_method === \App\Enums\GoogleBookingMethod::SERVICE_ACCOUNT ? 'Service Account' : 'User Account' }}
-                                    </p>
+                                @if($googleAccount->calendars->isEmpty())
+                                    <form action="{{ route('google-accounts.delete', $googleAccount) }}" method="POST">
+                                        @csrf @method('DELETE')
+                                        <button type="submit" class="group rounded p-1 hover:bg-gray-100" title="Disconnect">
+                                            <x-icons.trash class="h-4 w-4 text-gray-300 group-hover:text-red-500" />
+                                        </button>
+                                    </form>
+                                @else
+                                    <span class="cursor-not-allowed rounded p-1" title="Remove all displays using this account first">
+                                        <x-icons.trash class="h-4 w-4 text-gray-200" />
+                                    </span>
                                 @endif
                             </div>
                         </div>
-                    </div>
-                @endforeach
-                @foreach($caldavAccounts as $caldavAccount)
-                    <div class="relative flex items-center space-x-4 rounded-lg border border-gray-300 bg-white px-5 py-4 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 hover:border-gray-400">
-                        @if($caldavAccount->calendars->isEmpty())
-                            <form action="{{ route('caldav-accounts.delete', $caldavAccount) }}" method="POST" class="absolute top-4.5 right-2 z-10">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="group p-1 rounded hover:bg-gray-100" title="Disconnect">
-                                    <x-icons.trash class="h-4 w-4 text-gray-400 group-hover:text-red-600" />
-                                </button>
-                            </form>
-                        @else
-                            <span class="flex absolute top-4.5 right-2 z-10 group cursor-not-allowed" title="Delete all connected displays first before disconnecting the account">
-                                <span class="p-1 rounded">
-                                    <x-icons.trash class="h-4 w-4 text-gray-300" />
-                                </span>
-                            </span>
-                        @endif
-                        <div class="flex-shrink-0 px-1">
-                            <x-icons.calendar class="h-12 w-12" />
-                        </div>
-                        <div class="min-w-0 flex-1">
-                            <span class="absolute inset-0" aria-hidden="true"></span>
-                            <div class="flex items-center gap-2 flex-wrap">
-                                <p class="text-md font-medium text-gray-900">{{ $caldavAccount->name }}</p>
+                    @endforeach
+
+                    @foreach($caldavAccounts as $caldavAccount)
+                        <div class="flex items-center gap-3 py-3">
+                            <x-icons.calendar class="h-5 w-5 flex-shrink-0 text-gray-500" />
+                            <div class="min-w-0 flex-1">
+                                <p class="truncate text-sm font-medium text-gray-900">{{ $caldavAccount->name }}</p>
+                                <p class="truncate text-xs text-gray-400">{{ $caldavAccount->email }}</p>
                             </div>
-                            <div class="truncate text-sm text-gray-500 flex items-center gap-2 flex-wrap">
-                                <span>{{ $caldavAccount->email }}</span>
-                            </div>
-                            <div class="truncate text-sm text-gray-500 flex items-center gap-2 mt-1 flex-wrap">
-                                <p class="mt-0.5 whitespace-nowrap rounded-md bg-green-50 px-1.5 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600">Connected</p>
+                            <div class="flex flex-shrink-0 items-center gap-1.5">
                                 @if($caldavAccount->permission_type)
-                                    <p class="mt-0.5 whitespace-nowrap rounded-md px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset {{ $caldavAccount->permission_type === \App\Enums\PermissionType::WRITE ? 'bg-blue-50 text-blue-700 ring-blue-600' : 'bg-gray-50 text-gray-700 ring-gray-600' }}">
+                                    <span class="whitespace-nowrap rounded-md px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset {{ $caldavAccount->permission_type === \App\Enums\PermissionType::WRITE ? 'bg-blue-50 text-blue-700 ring-blue-600' : 'bg-gray-50 text-gray-600 ring-gray-300' }}">
                                         {{ $caldavAccount->permission_type->label() }}
-                                    </p>
+                                    </span>
+                                @endif
+                                @if($caldavAccount->calendars->isEmpty())
+                                    <form action="{{ route('caldav-accounts.delete', $caldavAccount) }}" method="POST">
+                                        @csrf @method('DELETE')
+                                        <button type="submit" class="group rounded p-1 hover:bg-gray-100" title="Disconnect">
+                                            <x-icons.trash class="h-4 w-4 text-gray-300 group-hover:text-red-500" />
+                                        </button>
+                                    </form>
+                                @else
+                                    <span class="cursor-not-allowed rounded p-1" title="Remove all displays using this account first">
+                                        <x-icons.trash class="h-4 w-4 text-gray-200" />
+                                    </span>
                                 @endif
                             </div>
                         </div>
-                    </div>
-                @endforeach
+                    @endforeach
                 </div>
             @endif
         </x-cards.card>
@@ -585,7 +783,7 @@
             </span>
             @if($version)
                 <span class="inline-flex items-center rounded-md bg-gray-100 px-2.5 py-1.5 text-xs font-medium text-gray-600">
-                    v{{ $version }}
+                    {{ $version }}
                 </span>
             @endif
             @if($appUrl)
@@ -599,28 +797,6 @@
 
 @push('scripts')
     <script>
-        function openConnectModal() {
-            document.getElementById('connectModal').classList.remove('hidden');
-        }
-
-        function closeConnectModal() {
-            document.getElementById('connectModal').classList.add('hidden');
-        }
-
-        // Close modal when clicking outside
-        document.getElementById('connectModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeConnectModal();
-            }
-        });
-
-        // Close modal when pressing Escape key
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                closeConnectModal();
-            }
-        });
-
         // Show service account modal if needed
         @if(session('open-service-account-modal'))
             window.addEventListener('DOMContentLoaded', function() {
@@ -635,6 +811,15 @@
             window.addEventListener('DOMContentLoaded', function() {
                 window.dispatchEvent(new CustomEvent('open-google-booking-method-modal', {
                     detail: '{{ session('open-google-booking-method-modal') }}'
+                }));
+            });
+        @endif
+
+        // Show Microsoft booking method modal if needed
+        @if(session('open-microsoft-booking-method-modal'))
+            window.addEventListener('DOMContentLoaded', function() {
+                window.dispatchEvent(new CustomEvent('open-microsoft-booking-method-modal', {
+                    detail: '{{ session('open-microsoft-booking-method-modal') }}'
                 }));
             });
         @endif
@@ -684,7 +869,7 @@
             const tabFromUrl = urlParams.get('tab');
             const defaultTab = 'displays';
             const tabToShow = tabFromUrl || defaultTab;
-            
+
             // Check if the tab exists (e.g., boards tab might not exist for non-Pro users)
             const tabButton = document.getElementById('tab-' + tabToShow);
             if (tabButton) {
@@ -693,7 +878,40 @@
                 // If tab from URL doesn't exist, fall back to default
                 switchTab(defaultTab, false);
             }
+
+            // Auto-open the public URL modal when redirected from the board form
+            // after enabling public access (?show_public=<boardId>).
+            const showPublicId = urlParams.get('show_public');
+            if (showPublicId) {
+                const btn = document.querySelector(`[data-public-board-id="${showPublicId}"]`);
+                if (btn) btn.click();
+                // Clean the param from the URL without a reload
+                urlParams.delete('show_public');
+                const cleanUrl = window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '');
+                window.history.replaceState({}, '', cleanUrl);
+            }
         });
+
+        // Public URL modal helpers
+        function openPublicUrlModal(url, name) {
+            document.getElementById('public-url-modal-title').textContent = name;
+            const input = document.getElementById('public-url-modal-input');
+            input.value = url;
+            document.getElementById('public-url-modal-copy-btn').textContent = 'Copy';
+            document.getElementById('public-url-modal').classList.remove('hidden');
+        }
+
+        function closePublicUrlModal() {
+            document.getElementById('public-url-modal').classList.add('hidden');
+        }
+
+        function copyPublicUrl() {
+            const input = document.getElementById('public-url-modal-input');
+            navigator.clipboard.writeText(input.value);
+            const btn = document.getElementById('public-url-modal-copy-btn');
+            btn.textContent = 'Copied!';
+            setTimeout(() => btn.textContent = 'Copy', 2000);
+        }
 
         // Handle browser back/forward buttons
         window.addEventListener('popstate', function(event) {
@@ -712,5 +930,37 @@
     <x-modals.select-permission provider="outlook" />
     <x-modals.select-permission provider="google" />
     <x-modals.select-google-booking-method />
+    <x-modals.select-microsoft-booking-method />
     <x-modals.google-service-account />
+    <x-modals.diagnostics :displays="$displays" />
+
+    {{-- Public board URL modal --}}
+    <div id="public-url-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+        {{-- Backdrop --}}
+        <div class="absolute inset-0 bg-black/40" onclick="closePublicUrlModal()"></div>
+
+        <div class="relative w-full max-w-lg rounded-xl bg-white shadow-xl p-6">
+            <div class="flex items-start justify-between mb-4">
+                <div>
+                    <h3 class="text-base font-semibold text-gray-900">Public URL</h3>
+                    <p id="public-url-modal-title" class="mt-0.5 text-sm text-gray-500"></p>
+                </div>
+                <button type="button" onclick="closePublicUrlModal()" class="ml-4 rounded-md p-1 text-gray-400 hover:text-gray-600">
+                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            <p class="mb-3 text-sm text-gray-500">Anyone with this link can view the board without logging in.</p>
+
+            <div class="flex items-center gap-2">
+                <input id="public-url-modal-input" type="text" readonly
+                       class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 bg-gray-50 shadow-sm ring-1 ring-inset ring-gray-300 sm:text-sm sm:leading-6"
+                       onclick="this.select()">
+                <button id="public-url-modal-copy-btn" type="button" onclick="copyPublicUrl()"
+                        class="shrink-0 rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700">
+                    Copy
+                </button>
+            </div>
+        </div>
+    </div>
 @endpush

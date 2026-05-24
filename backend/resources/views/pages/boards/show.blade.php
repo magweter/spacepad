@@ -190,7 +190,7 @@
         <div class="flex items-center gap-5">
             @if($board->logo)
                 <div class="flex-shrink-0">
-                    <img src="{{ route('boards.images.logo', $board) }}?v={{ $board->updated_at->timestamp }}" alt="Board logo" class="h-14 w-auto object-contain">
+                    <img src="{{ $board->is_public && $board->public_token ? route('boards.public.logo', $board->public_token) : route('boards.images.logo', $board) }}?v={{ $board->updated_at->timestamp }}" alt="Board logo" class="h-14 w-auto object-contain">
                 </div>
             @else
                 <div class="h-14 w-14 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold text-xl">
@@ -260,7 +260,7 @@
                             
                             $statusBadgeClass = match($status) {
                                 'busy' => 'bg-red-500/10 text-red-400 border-red-500/20',
-                                'transitioning' => 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+                                'transitioning', 'check_in' => 'bg-amber-500/10 text-amber-400 border-amber-500/20',
                                 'error' => 'bg-gray-500/10 text-gray-400 border-gray-500/20',
                                 default => 'bg-green-500/10 text-green-400 border-green-500/20',
                             };
@@ -291,6 +291,12 @@
                                             </svg>
                                             <span class="event-time" data-start="{{ $currentEvent['start']->toIso8601String() }}" data-end="{{ $currentEvent['end']->toIso8601String() }}"></span>
                                         </div>
+                                        @if(($board->show_join_button ?? false) && !empty($currentEvent['joinUrl']))
+                                            <a href="{{ $currentEvent['joinUrl'] }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 mt-0.5 px-2 py-0.5 rounded text-xs font-medium bg-blue-500/20 text-blue-400 border border-blue-500/30 hover:bg-blue-500/30 transition-colors">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.069A1 1 0 0121 8.845v6.31a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                                                {{ $t('boards.join_meeting') }}
+                                            </a>
+                                        @endif
                                     </div>
                                 @else
                                     @if($nextEvent)
@@ -352,7 +358,7 @@
                     // Status colors
                     $statusBarColor = match($status) {
                         'busy' => 'bg-red-500',
-                        'transitioning' => 'bg-amber-500',
+                        'transitioning', 'check_in' => 'bg-amber-500',
                         'error' => 'bg-gray-500',
                         default => 'bg-green-500',
                     };
@@ -423,6 +429,12 @@
                                             </div>
                                         @endif
                                     </div>
+                                    @if(($board->show_join_button ?? false) && !empty($currentEvent['joinUrl']))
+                                        <a href="{{ $currentEvent['joinUrl'] }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 mt-1 px-2.5 py-1 rounded text-xs font-medium bg-blue-500/20 text-blue-400 border border-blue-500/30 hover:bg-blue-500/30 transition-colors">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.069A1 1 0 0121 8.845v6.31a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                                            {{ $t('boards.join_meeting') }}
+                                        </a>
+                                    @endif
                                 </div>
                             @else
                                 {{-- Available --}}
@@ -494,7 +506,7 @@
                     // Status colors
                     $statusBarColor = match($status) {
                         'busy' => 'bg-red-500',
-                        'transitioning' => 'bg-amber-500',
+                        'transitioning', 'check_in' => 'bg-amber-500',
                         'error' => 'bg-gray-500',
                         default => 'bg-green-500',
                     };
@@ -520,7 +532,7 @@
                         @php
                             $statusBadgeClass = match($status) {
                                 'busy' => 'bg-red-500/10 text-red-400 border-red-500/20',
-                                'transitioning' => 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+                                'transitioning', 'check_in' => 'bg-amber-500/10 text-amber-400 border-amber-500/20',
                                 'error' => 'bg-gray-500/10 text-gray-400 border-gray-500/20',
                                 default => 'bg-green-500/10 text-green-400 border-green-500/20',
                             };
@@ -562,6 +574,12 @@
                                         </div>
                                     @endif
                                 </div>
+                                @if(($board->show_join_button ?? false) && !empty($currentEvent['joinUrl']))
+                                    <a href="{{ $currentEvent['joinUrl'] }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 mt-1 px-2.5 py-1 rounded text-xs font-medium bg-blue-500/20 text-blue-400 border border-blue-500/30 hover:bg-blue-500/30 transition-colors">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.069A1 1 0 0121 8.845v6.31a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                                        {{ $t('boards.join_meeting') }}
+                                    </a>
+                                @endif
                             </div>
                         @else
                             {{-- Available --}}
@@ -714,10 +732,11 @@
     // Update current time every second
     function updateTime() {
         const now = new Date();
-        // Format current time with seconds for the clock display
-        const timeString = now.toLocaleTimeString(undefined, { 
-            hour: 'numeric', 
-            minute: '2-digit', 
+        // Format current time with seconds for the clock display, using the board's language
+        // so English boards show 12-hour (12:31 AM) and other locales use their native format
+        const timeString = now.toLocaleTimeString(boardLanguage, {
+            hour: 'numeric',
+            minute: '2-digit',
             second: '2-digit'
         });
         document.getElementById('current-time').textContent = timeString;

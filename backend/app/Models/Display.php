@@ -2,15 +2,15 @@
 
 namespace App\Models;
 
+use App\Enums\DisplayStatus;
+use App\Helpers\DisplaySettings;
 use App\Traits\HasUlid;
-use Illuminate\Support\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use App\Enums\DisplayStatus;
-use App\Helpers\DisplaySettings;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
 class Display extends Model
 {
@@ -72,6 +72,7 @@ class Display extends Model
     public function boards(): BelongsToMany
     {
         return $this->belongsToMany(Board::class, 'board_displays')
+            ->using(BoardDisplay::class)
             ->withTimestamps();
     }
 
@@ -100,12 +101,12 @@ class Display extends Model
         return $this->status === DisplayStatus::DEACTIVATED;
     }
 
-    public function updateLastEventAt(Carbon|null $date = null): void
+    public function updateLastEventAt(?Carbon $date = null): void
     {
         $this->update(['last_event_at' => $date ?? now()]);
     }
 
-    public function updateLastSyncAt(Carbon|null $date = null): void
+    public function updateLastSyncAt(?Carbon $date = null): void
     {
         $this->update(['last_sync_at' => $date ?? now()]);
     }
@@ -171,6 +172,21 @@ class Display extends Model
         return DisplaySettings::setCalendarEnabled($this, $enabled);
     }
 
+    public function isTimelineWidgetEnabled(): bool
+    {
+        return DisplaySettings::isTimelineWidgetEnabled($this);
+    }
+
+    public function getTimelineWidgetMode(): string
+    {
+        return DisplaySettings::getTimelineWidgetMode($this);
+    }
+
+    public function setTimelineWidgetEnabled(bool $enabled): bool
+    {
+        return DisplaySettings::setTimelineWidgetEnabled($this, $enabled);
+    }
+
     public function getAvailableText(): ?string
     {
         return DisplaySettings::getAvailableText($this);
@@ -224,5 +240,50 @@ class Display extends Model
     public function getBorderThickness(): string
     {
         return DisplaySettings::getBorderThickness($this);
+    }
+
+    public function isAdvertisementEnabled(): bool
+    {
+        return DisplaySettings::isAdvertisementEnabled($this);
+    }
+
+    public function setAdvertisementEnabled(bool $enabled): bool
+    {
+        return DisplaySettings::setAdvertisementEnabled($this, $enabled);
+    }
+
+    public function getAdvertisementImageUrl(): ?string
+    {
+        return app(\App\Services\ImageService::class)->getAdvertisementImageUrl($this);
+    }
+
+    public function getAdvertisementInterval(): int
+    {
+        return DisplaySettings::getAdvertisementInterval($this);
+    }
+
+    public function getAdvertisementDuration(): int
+    {
+        return DisplaySettings::getAdvertisementDuration($this);
+    }
+
+    public function isExtendEnabled(): bool
+    {
+        return DisplaySettings::isExtendEnabled($this);
+    }
+
+    public function setExtendEnabled(bool $enabled): bool
+    {
+        return DisplaySettings::setExtendEnabled($this, $enabled);
+    }
+
+    public function isShowOrganizerEnabled(): bool
+    {
+        return DisplaySettings::isShowOrganizerEnabled($this);
+    }
+
+    public function setShowOrganizerEnabled(bool $enabled): bool
+    {
+        return DisplaySettings::setShowOrganizerEnabled($this, $enabled);
     }
 }

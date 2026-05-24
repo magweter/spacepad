@@ -28,10 +28,12 @@ class RegisterRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
+        $rules = [
             'name' => 'required|string',
             'email' => 'required|string|email',
-            'g-recaptcha-response' => config('recaptchav3.sitekey') ? 'required|recaptchav3:register,0.5' : 'nullable'
+            'g-recaptcha-response' => config('recaptchav3.sitekey') ? 'required|recaptchav3:register,0.5' : 'nullable',
         ];
+
+        return $rules;
     }
 }

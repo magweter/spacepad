@@ -3,7 +3,13 @@
 namespace App\Providers;
 
 use App\Models\PersonalAccessToken;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Foundation\Events\DiagnosingHealth;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Sanctum\Sanctum;
 use LemonSqueezy\Laravel\LemonSqueezy;
@@ -32,7 +38,16 @@ class AppServiceProvider extends ServiceProvider
     {
         Sanctum::usePersonalAccessTokenModel(PersonalAccessToken::class);
 
+        RateLimiter::for('public_tokens', function (Request $request) {
+            return Limit::perMinute(60)->by($request->ip());
+        });
+
         EventModel::observe(EventObserver::class);
+
+        Event::listen(DiagnosingHealth::class, function () {
+            DB::connection()->getPdo();
+            Cache::put('health:probe', true, 10);
+        });
 
         Event::listen(function (SocialiteWasCalled $event) {
             $event->extendSocialite('microsoft', Provider::class);

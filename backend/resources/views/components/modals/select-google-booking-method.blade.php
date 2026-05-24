@@ -6,7 +6,7 @@
     }" 
     x-show="show" 
     x-cloak
-    @open-google-booking-method-modal.window="show = true; bookingMethod = 'user_account'; googleAccountId = $event.detail || null;"
+    @open-google-booking-method-modal.window="show = true; let d = $event.detail; if (typeof d === 'object' && d !== null) { googleAccountId = d.id || null; bookingMethod = d.bookingMethod || 'user_account'; } else { googleAccountId = d || null; bookingMethod = 'user_account'; }"
     x-on:keydown.escape.window="show = false" 
     class="relative z-50" 
     role="dialog" 

@@ -1,5 +1,6 @@
 import 'package:spacepad/models/display_model.dart';
 import 'package:spacepad/models/display_data_model.dart';
+import 'package:spacepad/models/event_model.dart';
 import 'package:spacepad/services/api_service.dart';
 
 class DisplayService {
@@ -21,12 +22,14 @@ class DisplayService {
     });
   }
 
-  Future<void> bookCustom(String displayId, String title, DateTime startTime, DateTime endTime) async {
+  Future<void> bookCustom(String displayId, String title, DateTime startTime, DateTime endTime, {String? description, List<String>? attendees}) async {
     // Convert local DateTime to UTC before sending to backend
     await ApiService.post('displays/$displayId/book', {
       'start': startTime.toUtc().toIso8601String(),
       'end': endTime.toUtc().toIso8601String(),
       'summary': title,
+      if (description != null && description.isNotEmpty) 'description': description,
+      if (attendees != null && attendees.isNotEmpty) 'attendees': attendees,
     });
   }
 
@@ -59,8 +62,21 @@ class DisplayService {
     return e.toString().contains('404');
   }
 
+  Future<List<EventModel>> getEventsForDate(String displayId, DateTime date) async {
+    final dateStr = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+    Map body = await ApiService.get('displays/$displayId/events?date=$dateStr');
+    List data = body['data'] as List;
+    return data.map((e) => EventModel.fromJson(e)).toList();
+  }
+
   Future<void> cancelEvent(String displayId, String eventId) async {
     await ApiService.delete('displays/$displayId/events/$eventId');
+  }
+
+  Future<void> extendEvent(String displayId, String eventId, DateTime newEnd) async {
+    await ApiService.post('displays/$displayId/events/$eventId/extend', {
+      'new_end': newEnd.toUtc().toIso8601String(),
+    });
   }
 
   Future<void> checkInToEvent(String displayId, String eventId) async {

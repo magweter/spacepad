@@ -11,6 +11,11 @@ return [
     'trial_expired_or_cancelled_webhook_url' => env('TRIAL_EXPIRED_OR_CANCELLED_WEBHOOK_URL'),
     'user_passive_webhook_url' => env('USER_PASSIVE_WEBHOOK_URL'),
     'user_inactive_webhook_url' => env('USER_INACTIVE_WEBHOOK_URL'),
+    'account_connected_no_display_webhook_url' => env('ACCOUNT_CONNECTED_NO_DISPLAY_WEBHOOK_URL'),
+    'display_created_no_device_webhook_url' => env('DISPLAY_CREATED_NO_DEVICE_WEBHOOK_URL'),
+    'trial_day_three_webhook_url' => env('TRIAL_DAY_THREE_WEBHOOK_URL'),
+    'trial_ending_soon_webhook_url' => env('TRIAL_ENDING_SOON_WEBHOOK_URL'),
+    'trial_ending_tomorrow_webhook_url' => env('TRIAL_ENDING_TOMORROW_WEBHOOK_URL'),
 
     'license_server' => env('LICENSE_SERVER', 'https://app.spacepad.io'),
 

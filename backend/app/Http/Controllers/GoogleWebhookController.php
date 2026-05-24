@@ -28,7 +28,6 @@ class GoogleWebhookController extends Controller
         if (empty($subscriptionId)) {
             logger()->warning('Google webhook received without subscription ID', [
                 'ip' => $request->ip(),
-                'headers' => $request->headers->all(),
             ]);
             return response('Invalid request', 400);
         }

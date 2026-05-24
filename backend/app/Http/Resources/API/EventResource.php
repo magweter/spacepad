@@ -32,6 +32,8 @@ class EventResource extends JsonResource
             'checkInRequired' => $this->checkInRequired(),
             'source' => $this['source'] ?? null,
             'isTabletBooking' => $this->isTabletBooking(),
+            'joinUrl' => $this['join_url'] ?? null,
+            'organizerName' => $this['organizer_name'] ?? null,
         ];
     }
 }

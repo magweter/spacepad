@@ -40,7 +40,7 @@ class MagicLoginNotification extends Notification
             ->line('We\'ve generated a secure login link just for you.')
             ->line('Click the button below to access your account:')
             ->action('Log in to ' . config('app.name'), $this->loginUrl)
-            ->line('This link will expire in 15 minutes for your security.')
+            ->line('This link will expire in 24 hours.')
             ->line('If you didn\'t request this login link, you can safely ignore this email.')
             ->salutation('Best regards,');
     }

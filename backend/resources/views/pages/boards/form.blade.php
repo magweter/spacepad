@@ -250,6 +250,15 @@
                             </label>
                         </div>
                         <p class="ml-7 text-sm text-gray-500">If unchecked, meeting titles will be hidden for privacy-sensitive environments.</p>
+                        <div class="flex items-center mt-3">
+                            <input id="show_join_button" name="show_join_button" type="checkbox" value="1"
+                                   class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600"
+                                   {{ old('show_join_button', $board?->show_join_button ?? false) ? 'checked' : '' }}>
+                            <label for="show_join_button" class="ml-3 block text-sm font-medium leading-6 text-gray-900">
+                                Show join meeting button
+                            </label>
+                        </div>
+                        <p class="ml-7 text-sm text-gray-500">When enabled, a join button appears on cards where the calendar event contains a Teams, Zoom, or Google Meet link.</p>
                     </div>
                 </div>
 
@@ -294,6 +303,47 @@
                     </div>
                 </div>
 
+                <div id="public-access">
+                    <label class="block text-sm font-medium leading-6 text-gray-900 mb-3">Public Access</label>
+                    <div class="space-y-3">
+                        <div class="space-y-1">
+                            <div class="flex items-center">
+                                <input id="is_public" name="is_public" type="checkbox" value="1"
+                                       class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600"
+                                       {{ old('is_public', $board?->is_public ?? false) ? 'checked' : '' }}
+                                       onchange="togglePublicUrl()">
+                                <label for="is_public" class="ml-3 block text-sm font-medium leading-6 text-gray-900">
+                                    Make this board publicly accessible
+                                </label>
+                            </div>
+                            <p class="ml-7 text-sm text-gray-500">Anyone with the unique link can view this board without logging in.</p>
+                        </div>
+
+                        @if($board?->is_public && $board?->public_token)
+                            <div id="public_url_display" class="ml-7 mt-2">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Public URL</label>
+                                <div class="flex items-center gap-2">
+                                    <input type="text" readonly
+                                           value="{{ route('boards.public', $board->public_token) }}"
+                                           class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 bg-gray-50 shadow-sm ring-1 ring-inset ring-gray-300 sm:text-sm sm:leading-6"
+                                           onclick="this.select()">
+                                    <button type="button"
+                                            onclick="navigator.clipboard.writeText('{{ route('boards.public', $board->public_token) }}'); this.textContent='Copied!'; setTimeout(() => this.textContent='Copy', 2000)"
+                                            class="shrink-0 rounded-md bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200">
+                                        Copy
+                                    </button>
+                                </div>
+                            </div>
+                        @else
+                            <div id="public_url_display" class="ml-7 mt-2 hidden">
+                                <p class="text-sm text-gray-500">
+                                    Save the board to generate a unique public URL.
+                                </p>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+
                 <div class="flex items-center justify-end gap-x-6 pt-4 border-t border-gray-200">
                     <a href="{{ route('dashboard') }}?tab=boards" class="text-sm font-semibold leading-6 text-gray-900">Cancel</a>
                     <button type="submit" class="rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">
@@ -322,9 +372,20 @@
             }
         }
 
+        function togglePublicUrl() {
+            const isPublic = document.getElementById('is_public').checked;
+            const urlDisplay = document.getElementById('public_url_display');
+            if (isPublic) {
+                urlDisplay.classList.remove('hidden');
+            } else {
+                urlDisplay.classList.add('hidden');
+            }
+        }
+
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
             toggleDisplaySelection();
+            togglePublicUrl();
         });
     </script>
 @endpush
