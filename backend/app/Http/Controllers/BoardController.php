@@ -284,6 +284,7 @@ class BoardController extends Controller
             $logoPath = $this->imageService->storeBoardLogoFile($request->file('logo'), $board);
         }
         
+        $wasPublic = $board->is_public;
         $isPublic = $validated['is_public'] ?? false;
         $publicToken = $board->public_token;
         if ($isPublic && !$publicToken) {
@@ -333,7 +334,8 @@ class BoardController extends Controller
             $board->displays()->detach();
         }
         
-        $query = $board->is_public ? '&show_public=' . $board->id : '';
+        // Only open the public URL modal when public access was just newly enabled
+        $query = (!$wasPublic && $board->is_public) ? '&show_public=' . $board->id : '';
         return redirect(route('dashboard') . '?tab=boards' . $query)
             ->with('success', 'Board updated successfully.');
     }

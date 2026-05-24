@@ -62,6 +62,11 @@ Route::prefix('auth')->group(function () {
     Route::get('/google/callback', [GoogleController::class, 'callback']);
 });
 
+// Outlook OAuth callback — must be outside the auth middleware so that the
+// Microsoft admin consent redirect works even when the admin has no Spacepad
+// session. The controller guards the regular OAuth code path itself.
+Route::get('/outlook-accounts/callback', [OutlookAccountsController::class, 'callback']);
+
 Route::middleware(['auth', 'user.update-last-activity', 'gtm'])->group(function () {
     Route::get('/', DashboardController::class)->name('dashboard')->middleware('user.active');
     Route::get('/onboarding', [OnboardingController::class, 'index'])->name('onboarding')->middleware('user.onboarding');
@@ -70,7 +75,6 @@ Route::middleware(['auth', 'user.update-last-activity', 'gtm'])->group(function 
     Route::post('/onboarding/skip', [OnboardingController::class, 'skip'])->name('onboarding.skip');
 
     Route::post('/outlook-accounts/auth', [OutlookAccountsController::class, 'auth'])->name('outlook-accounts.auth');
-    Route::get('/outlook-accounts/callback', [OutlookAccountsController::class, 'callback']);
     Route::get('/outlook-accounts/calendars', [OutlookAccountsController::class, 'getCalendars']);
     Route::post('/outlook-accounts/booking-method', [OutlookAccountsController::class, 'setBookingMethod'])->name('outlook-accounts.set-booking-method');
     Route::delete('/outlook-accounts/{outlookAccount}', [OutlookAccountsController::class, 'delete'])->name('outlook-accounts.delete');

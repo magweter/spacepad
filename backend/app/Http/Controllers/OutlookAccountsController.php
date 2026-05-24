@@ -37,20 +37,27 @@ class OutlookAccountsController extends Controller
     /**
      * @throws \Exception
      */
-    public function callback(): RedirectResponse
+    public function callback(): \Illuminate\Http\Response|RedirectResponse
     {
-        // Microsoft redirects here after admin consent with admin_consent=True (no auth code)
+        // Admin consent callback — Microsoft redirects here after a tenant admin
+        // approves the app. The admin has no Spacepad session, so we must not
+        // require auth. The account ID encoded in the state param is the trust
+        // anchor; no auth()->id() check is needed or possible here.
         if (request('admin_consent') === 'True') {
-            // The state param encodes which account should be confirmed: "account:<id>"
             $state = request('state', '');
             if (str_starts_with($state, 'account:')) {
                 $accountId = substr($state, strlen('account:'));
                 OutlookAccount::where('id', $accountId)
-                    ->where('user_id', auth()->id())
                     ->update(['booking_method' => OutlookBookingMethod::ADMIN_CONSENT]);
             }
 
-            return redirect()->route('dashboard')->with('success', 'Admin consent granted. Room bookings will now be created directly on the room calendar.');
+            return response()->view('outlook.admin-consent-granted');
+        }
+
+        // Everything below is only reached by the Spacepad user doing their own
+        // OAuth flow — they are always logged in at this point.
+        if (! auth()->check()) {
+            return redirect()->route('login');
         }
 
         if (request()->has('error')) {

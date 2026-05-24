@@ -17,7 +17,7 @@ class FrostedPanel extends StatelessWidget {
     Color? backgroundColor,
     this.padding,
     bool hasBackgroundImage = false,
-  }) : backgroundColor = backgroundColor ?? (hasBackgroundImage ? const Color(0x33FFFFFF) : const Color(0x14FFFFFF));
+  }) : backgroundColor = backgroundColor ?? const Color(0x33FFFFFF);
 
   /// Creates a frosted panel with gray background (for use with background images)
   factory FrostedPanel.gray({

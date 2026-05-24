@@ -181,7 +181,7 @@ class _DashboardPageState extends State<DashboardPage> {
                       controller: controller,
                     ),
                     if (shouldShowAdminActions) const SizedBox(width: 15),
-                    if (timelineEnabled) ...[
+                    if (timelineEnabled && shouldShowAdminActions) ...[
                       Opacity(
                         opacity: 0.6,
                         child: GestureDetector(

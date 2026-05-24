@@ -53,7 +53,7 @@
                         Your IT admin needs to approve Spacepad
                     </h3>
                     <p class="mt-2 text-sm text-gray-600">
-                        Your Microsoft 365 organisation requires an administrator to approve new apps before you can connect them. This is a one-time step — once your admin approves, everyone in your organisation can connect Spacepad.
+                        Your Microsoft 365 organisation requires an administrator to approve new apps before you can connect them. This is a one-time step. Once your admin approves, everyone in your organisation can connect Spacepad.
                     </p>
                 </div>
 
@@ -71,7 +71,7 @@
                     </div>
                     <div class="flex gap-3">
                         <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-600 text-xs font-semibold text-white">3</span>
-                        <p class="text-sm text-gray-700">Come back here and connect your Microsoft account — it will work straight away.</p>
+                        <p class="text-sm text-gray-700">Come back here and connect your Microsoft account, it will work straight away.</p>
                     </div>
                 </div>
 
