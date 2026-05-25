@@ -32,11 +32,13 @@ Route::middleware('throttle:public_tokens')->group(function () {
 });
 
 // Public display routes (no authentication required)
-Route::get('/display/connect', [PublicDisplayController::class, 'connectForm'])->name('displays.connect');
-Route::post('/display/connect', [PublicDisplayController::class, 'connectLookup'])->name('displays.connect.lookup');
-Route::get('/d/{token}', [PublicDisplayController::class, 'show'])->name('displays.public');
-Route::get('/d/{token}/images/{type}', [PublicDisplayController::class, 'image'])->name('displays.public.image');
-Route::post('/d/{token}/book', [PublicDisplayController::class, 'book'])->name('displays.public.book');
+Route::middleware('throttle:public_tokens')->group(function () {
+    Route::get('/display/connect', [PublicDisplayController::class, 'connectForm'])->name('displays.connect');
+    Route::post('/display/connect', [PublicDisplayController::class, 'connectLookup'])->name('displays.connect.lookup');
+    Route::get('/d/{token}', [PublicDisplayController::class, 'show'])->name('displays.public');
+    Route::get('/d/{token}/images/{type}', [PublicDisplayController::class, 'image'])->name('displays.public.image');
+    Route::post('/d/{token}/book', [PublicDisplayController::class, 'book'])->name('displays.public.book');
+});
 
 Route::get('/login', [LoginController::class, 'create'])
     ->middleware('guest')

@@ -297,7 +297,14 @@ function doBook(duration, summary) {
         },
         body: JSON.stringify({ duration, summary }),
     })
-    .then(r => r.json())
+    .then(async (r) => {
+        const contentType = r.headers.get('content-type') || '';
+        const data = contentType.includes('application/json') ? await r.json() : {};
+        if (!r.ok) {
+            throw new Error(data.message || 'Booking failed. Please try again.');
+        }
+        return data;
+    })
     .then(data => {
         if (data.success) {
             location.reload();
@@ -311,8 +318,8 @@ function doBook(duration, summary) {
             }
         }
     })
-    .catch(() => {
-        alert('Network error. Please try again.');
+    .catch((err) => {
+        alert(err.message || 'Network error. Please try again.');
     });
 }
 
