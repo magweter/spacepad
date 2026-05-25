@@ -27,7 +27,6 @@
         default        => ($display->getAvailableText() ?: 'Room Available'),
     };
     $availableText = $display->getAvailableText() ?: 'Room Available';
-    $timezone = $currentEvent?->timezone ?? $nextEvent?->timezone ?? config('app.timezone');
 @endphp
 
 @push('styles')

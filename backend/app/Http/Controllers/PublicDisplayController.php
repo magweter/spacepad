@@ -8,6 +8,7 @@ use App\Models\Display;
 use App\Models\User;
 use App\Services\EventService;
 use App\Services\ImageService;
+use App\Services\RoomStatusService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,6 +19,7 @@ class PublicDisplayController extends Controller
     public function __construct(
         protected EventService $eventService,
         protected ImageService $imageService,
+        protected RoomStatusService $roomStatusService,
     ) {
     }
 
@@ -29,31 +31,22 @@ class PublicDisplayController extends Controller
             ->firstOrFail();
 
         $events = $this->eventService->getEventsForDisplay($display->id);
-
-        $now = now();
-        $currentEvent = $events->first(fn ($e) => $e->start <= $now && $e->end > $now);
-        $nextEvent = $events->filter(fn ($e) => $e->start > $now)->first();
-        $minutesUntilNext = $nextEvent ? $now->diffInMinutes($nextEvent->start, true) : null;
-        $isTransitioning = !$currentEvent
-            && $minutesUntilNext !== null
-            && $minutesUntilNext >= 0
-            && $minutesUntilNext <= 15;
-
-        if ($currentEvent) {
-            $roomStatus = 'reserved';
-        } elseif ($isTransitioning) {
-            $roomStatus = 'transitioning';
-        } else {
-            $roomStatus = 'available';
-        }
+        $status = $this->roomStatusService->compute($events);
 
         $backgroundUrl = $this->resolveBackgroundUrl($display, $token);
         $logoUrl = $this->resolveLogoUrl($display, $token);
 
-        return view('pages.displays.public', compact(
-            'display', 'events', 'roomStatus', 'currentEvent', 'nextEvent',
-            'backgroundUrl', 'logoUrl', 'token'
-        ));
+        return view('pages.displays.public', [
+            'display'      => $display,
+            'events'       => $events,
+            'roomStatus'   => $status->status,
+            'currentEvent' => $status->currentEvent,
+            'nextEvent'    => $status->nextEvent,
+            'timezone'     => $status->timezone,
+            'backgroundUrl' => $backgroundUrl,
+            'logoUrl'      => $logoUrl,
+            'token'        => $token,
+        ]);
     }
 
     public function image(string $token, string $type)
