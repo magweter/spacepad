@@ -18,6 +18,7 @@ use App\Http\Controllers\GoogleAccountsController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\OutlookAccountsController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\LicenseController;
 use App\Http\Controllers\PublicDisplayController;
 use App\Http\Controllers\RoadmapController;
 use App\Http\Controllers\RoomController;

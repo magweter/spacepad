@@ -33,7 +33,7 @@ class PublicDisplayController extends Controller
         $now = now();
         $currentEvent = $events->first(fn ($e) => $e->start <= $now && $e->end > $now);
         $nextEvent = $events->filter(fn ($e) => $e->start > $now)->first();
-        $minutesUntilNext = $nextEvent ? $now->diffInMinutes($nextEvent->start, false) : null;
+        $minutesUntilNext = $nextEvent ? $now->diffInMinutes($nextEvent->start, true) : null;
         $isTransitioning = !$currentEvent
             && $minutesUntilNext !== null
             && $minutesUntilNext >= 0
