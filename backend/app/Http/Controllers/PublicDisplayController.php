@@ -33,8 +33,11 @@ class PublicDisplayController extends Controller
         $now = now();
         $currentEvent = $events->first(fn ($e) => $e->start <= $now && $e->end > $now);
         $nextEvent = $events->filter(fn ($e) => $e->start > $now)->first();
-        $isTransitioning = !$currentEvent && $nextEvent
-            && $nextEvent->start->diffInMinutes($now, false) <= 15;
+        $minutesUntilNext = $nextEvent ? $now->diffInMinutes($nextEvent->start, false) : null;
+        $isTransitioning = !$currentEvent
+            && $minutesUntilNext !== null
+            && $minutesUntilNext >= 0
+            && $minutesUntilNext <= 15;
 
         if ($currentEvent) {
             $roomStatus = 'reserved';
@@ -87,8 +90,12 @@ class PublicDisplayController extends Controller
             );
 
             return response()->json(['success' => true]);
-        } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 400);
+        } catch (\Throwable $e) {
+            logger()->warning('Public display booking failed', [
+                'display_id' => $display->id,
+                'error' => $e->getMessage(),
+            ]);
+            return response()->json(['success' => false, 'message' => 'Unable to book room right now.'], 400);
         }
     }
 

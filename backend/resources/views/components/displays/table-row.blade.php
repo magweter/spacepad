@@ -146,7 +146,7 @@
                 <x-icons.settings class="h-4 w-4" />
             </a>
             @if($display->display_token)
-            <a href="{{ route('displays.public', $display->display_token) }}" target="_blank" class="inline-flex items-center rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-emerald-600 shadow-sm ring-1 ring-inset ring-emerald-300 hover:bg-emerald-50" title="Open web display">
+            <a href="{{ route('displays.public', $display->display_token) }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-emerald-600 shadow-sm ring-1 ring-inset ring-emerald-300 hover:bg-emerald-50" title="Open web display">
                 <x-icons.external class="h-4 w-4" />
             </a>
             @endif

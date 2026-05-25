@@ -27,7 +27,7 @@
         default        => ($display->getAvailableText() ?: 'Room Available'),
     };
     $availableText = $display->getAvailableText() ?: 'Room Available';
-    $timezone = $currentEvent?->timezone ?? config('app.timezone');
+    $timezone = $currentEvent?->timezone ?? $nextEvent?->timezone ?? config('app.timezone');
 @endphp
 
 @push('styles')
@@ -235,16 +235,25 @@
 
 @push('scripts')
 <script>
+const DISPLAY_TIMEZONE = @json($timezone);
+
 // Live clock
 function updateClock() {
     const now = new Date();
-    const h = now.getHours().toString().padStart(2, '0');
-    const m = now.getMinutes().toString().padStart(2, '0');
-    document.getElementById('live-clock').textContent = h + ':' + m;
+    const timeStr = new Intl.DateTimeFormat('en-GB', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+        timeZone: DISPLAY_TIMEZONE,
+    }).format(now);
+    document.getElementById('live-clock').textContent = timeStr;
 
-    const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-    const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-    const dateStr = days[now.getDay()] + ', ' + months[now.getMonth()] + ' ' + now.getDate();
+    const dateStr = new Intl.DateTimeFormat('en-US', {
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+        timeZone: DISPLAY_TIMEZONE,
+    }).format(now);
     const el = document.getElementById('live-date');
     if (el) el.textContent = dateStr;
     const sd = document.getElementById('schedule-date');

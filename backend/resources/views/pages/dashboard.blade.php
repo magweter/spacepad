@@ -400,7 +400,7 @@
                                 <div class="mt-2 text-center">
                                     <h3 class="text-lg font-semibold leading-6 text-gray-900" id="modal-title">Instructions on connecting a new device</h3>
                                     <div class="mt-2 mx-auto max-w-md">
-                                        <p class="text-sm text-gray-700">Connect a new device like a tablet or phone by downloading the app from the <a target="_blank" href="https://play.google.com/store/apps/details?id=com.magweter.spacepad" class="text-blue-600 hover:text-blue-500">Play Store</a> or <a target="_blank" href="https://apps.apple.com/nl/app/spacepad/id6745528995" class="text-blue-600 hover:text-blue-500">App Store</a>.</p>
+                                        <p class="text-sm text-gray-700">Connect a new device like a tablet or phone by downloading the app from the <a target="_blank" rel="noopener noreferrer" href="https://play.google.com/store/apps/details?id=com.magweter.spacepad" class="text-blue-600 hover:text-blue-500">Play Store</a> or <a target="_blank" rel="noopener noreferrer" href="https://apps.apple.com/nl/app/spacepad/id6745528995" class="text-blue-600 hover:text-blue-500">App Store</a>.</p>
                                     </div>
                                     <div class="mt-6 mx-auto max-w-md text-center">
                                         <p class="text-sm text-gray-700">Enter the following connect code:</p>
