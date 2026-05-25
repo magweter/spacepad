@@ -287,6 +287,13 @@ function bookFromModal(duration) {
     doBook(duration, title);
 }
 
+function showBookError(msg) {
+    const el = document.getElementById('bookError');
+    if (!el) return;
+    el.textContent = msg;
+    el.classList.remove('hidden');
+}
+
 function doBook(duration, summary) {
     fetch(BOOK_URL, {
         method: 'POST',
@@ -308,17 +315,11 @@ function doBook(duration, summary) {
         if (data.success) {
             location.reload();
         } else {
-            const errEl = document.getElementById('bookError');
-            if (errEl) {
-                errEl.textContent = data.message || 'Booking failed. Please try again.';
-                errEl.classList.remove('hidden');
-            } else {
-                alert(data.message || 'Booking failed.');
-            }
+            showBookError(data.message || 'Booking failed. Please try again.');
         }
     })
     .catch((err) => {
-        alert(err.message || 'Network error. Please try again.');
+        showBookError(err.message || 'Network error. Please try again.');
     });
 }
 
