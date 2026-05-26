@@ -41,6 +41,12 @@
 @endpush
 
 @section('content')
+{{-- Offline indicator --}}
+<div id="offline-banner" class="hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2 rounded-full bg-gray-900/90 backdrop-blur-sm text-white text-sm font-medium shadow-lg pointer-events-none">
+    <span class="inline-block h-2 w-2 rounded-full bg-red-400 animate-pulse flex-shrink-0"></span>
+    Offline &mdash; showing last known state
+</div>
+
 <div class="flex h-full">
 
     {{-- ===== LEFT PANEL: status & booking ===== --}}
@@ -145,54 +151,90 @@
         </div>
     </div>
 
-    {{-- ===== RIGHT PANEL: today's schedule ===== --}}
-    <div class="w-80 bg-white border-l border-gray-200 flex flex-col flex-shrink-0 overflow-hidden">
-        <div class="flex-shrink-0 px-5 py-4 border-b border-gray-100">
-            <h2 class="font-semibold text-gray-800">Today's Schedule</h2>
-            <p id="schedule-date" class="text-sm text-gray-500 mt-0.5"></p>
+    {{-- ===== RIGHT PANEL: timeline calendar ===== --}}
+    @php
+        $tlStart = 6;   // 6 am
+        $tlEnd   = 18;  // 6 pm
+        $hourPx  = 64;  // pixels per hour slot
+        $totalPx = ($tlEnd - $tlStart) * $hourPx; // 768px
+        $nowTs   = now();
+    @endphp
+    <div class="w-80 bg-gray-900 flex flex-col flex-shrink-0 overflow-hidden">
+
+        {{-- Header --}}
+        <div class="flex-shrink-0 px-5 py-4 border-b border-white/10 flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+            <span id="schedule-date" class="text-sm font-medium text-gray-100"></span>
         </div>
 
-        <div class="flex-1 overflow-y-auto py-3">
-            @forelse($events as $event)
+        {{-- Scrollable timeline --}}
+        <div class="flex-1 overflow-y-auto" id="timeline-scroll">
+            <div class="relative" style="height: {{ $totalPx }}px">
+
+                {{-- Hour grid lines + labels --}}
+                @for ($h = $tlStart; $h <= $tlEnd; $h++)
                 @php
-                    $now = now();
-                    $isCurrent = $event->start <= $now && $event->end > $now;
-                    $isPast = $event->end <= $now;
-                    $eventTz = $event->timezone ?? config('app.timezone');
+                    $label = match(true) {
+                        $h === 0  => '12am',
+                        $h === 12 => '12pm',
+                        $h < 12   => $h . 'am',
+                        default   => ($h - 12) . 'pm',
+                    };
+                    $gridTop = ($h - $tlStart) * $hourPx;
                 @endphp
-                <div class="px-4 py-3 {{ $isCurrent ? 'bg-blue-50 border-l-4 border-blue-500' : ($isPast ? 'opacity-50' : '') }}">
-                    <div class="flex items-start gap-3">
-                        <div class="flex-shrink-0 mt-0.5">
-                            @if($isCurrent)
-                                <span class="inline-block h-2.5 w-2.5 rounded-full bg-blue-500 mt-1 animate-pulse"></span>
-                            @elseif($isPast)
-                                <span class="inline-block h-2.5 w-2.5 rounded-full bg-gray-300 mt-1"></span>
-                            @else
-                                <span class="inline-block h-2.5 w-2.5 rounded-full bg-gray-400 mt-1"></span>
-                            @endif
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <div class="text-xs text-gray-500 font-medium">
-                                {{ $event->start->setTimezone($eventTz)->format('g:i A') }}
-                                &ndash;
-                                {{ $event->end->setTimezone($eventTz)->format('g:i A') }}
-                                @if($isCurrent)
-                                    <span class="ml-1 inline-flex items-center rounded-full bg-blue-100 px-1.5 py-0.5 text-xs font-medium text-blue-700">Now</span>
-                                @endif
-                            </div>
-                            @if($showMeetingTitle && $event->summary)
-                                <div class="text-sm font-medium text-gray-800 mt-0.5 truncate">{{ $event->summary }}</div>
-                            @else
-                                <div class="text-sm font-medium text-gray-800 mt-0.5">Meeting</div>
-                            @endif
-                        </div>
+                <div class="absolute left-0 right-0 flex items-start" style="top: {{ $gridTop }}px">
+                    <span class="w-12 pr-2 flex-shrink-0 text-right text-xs text-gray-500 -mt-2 select-none">{{ $label }}</span>
+                    <div class="flex-1 border-t border-white/10"></div>
+                </div>
+                @endfor
+
+                {{-- Event blocks --}}
+                @foreach ($events as $event)
+                @php
+                    $evStart = $event->start->setTimezone($timezone);
+                    $evEnd   = $event->end->setTimezone($timezone);
+                    $sh = $evStart->hour + $evStart->minute / 60;
+                    $eh = $evEnd->hour   + $evEnd->minute   / 60;
+                @endphp
+                @continue($eh <= $tlStart || $sh >= $tlEnd)
+                @php
+                    $cs = max($sh, $tlStart);
+                    $ce = min($eh, $tlEnd);
+                    $evTopPx    = ($cs - $tlStart) * $hourPx + 1;
+                    $evHeightPx = max(22, ($ce - $cs) * $hourPx - 2);
+                    $isCurrent  = $event->start <= $nowTs && $event->end > $nowTs;
+                    $isPast     = $event->end <= $nowTs;
+                    $showTitle  = $showMeetingTitle && !empty($event->summary) && $evHeightPx > 36;
+                @endphp
+                <div class="absolute rounded overflow-hidden"
+                     style="top: {{ $evTopPx }}px; height: {{ $evHeightPx }}px; left: 3rem; right: 0.5rem;
+                            background: {{ $isCurrent ? 'rgba(59,130,246,0.35)' : ($isPast ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.11)') }};">
+                    @if($isCurrent)
+                    <div class="absolute left-0 top-0 bottom-0 w-0.5 bg-blue-400"></div>
+                    @endif
+                    <div class="{{ $isCurrent ? 'pl-3 pr-2' : 'px-2' }} py-1 h-full flex flex-col justify-center leading-none">
+                        <span class="text-xs {{ $isPast ? 'text-gray-600' : 'text-gray-300' }} truncate">
+                            {{ $evStart->format('g:i') }}&ndash;{{ $evEnd->format('g:i A') }}
+                        </span>
+                        @if($showTitle)
+                        <span class="text-xs font-semibold {{ $isPast ? 'text-gray-500' : 'text-white' }} truncate mt-0.5">
+                            {{ $event->summary }}
+                        </span>
+                        @endif
                     </div>
                 </div>
-            @empty
-                <div class="px-5 py-8 text-center">
-                    <div class="text-gray-400 text-sm">No meetings scheduled today</div>
+                @endforeach
+
+                {{-- Current-time indicator (positioned by JS) --}}
+                <div id="now-line" class="absolute left-0 right-0 flex items-center pointer-events-none z-20" style="display:none">
+                    <div class="w-12 flex-shrink-0"></div>
+                    <div class="w-2.5 h-2.5 rounded-full bg-red-500 flex-shrink-0 -mr-1.5 z-10 shadow-sm shadow-red-500/50"></div>
+                    <div class="flex-1 h-px bg-red-500"></div>
                 </div>
-            @endforelse
+
+            </div>
         </div>
     </div>
 
@@ -261,8 +303,69 @@ function updateClock() {
 updateClock();
 setInterval(updateClock, 1000);
 
-// Auto-reload every 30 seconds to refresh event data
-setTimeout(function() { location.reload(); }, 30000);
+// Poll the status endpoint and reload when reachable, or show offline banner when not.
+const STATUS_URL = @json(route('displays.public.status', $token));
+let pollTimeout;
+
+function scheduleNextPoll(delayMs) {
+    clearTimeout(pollTimeout);
+    pollTimeout = setTimeout(poll, delayMs);
+}
+
+function poll() {
+    fetch(STATUS_URL, { cache: 'no-store' })
+        .then(function(r) {
+            if (!r.ok) throw new Error('bad');
+            return r.json();
+        })
+        .then(function() {
+            // Server is reachable — reload for fresh data.
+            location.reload();
+        })
+        .catch(function() {
+            // Network failure — show offline indicator and retry sooner.
+            document.getElementById('offline-banner').classList.remove('hidden');
+            scheduleNextPoll(10000);
+        });
+}
+
+scheduleNextPoll(30000);
+
+// Timeline: now-line position and auto-scroll
+const TL_START_H = 6;
+const TL_END_H   = 18;
+const TL_HOUR_PX = 64;
+
+function updateNowLine() {
+    const now = new Date();
+    const parts = new Intl.DateTimeFormat('en-GB', {
+        hour: 'numeric', minute: 'numeric', hour12: false,
+        timeZone: DISPLAY_TIMEZONE,
+    }).formatToParts(now);
+    const h = parseInt(parts.find(p => p.type === 'hour').value, 10);
+    const m = parseInt(parts.find(p => p.type === 'minute').value, 10);
+    const decimal = h + m / 60;
+    const line = document.getElementById('now-line');
+    if (!line) return;
+    if (decimal >= TL_START_H && decimal <= TL_END_H) {
+        line.style.top = ((decimal - TL_START_H) * TL_HOUR_PX) + 'px';
+        line.style.display = 'flex';
+    } else {
+        line.style.display = 'none';
+    }
+}
+
+function scrollToNow() {
+    const container = document.getElementById('timeline-scroll');
+    const line = document.getElementById('now-line');
+    if (!container || !line || line.style.display === 'none') return;
+    const lineTop = parseFloat(line.style.top) || 0;
+    container.scrollTop = Math.max(0, lineTop - container.clientHeight * 0.35);
+}
+
+updateNowLine();
+setTimeout(scrollToNow, 50);
+setInterval(updateNowLine, 60000);
 
 @if($bookingEnabled && $roomStatus === 'available')
 const BOOK_URL = '{{ route('displays.public.book', $token) }}';

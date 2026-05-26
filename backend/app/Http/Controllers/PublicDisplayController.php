@@ -49,6 +49,22 @@ class PublicDisplayController extends Controller
         ]);
     }
 
+    public function status(string $token): JsonResponse
+    {
+        $display = Display::where('display_token', $token)
+            ->where('status', '!=', DisplayStatus::DEACTIVATED)
+            ->with('settings', 'calendar')
+            ->firstOrFail();
+
+        $events = $this->eventService->getEventsForDisplay($display->id);
+        $status = $this->roomStatusService->compute($events);
+
+        return response()->json([
+            'roomStatus' => $status->status,
+            'ok' => true,
+        ]);
+    }
+
     public function image(string $token, string $type)
     {
         $display = Display::where('display_token', $token)
