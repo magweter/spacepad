@@ -35,20 +35,22 @@ class AdminController extends Controller
     {
         $this->checkAdminAccess();
 
-        // MRR stats from the pre-computed analytics snapshot (no LemonSqueezy API calls here)
-        $mrrStats = DB::table('analytics_users')
-            ->selectRaw('
-                COUNT(CASE WHEN last_device_activity_at >= ? THEN 1 END) as active_users_count
-            ', [now()->subDays(7)])
-            ->first();
+        // Stats from the pre-computed analytics snapshot — gracefully returns zeros if not yet populated
+        try {
+            $mrrStats = DB::table('analytics_users')
+                ->selectRaw('COUNT(CASE WHEN last_device_activity_at >= ? THEN 1 END) as active_users_count', [now()->subDays(7)])
+                ->first();
+        } catch (\Exception $e) {
+            $mrrStats = null;
+        }
 
-        $instanceStats = DB::table('analytics_instances')
-            ->selectRaw('
-                COUNT(*) as total_instances,
-                COUNT(CASE WHEN last_heartbeat_at >= ? THEN 1 END) as active_instances_count,
-                MAX(refreshed_at) as last_refreshed_at
-            ', [now()->subDays(7)])
-            ->first();
+        try {
+            $instanceStats = DB::table('analytics_instances')
+                ->selectRaw('COUNT(*) as total_instances, COUNT(CASE WHEN last_heartbeat_at >= ? THEN 1 END) as active_instances_count', [now()->subDays(7)])
+                ->first();
+        } catch (\Exception $e) {
+            $instanceStats = null;
+        }
 
         $search = request()->get('search');
         $allUsersQuery = User::query()
