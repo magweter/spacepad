@@ -2,6 +2,7 @@
 
 use App\Console\Commands\CheckMarketingTriggers;
 use App\Console\Commands\CleanupExpiredEvents;
+use App\Console\Commands\RefreshAnalytics;
 use App\Console\Commands\RenewEventSubscriptions;
 use App\Console\Commands\SendHeartbeat;
 use App\Console\Commands\SyncDisplayUsageToLemonSqueezy;
@@ -41,3 +42,13 @@ Schedule::command(CheckMarketingTriggers::class)
     ->when(fn() => ! config('settings.is_self_hosted'))
     ->hourly()
     ->withoutOverlapping(10); // Release lock after 10 minutes
+
+Schedule::command(RefreshAnalytics::class)
+    ->when(fn() => ! config('settings.is_self_hosted'))
+    ->everyFiveMinutes()
+    ->withoutOverlapping(5);
+
+Schedule::command(RefreshAnalytics::class, ['--mrr'])
+    ->when(fn() => ! config('settings.is_self_hosted'))
+    ->everyThirtyMinutes()
+    ->withoutOverlapping(30);
