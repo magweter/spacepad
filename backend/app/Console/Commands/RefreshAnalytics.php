@@ -76,7 +76,9 @@ class RefreshAnalytics extends Command
                 $subscriptionStatus   = $subscription->status ?? 'unknown';
 
                 if ($withMrr) {
-                    $apiData = $this->fetchSubscriptionFromApi($subscription->lemon_squeezy_id, $user->displays_count);
+                    // Billable usage: displays count as 1x, boards as 2x (see Workspace::getTotalUsageCount)
+                    $billableUsage = $user->displays_count + ($user->boards_count * 2);
+                    $apiData = $this->fetchSubscriptionFromApi($subscription->lemon_squeezy_id, $billableUsage);
 
                     if ($apiData) {
                         $subscriptionStatus = $apiData['status'];
@@ -157,8 +159,9 @@ class RefreshAnalytics extends Command
             $mrrExpected = (float) ($existingMrrExpected[$instance->id] ?? 0);
 
             if ($withMrr && $instance->license_key) {
-                $displaysCount = max(1, (int) $instance->displays_count);
-                $instanceMrr = $this->fetchInstanceMrr($instance->license_key, $displaysCount);
+                // Billable usage: displays count as 1x, boards as 2x (see Workspace::getTotalUsageCount)
+                $billableUsage = max(1, (int) $instance->displays_count + ((int) $instance->boards_count * 2));
+                $instanceMrr = $this->fetchInstanceMrr($instance->license_key, $billableUsage);
 
                 if ($instanceMrr) {
                     $subscriptionStatus = $instanceMrr['status'];
@@ -207,7 +210,7 @@ class RefreshAnalytics extends Command
         $this->line("Upserted {$instances->count()} instance rows.");
     }
 
-    private function fetchInstanceMrr(string $licenseKey, int $displaysCount): ?array
+    private function fetchInstanceMrr(string $licenseKey, int $billableUsage): ?array
     {
         $apiKey = config('lemon-squeezy.api_key');
         if (! $apiKey) {
@@ -255,7 +258,7 @@ class RefreshAnalytics extends Command
             }
 
             $subscriptionId = $sub['id'];
-            $apiData = $this->fetchSubscriptionFromApi($subscriptionId, $displaysCount);
+            $apiData = $this->fetchSubscriptionFromApi($subscriptionId, $billableUsage);
 
             if (! $apiData) {
                 return null;
@@ -296,7 +299,7 @@ class RefreshAnalytics extends Command
                 return null;
             }
 
-            // MRR = unit price × quantity (displays/rooms being billed)
+            // MRR = unit price × quantity (billable usage: displays 1x + boards 2x)
             $mrr = $unitPrice * max(1, $quantity);
 
             return [
