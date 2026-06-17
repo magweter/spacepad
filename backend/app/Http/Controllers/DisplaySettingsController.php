@@ -165,6 +165,10 @@ class DisplaySettingsController extends Controller
         }
 
         $updated = true;
+
+        // Handle category (stored directly on the display model)
+        $display->update(['category' => filled($request->input('category')) ? $request->input('category') : null]);
+
         // Handle text_available
         if (filled($request->input('text_available'))) {
             $updated = $updated && DisplaySettings::setAvailableText($display, $request->input('text_available'));

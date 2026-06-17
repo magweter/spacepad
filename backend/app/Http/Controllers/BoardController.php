@@ -475,6 +475,7 @@ class BoardController extends Controller
 
                 return [
                     'display' => $display,
+                    'category' => $display->category,
                     'status' => $status,
                     'statusText' => $statusText,
                     'currentEvent' => $currentEvent ? [
@@ -507,6 +508,7 @@ class BoardController extends Controller
                 
                 return [
                     'display' => $display,
+                    'category' => $display->category,
                     'status' => 'error',
                     'statusText' => Lang::get('boards.error', [], $boardLanguage),
                     'currentEvent' => null,

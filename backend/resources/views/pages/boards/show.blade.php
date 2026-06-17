@@ -213,12 +213,31 @@
     {{-- Room List --}}
     @php
         $viewMode = $board->view_mode ?? 'card';
+        // Group displays by category; null/empty category goes into a '' key
+        $grouped = $displays->groupBy(fn($d) => $d['category'] ?? '');
+        $hasCategories = $grouped->keys()->filter(fn($k) => $k !== '')->isNotEmpty();
+        // Sort: named categories first (alphabetically), then uncategorised
+        $sortedKeys = $grouped->keys()->sort(function($a, $b) {
+            if ($a === '' && $b !== '') return 1;
+            if ($a !== '' && $b === '') return -1;
+            return strcmp($a, $b);
+        })->values();
     @endphp
-    
+
     @if($viewMode === 'table')
         {{-- Row View --}}
-        <div class="overflow-x-auto">
-            <table class="w-full border-collapse">
+        <div class="overflow-x-auto" id="displays-list">
+            @foreach($sortedKeys as $categoryKey)
+                @php $categoryDisplays = $grouped[$categoryKey]; @endphp
+                @if($hasCategories)
+                    <div class="flex items-center gap-4 mb-2 {{ !$loop->first ? 'mt-8' : '' }}">
+                        <span class="text-sm font-semibold uppercase tracking-widest board-text-secondary">
+                            {{ $categoryKey !== '' ? $categoryKey : __('boards.uncategorised') }}
+                        </span>
+                        <div class="flex-1 h-px board-border" style="border-top: 1px solid;"></div>
+                    </div>
+                @endif
+            <table class="w-full border-collapse mb-4">
                 <thead>
                     <tr class="border-b border-gray-700/30">
                         <th class="text-left py-3 px-4 text-sm font-semibold uppercase tracking-wider board-text-secondary">{{ $t('boards.room') }}</th>
@@ -229,8 +248,8 @@
                         @endif
                     </tr>
                 </thead>
-                <tbody id="displays-list">
-                    @forelse($displays as $displayData)
+                <tbody>
+                    @forelse($categoryDisplays as $displayData)
                         @php
                             $display = $displayData['display'];
                             $status = $displayData['status'];
@@ -342,11 +361,23 @@
                     @endforelse
                 </tbody>
             </table>
+            @endforeach
         </div>
     @elseif($viewMode === 'grid')
         {{-- Grid View --}}
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" id="displays-list">
-            @forelse($displays as $displayData)
+        <div id="displays-list">
+            @foreach($sortedKeys as $categoryKey)
+                @php $categoryDisplays = $grouped[$categoryKey]; @endphp
+                @if($hasCategories)
+                    <div class="flex items-center gap-4 mb-4 {{ !$loop->first ? 'mt-8' : '' }}">
+                        <span class="text-sm font-semibold uppercase tracking-widest board-text-secondary">
+                            {{ $categoryKey !== '' ? $categoryKey : __('boards.uncategorised') }}
+                        </span>
+                        <div class="flex-1 h-px board-border" style="border-top: 1px solid;"></div>
+                    </div>
+                @endif
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 {{ $hasCategories && !$loop->last ? 'mb-2' : '' }}">
+            @forelse($categoryDisplays as $displayData)
                 @php
                     $display = $displayData['display'];
                     $status = $displayData['status'];
@@ -490,11 +521,24 @@
                     </div>
                 </div>
             @endforelse
+            </div>
+            @endforeach
         </div>
     @else
         {{-- Card View (Default) --}}
-        <div class="space-y-4" id="displays-list">
-            @forelse($displays as $displayData)
+        <div id="displays-list">
+            @foreach($sortedKeys as $categoryKey)
+                @php $categoryDisplays = $grouped[$categoryKey]; @endphp
+                @if($hasCategories)
+                    <div class="flex items-center gap-4 mb-4 {{ !$loop->first ? 'mt-8' : '' }}">
+                        <span class="text-sm font-semibold uppercase tracking-widest board-text-secondary">
+                            {{ $categoryKey !== '' ? $categoryKey : __('boards.uncategorised') }}
+                        </span>
+                        <div class="flex-1 h-px board-border" style="border-top: 1px solid;"></div>
+                    </div>
+                @endif
+            <div class="space-y-4 {{ $hasCategories && !$loop->last ? 'mb-2' : '' }}">
+            @forelse($categoryDisplays as $displayData)
                 @php
                     $display = $displayData['display'];
                     $status = $displayData['status'];
@@ -628,6 +672,8 @@
                     </div>
                 </div>
             @endforelse
+            </div>
+            @endforeach
         </div>
     @endif
 </div>

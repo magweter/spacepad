@@ -122,6 +122,7 @@ All settings are per-display and managed from the web portal.
 - Multi-room overview screens showing status of multiple rooms at once
 - Configurable room selection per board
 - Designed for lobby or hallway displays
+- Room categories — assign a category (e.g. "Downstairs", "Floor 2") to each display; rooms are visually grouped by category on the board with a labeled section divider
 
 ---
 
