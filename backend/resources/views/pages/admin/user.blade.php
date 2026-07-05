@@ -69,6 +69,8 @@
                             <dd class="mt-1">
                                 @if($user->is_unlimited)
                                     <span class="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">Unlimited</span>
+                                @elseif($user->is_manually_billed)
+                                    <span class="inline-flex items-center rounded-md bg-purple-50 px-2 py-1 text-xs font-medium text-purple-700 ring-1 ring-inset ring-purple-600/20">Manually Billed</span>
                                 @elseif($subscriptionInfo)
                                     <span class="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20">Pro</span>
                                 @else
@@ -90,6 +92,7 @@
                                             'cancelled' => 'bg-gray-50 text-gray-700 ring-gray-600/20',
                                             'on_trial' => 'bg-blue-50 text-blue-700 ring-blue-600/20',
                                             'paused' => 'bg-orange-50 text-orange-700 ring-orange-600/20',
+                                            'manual' => 'bg-purple-50 text-purple-700 ring-purple-600/20',
                                             default => 'bg-gray-50 text-gray-700 ring-gray-600/20',
                                         };
                                     @endphp
@@ -116,6 +119,72 @@
                     </dl>
                 </div>
             @endif
+
+            @if($billingChanges->isNotEmpty())
+                <div class="border border-gray-200 rounded-lg p-6">
+                    <h3 class="text-base font-semibold text-gray-900 mb-4">Billing Changes</h3>
+                    <p class="text-sm text-gray-500 mb-4">
+                        History of license-count changes (displays + boards&times;2) detected during analytics refreshes.
+                    </p>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200 text-sm">
+                            <thead>
+                                <tr class="text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th class="py-2 pr-4">Date</th>
+                                    <th class="py-2 pr-4">Change</th>
+                                    <th class="py-2 pr-4">Licenses</th>
+                                    <th class="py-2 pr-4">Displays</th>
+                                    <th class="py-2 pr-4">Boards</th>
+                                    <th class="py-2 pr-4">MRR</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100">
+                                @foreach($billingChanges as $change)
+                                    <tr>
+                                        <td class="py-2 pr-4 whitespace-nowrap text-gray-900">{{ $change->detected_at->format('Y-m-d H:i') }}</td>
+                                        <td class="py-2 pr-4">
+                                            @if($change->change_type === 'increase')
+                                                <span class="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">&uarr; +{{ $change->license_delta }}</span>
+                                            @else
+                                                <span class="inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/20">&darr; {{ $change->license_delta }}</span>
+                                            @endif
+                                        </td>
+                                        <td class="py-2 pr-4 whitespace-nowrap text-gray-900">{{ $change->previous_license_count }} &rarr; {{ $change->new_license_count }}</td>
+                                        <td class="py-2 pr-4 whitespace-nowrap text-gray-500">{{ $change->previous_displays_count }} &rarr; {{ $change->new_displays_count }}</td>
+                                        <td class="py-2 pr-4 whitespace-nowrap text-gray-500">{{ $change->previous_boards_count }} &rarr; {{ $change->new_boards_count }}</td>
+                                        <td class="py-2 pr-4 whitespace-nowrap text-gray-900">${{ number_format($change->previous_mrr, 2) }} &rarr; ${{ number_format($change->new_mrr, 2) }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            @endif
+
+            <div class="border border-gray-200 rounded-lg p-6">
+                <h3 class="text-base font-semibold text-gray-900 mb-4">Manual Billing</h3>
+                <p class="text-sm text-gray-500 mb-4">
+                    Mark this user as billed through our own accounting system instead of Lemon Squeezy.
+                    They get Pro access without a Lemon Squeezy subscription, and their MRR is calculated
+                    automatically from usage (displays + boards&times;2) at the standard unit price.
+                </p>
+                <form action="{{ route('admin.users.billing', $user) }}" method="POST">
+                    @csrf
+                    <div class="space-y-4">
+                        <label class="flex items-center gap-2">
+                            <input type="checkbox" name="is_manually_billed" value="1"
+                                   @checked(old('is_manually_billed', $user->is_manually_billed))
+                                   class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                            <span class="text-sm text-gray-900">Manually billed (Pro without Lemon Squeezy)</span>
+                        </label>
+                        <div class="flex justify-end">
+                            <button type="submit" class="inline-flex items-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700">
+                                Save billing
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
 
             <div class="border border-gray-200 rounded-lg p-6">
                 <h3 class="text-base font-semibold text-gray-900 mb-4">Data Summary</h3>

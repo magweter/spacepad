@@ -28,7 +28,8 @@ class EventService
     /**
      * Fetch events for a display, without storing external events in the database.
      *
-     * @param Display|string $display Display model (ideally with event_subscriptions_count loaded) or display ID.
+     * @param  Display|string  $display  Display model (ideally with event_subscriptions_count loaded) or display ID.
+     *
      * @throws Exception
      */
     public function getEventsForDisplay($display, ?Carbon $forDate = null): Collection
@@ -40,10 +41,13 @@ class EventService
             }])
             ->findOrFail($display);
 
-        // When fetching for a specific date, skip caching and side-effects
+        // When fetching for a specific date, skip caching and side-effects.
+        // Widen the range by ±1 day so the requested LOCAL day is fully covered regardless of
+        // the display's timezone (a UTC-day window can miss the local morning/evening for
+        // far-offset zones). The app clamps events back to the selected local day.
         if ($forDate !== null) {
-            $start = $forDate->copy()->startOfDay();
-            $end = $forDate->copy()->endOfDay();
+            $start = $forDate->copy()->subDay()->startOfDay();
+            $end = $forDate->copy()->addDay()->endOfDay();
 
             return $this->getAllEvents($display, $start, $end);
         }
@@ -76,7 +80,7 @@ class EventService
             );
         } elseif ($cacheEnabled) {
             $events = cache()->remember(
-                key: $display->getEventsCacheKey() . ':fallback',
+                key: $display->getEventsCacheKey().':fallback',
                 ttl: now()->addMinutes(2),
                 callback: function () use ($display) {
                     logger()->info('Fetching events from API (no event subscription)', [
@@ -561,8 +565,15 @@ class EventService
      */
     private function getAllEvents(Display $display, ?Carbon $start = null, ?Carbon $end = null): Collection
     {
-        $start = $start ?? $display->getStartTime();
-        $end = $end ?? $display->getEndTime();
+        // Default to a timezone-tolerant window (yesterday .. tomorrow, in UTC) rather than
+        // just the UTC day. A display can be in any timezone, and UTC day boundaries can be
+        // up to ~14h off from the display's local day — for far-offset zones (e.g. New
+        // Zealand, UTC+12) part of the local day fell outside a UTC-day window, which made
+        // rooms intermittently show "no bookings / available all day" while Google/Outlook
+        // had events. The app filters these events back down to the local day / current time,
+        // so returning a slightly wider range is safe.
+        $start = $start ?? now()->subDay()->startOfDay();
+        $end = $end ?? now()->addDay()->endOfDay();
 
         $calendar = $display->calendar()
             ->with(['googleAccount', 'outlookAccount', 'caldavAccount', 'room'])
@@ -1106,7 +1117,7 @@ class EventService
     private function clearEventsCache(Display $display): void
     {
         Cache::forget($display->getEventsCacheKey());
-        Cache::forget($display->getEventsCacheKey() . ':fallback');
+        Cache::forget($display->getEventsCacheKey().':fallback');
     }
 
     /**

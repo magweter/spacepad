@@ -2,7 +2,9 @@
 
 <script>
 window.__diagRunUrls   = @json($displays->mapWithKeys(fn($d) => [$d->id => route('displays.diagnostics.run', $d)]));
+window.__diagResetUrls = @json($displays->mapWithKeys(fn($d) => [$d->id => route('displays.diagnostics.reset-account', $d)]));
 window.__diagDispNames = @json($displays->mapWithKeys(fn($d) => [$d->id => $d->name]));
+window.__diagCsrf      = @json(csrf_token());
 </script>
 
 <div
@@ -14,12 +16,23 @@ window.__diagDispNames = @json($displays->mapWithKeys(fn($d) => [$d->id => $d->n
         ran: false,
         elapsed: null,
         fetchErr: null,
+        resetting: false,
+        resetMsg: null,
 
         runUrls: window.__diagRunUrls ?? {},
+        resetUrls: window.__diagResetUrls ?? {},
         displayNames: window.__diagDispNames ?? {},
+        csrf: window.__diagCsrf ?? '',
 
         get runUrl() { return this.runUrls[this.selectedId] ?? null; },
+        get resetUrl() { return this.resetUrls[this.selectedId] ?? null; },
         get displayName() { return this.displayNames[this.selectedId] ?? ''; },
+
+        // True when a diagnostic step reports the linked account is in the error
+        // state — that's when resetting the status back to connected is useful.
+        get accountErrored() {
+            return this.steps.some(s => s.data && s.data['Account status'] === 'error');
+        },
 
         open(displayId) {
             this.selectedId = displayId ?? Object.keys(this.runUrls)[0] ?? null;
@@ -27,6 +40,7 @@ window.__diagDispNames = @json($displays->mapWithKeys(fn($d) => [$d->id => $d->n
             this.ran = false;
             this.elapsed = null;
             this.fetchErr = null;
+            this.resetMsg = null;
             this.show = true;
         },
 
@@ -35,6 +49,34 @@ window.__diagDispNames = @json($displays->mapWithKeys(fn($d) => [$d->id => $d->n
             this.ran = false;
             this.elapsed = null;
             this.fetchErr = null;
+            this.resetMsg = null;
+        },
+
+        async resetAccount() {
+            if (!this.resetUrl || this.resetting) return;
+            this.resetting = true;
+            this.resetMsg = null;
+            try {
+                const resp = await fetch(this.resetUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': this.csrf,
+                    },
+                });
+                const json = await resp.json().catch(() => ({}));
+                if (!resp.ok || json.ok === false) throw new Error(json.message || ('HTTP ' + resp.status));
+                const successMsg = json.message ?? 'Account status reset.';
+                // run() calls reset(), which nulls resetMsg — so set the confirmation
+                // *after* the diagnostic re-run completes or it would be wiped immediately.
+                await this.run();
+                this.resetMsg = successMsg;
+            } catch (err) {
+                this.resetMsg = 'Reset failed: ' + err.message;
+            } finally {
+                this.resetting = false;
+            }
         },
 
         async run() {
@@ -167,6 +209,24 @@ window.__diagDispNames = @json($displays->mapWithKeys(fn($d) => [$d->id => $d->n
                                 <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide" x-text="'Results for ' + displayName"></p>
                                 <span class="text-xs text-gray-400" x-text="elapsed + 's'"></span>
                             </div>
+
+                            {{-- Account in error state → offer a reset so a fresh token can be attempted --}}
+                            <div x-show="accountErrored" class="rounded-lg border border-red-200 bg-red-50 px-4 py-3">
+                                <p class="text-sm font-semibold text-red-800">Account is in an error state</p>
+                                <p class="mt-0.5 text-xs text-red-700">The linked calendar account is marked as errored, so automatic token refresh is skipped. Reset it to “connected” to attempt a fresh token — if it fails again the account keeps its error state and the exact reason is written to the logs.</p>
+                                <div class="mt-2 flex items-center gap-3">
+                                    <button type="button" @click="resetAccount()" :disabled="resetting || running"
+                                            class="inline-flex items-center gap-2 rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-red-700 disabled:opacity-50 transition-colors">
+                                        <svg x-show="resetting" class="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                                        </svg>
+                                        <span x-text="resetting ? 'Resetting…' : 'Reset account status & retry'"></span>
+                                    </button>
+                                    <span x-show="resetMsg" class="text-xs text-red-700" x-text="resetMsg"></span>
+                                </div>
+                            </div>
+
                             <template x-for="step in steps" :key="step.number">
                                 <div :class="{
                                         'bg-green-50 border-green-200': step.status === 'ok',

@@ -10,7 +10,7 @@ class SupportMessage extends Model
 {
     use HasUlid;
 
-    protected $fillable = ['message'];
+    protected $fillable = ['user_id', 'message'];
 
     protected $casts = ['is_read' => 'boolean'];
 

@@ -132,6 +132,7 @@ Route::middleware(['auth', 'user.update-last-activity', 'gtm'])->group(function 
     Route::get('/admin', [AdminController::class, 'index'])->name('admin.index');
     Route::get('/admin/users/{user}', [AdminController::class, 'showUser'])->name('admin.users.show');
     Route::delete('/admin/users/{user}', [AdminController::class, 'deleteUser'])->name('admin.users.delete');
+    Route::post('/admin/users/{user}/billing', [AdminController::class, 'updateBilling'])->name('admin.users.billing');
     Route::post('/admin/users/{user}/impersonate', [AdminController::class, 'impersonate'])->name('admin.users.impersonate');
     Route::post('/admin/stop-impersonating', [AdminController::class, 'stopImpersonating'])->name('admin.stop-impersonating');
 
@@ -143,6 +144,8 @@ Route::middleware(['auth', 'user.update-last-activity', 'gtm'])->group(function 
     Route::redirect('/diagnostics', '/')->name('diagnostics.index');
     Route::get('/displays/{display}/diagnostics/run', [DisplayDiagnosticsController::class, 'run'])
         ->name('displays.diagnostics.run');
+    Route::post('/displays/{display}/diagnostics/reset-account', [DisplayDiagnosticsController::class, 'resetAccount'])
+        ->name('displays.diagnostics.reset-account');
 
     // Boards routes
     Route::get('/boards/create', [BoardController::class, 'create'])->name('boards.create');

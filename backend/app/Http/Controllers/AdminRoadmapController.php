@@ -58,7 +58,7 @@ class AdminRoadmapController extends Controller
 
         RoadmapItem::create([...$validated, 'is_approved' => true]);
 
-        return redirect()->route('admin.roadmap.index')->with('success', 'Item created.');
+        return redirect()->route('admin.index', ['tab' => 'roadmap'])->with('success', 'Item created.');
     }
 
     public function edit(RoadmapItem $roadmapItem): View
@@ -80,7 +80,7 @@ class AdminRoadmapController extends Controller
 
         $roadmapItem->update($validated);
 
-        return redirect()->route('admin.roadmap.index')->with('success', 'Item updated.');
+        return redirect()->route('admin.index', ['tab' => 'roadmap'])->with('success', 'Item updated.');
     }
 
     public function approve(RoadmapItem $roadmapItem): RedirectResponse
