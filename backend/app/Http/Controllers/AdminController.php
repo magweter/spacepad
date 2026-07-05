@@ -37,11 +37,11 @@ class AdminController extends Controller
 
         // Stats from the pre-computed analytics snapshot — gracefully returns zeros if not yet populated
         try {
-            $mrrStats = DB::table('analytics_users')
+            $userStats = DB::table('analytics_users')
                 ->selectRaw('COUNT(CASE WHEN last_device_activity_at >= ? THEN 1 END) as active_users_count', [now()->subDays(7)])
                 ->first();
         } catch (\Exception $e) {
-            $mrrStats = null;
+            $userStats = null;
         }
 
         try {
@@ -83,7 +83,7 @@ class AdminController extends Controller
 
         return view('pages.admin', [
             'allUsers' => $allUsers,
-            'activeUsersCount' => $mrrStats->active_users_count ?? 0,
+            'activeUsersCount' => $userStats->active_users_count ?? 0,
             'totalInstances' => $instanceStats->total_instances ?? 0,
             'activeInstancesCount' => $instanceStats->active_instances_count ?? 0,
             'roadmapItems' => $roadmapItems,
@@ -112,8 +112,10 @@ class AdminController extends Controller
             },
         ]);
 
+        // RefreshAnalytics writes a row for every user with a default status of "none",
+        // so only surface subscription info when the user actually has a subscription.
         $analyticsRow = DB::table('analytics_users')->where('user_id', $user->id)->first();
-        $subscriptionInfo = $analyticsRow ? [
+        $subscriptionInfo = ($analyticsRow && $analyticsRow->subscription_status !== 'none') ? [
             'status' => $analyticsRow->subscription_status,
             'price' => $analyticsRow->mrr_current,
             'mrr' => $analyticsRow->mrr_current,
@@ -303,6 +305,10 @@ class AdminController extends Controller
             if (method_exists($user, 'subscriptions')) {
                 $user->subscriptions()->delete();
             }
+
+            // Remove the user's billing-change history — those rows keep a denormalized
+            // copy of the user's email and name, so they must not outlive the account.
+            \App\Models\BillingChange::where('user_id', $user->id)->delete();
 
             // Finally, delete the user
             $user->delete();

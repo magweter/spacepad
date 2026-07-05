@@ -67,8 +67,11 @@ window.__diagCsrf      = @json(csrf_token());
                 });
                 const json = await resp.json().catch(() => ({}));
                 if (!resp.ok || json.ok === false) throw new Error(json.message || ('HTTP ' + resp.status));
-                this.resetMsg = json.message ?? 'Account status reset.';
+                const successMsg = json.message ?? 'Account status reset.';
+                // run() calls reset(), which nulls resetMsg — so set the confirmation
+                // *after* the diagnostic re-run completes or it would be wiped immediately.
                 await this.run();
+                this.resetMsg = successMsg;
             } catch (err) {
                 this.resetMsg = 'Reset failed: ' + err.message;
             } finally {

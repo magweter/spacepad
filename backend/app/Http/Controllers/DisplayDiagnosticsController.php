@@ -14,6 +14,7 @@ use App\Services\OutlookService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class DisplayDiagnosticsController extends Controller
 {
@@ -383,19 +384,23 @@ class DisplayDiagnosticsController extends Controller
         }
 
         $previousStatus = $account->status?->value ?? (string) $account->status;
-        $account->update(['status' => AccountStatus::CONNECTED]);
 
-        // If the display itself was parked in an error state, bring it back so it
-        // can resume once the account reconnects.
-        if ($display->status === DisplayStatus::ERROR) {
-            $display->update(['status' => DisplayStatus::ACTIVE]);
-        }
+        // Reset the account and (if parked) the display together so a failure updating
+        // the display rolls back the account change rather than leaving a mismatched state.
+        DB::transaction(function () use ($account, $display) {
+            $account->update(['status' => AccountStatus::CONNECTED]);
+
+            // If the display itself was parked in an error state, bring it back so it
+            // can resume once the account reconnects.
+            if ($display->status === DisplayStatus::ERROR) {
+                $display->update(['status' => DisplayStatus::ACTIVE]);
+            }
+        });
 
         logger()->info('Account status reset from diagnostics', [
             'display_id' => $display->id,
             'account_type' => class_basename($account),
             'account_id' => $account->id,
-            'email' => $account->email,
             'previous_status' => $previousStatus,
             'reset_by' => auth()->id(),
         ]);

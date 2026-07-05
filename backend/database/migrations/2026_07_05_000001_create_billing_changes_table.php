@@ -14,7 +14,7 @@ return new class extends Migration
 
         Schema::create('billing_changes', function (Blueprint $table) {
             $table->id();
-            $table->ulid('user_id')->index();
+            $table->ulid('user_id');
             $table->string('email');
             $table->string('name');
             $table->integer('previous_displays_count');
@@ -29,8 +29,11 @@ return new class extends Migration
             $table->decimal('mrr_delta', 10, 2)->default(0);  // new - previous (signed)
             $table->string('change_type');               // increase | decrease
             $table->string('subscription_status')->nullable();
-            $table->timestamp('detected_at')->index();
+            $table->timestamp('detected_at');
             $table->timestamps();
+
+            // Supports the admin user detail lookup: where('user_id')->orderByDesc('detected_at').
+            $table->index(['user_id', 'detected_at']);
         });
     }
 

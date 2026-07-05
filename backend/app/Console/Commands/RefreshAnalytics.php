@@ -23,13 +23,30 @@ class RefreshAnalytics extends Command
             return self::SUCCESS;
         }
 
-        $withMrr = $this->option('mrr');
-        $this->info('Refreshing analytics tables'.($withMrr ? ' (including MRR)' : '').'...');
+        // The default run and the --mrr run share one application-level lock so a fast
+        // (MRR-preserving) run can never overlap an --mrr run and clobber freshly fetched
+        // MRR values with the stale ones it carried forward. The per-command scheduler
+        // mutex can't do this because it keys on the command + arguments, giving the two
+        // invocations separate locks.
+        $lock = Cache::lock('refresh-analytics', 600);
 
-        $this->refreshUsers($withMrr);
-        $this->refreshInstances($withMrr);
+        if (! $lock->get()) {
+            $this->info('Another analytics refresh is already running - skipping.');
 
-        $this->info('Analytics refresh completed.');
+            return self::SUCCESS;
+        }
+
+        try {
+            $withMrr = $this->option('mrr');
+            $this->info('Refreshing analytics tables'.($withMrr ? ' (including MRR)' : '').'...');
+
+            $this->refreshUsers($withMrr);
+            $this->refreshInstances($withMrr);
+
+            $this->info('Analytics refresh completed.');
+        } finally {
+            $lock->release();
+        }
 
         return self::SUCCESS;
     }
@@ -37,17 +54,6 @@ class RefreshAnalytics extends Command
     private function refreshUsers(bool $withMrr): void
     {
         $now = now();
-
-        $users = User::withCount(['displays', 'boards', 'rooms'])
-            ->with([
-                'devices' => fn ($q) => $q->whereNotNull('last_activity_at')->orderByDesc('last_activity_at')->limit(1),
-                'subscriptions' => fn ($q) => $q->where(fn ($s) => $s->whereNull('ends_at')->orWhere('ends_at', '>', $now))->orderByDesc('created_at'),
-                'workspaces' => fn ($q) => $q->withPivot('role')->orderByPivot('created_at'),
-            ])
-            ->whereNull('deleted_at')
-            ->get();
-
-        $this->line("Processing {$users->count()} users...");
 
         // Preserve existing MRR values on fast (non-MRR) runs
         $existingMrr = $withMrr ? [] : DB::table('analytics_users')->pluck('mrr_current', 'user_id')->all();
@@ -60,132 +66,152 @@ class RefreshAnalytics extends Command
             ->get()
             ->keyBy('user_id');
 
-        $rows = [];
         $changes = [];
-        foreach ($users as $user) {
-            $subscription = $user->subscriptions->first();
-            $subscriptionStatus = 'none';
-            $billingInterval = $existingInterval[$user->id] ?? null;
-            $lemonSqueezyId = null;
-            $trialEndsAt = null;
-            $subscriptionEndsAt = null;
-            $subscriptionRenewsAt = null;
-            $mrrCurrent = (float) ($existingMrr[$user->id] ?? 0);
-            $mrrExpected = (float) ($existingMrrExpected[$user->id] ?? 0);
+        $userIds = [];
 
-            if ($user->is_manually_billed) {
-                // Billed outside Lemon Squeezy (via our own accounting system).
-                // MRR is computed locally from usage at the standard list price — no LS API call.
-                // Highest precedence so it wins over any stale LS subscription.
-                $subscriptionStatus = 'manual';
-                $billingInterval = 'monthly';
-                $billableUsage = max(1, $user->displays_count + ($user->boards_count * 2));
-                $unitPrice = (float) config('settings.manual_billing_unit_price', 0);
-                $mrrCurrent = $unitPrice * $billableUsage;
-                $mrrExpected = $mrrCurrent;
-            } elseif ($user->is_unlimited) {
-                $subscriptionStatus = 'unlimited';
-            } elseif ($subscription) {
-                $lemonSqueezyId = $subscription->lemon_squeezy_id;
-                $trialEndsAt = $subscription->trial_ends_at;
-                $subscriptionEndsAt = $subscription->ends_at;
-                $subscriptionRenewsAt = $subscription->renews_at;
-                $subscriptionStatus = $subscription->status ?? 'unknown';
+        // Process users in batches (with the same eager-loaded relations/counts) so memory
+        // stays flat as the users table grows instead of loading every user at once.
+        User::withCount(['displays', 'boards', 'rooms'])
+            ->with([
+                'devices' => fn ($q) => $q->whereNotNull('last_activity_at')->orderByDesc('last_activity_at')->limit(1),
+                'subscriptions' => fn ($q) => $q->where(fn ($s) => $s->whereNull('ends_at')->orWhere('ends_at', '>', $now))->orderByDesc('created_at'),
+                'workspaces' => fn ($q) => $q->withPivot('role')->orderByPivot('created_at'),
+            ])
+            ->whereNull('deleted_at')
+            ->chunkById(500, function ($users) use (&$changes, &$userIds, $withMrr, $now, $existingMrr, $existingMrrExpected, $existingInterval, $previous) {
+                $rows = [];
 
-                if ($withMrr) {
-                    // Billable usage: displays count as 1x, boards as 2x (see Workspace::getTotalUsageCount)
-                    $billableUsage = $user->displays_count + ($user->boards_count * 2);
-                    $apiData = $this->fetchSubscriptionFromApi($subscription->lemon_squeezy_id, $billableUsage);
+                foreach ($users as $user) {
+                    $subscription = $user->subscriptions->first();
+                    $subscriptionStatus = 'none';
+                    $billingInterval = $existingInterval[$user->id] ?? null;
+                    $lemonSqueezyId = null;
+                    $trialEndsAt = null;
+                    $subscriptionEndsAt = null;
+                    $subscriptionRenewsAt = null;
+                    $mrrCurrent = (float) ($existingMrr[$user->id] ?? 0);
+                    $mrrExpected = (float) ($existingMrrExpected[$user->id] ?? 0);
 
-                    if ($apiData) {
-                        $subscriptionStatus = $apiData['status'];
-                        $billingInterval = $apiData['billing_interval'];
-                        // unit_price × quantity already factored in fetchSubscriptionPrice
-                        $mrrCurrent = $subscriptionStatus === 'active' ? $apiData['mrr'] : 0;
-                        $mrrExpected = in_array($subscriptionStatus, ['active', 'on_trial']) ? $apiData['mrr'] : 0;
+                    if ($user->is_manually_billed) {
+                        // Billed outside Lemon Squeezy (via our own accounting system).
+                        // MRR is computed locally from usage at the standard list price — no LS API call.
+                        // Highest precedence so it wins over any stale LS subscription.
+                        $subscriptionStatus = 'manual';
+                        $billingInterval = 'monthly';
+                        $billableUsage = max(1, $user->displays_count + ($user->boards_count * 2));
+                        $unitPrice = (float) config('settings.manual_billing_unit_price', 0);
+                        $mrrCurrent = $unitPrice * $billableUsage;
+                        $mrrExpected = $mrrCurrent;
+                    } elseif ($user->is_unlimited) {
+                        $subscriptionStatus = 'unlimited';
+                    } elseif ($subscription) {
+                        $lemonSqueezyId = $subscription->lemon_squeezy_id;
+                        $trialEndsAt = $subscription->trial_ends_at;
+                        $subscriptionEndsAt = $subscription->ends_at;
+                        $subscriptionRenewsAt = $subscription->renews_at;
+                        $subscriptionStatus = $subscription->status ?? 'unknown';
+
+                        if ($withMrr) {
+                            // Billable usage: displays count as 1x, boards as 2x (see Workspace::getTotalUsageCount)
+                            $billableUsage = $user->displays_count + ($user->boards_count * 2);
+                            $apiData = $this->fetchSubscriptionFromApi($subscription->lemon_squeezy_id, $billableUsage);
+
+                            if ($apiData) {
+                                $subscriptionStatus = $apiData['status'];
+                                $billingInterval = $apiData['billing_interval'];
+                                // unit_price × quantity already factored in fetchSubscriptionPrice
+                                $mrrCurrent = $subscriptionStatus === 'active' ? $apiData['mrr'] : 0;
+                                $mrrExpected = in_array($subscriptionStatus, ['active', 'on_trial']) ? $apiData['mrr'] : 0;
+                            }
+                        }
                     }
-                }
-            }
 
-            $primaryWorkspace = $user->workspaces->first(fn ($w) => $w->pivot->role === \App\Enums\WorkspaceRole::OWNER->value)
-                ?? $user->workspaces->first();
+                    $primaryWorkspace = $user->workspaces->first(fn ($w) => $w->pivot->role === \App\Enums\WorkspaceRole::OWNER->value)
+                        ?? $user->workspaces->first();
 
-            // Detect a license-count change vs. the previous snapshot. License count
-            // (billable usage) is the trigger; MRR old/new is recorded alongside it.
-            // Skip users with no previous snapshot (new users / first-ever run) to avoid
-            // a spurious "0 → N" increase for every existing user.
-            $prevRow = $previous->get($user->id);
-            if ($prevRow) {
-                $newLicenseCount = $user->displays_count + ($user->boards_count * 2);
-                $prevLicenseCount = (int) $prevRow->displays_count + ((int) $prevRow->boards_count * 2);
+                    // Detect a license-count change vs. the previous snapshot. License count
+                    // (billable usage) is the trigger; MRR old/new is recorded alongside it.
+                    // Skip users with no previous snapshot (new users / first-ever run) to avoid
+                    // a spurious "0 → N" increase for every existing user.
+                    $prevRow = $previous->get($user->id);
+                    if ($prevRow) {
+                        $newLicenseCount = $user->displays_count + ($user->boards_count * 2);
+                        $prevLicenseCount = (int) $prevRow->displays_count + ((int) $prevRow->boards_count * 2);
 
-                if ($newLicenseCount !== $prevLicenseCount) {
-                    $prevMrr = (float) $prevRow->mrr_current;
+                        if ($newLicenseCount !== $prevLicenseCount) {
+                            $prevMrr = (float) $prevRow->mrr_current;
 
-                    $changes[] = [
+                            $changes[] = [
+                                'user_id' => $user->id,
+                                'email' => $user->email,
+                                'name' => $user->name,
+                                'previous_displays_count' => (int) $prevRow->displays_count,
+                                'new_displays_count' => $user->displays_count,
+                                'previous_boards_count' => (int) $prevRow->boards_count,
+                                'new_boards_count' => $user->boards_count,
+                                'previous_license_count' => $prevLicenseCount,
+                                'new_license_count' => $newLicenseCount,
+                                'license_delta' => $newLicenseCount - $prevLicenseCount,
+                                'previous_mrr' => $prevMrr,
+                                'new_mrr' => $mrrCurrent,
+                                'mrr_delta' => $mrrCurrent - $prevMrr,
+                                'change_type' => $newLicenseCount > $prevLicenseCount ? 'increase' : 'decrease',
+                                'subscription_status' => $subscriptionStatus,
+                                'detected_at' => $now,
+                                'created_at' => $now,
+                                'updated_at' => $now,
+                            ];
+                        }
+                    }
+
+                    $rows[] = [
                         'user_id' => $user->id,
+                        'workspace_id' => $primaryWorkspace?->id,
+                        'workspace_name' => $primaryWorkspace?->name,
                         'email' => $user->email,
                         'name' => $user->name,
-                        'previous_displays_count' => (int) $prevRow->displays_count,
-                        'new_displays_count' => $user->displays_count,
-                        'previous_boards_count' => (int) $prevRow->boards_count,
-                        'new_boards_count' => $user->boards_count,
-                        'previous_license_count' => $prevLicenseCount,
-                        'new_license_count' => $newLicenseCount,
-                        'license_delta' => $newLicenseCount - $prevLicenseCount,
-                        'previous_mrr' => $prevMrr,
-                        'new_mrr' => $mrrCurrent,
-                        'mrr_delta' => $mrrCurrent - $prevMrr,
-                        'change_type' => $newLicenseCount > $prevLicenseCount ? 'increase' : 'decrease',
+                        'registered_at' => $user->created_at,
+                        'last_user_activity_at' => $user->last_activity_at,
+                        'last_device_activity_at' => $user->devices->first()?->last_activity_at,
+                        'is_unlimited' => $user->is_unlimited ?? false,
+                        'displays_count' => $user->displays_count,
+                        'boards_count' => $user->boards_count,
+                        'rooms_count' => $user->rooms_count,
                         'subscription_status' => $subscriptionStatus,
-                        'detected_at' => $now,
+                        'billing_interval' => $billingInterval,
+                        'trial_ends_at' => $trialEndsAt,
+                        'subscription_ends_at' => $subscriptionEndsAt,
+                        'subscription_renews_at' => $subscriptionRenewsAt,
+                        'lemon_squeezy_id' => $lemonSqueezyId,
+                        'mrr_current' => $mrrCurrent,
+                        'mrr_expected' => $mrrExpected,
+                        'refreshed_at' => $now,
                         'created_at' => $now,
                         'updated_at' => $now,
                     ];
+
+                    $userIds[] = $user->id;
                 }
-            }
 
-            $rows[] = [
-                'user_id' => $user->id,
-                'workspace_id' => $primaryWorkspace?->id,
-                'workspace_name' => $primaryWorkspace?->name,
-                'email' => $user->email,
-                'name' => $user->name,
-                'registered_at' => $user->created_at,
-                'last_user_activity_at' => $user->last_activity_at,
-                'last_device_activity_at' => $user->devices->first()?->last_activity_at,
-                'is_unlimited' => $user->is_unlimited ?? false,
-                'displays_count' => $user->displays_count,
-                'boards_count' => $user->boards_count,
-                'rooms_count' => $user->rooms_count,
-                'subscription_status' => $subscriptionStatus,
-                'billing_interval' => $billingInterval,
-                'trial_ends_at' => $trialEndsAt,
-                'subscription_ends_at' => $subscriptionEndsAt,
-                'subscription_renews_at' => $subscriptionRenewsAt,
-                'lemon_squeezy_id' => $lemonSqueezyId,
-                'mrr_current' => $mrrCurrent,
-                'mrr_expected' => $mrrExpected,
-                'refreshed_at' => $now,
-                'created_at' => $now,
-                'updated_at' => $now,
-            ];
+                foreach (array_chunk($rows, 100) as $chunk) {
+                    DB::table('analytics_users')->upsert(
+                        $chunk,
+                        ['user_id'],
+                        ['workspace_id', 'workspace_name', 'email', 'name', 'registered_at', 'last_user_activity_at',
+                            'last_device_activity_at', 'is_unlimited', 'displays_count', 'boards_count', 'rooms_count',
+                            'subscription_status', 'billing_interval', 'trial_ends_at', 'subscription_ends_at',
+                            'subscription_renews_at', 'lemon_squeezy_id', 'mrr_current', 'mrr_expected', 'refreshed_at', 'updated_at']
+                    );
+                }
+            });
+
+        // Only prune when at least one user was seen. With an empty id list, whereNotIn
+        // matches every row and would wipe the whole snapshot table.
+        if ($userIds !== []) {
+            DB::table('analytics_users')->whereNotIn('user_id', $userIds)->delete();
         }
 
-        foreach (array_chunk($rows, 100) as $chunk) {
-            DB::table('analytics_users')->upsert(
-                $chunk,
-                ['user_id'],
-                ['workspace_id', 'workspace_name', 'email', 'name', 'registered_at', 'last_user_activity_at',
-                    'last_device_activity_at', 'is_unlimited', 'displays_count', 'boards_count', 'rooms_count',
-                    'subscription_status', 'billing_interval', 'trial_ends_at', 'subscription_ends_at',
-                    'subscription_renews_at', 'lemon_squeezy_id', 'mrr_current', 'mrr_expected', 'refreshed_at', 'updated_at']
-            );
-        }
-
-        DB::table('analytics_users')->whereNotIn('user_id', $users->pluck('id')->all())->delete();
-
-        $this->line("Upserted {$users->count()} user rows.");
+        $this->line('Upserted '.count($userIds).' user rows.');
 
         foreach (array_chunk($changes, 100) as $chunk) {
             DB::table('billing_changes')->insert($chunk);
@@ -265,7 +291,12 @@ class RefreshAnalytics extends Command
             );
         }
 
-        DB::table('analytics_instances')->whereNotIn('instance_id', $instances->pluck('id')->all())->delete();
+        // Only prune when at least one instance was seen. With an empty id list, whereNotIn
+        // matches every row and would wipe the whole snapshot table.
+        $instanceIds = $instances->pluck('id')->all();
+        if ($instanceIds !== []) {
+            DB::table('analytics_instances')->whereNotIn('instance_id', $instanceIds)->delete();
+        }
 
         $this->line("Upserted {$instances->count()} instance rows.");
     }
@@ -284,6 +315,7 @@ class RefreshAnalytics extends Command
                 now()->addHours(6),
                 fn () => Http::withToken($apiKey)
                     ->withHeaders(['Accept' => 'application/vnd.api+json'])
+                    ->timeout(15)
                     ->get('https://api.lemonsqueezy.com/v1/license-keys', ['filter[key]' => $licenseKey])
                     ->json()
             );
@@ -299,6 +331,7 @@ class RefreshAnalytics extends Command
                 now()->addHours(6),
                 fn () => Http::withToken($apiKey)
                     ->withHeaders(['Accept' => 'application/vnd.api+json'])
+                    ->timeout(15)
                     ->get('https://api.lemonsqueezy.com/v1/subscriptions', ['filter[customer_id]' => $customerId])
                     ->json()
             );
@@ -326,6 +359,12 @@ class RefreshAnalytics extends Command
 
             return array_merge($apiData, ['subscription_id' => $subscriptionId]);
         } catch (\Exception $e) {
+            logger()->warning('RefreshAnalytics: failed to fetch instance MRR from LemonSqueezy', [
+                'license_key' => substr($licenseKey, 0, 8).'…',
+                'billable_usage' => $billableUsage,
+                'exception' => $e->getMessage(),
+            ]);
+
             return null;
         }
     }
@@ -343,6 +382,7 @@ class RefreshAnalytics extends Command
                 now()->addHours(6),
                 fn () => Http::withToken($apiKey)
                     ->withHeaders(['Accept' => 'application/vnd.api+json'])
+                    ->timeout(15)
                     ->get("https://api.lemonsqueezy.com/v1/subscriptions/{$subscriptionId}")
                     ->json()
             );
@@ -368,6 +408,11 @@ class RefreshAnalytics extends Command
                 'billing_interval' => $interval,
             ];
         } catch (\Exception $e) {
+            logger()->warning('RefreshAnalytics: failed to fetch subscription from LemonSqueezy', [
+                'subscription_id' => $subscriptionId,
+                'exception' => $e->getMessage(),
+            ]);
+
             return null;
         }
     }
@@ -381,6 +426,7 @@ class RefreshAnalytics extends Command
             now()->addHours(6),
             fn () => Http::withToken($apiKey)
                 ->withHeaders(['Accept' => 'application/vnd.api+json'])
+                ->timeout(15)
                 ->get("https://api.lemonsqueezy.com/v1/subscription-items?filter[subscription_id]={$subscriptionId}")
                 ->json()
         );
@@ -399,6 +445,7 @@ class RefreshAnalytics extends Command
             now()->addHours(24),
             fn () => Http::withToken($apiKey)
                 ->withHeaders(['Accept' => 'application/vnd.api+json'])
+                ->timeout(15)
                 ->get("https://api.lemonsqueezy.com/v1/prices/{$priceId}")
                 ->json()
         );
