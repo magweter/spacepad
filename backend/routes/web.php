@@ -144,6 +144,8 @@ Route::middleware(['auth', 'user.update-last-activity', 'gtm'])->group(function 
     Route::redirect('/diagnostics', '/')->name('diagnostics.index');
     Route::get('/displays/{display}/diagnostics/run', [DisplayDiagnosticsController::class, 'run'])
         ->name('displays.diagnostics.run');
+    Route::post('/displays/{display}/diagnostics/reset-account', [DisplayDiagnosticsController::class, 'resetAccount'])
+        ->name('displays.diagnostics.reset-account');
 
     // Boards routes
     Route::get('/boards/create', [BoardController::class, 'create'])->name('boards.create');

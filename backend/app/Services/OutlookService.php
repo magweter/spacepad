@@ -229,17 +229,32 @@ class OutlookService
 
         if (Arr::exists($tokenData, 'error')) {
             $errorCode = Arr::get($tokenData, 'error');
+            $errorDescription = Arr::get($tokenData, 'error_description', $errorCode);
 
             // Only permanently mark the account as ERROR for failures that will
             // never recover without user action (revoked consent, invalid credentials).
             // Transient failures (rate limits, server errors) just throw so the
             // next run retries cleanly.
             $permanentErrors = ['invalid_grant', 'invalid_client', 'unauthorized_client', 'consent_required', 'interaction_required'];
-            if (in_array($errorCode, $permanentErrors, true)) {
+            $isPermanent = in_array($errorCode, $permanentErrors, true);
+
+            // Log every refresh failure with the exact error Microsoft returned so
+            // permanent account errors can be diagnosed (the customer otherwise has
+            // no visibility into *why* an account flips to the error state).
+            logger()->error('Outlook token refresh failed', [
+                'outlook_account_id' => $outlookAccount->id,
+                'email' => $outlookAccount->email,
+                'error' => $errorCode,
+                'error_description' => $errorDescription,
+                'http_status' => $response->status(),
+                'permanent' => $isPermanent,
+            ]);
+
+            if ($isPermanent) {
                 $outlookAccount->update(['status' => AccountStatus::ERROR]);
             }
 
-            throw new Exception('Error refreshing Outlook token: '.Arr::get($tokenData, 'error_description', $errorCode));
+            throw new Exception('Error refreshing Outlook token: '.$errorDescription);
         }
 
         $outlookAccount->update([

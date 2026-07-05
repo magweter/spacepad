@@ -209,16 +209,28 @@ class GoogleService
         $this->ensureAuthenticated($googleAccount);
 
         $calendarService = new GoogleCalendar($this->client);
-        $events = $calendarService->events->listEvents($calendarId, [
-            'timeMin' => $startDateTime->toRfc3339String(),
-            'timeMax' => $endDateTime->toRfc3339String(),
-            'maxResults' => 100,
-            'singleEvents' => true,
-            'showDeleted' => false,
-            'orderBy' => 'startTime',
-        ]);
 
-        return $events->getItems();
+        // Page through all results — a single page caps at maxResults, so without following
+        // nextPageToken a busy room would silently drop events beyond the first page.
+        $items = [];
+        $pageToken = null;
+        $page = 0;
+        do {
+            $events = $calendarService->events->listEvents($calendarId, [
+                'timeMin' => $startDateTime->toRfc3339String(),
+                'timeMax' => $endDateTime->toRfc3339String(),
+                'maxResults' => 250,
+                'singleEvents' => true,
+                'showDeleted' => false,
+                'orderBy' => 'startTime',
+                'pageToken' => $pageToken,
+            ]);
+
+            $items = array_merge($items, $events->getItems());
+            $pageToken = $events->getNextPageToken();
+        } while ($pageToken && ++$page < 20);
+
+        return $items;
     }
 
     /**
