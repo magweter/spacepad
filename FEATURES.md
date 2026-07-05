@@ -130,7 +130,7 @@ All settings are per-display and managed from the web portal.
 - **Dashboard** — overview of all connected displays and their current status
 - **Display settings** — per-display behavior configuration
 - **Display customization** — branding and visual configuration
-- **Display diagnostics** — connection health, last sync, troubleshooting info
+- **Display diagnostics** — connection health, last sync, troubleshooting info, and a one-click reset of an errored calendar account's status so a fresh token is attempted
 - **Calendar accounts** — connect and manage Google, Microsoft, and CalDAV accounts
 - **Boards** — create and manage multi-room overview boards
 - **Usage / analytics** — display activity statistics

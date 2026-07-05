@@ -64,6 +64,7 @@ class User extends Authenticatable
         'email_verified_at',
         'last_activity_at',
         'is_unlimited',
+        'is_manually_billed',
         'terms_accepted_at',
         'dpa_accepted_at',
         'is_admin',
@@ -90,6 +91,7 @@ class User extends Authenticatable
         'password' => 'hashed',
         'last_activity_at' => 'datetime',
         'is_unlimited' => 'boolean',
+        'is_manually_billed' => 'boolean',
         'usage_type' => UsageType::class,
         'terms_accepted_at' => 'datetime',
         'dpa_accepted_at' => 'datetime',
@@ -261,7 +263,7 @@ class User extends Authenticatable
             return $this->usage_type === UsageType::PERSONAL || InstanceService::hasValidLicense();
         }
 
-        return $this->is_unlimited || $this->subscribed();
+        return $this->is_unlimited || $this->is_manually_billed || $this->subscribed();
     }
 
     /**
