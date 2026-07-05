@@ -21,6 +21,11 @@ return [
 
     'cloud_hosted_pro_plan_id' => env('CLOUD_HOSTED_PRO_PLAN_ID'),
 
+    // Standard monthly list price per billable unit (display = 1 unit, board = 2 units).
+    // Used to compute MRR for users billed manually (outside Lemon Squeezy) via our own
+    // accounting system. If unset, manually-billed users still get Pro but contribute 0 MRR.
+    'manual_billing_unit_price' => env('MANUAL_BILLING_UNIT_PRICE'),
+
     'version' => env('SPACEPAD_VERSION'),
 
     'disable_email_login' => env('DISABLE_EMAIL_LOGIN', false),
