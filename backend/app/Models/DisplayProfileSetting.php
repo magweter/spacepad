@@ -7,13 +7,13 @@ use App\Traits\HasUlid;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class DisplaySetting extends Model
+class DisplayProfileSetting extends Model
 {
     use HasEncryptedTypedValue;
     use HasUlid;
 
     protected $fillable = [
-        'display_id',
+        'display_profile_id',
         'key',
         'value',
         'type',
@@ -23,8 +23,8 @@ class DisplaySetting extends Model
         'value' => 'encrypted',
     ];
 
-    public function display(): BelongsTo
+    public function profile(): BelongsTo
     {
-        return $this->belongsTo(Display::class);
+        return $this->belongsTo(DisplayProfile::class, 'display_profile_id');
     }
 }

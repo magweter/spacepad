@@ -3,32 +3,80 @@
 namespace App\Http\Controllers;
 
 use App\Helpers\DisplaySettings;
-use App\Models\Display;
-use App\Services\ImageService;
-use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Contracts\View\View;
 use App\Http\Requests\UpdateDisplayCustomizationRequest;
+use App\Models\Display;
+use App\Models\DisplayProfile;
+use App\Models\DisplaySetting;
+use App\Services\ImageService;
+use Illuminate\Contracts\View\View;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 
 class DisplaySettingsController extends Controller
 {
     public function __construct(
         protected ImageService $imageService
-    ) {
-    }
+    ) {}
+
     public function index(Display $display): View
     {
         $this->authorize('update', $display);
 
         // Check if user has Pro access for the display's workspace
-        if (!$display->workspace_id || !auth()->user()->hasProForWorkspace($display->workspace)) {
+        if (! $display->workspace_id || ! auth()->user()->hasProForWorkspace($display->workspace)) {
             return redirect()->route('dashboard')->with('error', 'Display settings are only available for Pro users.');
         }
 
         return view('pages.displays.settings', [
-            'display' => $display->load('calendar')
+            'display' => $display->load('calendar', 'profile.settings'),
+            'profiles' => DisplayProfile::where('workspace_id', $display->workspace_id)
+                ->orderBy('name')
+                ->get(),
         ]);
+    }
+
+    /**
+     * Link (or unlink) the display to a profile so it inherits the profile's settings.
+     */
+    public function updateProfile(Request $request, Display $display): RedirectResponse
+    {
+        $this->authorize('update', $display);
+
+        if (! $display->workspace_id || ! auth()->user()->hasProForWorkspace($display->workspace)) {
+            return redirect()->route('dashboard')->with('error', 'Display settings are only available for Pro users.');
+        }
+
+        $validated = $request->validate([
+            'display_profile_id' => [
+                'nullable',
+                \Illuminate\Validation\Rule::exists('display_profiles', 'id')
+                    ->where('workspace_id', $display->workspace_id),
+            ],
+        ]);
+
+        $display->update(['display_profile_id' => $validated['display_profile_id'] ?? null]);
+        $display->touch();
+
+        return redirect()->route('displays.settings.index', $display)
+            ->with('success', 'Profile link updated successfully.');
+    }
+
+    /**
+     * Remove all of the display's own settings so it fully inherits its linked profile.
+     */
+    public function resetToProfile(Display $display): RedirectResponse
+    {
+        $this->authorize('update', $display);
+
+        if (! $display->workspace_id || ! auth()->user()->hasProForWorkspace($display->workspace)) {
+            return redirect()->route('dashboard')->with('error', 'Display settings are only available for Pro users.');
+        }
+
+        DisplaySetting::where('display_id', $display->id)->delete();
+        $display->touch();
+
+        return redirect()->route('displays.settings.index', $display)
+            ->with('success', 'Display settings reset. This display now follows its profile.');
     }
 
     public function update(Request $request, Display $display): RedirectResponse
@@ -36,7 +84,7 @@ class DisplaySettingsController extends Controller
         $this->authorize('update', $display);
 
         // Check if user has Pro access for the display's workspace
-        if (!$display->workspace_id || !auth()->user()->hasProForWorkspace($display->workspace)) {
+        if (! $display->workspace_id || ! auth()->user()->hasProForWorkspace($display->workspace)) {
             return redirect()->route('dashboard')->with('error', 'Display settings are only available for Pro users.');
         }
 
@@ -131,7 +179,7 @@ class DisplaySettingsController extends Controller
             $request->boolean('show_organizer')
         );
 
-        if (!$updated) {
+        if (! $updated) {
             return back()->withErrors(['error' => 'Failed to update settings']);
         }
 
@@ -146,12 +194,12 @@ class DisplaySettingsController extends Controller
         $this->authorize('update', $display);
 
         // Check if user has Pro access for the display's workspace
-        if (!$display->workspace_id || !auth()->user()->hasProForWorkspace($display->workspace)) {
+        if (! $display->workspace_id || ! auth()->user()->hasProForWorkspace($display->workspace)) {
             return redirect()->route('dashboard')->with('error', 'Display customization is only available for Pro users.');
         }
 
         return view('pages.displays.customization', [
-            'display' => $display->load('calendar')
+            'display' => $display->load('calendar'),
         ]);
     }
 
@@ -160,7 +208,7 @@ class DisplaySettingsController extends Controller
         $this->authorize('update', $display);
 
         // Check if user has Pro access for the display's workspace
-        if (!$display->workspace_id || !auth()->user()->hasProForWorkspace($display->workspace)) {
+        if (! $display->workspace_id || ! auth()->user()->hasProForWorkspace($display->workspace)) {
             return redirect()->route('dashboard')->with('error', 'Display customization is only available for Pro users.');
         }
 
@@ -234,7 +282,7 @@ class DisplaySettingsController extends Controller
             if (isset(\App\Services\ImageService::DEFAULT_BACKGROUNDS[$defaultKey])) {
                 // Remove old custom uploaded background if exists
                 $currentBackground = DisplaySettings::getBackgroundImage($display);
-                if ($currentBackground && !isset(\App\Services\ImageService::DEFAULT_BACKGROUNDS[$currentBackground])) {
+                if ($currentBackground && ! isset(\App\Services\ImageService::DEFAULT_BACKGROUNDS[$currentBackground])) {
                     $this->imageService->removeBackgroundImageFile($display);
                 }
                 // Store the default background key
@@ -252,7 +300,7 @@ class DisplaySettingsController extends Controller
             $request->filled('advertisement_interval') ||
             $request->filled('advertisement_duration')
         ) {
-            if (!auth()->user()->hasAdvertisementFeature()) {
+            if (! auth()->user()->hasAdvertisementFeature()) {
                 abort(403, 'Advertisement feature is not enabled for your account.');
             }
         }
@@ -287,7 +335,7 @@ class DisplaySettingsController extends Controller
             );
         }
 
-        if (!$updated) {
+        if (! $updated) {
             return back()->withErrors(['error' => 'Failed to update customization settings']);
         }
 
@@ -297,7 +345,6 @@ class DisplaySettingsController extends Controller
         return redirect()->route('displays.customization', $display)->with('success', 'Customization settings updated successfully. Changes may take up to 1 minute to appear on your display.');
     }
 
-
     /**
      * Serve display images (logo or background)
      */
@@ -305,7 +352,7 @@ class DisplaySettingsController extends Controller
     {
         // Use the policy to check access for both User and Device models
         $this->authorize('view', $display);
-        
+
         return $this->imageService->serveImage($display, $type);
     }
 }

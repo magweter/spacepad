@@ -32,6 +32,35 @@
         {{-- Session Status Alert --}}
         <x-alerts.alert :errors="$errors" />
 
+        {{-- Profile Link --}}
+        <div class="mb-6 border border-gray-200 rounded-lg p-6">
+            <div class="mb-4">
+                <h3 class="text-base font-semibold text-gray-900">Profile</h3>
+                <p class="text-sm text-gray-500">Link this display to a profile to inherit its settings. Any setting you change below overrides the profile for this display only.</p>
+            </div>
+            <form action="{{ route('displays.profile.update', $display) }}" method="POST" class="flex items-end gap-3">
+                @csrf
+                @method('PUT')
+                <div class="flex-auto">
+                    <label for="display_profile_id" class="block text-sm font-medium text-gray-700 mb-1">Linked profile</label>
+                    <select name="display_profile_id" id="display_profile_id" class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        <option value="">No profile</option>
+                        @foreach($profiles as $profile)
+                            <option value="{{ $profile->id }}" {{ $display->display_profile_id === $profile->id ? 'selected' : '' }}>{{ $profile->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <button type="submit" class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Save link</button>
+            </form>
+            @if($display->display_profile_id)
+                <form action="{{ route('displays.settings.reset-to-profile', $display) }}" method="POST" class="mt-3"
+                      onsubmit="return confirm('Reset this display to follow its profile? All settings you customized on this display will be removed.');">
+                    @csrf
+                    <button type="submit" class="text-sm font-medium text-red-600 hover:text-red-500">Reset settings to profile</button>
+                </form>
+            @endif
+        </div>
+
         {{-- Pro Features Notice --}}
         <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <div class="flex">

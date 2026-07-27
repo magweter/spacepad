@@ -17,10 +17,10 @@ class DeviceController extends ApiController
     {
         /** @var Device $device */
         $device = auth()->user();
-        
-        // Eager load display with settings to avoid N+1 queries
-        $device->load('display.settings');
-        
+
+        // Eager load display with its own settings and any linked profile's settings to avoid N+1 queries
+        $device->load('display.settings', 'display.profile.settings');
+
         return $this->success(
             data: DeviceResource::make($device)
         );
@@ -32,7 +32,7 @@ class DeviceController extends ApiController
         $device = auth()->user();
         $data = $request->validated();
 
-        if (!$device->user_id) {
+        if (! $device->user_id) {
             return $this->error(
                 message: 'Device is not associated with a user',
                 code: Response::HTTP_BAD_REQUEST
@@ -40,7 +40,7 @@ class DeviceController extends ApiController
         }
 
         $user = User::with('workspaces')->find($device->user_id);
-        if (!$user) {
+        if (! $user) {
             return $this->error(
                 message: 'User not found',
                 code: Response::HTTP_NOT_FOUND

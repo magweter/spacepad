@@ -49,7 +49,7 @@ class DisplayController extends ApiController
         $displays = Display::query()
             ->whereIn('workspace_id', $workspaceIds)
             ->whereIn('status', [DisplayStatus::READY, DisplayStatus::ACTIVE])
-            ->with('settings')
+            ->with(['settings', 'profile.settings'])
             ->get();
 
         logger()->info('Display list requested', [

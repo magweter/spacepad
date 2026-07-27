@@ -9,19 +9,65 @@ class DisplaySettings
 {
     public static function getSetting(Display $display, string $key, mixed $default = null): mixed
     {
+        // A setting stored directly on the display acts as an override and always wins.
+        [$hasOwn, $ownValue] = self::resolveOwnSetting($display, $key);
+        if ($hasOwn) {
+            return $ownValue;
+        }
+
+        // Otherwise fall back to the linked profile (live link).
+        [$hasProfile, $profileValue] = self::resolveProfileSetting($display, $key);
+        if ($hasProfile) {
+            return $profileValue;
+        }
+
+        return $default;
+    }
+
+    /**
+     * Resolve a setting stored directly on the display.
+     *
+     * @return array{0: bool, 1: mixed} [found, value]
+     */
+    private static function resolveOwnSetting(Display $display, string $key): array
+    {
         // If settings relationship is already loaded, use it to avoid N+1 queries
         if ($display->relationLoaded('settings')) {
             $setting = $display->settings->firstWhere('key', $key);
-
-            return $setting?->value ?? $default;
+        } else {
+            // Fallback to querying if relationship is not loaded (backward compatibility)
+            $setting = DisplaySetting::where('display_id', $display->id)
+                ->where('key', $key)
+                ->first();
         }
 
-        // Fallback to querying if relationship is not loaded (backward compatibility)
-        $setting = DisplaySetting::where('display_id', $display->id)
-            ->where('key', $key)
-            ->first();
+        return $setting ? [true, $setting->value] : [false, null];
+    }
 
-        return $setting?->value ?? $default;
+    /**
+     * Resolve a setting inherited from the display's linked profile.
+     *
+     * @return array{0: bool, 1: mixed} [found, value]
+     */
+    private static function resolveProfileSetting(Display $display, string $key): array
+    {
+        if (! $display->display_profile_id) {
+            return [false, null];
+        }
+
+        $profile = $display->relationLoaded('profile')
+            ? $display->profile
+            : $display->profile()->with('settings')->first();
+
+        if (! $profile) {
+            return [false, null];
+        }
+
+        $setting = $profile->relationLoaded('settings')
+            ? $profile->settings->firstWhere('key', $key)
+            : $profile->settings()->where('key', $key)->first();
+
+        return $setting ? [true, $setting->value] : [false, null];
     }
 
     public static function setSetting(Display $display, string $key, mixed $value, string $type = 'string'): bool
@@ -61,20 +107,44 @@ class DisplaySettings
 
     public static function getAllSettings(Display $display): array
     {
-        // If settings relationship is already loaded, use it to avoid N+1 queries
+        // Start from the linked profile's settings (if any) as the base layer...
+        $settings = self::getProfileSettingsMap($display);
+
+        // ...then overlay the display's own settings, which act as overrides.
         if ($display->relationLoaded('settings')) {
-            return $display->settings->mapWithKeys(function ($setting) {
-                return [$setting->key => $setting->value];
-            })->toArray();
+            $own = $display->settings;
+        } else {
+            // Fallback to querying if relationship is not loaded (backward compatibility)
+            $own = DisplaySetting::where('display_id', $display->id)->get();
         }
 
-        // Fallback to querying if relationship is not loaded (backward compatibility)
-        return DisplaySetting::where('display_id', $display->id)
-            ->get()
-            ->mapWithKeys(function ($setting) {
-                return [$setting->key => $setting->value];
-            })
-            ->toArray();
+        foreach ($own as $setting) {
+            $settings[$setting->key] = $setting->value;
+        }
+
+        return $settings;
+    }
+
+    /**
+     * Build a key => value map of the settings inherited from the display's profile.
+     */
+    private static function getProfileSettingsMap(Display $display): array
+    {
+        if (! $display->display_profile_id) {
+            return [];
+        }
+
+        $profile = $display->relationLoaded('profile')
+            ? $display->profile
+            : $display->profile()->with('settings')->first();
+
+        if (! $profile) {
+            return [];
+        }
+
+        return $profile->settings->mapWithKeys(function ($setting) {
+            return [$setting->key => $setting->value];
+        })->toArray();
     }
 
     // Convenience methods for common settings

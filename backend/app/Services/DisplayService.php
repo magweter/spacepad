@@ -11,31 +11,28 @@ class DisplayService
 {
     public function getDisplay(string $displayId)
     {
-        return Display::query()->with('settings')->findOrFail($displayId);
+        return Display::query()->with(['settings', 'profile.settings'])->findOrFail($displayId);
     }
 
     /**
      * Validate if a display is permitted to perform actions.
      *
-     * @param string|null $displayId
-     * @param string $deviceId
-     * @param array $options ['pro' => true, 'booking' => true]
-     * @return PermissionResult
+     * @param  array  $options  ['pro' => true, 'booking' => true]
      */
     public function validateDisplayPermission(?string $displayId, string $deviceId, array $options = []): PermissionResult
     {
         $device = Device::with('user.workspaces')->find($deviceId);
-        
-        if (!$device || !$device->user_id) {
+
+        if (! $device || ! $device->user_id) {
             return new PermissionResult(false, 'Device not found', 404);
         }
 
         $user = $device->user;
-        if (!$user) {
+        if (! $user) {
             return new PermissionResult(false, 'User not found', 404);
         }
 
-        if (!$displayId) {
+        if (! $displayId) {
             return new PermissionResult(false, 'Display not found', 404);
         }
 
@@ -50,22 +47,22 @@ class DisplayService
             ->whereIn('workspace_id', $workspaceIds)
             ->find($displayId);
 
-        if (!$display) {
+        if (! $display) {
             return new PermissionResult(false, 'Display not found', 404);
         }
-        
+
         if ($display->isDeactivated()) {
             return new PermissionResult(false, 'Display is deactivated', 400);
         }
-        
+
         // Pro feature check: check if any workspace owner has Pro
-        if (!empty($options['pro'])) {
-            if (!$display->workspace->hasPro()) {
+        if (! empty($options['pro'])) {
+            if (! $display->workspace->hasPro()) {
                 return new PermissionResult(false, 'This is a Pro feature. Please upgrade to Pro to use this feature.', 403);
             }
         }
-        
-        if (!empty($options['booking']) && !$display->isBookingEnabled()) {
+
+        if (! empty($options['booking']) && ! $display->isBookingEnabled()) {
             return new PermissionResult(false, 'Booking is not enabled for this display', 403);
         }
 

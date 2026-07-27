@@ -19,6 +19,7 @@ use App\Http\Controllers\LicenseController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\OutlookAccountsController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ProfilesController;
 use App\Http\Controllers\RoadmapController;
 use App\Http\Controllers\RoomController;
 use App\Http\Controllers\SupportController;
@@ -102,6 +103,10 @@ Route::middleware(['auth', 'user.update-last-activity', 'gtm'])->group(function 
         ->name('displays.settings.index');
     Route::put('/displays/{display}/settings', [DisplaySettingsController::class, 'update'])
         ->name('displays.settings.update');
+    Route::put('/displays/{display}/profile', [DisplaySettingsController::class, 'updateProfile'])
+        ->name('displays.profile.update');
+    Route::post('/displays/{display}/settings/reset-to-profile', [DisplaySettingsController::class, 'resetToProfile'])
+        ->name('displays.settings.reset-to-profile');
 
     // Display customization routes
     Route::get('/displays/{display}/customization', [DisplaySettingsController::class, 'customization'])
@@ -146,6 +151,14 @@ Route::middleware(['auth', 'user.update-last-activity', 'gtm'])->group(function 
         ->name('displays.diagnostics.run');
     Route::post('/displays/{display}/diagnostics/reset-account', [DisplayDiagnosticsController::class, 'resetAccount'])
         ->name('displays.diagnostics.reset-account');
+
+    // Display profiles (reusable settings/theme sets)
+    Route::get('/profiles', [ProfilesController::class, 'index'])->name('profiles.index');
+    Route::get('/profiles/create', [ProfilesController::class, 'create'])->name('profiles.create');
+    Route::post('/profiles', [ProfilesController::class, 'store'])->name('profiles.store');
+    Route::get('/profiles/{profile}/edit', [ProfilesController::class, 'edit'])->name('profiles.edit');
+    Route::put('/profiles/{profile}', [ProfilesController::class, 'update'])->name('profiles.update');
+    Route::delete('/profiles/{profile}', [ProfilesController::class, 'destroy'])->name('profiles.destroy');
 
     // Boards routes
     Route::get('/boards/create', [BoardController::class, 'create'])->name('boards.create');

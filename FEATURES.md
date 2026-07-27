@@ -125,6 +125,24 @@ All settings are per-display and managed from the web portal.
 
 ---
 
+## Display Profiles (Pro)
+
+Reusable sets of display settings ("themes") so an admin can configure many displays at once
+instead of one by one.
+
+- Create, edit and delete **profiles** per workspace, holding the same settings as an individual
+  display: behavior toggles (booking, check-in + timing, extend, organizer, schedule, admin lockdown),
+  cancel permission, timeline mode, border thickness, font family, custom state texts, and
+  advertisement timing. (Branding/background/advertisement *images* remain per-display for now.)
+- **Link** one or more displays to a profile (bulk select). Linked displays inherit the profile's
+  settings **live** — editing the profile updates every linked display automatically.
+- **Per-display override**: any setting changed on an individual display wins over the profile for
+  that display only. "Reset settings to profile" clears a display's own settings so it fully follows
+  its profile again.
+- Deleting a profile detaches its displays (they keep their current settings but stop inheriting).
+
+---
+
 ## Web Portal
 
 - **Dashboard** — overview of all connected displays and their current status
