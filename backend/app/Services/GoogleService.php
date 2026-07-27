@@ -493,34 +493,17 @@ class GoogleService
     }
 
     /**
-     * Delete a webhook subscription for Google Calendar events.
+     * Drop a webhook subscription for Google Calendar events.
      *
-     * @throws Exception
+     * Deliberately local-only: we never call channels.stop(). Google channels carry their own
+     * expiration and lapse on their own, and the API docs treat stop() as an optional way to
+     * end a channel early. Renewals only run once the subscription has already expired, so by
+     * then Google has dropped the channel and stop() can only answer 404 — which is exactly
+     * the noise this used to generate. A channel we outlive is harmless anyway:
+     * GoogleWebhookController ignores notifications whose channel ID it doesn't recognise.
      */
-    public function deleteEventSubscription(
-        GoogleAccount $googleAccount,
-        EventSubscription $eventSubscription,
-        bool $useApi = true
-    ): void {
-        if ($useApi) {
-            $this->ensureAuthenticated($googleAccount);
-
-            try {
-                $calendarService = new GoogleCalendar($this->client);
-                $channel = new Channel;
-                $channel->setId($eventSubscription->subscription_id);
-                $channel->setResourceId($eventSubscription->resource);
-
-                $calendarService->channels->stop($channel);
-            } catch (Exception $e) {
-                report($e);
-                logger()->error('Error stopping Google subscription', [
-                    'error' => $e->getMessage(),
-                    'subscriptionId' => $eventSubscription->subscription_id,
-                ]);
-            }
-        }
-
+    public function deleteEventSubscription(EventSubscription $eventSubscription): void
+    {
         // Delete the subscription record from the database
         $eventSubscription->delete();
 
