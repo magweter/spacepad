@@ -98,6 +98,78 @@
                     @endif
                 </div>
 
+                <div x-data="boardCategories()">
+                    <label class="block text-sm font-medium leading-6 text-gray-900 mb-1">Room Categories</label>
+                    <p class="text-sm text-gray-500 mb-3">
+                        Group the rooms of this board into sections, for example per floor or per wing. Drag a room into
+                        a category and use the arrows to choose which category is shown at the top of the board. Rooms
+                        you leave ungrouped are shown last, under "Other". Categories only apply to this board.
+                    </p>
+
+                    <div class="space-y-3">
+                        <template x-for="(category, ci) in categories" :key="ci">
+                            <div class="border border-gray-200 rounded-md"
+                                 x-on:dragover.prevent
+                                 x-on:drop.prevent="dropInto(ci)">
+                                <div class="flex items-center gap-2 border-b border-gray-200 bg-gray-50 px-3 py-2">
+                                    <input type="text" maxlength="64" x-model="category.name"
+                                           placeholder="Category name, e.g. Floor 1"
+                                           aria-label="Category name"
+                                           class="block w-full rounded-md border-0 py-1 px-2 text-sm font-medium text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600">
+                                    <button type="button" x-on:click="moveCategory(ci, -1)" x-bind:disabled="ci === 0"
+                                            title="Move category up" aria-label="Move category up"
+                                            class="shrink-0 rounded px-2 py-1 text-sm text-gray-500 hover:bg-gray-200 disabled:opacity-30 disabled:hover:bg-transparent">&uarr;</button>
+                                    <button type="button" x-on:click="moveCategory(ci, 1)" x-bind:disabled="ci === categories.length - 1"
+                                            title="Move category down" aria-label="Move category down"
+                                            class="shrink-0 rounded px-2 py-1 text-sm text-gray-500 hover:bg-gray-200 disabled:opacity-30 disabled:hover:bg-transparent">&darr;</button>
+                                    <button type="button" x-on:click="removeCategory(ci)"
+                                            title="Remove category" aria-label="Remove category"
+                                            class="shrink-0 rounded px-2 py-1 text-sm text-red-600 hover:bg-red-50">&times;</button>
+                                </div>
+                                <div class="flex flex-wrap items-center gap-2 p-3">
+                                    <template x-for="displayId in category.displayIds" :key="displayId">
+                                        <x-boards.category-chip category-index="ci" />
+                                    </template>
+                                    <p x-show="category.displayIds.length === 0" class="text-sm text-gray-400">
+                                        Drag rooms here, or use the &rarr; menu on a room below.
+                                    </p>
+                                </div>
+
+                                {{-- Submitted state --}}
+                                <input type="hidden" x-bind:name="`categories[${ci}][name]`" x-bind:value="category.name">
+                                <template x-for="displayId in category.displayIds" :key="displayId">
+                                    <input type="hidden" x-bind:name="`categories[${ci}][display_ids][]`" x-bind:value="displayId">
+                                </template>
+                            </div>
+                        </template>
+
+                        <div class="border border-dashed border-gray-300 rounded-md"
+                             x-on:dragover.prevent
+                             x-on:drop.prevent="dropInto(null)">
+                            <div class="border-b border-gray-200 bg-gray-50 px-3 py-2 text-sm font-medium text-gray-500">
+                                Other (ungrouped)
+                            </div>
+                            <div class="flex flex-wrap items-center gap-2 p-3">
+                                <template x-for="displayId in ungroupedIds" :key="displayId">
+                                    <x-boards.category-chip category-index="null" />
+                                </template>
+                                <p x-show="ungroupedIds.length === 0" class="text-sm text-gray-400">
+                                    Every room is in a category.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="button" x-on:click="addCategory()"
+                            class="mt-3 inline-flex items-center gap-1 rounded-md bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200">
+                        + Add category
+                    </button>
+                    <p class="mt-2 text-sm text-gray-500">
+                        A category without a name is discarded when you save. Categories without any rooms are kept, but
+                        are not shown on the board.
+                    </p>
+                </div>
+
                 <div>
                     <label class="block text-sm font-medium leading-6 text-gray-900 mb-3">Logo</label>
                     <div class="flex items-center space-x-4">
@@ -357,6 +429,156 @@
 
 @push('scripts')
     <script>
+        function boardCategories() {
+            const displays = @json($displays->map(fn ($display) => [
+                'id' => $display->id,
+                'label' => $display->display_name ?: $display->name,
+            ])->values());
+
+            const stored = @json(old('categories', $board?->categories ?? []));
+
+            return {
+                displays,
+                categories: [],
+                draggingId: null,
+                // null means "all displays are on this board", otherwise the checked display ids.
+                onBoardIds: null,
+
+                init() {
+                    const knownIds = this.displays.map(display => display.id);
+
+                    this.categories = (Array.isArray(stored) ? stored : []).map(category => ({
+                        name: category.name ?? '',
+                        // `display_ids` comes from the stored JSON, `displayIds` from a repopulated form.
+                        displayIds: (category.display_ids ?? category.displayIds ?? [])
+                            .filter(id => knownIds.includes(id)),
+                    }));
+
+                    this.syncSelection();
+
+                    document
+                        .querySelectorAll('input[name="display_ids[]"], input[name="show_all_displays"]')
+                        .forEach(input => input.addEventListener('change', () => this.syncSelection()));
+                },
+
+                // Mirror the display selection above so rooms that are not on the board are dimmed.
+                syncSelection() {
+                    if (document.getElementById('show_all_displays_1')?.checked) {
+                        this.onBoardIds = null;
+                        return;
+                    }
+
+                    this.onBoardIds = Array.from(
+                        document.querySelectorAll('input[name="display_ids[]"]:checked')
+                    ).map(input => input.value);
+                },
+
+                isOnBoard(displayId) {
+                    return this.onBoardIds === null || this.onBoardIds.includes(displayId);
+                },
+
+                displayLabel(displayId) {
+                    return this.displays.find(display => display.id === displayId)?.label ?? displayId;
+                },
+
+                get ungroupedIds() {
+                    const assigned = new Set(this.categories.flatMap(category => category.displayIds));
+
+                    return this.displays
+                        .filter(display => !assigned.has(display.id))
+                        .map(display => display.id);
+                },
+
+                addCategory() {
+                    this.categories.push({ name: '', displayIds: [] });
+                },
+
+                removeCategory(index) {
+                    // The rooms fall back to "Other" because they are no longer assigned anywhere.
+                    this.categories.splice(index, 1);
+                },
+
+                moveCategory(index, direction) {
+                    const target = index + direction;
+
+                    if (target < 0 || target >= this.categories.length) {
+                        return;
+                    }
+
+                    const [category] = this.categories.splice(index, 1);
+                    this.categories.splice(target, 0, category);
+                },
+
+                startDrag(displayId) {
+                    this.draggingId = displayId;
+                },
+
+                detach(displayId) {
+                    this.categories.forEach(category => {
+                        const index = category.displayIds.indexOf(displayId);
+
+                        if (index !== -1) {
+                            category.displayIds.splice(index, 1);
+                        }
+                    });
+                },
+
+                // Keyboard/mouse fallback for dragging: the per-room "→" select.
+                moveTo(displayId, target) {
+                    if (target === '') {
+                        return;
+                    }
+
+                    this.detach(displayId);
+
+                    if (target !== 'none') {
+                        this.categories[Number(target)]?.displayIds.push(displayId);
+                    }
+                },
+
+                // Dropped on a category (or on the ungrouped bucket when index is null).
+                dropInto(index) {
+                    const displayId = this.draggingId;
+                    this.draggingId = null;
+
+                    if (!displayId) {
+                        return;
+                    }
+
+                    this.detach(displayId);
+
+                    if (index !== null) {
+                        this.categories[index]?.displayIds.push(displayId);
+                    }
+                },
+
+                // Dropped on another room: insert before it, so rooms can be ordered inside a category.
+                dropBefore(index, beforeDisplayId) {
+                    const displayId = this.draggingId;
+                    this.draggingId = null;
+
+                    if (!displayId || displayId === beforeDisplayId) {
+                        return;
+                    }
+
+                    this.detach(displayId);
+
+                    if (index === null) {
+                        return;
+                    }
+
+                    const displayIds = this.categories[index]?.displayIds;
+
+                    if (!displayIds) {
+                        return;
+                    }
+
+                    const at = displayIds.indexOf(beforeDisplayId);
+                    displayIds.splice(at === -1 ? displayIds.length : at, 0, displayId);
+                },
+            };
+        }
+
         function toggleDisplaySelection() {
             const showAll = document.getElementById('show_all_displays_1').checked;
             const displaySelection = document.getElementById('display_selection');

@@ -213,43 +213,47 @@
     {{-- Room List --}}
     @php
         $viewMode = $board->view_mode ?? 'card';
-        // Group displays by category; null/empty category goes into a '' key
-        $grouped = $displays->groupBy(fn($d) => $d['category'] ?? '');
-        $hasCategories = $grouped->keys()->filter(fn($k) => $k !== '')->isNotEmpty();
-        // Sort: named categories first (alphabetically), then uncategorised
-        $sortedKeys = $grouped->keys()->sort(function($a, $b) {
-            if ($a === '' && $b !== '') return 1;
-            if ($a !== '' && $b === '') return -1;
-            return strcmp($a, $b);
-        })->values();
+        // $groups comes from Board::groupDisplayData(): ordered per the board's category config,
+        // with the ungrouped catch-all (name === null) last. Only show headers when the board
+        // actually has named categories.
+        $hasCategories = $groups->contains(fn($group) => $group['name'] !== null);
     @endphp
 
     @if($viewMode === 'table')
         {{-- Row View --}}
+        @php
+            // Columns: Room | Status | Current | [Next]. The organizer rides along in the Current
+            // and Next cells, on the meta line next to the time, rather than taking its own column.
+            $showOrganizer = $board->show_booker ?? true;
+            $showNextColumn = $board->show_next_event ?? true;
+            $columnCount = 3 + ($showNextColumn ? 1 : 0);
+            $totalDisplays = $groups->sum(fn($group) => $group['displays']->count());
+        @endphp
         <div class="overflow-x-auto" id="displays-list">
-            @foreach($sortedKeys as $categoryKey)
-                @php $categoryDisplays = $grouped[$categoryKey]; @endphp
-                @if($hasCategories)
-                    <div class="flex items-center gap-4 mb-2 {{ !$loop->first ? 'mt-8' : '' }}">
-                        <span class="text-sm font-semibold uppercase tracking-widest board-text-secondary">
-                            {{ $categoryKey !== '' ? $categoryKey : __('boards.uncategorised') }}
-                        </span>
-                        <div class="flex-1 h-px board-border" style="border-top: 1px solid;"></div>
-                    </div>
-                @endif
-            <table class="w-full border-collapse mb-4">
-                <thead>
+            {{-- All groups share one table, so the browser sizes the columns across every row and
+                 the columns line up between categories. Each group is its own tbody and repeats
+                 the header row. --}}
+            <table class="w-full border-collapse">
+            @foreach($groups as $group)
+                @php $categoryDisplays = $group['displays']; @endphp
+                <tbody>
+                    @if($hasCategories)
+                        <tr>
+                            <td colspan="{{ $columnCount }}" class="{{ $loop->first ? 'pb-2' : 'pt-8 pb-2' }}">
+                                <x-boards.category-header :first="true"
+                                                          :label="$group['name'] ?? $t('boards.uncategorised')" />
+                            </td>
+                        </tr>
+                    @endif
                     <tr class="border-b border-gray-700/30">
                         <th class="text-left py-3 px-4 text-sm font-semibold uppercase tracking-wider board-text-secondary">{{ $t('boards.room') }}</th>
                         <th class="text-left py-3 px-4 text-sm font-semibold uppercase tracking-wider board-text-secondary">{{ $t('boards.status') }}</th>
                         <th class="text-left py-3 px-4 text-sm font-semibold uppercase tracking-wider board-text-secondary">{{ $t('boards.current') }}</th>
-                        @if($board->show_next_event ?? true)
+                        @if($showNextColumn)
                             <th class="text-left py-3 px-4 text-sm font-semibold uppercase tracking-wider board-text-secondary">{{ $t('boards.next') }}</th>
                         @endif
                     </tr>
-                </thead>
-                <tbody>
-                    @forelse($categoryDisplays as $displayData)
+                    @foreach($categoryDisplays as $displayData)
                         @php
                             $display = $displayData['display'];
                             $status = $displayData['status'];
@@ -257,26 +261,11 @@
                             $currentEvent = $displayData['currentEvent'];
                             $nextEvent = $displayData['nextEvent'];
                             $transitioningMinutes = $displayData['transitioningMinutes'] ?? null;
-                            
-                            // Status colors
-                            $statusBarColor = match($status) {
-                                'busy' => 'bg-red-500',
-                                'transitioning' => 'bg-amber-500',
-                                'error' => 'bg-gray-500',
-                                default => 'bg-green-500',
-                            };
-                            
-                            // Update status text with minutes if transitioning
-                            $statusTextParts = [];
+
                             if ($status === 'transitioning' && $transitioningMinutes !== null) {
-                                $statusTextParts = [
-                                    'label' => $t('boards.transitioning'),
-                                    'minutes' => '(' . $transitioningMinutes . ' min)'
-                                ];
-                            } else {
-                                $statusTextParts = ['label' => $statusText];
+                                $statusText = $t('boards.transitioning_minutes', ['minutes' => $transitioningMinutes]);
                             }
-                            
+
                             $statusBadgeClass = match($status) {
                                 'busy' => 'bg-red-500/10 text-red-400 border-red-500/20',
                                 'transitioning', 'check_in' => 'bg-amber-500/10 text-amber-400 border-amber-500/20',
@@ -289,14 +278,7 @@
                                 <div class="font-semibold text-base board-text-primary">{{ $display->display_name ?: $display->name }}</div>
                             </td>
                             <td class="py-3 px-4">
-                                <span class="inline-flex flex-col items-center justify-center px-2 py-1 rounded text-xs font-semibold uppercase tracking-wider text-center border {{ $statusBadgeClass }}">
-                                    @if(isset($statusTextParts['minutes']))
-                                        <span>{{ $statusTextParts['label'] }}</span>
-                                        <span>{{ $statusTextParts['minutes'] }}</span>
-                                    @else
-                                        <span>{{ $statusText }}</span>
-                                    @endif
-                                </span>
+                                <span class="inline-flex items-center px-2 py-1 rounded text-xs font-semibold uppercase tracking-wider border {{ $statusBadgeClass }}">{{ $statusText }}</span>
                             </td>
                             <td class="py-3 px-4">
                                 @if($currentEvent)
@@ -305,10 +287,21 @@
                                             <div class="text-sm font-semibold board-text-primary">{{ $currentEvent['summary'] }}</div>
                                         @endif
                                         <div class="flex items-center gap-2 text-xs board-text-secondary">
-                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                            </svg>
-                                            <span class="event-time" data-start="{{ $currentEvent['start']->toIso8601String() }}" data-end="{{ $currentEvent['end']->toIso8601String() }}"></span>
+                                            <div class="flex items-center gap-1.5">
+                                                <svg class="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                                </svg>
+                                                <span class="event-time" data-start="{{ $currentEvent['start']->toIso8601String() }}" data-end="{{ $currentEvent['end']->toIso8601String() }}"></span>
+                                            </div>
+                                            @if($showOrganizer && filled($currentEvent['organizer']))
+                                                <span class="text-gray-500">•</span>
+                                                <div class="flex items-center gap-1.5">
+                                                    <svg class="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                                    </svg>
+                                                    <span>{{ $currentEvent['organizer'] }}</span>
+                                                </div>
+                                            @endif
                                         </div>
                                         @if(($board->show_join_button ?? false) && !empty($currentEvent['joinUrl']))
                                             <a href="{{ $currentEvent['joinUrl'] }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 mt-0.5 px-2 py-0.5 rounded text-xs font-medium bg-blue-500/20 text-blue-400 border border-blue-500/30 hover:bg-blue-500/30 transition-colors">
@@ -319,62 +312,75 @@
                                     </div>
                                 @else
                                     @if($nextEvent)
-                                        <span class="text-sm board-text-secondary">
+                                        {{-- Both variants are siblings so scopeToToday() can swap them --}}
+                                        <span class="text-sm board-text-secondary available-until" data-time="{{ $nextEvent['start']->toIso8601String() }}">
                                             {{ $t('boards.available_until', ['time' => '']) }}<span class="available-until-time" data-time="{{ $nextEvent['start']->toIso8601String() }}"></span>
                                         </span>
+                                        <span class="text-sm board-text-secondary available-all-day" hidden>{{ $t('boards.available_until_end_of_day') }}</span>
                                     @else
                                         <span class="text-sm board-text-secondary">{{ $t('boards.available_until_end_of_day') }}</span>
                                     @endif
                                 @endif
                             </td>
-                            @if($board->show_next_event ?? true)
+                            @if($showNextColumn)
                                 <td class="py-3 px-4">
                                     @if($nextEvent)
-                                        <div class="space-y-1">
+                                        <div class="space-y-1 next-event" data-start="{{ $nextEvent['start']->toIso8601String() }}">
                                             @if($board->show_title ?? true)
                                                 <div class="text-sm font-semibold board-text-primary">{{ $nextEvent['summary'] }}</div>
                                             @endif
                                             <div class="flex items-center gap-2 text-xs board-text-secondary">
-                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                                </svg>
-                                                <span class="event-time" data-start="{{ $nextEvent['start']->toIso8601String() }}" data-end="{{ $nextEvent['end']->toIso8601String() }}"></span>
+                                                <div class="flex items-center gap-1.5">
+                                                    <svg class="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                                    </svg>
+                                                    <span class="event-time" data-start="{{ $nextEvent['start']->toIso8601String() }}" data-end="{{ $nextEvent['end']->toIso8601String() }}"></span>
+                                                </div>
+                                                @if($showOrganizer && filled($nextEvent['organizer'] ?? null))
+                                                    <span class="text-gray-500">•</span>
+                                                    <div class="flex items-center gap-1.5">
+                                                        <svg class="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                                        </svg>
+                                                        <span>{{ $nextEvent['organizer'] }}</span>
+                                                    </div>
+                                                @endif
                                             </div>
                                         </div>
+                                        <span class="text-sm board-text-secondary next-event-empty" hidden>—</span>
                                     @else
                                         <span class="text-sm board-text-secondary">—</span>
                                     @endif
                                 </td>
                             @endif
                         </tr>
-                    @empty
-                        <tr>
-                            <td colspan="{{ ($board->show_next_event ?? true) ? '4' : '3' }}" class="py-16 text-center">
-                                <div class="flex flex-col items-center gap-4">
-                                    <div class="h-16 w-16 rounded-full bg-gray-500/20 flex items-center justify-center">
-                                        <x-icons.display class="h-8 w-8 board-text-tertiary" />
-                                    </div>
-                                    <p class="text-lg board-text-secondary">{{ $t('boards.no_displays') }}</p>
-                                </div>
-                            </td>
-                        </tr>
-                    @endforelse
+                    @endforeach
                 </tbody>
-            </table>
             @endforeach
+            @if($totalDisplays === 0)
+                <tbody>
+                    <tr>
+                        <td colspan="{{ $columnCount }}" class="py-16 text-center">
+                            <div class="flex flex-col items-center gap-4">
+                                <div class="h-16 w-16 rounded-full bg-gray-500/20 flex items-center justify-center">
+                                    <x-icons.display class="h-8 w-8 board-text-tertiary" />
+                                </div>
+                                <p class="text-lg board-text-secondary">{{ $t('boards.no_displays') }}</p>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            @endif
+            </table>
         </div>
     @elseif($viewMode === 'grid')
         {{-- Grid View --}}
         <div id="displays-list">
-            @foreach($sortedKeys as $categoryKey)
-                @php $categoryDisplays = $grouped[$categoryKey]; @endphp
+            @foreach($groups as $group)
+                @php $categoryDisplays = $group['displays']; @endphp
                 @if($hasCategories)
-                    <div class="flex items-center gap-4 mb-4 {{ !$loop->first ? 'mt-8' : '' }}">
-                        <span class="text-sm font-semibold uppercase tracking-widest board-text-secondary">
-                            {{ $categoryKey !== '' ? $categoryKey : __('boards.uncategorised') }}
-                        </span>
-                        <div class="flex-1 h-px board-border" style="border-top: 1px solid;"></div>
-                    </div>
+                    <x-boards.category-header class="mb-4" :first="$loop->first"
+                                              :label="$group['name'] ?? $t('boards.uncategorised')" />
                 @endif
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 {{ $hasCategories && !$loop->last ? 'mb-2' : '' }}">
             @forelse($categoryDisplays as $displayData)
@@ -450,10 +456,10 @@
                                             </svg>
                                             <span class="event-time" data-start="{{ $currentEvent['start']->toIso8601String() }}" data-end="{{ $currentEvent['end']->toIso8601String() }}"></span>
                                         </div>
-                                        @if(($board->show_booker ?? true) && $currentEvent['organizer'] !== 'Unknown')
+                                        @if(($board->show_booker ?? true) && filled($currentEvent['organizer']))
                                             <span class="text-gray-500">•</span>
                                             <div class="flex items-center gap-1.5">
-                                                <svg class="w-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
                                                 </svg>
                                                 <span>{{ $currentEvent['organizer'] }}</span>
@@ -470,9 +476,10 @@
                             @else
                                 {{-- Available --}}
                                 @if($nextEvent)
-                                    <span class="text-base font-medium board-text-secondary">
+                                    <span class="text-base font-medium board-text-secondary available-until" data-time="{{ $nextEvent['start']->toIso8601String() }}">
                                         {{ $t('boards.available_until', ['time' => '']) }}<span class="available-until-time" data-time="{{ $nextEvent['start']->toIso8601String() }}"></span>
                                     </span>
+                                    <span class="text-base font-medium board-text-secondary available-all-day" hidden>{{ $t('boards.available_until_end_of_day') }}</span>
                                 @else
                                     <span class="text-base font-medium board-text-secondary">{{ $t('boards.available_until_end_of_day') }}</span>
                                 @endif
@@ -480,7 +487,7 @@
 
                             {{-- Next Up Event - Below Current Event --}}
                             @if($nextEvent && ($board->show_next_event ?? true))
-                                <div class="pt-3 mt-3 border-t border-gray-700/30">
+                                <div class="pt-3 mt-3 border-t border-gray-700/30 next-event" data-start="{{ $nextEvent['start']->toIso8601String() }}">
                                     <div class="space-y-1">
                                         @if($board->show_title ?? true)
                                             <div class="flex items-center justify-between gap-2">
@@ -495,10 +502,10 @@
                                                 </svg>
                                                 <span class="event-time" data-start="{{ $nextEvent['start']->toIso8601String() }}" data-end="{{ $nextEvent['end']->toIso8601String() }}"></span>
                                             </div>
-                                            @if(($board->show_booker ?? true) && isset($nextEvent['organizer']) && $nextEvent['organizer'] !== 'Unknown')
+                                            @if(($board->show_booker ?? true) && filled($nextEvent['organizer'] ?? null))
                                                 <span class="text-gray-500">•</span>
                                                 <div class="flex items-center gap-1.5">
-                                                    <svg class="w-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
                                                     </svg>
                                                     <span>{{ $nextEvent['organizer'] }}</span>
@@ -527,15 +534,11 @@
     @else
         {{-- Card View (Default) --}}
         <div id="displays-list">
-            @foreach($sortedKeys as $categoryKey)
-                @php $categoryDisplays = $grouped[$categoryKey]; @endphp
+            @foreach($groups as $group)
+                @php $categoryDisplays = $group['displays']; @endphp
                 @if($hasCategories)
-                    <div class="flex items-center gap-4 mb-4 {{ !$loop->first ? 'mt-8' : '' }}">
-                        <span class="text-sm font-semibold uppercase tracking-widest board-text-secondary">
-                            {{ $categoryKey !== '' ? $categoryKey : __('boards.uncategorised') }}
-                        </span>
-                        <div class="flex-1 h-px board-border" style="border-top: 1px solid;"></div>
-                    </div>
+                    <x-boards.category-header class="mb-4" :first="$loop->first"
+                                              :label="$group['name'] ?? $t('boards.uncategorised')" />
                 @endif
             <div class="space-y-4 {{ $hasCategories && !$loop->last ? 'mb-2' : '' }}">
             @forelse($categoryDisplays as $displayData)
@@ -608,10 +611,10 @@
                                         </svg>
                                         <span class="event-time" data-start="{{ $currentEvent['start']->toIso8601String() }}" data-end="{{ $currentEvent['end']->toIso8601String() }}"></span>
                                     </div>
-                                    @if(($board->show_booker ?? true) && $currentEvent['organizer'] !== 'Unknown')
+                                    @if(($board->show_booker ?? true) && filled($currentEvent['organizer']))
                                         <span class="text-gray-500">•</span>
                                         <div class="flex items-center gap-1.5">
-                                            <svg class="w-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
                                             </svg>
                                             <span>{{ $currentEvent['organizer'] }}</span>
@@ -628,9 +631,10 @@
                         @else
                             {{-- Available --}}
                             @if($nextEvent)
-                                <span class="text-base font-medium board-text-secondary">
+                                <span class="text-base font-medium board-text-secondary available-until" data-time="{{ $nextEvent['start']->toIso8601String() }}">
                                     {{ $t('boards.available_until', ['time' => '']) }}<span class="available-until-time" data-time="{{ $nextEvent['start']->toIso8601String() }}"></span>
                                 </span>
+                                <span class="text-base font-medium board-text-secondary available-all-day" hidden>{{ $t('boards.available_until_end_of_day') }}</span>
                             @else
                                 <span class="text-base font-medium board-text-secondary">{{ $t('boards.available_until_end_of_day') }}</span>
                             @endif
@@ -639,7 +643,7 @@
 
                     {{-- Next Up Event - Right Side --}}
                     @if($nextEvent && ($board->show_next_event ?? true))
-                        <div class="flex-shrink-0 text-right ml-6">
+                        <div class="flex-shrink-0 text-right ml-6 next-event" data-start="{{ $nextEvent['start']->toIso8601String() }}">
                             <div class="space-y-2">
                                 <div class="flex items-center justify-end gap-2">
                                     <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">{{ $t('boards.next') }}</span>
@@ -806,8 +810,40 @@
         });
     }
     
+    function isSameLocalDay(a, b) {
+        return a.getFullYear() === b.getFullYear()
+            && a.getMonth() === b.getMonth()
+            && a.getDate() === b.getDate();
+    }
+
+    // Only surface bookings that fall on the viewer's current day. A bare "9:00 - 11:30" next
+    // to a running meeting reads as if both are happening now, so a next-up event on a later
+    // day is dropped and the room simply counts as free for the rest of today.
+    // This has to happen client-side: every time on this board is rendered in the browser's
+    // timezone, so a server-side (UTC) day boundary would disagree with what is on screen.
+    // See EventService::getAllEvents — it deliberately returns a wide yesterday..tomorrow
+    // window and leaves clamping to the local day to the client.
+    function scopeToToday() {
+        const now = new Date();
+
+        document.querySelectorAll('.next-event').forEach(element => {
+            if (isSameLocalDay(new Date(element.dataset.start), now)) return;
+            element.hidden = true;
+            const placeholder = element.parentElement?.querySelector('.next-event-empty');
+            if (placeholder) placeholder.hidden = false;
+        });
+
+        document.querySelectorAll('.available-until').forEach(element => {
+            if (isSameLocalDay(new Date(element.dataset.time), now)) return;
+            element.hidden = true;
+            const allDay = element.parentElement?.querySelector('.available-all-day');
+            if (allDay) allDay.hidden = false;
+        });
+    }
+
     // Initialize on page load
     updateTime();
+    scopeToToday();
     formatEventTimes();
     formatAvailableUntilTimes();
     

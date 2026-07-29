@@ -37,15 +37,6 @@
             @method('PUT')
             <div class="space-y-6">
                 <div class="border border-gray-200 rounded-lg p-6">
-                    <h3 class="text-base font-semibold text-gray-900 mb-1">Room Category</h3>
-                    <p class="text-sm text-gray-500 mb-4">Assign this room to a category (e.g. "Downstairs" or "Floor 2") to visually group rooms on the board overview.</p>
-                    <div>
-                        <label for="category" class="block text-sm font-medium text-gray-700">Category</label>
-                        <input type="text" name="category" id="category" maxlength="64" placeholder="e.g. Downstairs, Floor 1, East Wing" value="{{ old('category', $display->category) }}" class="mt-1 px-3 py-2 block w-full border rounded-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 sm:text-sm" />
-                        <p class="mt-1 text-xs text-gray-500">Leave empty to show this room without a category group on the board.</p>
-                    </div>
-                </div>
-                <div class="border border-gray-200 rounded-lg p-6">
                     <h3 class="text-base font-semibold text-gray-900 mb-4">State Texts</h3>
                     <div class="mb-4">
                         <label for="text_available" class="block text-sm font-medium text-gray-700">Available State Text</label>

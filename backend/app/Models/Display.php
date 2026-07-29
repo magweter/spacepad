@@ -22,11 +22,10 @@ class Display extends Model
         'workspace_id',
         'name',
         'display_name',
-        'category',
         'calendar_id',
         'status',
         'last_sync_at',
-        'last_event_at'
+        'last_event_at',
     ];
 
     protected $casts = [

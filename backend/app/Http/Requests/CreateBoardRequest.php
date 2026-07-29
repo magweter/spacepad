@@ -9,8 +9,6 @@ class CreateBoardRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
-     *
-     * @return bool
      */
     public function authorize(): bool
     {
@@ -19,8 +17,6 @@ class CreateBoardRequest extends FormRequest
 
     /**
      * Get the validation rules that apply to the request.
-     *
-     * @return array
      */
     public function rules(): array
     {
@@ -49,7 +45,7 @@ class CreateBoardRequest extends FormRequest
                 'array',
                 function ($attribute, $value, $fail) {
                     $showAll = filter_var(request()->input('show_all_displays'), FILTER_VALIDATE_BOOLEAN);
-                    if (!$showAll && (empty($value) || !is_array($value) || count($value) === 0)) {
+                    if (! $showAll && (empty($value) || ! is_array($value) || count($value) === 0)) {
                         $fail('Please select at least one display when not showing all displays.');
                     }
                 },
@@ -57,6 +53,12 @@ class CreateBoardRequest extends FormRequest
             'display_ids.*' => [
                 Rule::exists('displays', 'id')->where('workspace_id', $this->input('workspace_id')),
             ],
+            // Room categories. Unknown/foreign display ids are dropped rather than rejected by
+            // BoardController::normalizeCategories(), so no exists rule here.
+            'categories' => 'nullable|array|max:20',
+            'categories.*.name' => 'required|string|max:64',
+            'categories.*.display_ids' => 'nullable|array',
+            'categories.*.display_ids.*' => 'string',
         ];
     }
 
@@ -89,10 +91,30 @@ class CreateBoardRequest extends FormRequest
         ]);
 
         // Ensure display_ids is an array
-        if ($this->has('display_ids') && !is_array($this->display_ids)) {
+        if ($this->has('display_ids') && ! is_array($this->display_ids)) {
             $this->merge([
                 'display_ids' => $this->display_ids ? [$this->display_ids] : [],
             ]);
         }
+
+        $this->dropNamelessCategories();
+    }
+
+    /**
+     * A category without a name means "not categorised", so drop it before validation instead of
+     * failing on the required name rule.
+     */
+    protected function dropNamelessCategories(): void
+    {
+        if (! is_array($this->input('categories'))) {
+            return;
+        }
+
+        $this->merge([
+            'categories' => array_values(array_filter(
+                $this->input('categories'),
+                fn ($category) => is_array($category) && trim((string) ($category['name'] ?? '')) !== ''
+            )),
+        ]);
     }
 }

@@ -15,7 +15,6 @@ class UpdateDisplayCustomizationRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'category' => 'nullable|string|max:64',
             'text_available' => 'nullable|string|max:64',
             'text_transitioning' => 'nullable|string|max:64',
             'text_reserved' => 'nullable|string|max:64',
@@ -33,4 +32,4 @@ class UpdateDisplayCustomizationRequest extends FormRequest
             'advertisement_duration' => 'nullable|integer|min:5|max:300',
         ];
     }
-} 
+}

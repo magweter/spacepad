@@ -102,6 +102,7 @@ class AdminController extends Controller
             'googleAccounts',
             'caldavAccounts',
             'displays',
+            'boards',
             'devices',
             'workspaces',
             'subscriptions' => function ($query) {
@@ -145,22 +146,65 @@ class AdminController extends Controller
      * Manually-billed users are invoiced through our own accounting system instead of
      * Lemon Squeezy. They receive Pro access without an LS subscription, and their MRR is
      * computed locally from usage (see RefreshAnalytics) rather than fetched from LS.
+     *
+     * The unit price can be set per account here; leaving it empty falls back to the global
+     * MANUAL_BILLING_UNIT_PRICE.
      */
     public function updateBilling(Request $request, User $user): RedirectResponse
     {
         $this->checkAdminAccess();
 
+        $validated = $request->validate([
+            'manual_billing_unit_price' => ['nullable', 'numeric', 'min:0', 'max:99999.99'],
+        ]);
+
+        $price = $validated['manual_billing_unit_price'] ?? null;
+
         $user->update([
             'is_manually_billed' => $request->boolean('is_manually_billed'),
+            'manual_billing_unit_price' => $price === '' ? null : $price,
         ]);
 
         logger()->info('Admin updated manual billing', [
             'user_id' => $user->id,
             'admin_id' => Auth::id(),
             'is_manually_billed' => $user->is_manually_billed,
+            'manual_billing_unit_price' => $user->manual_billing_unit_price,
         ]);
 
+        $this->refreshManualMrr($user);
+
         return back()->with('success', 'Billing settings updated.');
+    }
+
+    /**
+     * Recompute the stored MRR for a manually-billed user right away, so the admin screen
+     * reflects a new unit price instead of the value from the last analytics refresh.
+     *
+     * Only applies while the user is manually billed — once the flag is off, Lemon Squeezy is
+     * the only source for MRR, so we leave the row for the scheduled refresh to re-derive.
+     */
+    private function refreshManualMrr(User $user): void
+    {
+        if (! $user->is_manually_billed) {
+            return;
+        }
+
+        try {
+            $user->loadCount(['displays', 'boards']);
+
+            $mrr = $user->calculateManualMrr($user->displays_count, $user->boards_count);
+
+            DB::table('analytics_users')->where('user_id', $user->id)->update([
+                'subscription_status' => 'manual',
+                'billing_interval' => 'monthly',
+                'mrr_current' => $mrr,
+                'mrr_expected' => $mrr,
+                'updated_at' => now(),
+            ]);
+        } catch (\Exception $e) {
+            // Analytics table isn't present (e.g. self-hosted) — the scheduled refresh will catch up.
+        }
     }
 
     /**

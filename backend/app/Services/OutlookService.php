@@ -292,7 +292,7 @@ class OutlookService
         $params = [
             'startDateTime' => $startDateTime->utc()->toIso8601String(),
             'endDateTime' => $endDateTime->utc()->toIso8601String(),
-            '$select' => 'id,lastModifiedDateTime,subject,body,bodyPreview,isAllDay,location,start,end,onlineMeetingUrl,onlineMeeting',
+            '$select' => 'id,lastModifiedDateTime,subject,body,bodyPreview,isAllDay,location,start,end,onlineMeetingUrl,onlineMeeting,organizer',
             '$orderby' => 'createdDateTime',
             '$top' => 100,
         ];
@@ -333,7 +333,7 @@ class OutlookService
         $params = [
             'startDateTime' => $startDateTime->utc()->toIso8601String(),
             'endDateTime' => $endDateTime->utc()->toIso8601String(),
-            '$select' => 'id,lastModifiedDateTime,subject,body,bodyPreview,isAllDay,location,start,end,onlineMeetingUrl,onlineMeeting',
+            '$select' => 'id,lastModifiedDateTime,subject,body,bodyPreview,isAllDay,location,start,end,onlineMeetingUrl,onlineMeeting,organizer',
             '$orderby' => 'createdDateTime',
             '$top' => 100,
         ];
