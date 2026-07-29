@@ -7,8 +7,9 @@ use App\Enums\EventStatus;
 use App\Helpers\DisplaySettings;
 use App\Http\Requests\CreateBoardRequest;
 use App\Http\Requests\UpdateBoardRequest;
-use App\Models\Display;
 use App\Models\Board;
+use App\Models\Display;
+use App\Models\Event;
 use App\Services\EventService;
 use App\Services\ImageService;
 use Illuminate\Contracts\Foundation\Application;
@@ -24,8 +25,7 @@ class BoardController extends Controller
     public function __construct(
         protected EventService $eventService,
         protected ImageService $imageService
-    ) {
-    }
+    ) {}
 
     /**
      * Display a listing of boards for the current workspace
@@ -33,23 +33,23 @@ class BoardController extends Controller
     public function index(): View|Factory|Application
     {
         $user = auth()->user();
-        
+
         // Check Pro access
-        if (!$user->hasProForCurrentWorkspace()) {
+        if (! $user->hasProForCurrentWorkspace()) {
             abort(403, 'Boards is a Pro feature. Please upgrade to access this feature.');
         }
-        
+
         $selectedWorkspace = $user->getSelectedWorkspace();
-        
-        if (!$selectedWorkspace) {
+
+        if (! $selectedWorkspace) {
             abort(404, 'No workspace found');
         }
-        
+
         $boards = Board::where('workspace_id', $selectedWorkspace->id)
             ->with(['user', 'displays'])
             ->orderBy('name')
             ->get();
-        
+
         return view('pages.boards.index', [
             'boards' => $boards,
             'workspace' => $selectedWorkspace,
@@ -62,26 +62,26 @@ class BoardController extends Controller
     public function create(): View|Factory|Application
     {
         $user = auth()->user();
-        
+
         // Check Pro access
-        if (!$user->hasProForCurrentWorkspace()) {
+        if (! $user->hasProForCurrentWorkspace()) {
             abort(403, 'Boards is a Pro feature. Please upgrade to access this feature.');
         }
-        
+
         $this->authorize('create', Board::class);
-        
+
         $selectedWorkspace = $user->getSelectedWorkspace();
-        
-        if (!$selectedWorkspace) {
+
+        if (! $selectedWorkspace) {
             abort(404, 'No workspace found');
         }
-        
+
         // Get all active displays from the workspace
         $displays = Display::where('workspace_id', $selectedWorkspace->id)
             ->whereIn('status', [DisplayStatus::READY, DisplayStatus::ACTIVE])
             ->orderBy('name')
             ->get();
-        
+
         return view('pages.boards.form', [
             'board' => null,
             'displays' => $displays,
@@ -95,26 +95,26 @@ class BoardController extends Controller
     public function store(CreateBoardRequest $request): RedirectResponse
     {
         $user = auth()->user();
-        
+
         // Check Pro access
-        if (!$user->hasProForCurrentWorkspace()) {
+        if (! $user->hasProForCurrentWorkspace()) {
             return redirect()->back()->with('error', 'Boards is a Pro feature. Please upgrade to access this feature.');
         }
-        
+
         $this->authorize('create', Board::class);
-        
+
         $validated = $request->validated();
         $selectedWorkspace = $user->getSelectedWorkspace();
-        
-        if (!$selectedWorkspace || $selectedWorkspace->id !== $validated['workspace_id']) {
+
+        if (! $selectedWorkspace || $selectedWorkspace->id !== $validated['workspace_id']) {
             return redirect()->back()->with('error', 'Invalid workspace selected.');
         }
-        
+
         // Verify user has access to this workspace
-        if (!$selectedWorkspace->hasMember($user)) {
+        if (! $selectedWorkspace->hasMember($user)) {
             return redirect()->back()->with('error', 'You do not have access to this workspace.');
         }
-        
+
         $isPublic = $validated['is_public'] ?? false;
 
         // Create the board first
@@ -134,6 +134,7 @@ class BoardController extends Controller
             'font_family' => $validated['font_family'] ?? 'Inter',
             'language' => $validated['language'] ?? 'en',
             'view_mode' => $validated['view_mode'] ?? 'card',
+            'categories' => $this->normalizeCategories($validated['categories'] ?? [], $selectedWorkspace->id),
             'show_meeting_title' => $validated['show_meeting_title'] ?? true,
             'show_join_button' => $validated['show_join_button'] ?? false,
             'is_public' => $isPublic,
@@ -145,16 +146,16 @@ class BoardController extends Controller
             $logoPath = $this->imageService->storeBoardLogoFile($request->file('logo'), $board);
             $board->update(['logo' => $logoPath]);
         }
-        
+
         // Sync displays if not showing all
-        if (!$validated['show_all_displays']) {
+        if (! $validated['show_all_displays']) {
             if (isset($validated['display_ids']) && is_array($validated['display_ids']) && count($validated['display_ids']) > 0) {
                 // Verify all display IDs belong to the workspace
                 $displayIds = Display::where('workspace_id', $selectedWorkspace->id)
                     ->whereIn('id', $validated['display_ids'])
                     ->pluck('id')
                     ->toArray();
-                
+
                 $board->displays()->sync($displayIds);
             } else {
                 // No displays selected, clear associations
@@ -164,9 +165,10 @@ class BoardController extends Controller
             // Clear all display associations if showing all
             $board->displays()->detach();
         }
-        
-        $query = $board->is_public ? '&show_public=' . $board->id : '';
-        return redirect(route('dashboard') . '?tab=boards' . $query)
+
+        $query = $board->is_public ? '&show_public='.$board->id : '';
+
+        return redirect(route('dashboard').'?tab=boards'.$query)
             ->with('success', 'Board created successfully.');
     }
 
@@ -176,35 +178,36 @@ class BoardController extends Controller
     public function show(Board $board): View|Factory|Application
     {
         $user = auth()->user();
-        
+
         // Check Pro access
-        if (!$user->hasProForCurrentWorkspace()) {
+        if (! $user->hasProForCurrentWorkspace()) {
             abort(403, 'Boards is a Pro feature. Please upgrade to access this feature.');
         }
-        
+
         $this->authorize('view', $board);
-        
+
         // Store board in a way that getDisplayStatusData can access it
         $this->currentBoard = $board;
-        
+
         // Get displays to show
         $displays = $board->getDisplaysToShow();
-        
+
         // Fetch events and determine status for each display
         $displayData = $this->getDisplayStatusData($displays, $board);
-        
+
         return view('pages.boards.show', [
             'board' => $board,
             'displays' => $displayData,
+            'groups' => $board->groupDisplayData($displayData),
             'workspace' => $board->workspace,
         ]);
     }
-    
+
     private function getTransitioningMinutes($currentEvent, $nextEvent, ?Board $board = null): ?int
     {
         $transitioningMinutes = $board ? ($board->transitioning_minutes ?? 10) : 10;
         $now = now();
-        
+
         // If current event is ending soon
         if ($currentEvent) {
             $minutesLeft = $now->diffInMinutes($currentEvent->end, false);
@@ -220,7 +223,7 @@ class BoardController extends Controller
                 return (int) ceil($minutesUntil);
             }
         }
-        
+
         return null;
     }
 
@@ -230,20 +233,20 @@ class BoardController extends Controller
     public function edit(Board $board): View|Factory|Application
     {
         $user = auth()->user();
-        
+
         // Check Pro access
-        if (!$user->hasProForCurrentWorkspace()) {
+        if (! $user->hasProForCurrentWorkspace()) {
             abort(403, 'Boards is a Pro feature. Please upgrade to access this feature.');
         }
-        
+
         $this->authorize('update', $board);
-        
+
         // Get all active displays from the workspace
         $displays = Display::where('workspace_id', $board->workspace_id)
             ->whereIn('status', [DisplayStatus::READY, DisplayStatus::ACTIVE])
             ->orderBy('name')
             ->get();
-        
+
         return view('pages.boards.form', [
             'board' => $board,
             'displays' => $displays,
@@ -257,21 +260,21 @@ class BoardController extends Controller
     public function update(UpdateBoardRequest $request, Board $board): RedirectResponse
     {
         $user = auth()->user();
-        
+
         // Check Pro access
-        if (!$user->hasProForCurrentWorkspace()) {
+        if (! $user->hasProForCurrentWorkspace()) {
             return redirect()->back()->with('error', 'Boards is a Pro feature. Please upgrade to access this feature.');
         }
-        
+
         $this->authorize('update', $board);
-        
+
         $validated = $request->validated();
-        
+
         // Verify workspace matches
         if ($board->workspace_id !== $validated['workspace_id']) {
             return redirect()->back()->with('error', 'Invalid workspace selected.');
         }
-        
+
         // Handle logo upload/removal
         $logoPath = $board->logo;
         if ($request->boolean('remove_logo')) {
@@ -283,13 +286,13 @@ class BoardController extends Controller
             // Store new logo
             $logoPath = $this->imageService->storeBoardLogoFile($request->file('logo'), $board);
         }
-        
+
         $wasPublic = $board->is_public;
         $isPublic = $validated['is_public'] ?? false;
         $publicToken = $board->public_token;
-        if ($isPublic && !$publicToken) {
+        if ($isPublic && ! $publicToken) {
             $publicToken = Str::random(32);
-        } elseif (!$isPublic) {
+        } elseif (! $isPublic) {
             $publicToken = null;
         }
 
@@ -309,6 +312,7 @@ class BoardController extends Controller
             'font_family' => $validated['font_family'] ?? 'Inter',
             'language' => $validated['language'] ?? 'en',
             'view_mode' => $validated['view_mode'] ?? 'card',
+            'categories' => $this->normalizeCategories($validated['categories'] ?? [], $board->workspace_id),
             'show_meeting_title' => $validated['show_meeting_title'] ?? true,
             'show_join_button' => $validated['show_join_button'] ?? false,
             'is_public' => $isPublic,
@@ -316,14 +320,14 @@ class BoardController extends Controller
         ]);
 
         // Sync displays if not showing all
-        if (!$validated['show_all_displays']) {
+        if (! $validated['show_all_displays']) {
             if (isset($validated['display_ids']) && is_array($validated['display_ids']) && count($validated['display_ids']) > 0) {
                 // Verify all display IDs belong to the workspace
                 $displayIds = Display::where('workspace_id', $board->workspace_id)
                     ->whereIn('id', $validated['display_ids'])
                     ->pluck('id')
                     ->toArray();
-                
+
                 $board->displays()->sync($displayIds);
             } else {
                 // No displays selected, clear associations
@@ -333,10 +337,11 @@ class BoardController extends Controller
             // Clear all display associations if showing all
             $board->displays()->detach();
         }
-        
+
         // Only open the public URL modal when public access was just newly enabled
-        $query = (!$wasPublic && $board->is_public) ? '&show_public=' . $board->id : '';
-        return redirect(route('dashboard') . '?tab=boards' . $query)
+        $query = (! $wasPublic && $board->is_public) ? '&show_public='.$board->id : '';
+
+        return redirect(route('dashboard').'?tab=boards'.$query)
             ->with('success', 'Board updated successfully.');
     }
 
@@ -346,20 +351,20 @@ class BoardController extends Controller
     public function destroy(Board $board): RedirectResponse
     {
         $user = auth()->user();
-        
+
         // Check Pro access
-        if (!$user->hasProForCurrentWorkspace()) {
+        if (! $user->hasProForCurrentWorkspace()) {
             return redirect()->back()->with('error', 'Boards is a Pro feature. Please upgrade to access this feature.');
         }
-        
+
         $this->authorize('delete', $board);
-        
+
         // Remove logo file if exists
         $this->imageService->removeBoardLogoFile($board);
-        
+
         $board->delete();
-        
-        return redirect(route('dashboard') . '?tab=boards')
+
+        return redirect(route('dashboard').'?tab=boards')
             ->with('success', 'Board deleted successfully.');
     }
 
@@ -369,6 +374,7 @@ class BoardController extends Controller
     public function serveLogo(Board $board)
     {
         $this->authorize('view', $board);
+
         return $this->imageService->serveBoardLogo($board);
     }
 
@@ -385,6 +391,7 @@ class BoardController extends Controller
         return view('pages.boards.show', [
             'board' => $board,
             'displays' => $displayData,
+            'groups' => $board->groupDisplayData($displayData),
             'workspace' => $board->workspace,
         ]);
     }
@@ -395,7 +402,97 @@ class BoardController extends Controller
     public function servePublicLogo(string $token)
     {
         $board = Board::where('public_token', $token)->where('is_public', true)->firstOrFail();
+
         return $this->imageService->serveBoardLogo($board);
+    }
+
+    /**
+     * Clean up the room categories posted by the board form before storing them.
+     *
+     * The form always submits the complete structure, so this is the single place that decides
+     * what a valid category layout looks like: names are trimmed, categories with the same name
+     * are merged (case-insensitive), display ids are restricted to displays of this workspace,
+     * and a display can only live in one category (first one wins).
+     *
+     * Empty categories are kept — an empty bucket is a deliberate layout the user can still drag
+     * displays into later; Board::groupDisplayData() skips them when rendering.
+     *
+     * @param  array<int, mixed>  $categories
+     * @return array<int, array{name: string, display_ids: array<int, string>}>|null
+     */
+    private function normalizeCategories(array $categories, string $workspaceId): ?array
+    {
+        $allowedDisplayIds = Display::where('workspace_id', $workspaceId)
+            ->pluck('id')
+            ->all();
+        $allowedDisplayIds = array_flip($allowedDisplayIds);
+
+        $normalized = [];
+        $indexByName = [];
+        $seenDisplayIds = [];
+
+        foreach ($categories as $category) {
+            if (! is_array($category)) {
+                continue;
+            }
+
+            $name = trim((string) ($category['name'] ?? ''));
+
+            if ($name === '') {
+                continue;
+            }
+
+            $displayIds = [];
+
+            foreach ($category['display_ids'] ?? [] as $displayId) {
+                $displayId = (string) $displayId;
+
+                if (! isset($allowedDisplayIds[$displayId]) || isset($seenDisplayIds[$displayId])) {
+                    continue;
+                }
+
+                $seenDisplayIds[$displayId] = true;
+                $displayIds[] = $displayId;
+            }
+
+            // Merge into an earlier category with the same name instead of creating a duplicate.
+            $nameKey = mb_strtolower($name);
+
+            if (isset($indexByName[$nameKey])) {
+                $existing = $indexByName[$nameKey];
+                $normalized[$existing]['display_ids'] = array_merge(
+                    $normalized[$existing]['display_ids'],
+                    $displayIds
+                );
+
+                continue;
+            }
+
+            $indexByName[$nameKey] = count($normalized);
+            $normalized[] = [
+                'name' => $name,
+                'display_ids' => $displayIds,
+            ];
+        }
+
+        return $normalized === [] ? null : $normalized;
+    }
+
+    /**
+     * Resolve the name to show as the organizer of an event.
+     *
+     * Prefers the real organizer from the calendar (`organizer_name`, set by EventService when it
+     * builds the event from Google/Graph/CalDAV). Only tablet bookings fall back to the Spacepad
+     * user, because for synced external events `Event::$user` is the display owner — showing that
+     * would label every meeting with the workspace owner's name.
+     */
+    private function resolveOrganizer(Event $event): ?string
+    {
+        if (filled($event->organizer_name)) {
+            return $event->organizer_name;
+        }
+
+        return $event->isTabletBooking() ? $event->user?->name : null;
     }
 
     /**
@@ -408,28 +505,28 @@ class BoardController extends Controller
             try {
                 $events = $this->eventService->getEventsForDisplay($display->id)
                     ->where('status', '!=', EventStatus::CANCELLED);
-                
+
                 $now = now();
                 $currentEvent = $events->first(function ($event) use ($now) {
                     return $event->start <= $now && $event->end > $now;
                 });
-                
+
                 $upcomingEvents = $events->filter(function ($event) use ($now) {
                     return $event->start > $now;
                 })->sortBy('start');
-                
+
                 $nextEvent = $upcomingEvents->first();
-                
+
                 // Get board settings
                 $showTransitioning = $board ? ($board->show_transitioning ?? true) : true;
-                
+
                 // Get board language for translations
                 $boardLanguage = $board ? ($board->language ?? 'en') : 'en';
-                
+
                 // Determine status
                 $status = 'available'; // green
                 $statusText = Lang::get('boards.available', [], $boardLanguage);
-                
+
                 if ($currentEvent) {
                     $status = 'busy'; // red
                     $statusText = Lang::get('boards.busy', [], $boardLanguage);
@@ -437,40 +534,42 @@ class BoardController extends Controller
                     $status = 'transitioning'; // amber
                     $statusText = Lang::get('boards.transitioning', [], $boardLanguage);
                 }
-                
+
                 // Check for check-in active
                 $checkInEnabled = DisplaySettings::isCheckInEnabled($display);
                 $checkInEvent = null;
                 if ($checkInEnabled) {
                     $checkInMinutes = DisplaySettings::getCheckInMinutes($display);
                     $checkInGracePeriod = DisplaySettings::getCheckInGracePeriod($display);
-                    
+
                     $checkInEvent = $events->first(function ($event) use ($now, $checkInMinutes, $checkInGracePeriod) {
-                        if (!$event->checkInRequired()) {
+                        if (! $event->checkInRequired()) {
                             return false;
                         }
                         $windowStart = $event->start->copy()->subMinutes($checkInMinutes);
                         $windowEnd = $event->start->copy()->addMinutes($checkInGracePeriod);
+
                         return $now->isAfter($windowStart) && $now->isBefore($windowEnd);
                     });
-                    
+
                     if ($checkInEvent) {
                         $status = 'check_in';
                         $statusText = Lang::get('boards.check_in', [], $boardLanguage);
                     }
                 }
-                
+
                 // Get board settings for meeting title privacy
                 $showMeetingTitle = $board ? ($board->show_meeting_title ?? true) : DisplaySettings::getShowMeetingTitle($display);
-                
+
                 // Helper function to truncate summary
-                $truncateSummary = function($text) {
+                $truncateSummary = function ($text) {
                     if (mb_strlen($text) > 40) {
-                        return mb_substr($text, 0, 40) . '...';
+                        return mb_substr($text, 0, 40).'...';
                     }
+
                     return $text;
                 };
-                
+
                 $showJoinButton = $board ? ($board->show_join_button ?? false) : false;
 
                 return [
@@ -483,7 +582,7 @@ class BoardController extends Controller
                             : (DisplaySettings::getReservedText($display) ?? 'Reserved')),
                         'start' => $currentEvent->start,
                         'end' => $currentEvent->end,
-                        'organizer' => $currentEvent->user?->name ?? 'Unknown',
+                        'organizer' => $this->resolveOrganizer($currentEvent),
                         'joinUrl' => $showJoinButton ? $currentEvent->join_url : null,
                     ] : null,
                     'nextEvent' => $nextEvent ? [
@@ -492,7 +591,7 @@ class BoardController extends Controller
                             : (DisplaySettings::getReservedText($display) ?? 'Reserved')),
                         'start' => $nextEvent->start,
                         'end' => $nextEvent->end,
-                        'organizer' => $nextEvent->user?->name ?? 'Unknown',
+                        'organizer' => $this->resolveOrganizer($nextEvent),
                     ] : null,
                     'transitioningMinutes' => $this->getTransitioningMinutes($currentEvent, $nextEvent, $board),
                 ];
@@ -501,10 +600,10 @@ class BoardController extends Controller
                     'display_id' => $display->id,
                     'error' => $e->getMessage(),
                 ]);
-                
+
                 // Get board language for translations
                 $boardLanguage = $board ? ($board->language ?? 'en') : 'en';
-                
+
                 return [
                     'display' => $display,
                     'status' => 'error',
@@ -515,7 +614,7 @@ class BoardController extends Controller
             }
         });
     }
-    
+
     /**
      * Check if display is in transitioning state
      */
@@ -525,10 +624,10 @@ class BoardController extends Controller
         if ($checkInEnabled) {
             return false; // Check-in logic handled separately
         }
-        
+
         $transitioningMinutes = $board ? ($board->transitioning_minutes ?? 10) : 10;
         $now = now();
-        
+
         // Current event ending within configured minutes
         if ($currentEvent) {
             $minutesLeft = $now->diffInMinutes($currentEvent->end, false);
@@ -536,7 +635,7 @@ class BoardController extends Controller
                 return true;
             }
         }
-        
+
         // Next event starting within configured minutes
         if ($nextEvent) {
             $minutesUntil = $now->diffInMinutes($nextEvent->start, false);
@@ -544,7 +643,7 @@ class BoardController extends Controller
                 return true;
             }
         }
-        
+
         return false;
     }
 }

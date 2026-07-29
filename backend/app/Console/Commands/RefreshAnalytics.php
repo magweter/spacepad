@@ -94,13 +94,12 @@ class RefreshAnalytics extends Command
 
                     if ($user->is_manually_billed) {
                         // Billed outside Lemon Squeezy (via our own accounting system).
-                        // MRR is computed locally from usage at the standard list price — no LS API call.
+                        // MRR is computed locally from usage at the account's unit price
+                        // (falling back to the global default) — no LS API call.
                         // Highest precedence so it wins over any stale LS subscription.
                         $subscriptionStatus = 'manual';
                         $billingInterval = 'monthly';
-                        $billableUsage = max(1, $user->displays_count + ($user->boards_count * 2));
-                        $unitPrice = (float) config('settings.manual_billing_unit_price', 0);
-                        $mrrCurrent = $unitPrice * $billableUsage;
+                        $mrrCurrent = $user->calculateManualMrr($user->displays_count, $user->boards_count);
                         $mrrExpected = $mrrCurrent;
                     } elseif ($user->is_unlimited) {
                         $subscriptionStatus = 'unlimited';

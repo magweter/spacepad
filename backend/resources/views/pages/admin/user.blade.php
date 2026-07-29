@@ -166,7 +166,7 @@
                 <p class="text-sm text-gray-500 mb-4">
                     Mark this user as billed through our own accounting system instead of Lemon Squeezy.
                     They get Pro access without a Lemon Squeezy subscription, and their MRR is calculated
-                    automatically from usage (displays + boards&times;2) at the standard unit price.
+                    automatically from usage (displays + boards&times;2) at the price set below.
                 </p>
                 <form action="{{ route('admin.users.billing', $user) }}" method="POST">
                     @csrf
@@ -177,6 +177,35 @@
                                    class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
                             <span class="text-sm text-gray-900">Manually billed (Pro without Lemon Squeezy)</span>
                         </label>
+                        @php
+                            $globalUnitPrice = config('settings.manual_billing_unit_price');
+                            $billableUnits = max(1, $user->displays->count() + ($user->boards->count() * 2));
+                        @endphp
+                        <div>
+                            <label for="manual_billing_unit_price" class="block text-sm font-medium text-gray-700 mb-1">
+                                Monthly price per unit
+                            </label>
+                            <div class="relative rounded-md shadow-sm max-w-xs">
+                                <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                    <span class="text-gray-500 sm:text-sm">$</span>
+                                </div>
+                                <input type="number" step="0.01" min="0" name="manual_billing_unit_price"
+                                       id="manual_billing_unit_price"
+                                       value="{{ old('manual_billing_unit_price', $user->manual_billing_unit_price) }}"
+                                       placeholder="{{ $globalUnitPrice ?? '0.00' }}"
+                                       class="block w-full rounded-md border-gray-300 pl-7 text-sm focus:border-blue-500 focus:ring-blue-500">
+                            </div>
+                            <p class="mt-1 text-xs text-gray-500">
+                                Leave empty to use the global default (${{ number_format((float) ($globalUnitPrice ?? 0), 2) }}
+                                from <code>MANUAL_BILLING_UNIT_PRICE</code>).
+                                Effective MRR: ${{ number_format($user->getManualBillingUnitPrice(), 2) }} &times;
+                                {{ $billableUnits }} {{ Str::plural('unit', $billableUnits) }} =
+                                ${{ number_format($user->getManualBillingUnitPrice() * $billableUnits, 2) }}.
+                            </p>
+                            @error('manual_billing_unit_price')
+                                <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
                         <div class="flex justify-end">
                             <button type="submit" class="inline-flex items-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700">
                                 Save billing

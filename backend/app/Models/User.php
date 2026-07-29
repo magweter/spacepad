@@ -2,24 +2,23 @@
 
 namespace App\Models;
 
-use App\Enums\Plan;
 use App\Enums\UsageType;
 use App\Enums\WorkspaceRole;
-use App\Traits\HasUlid;
+use App\Services\InstanceService;
 use App\Traits\HasLastActivity;
+use App\Traits\HasUlid;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use LemonSqueezy\Laravel\Billable;
 use LemonSqueezy\Laravel\Checkout;
-use App\Services\InstanceService;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable, HasUlid, HasLastActivity, Billable;
+    use Billable, HasApiTokens, HasFactory, HasLastActivity, HasUlid, Notifiable;
 
     /**
      * Boot the model.
@@ -31,9 +30,9 @@ class User extends Authenticatable
         // Auto-create workspace when user is created
         static::created(function ($user) {
             // Only create if user doesn't already have a workspace
-            if (!$user->workspaces()->exists()) {
+            if (! $user->workspaces()->exists()) {
                 $workspace = Workspace::create([
-                    'name' => $user->name . "'s Workspace",
+                    'name' => $user->name."'s Workspace",
                 ]);
 
                 // Add user as owner member (use WorkspaceMember::create to generate ULID)
@@ -65,6 +64,7 @@ class User extends Authenticatable
         'last_activity_at',
         'is_unlimited',
         'is_manually_billed',
+        'manual_billing_unit_price',
         'terms_accepted_at',
         'dpa_accepted_at',
         'is_admin',
@@ -92,6 +92,7 @@ class User extends Authenticatable
         'last_activity_at' => 'datetime',
         'is_unlimited' => 'boolean',
         'is_manually_billed' => 'boolean',
+        'manual_billing_unit_price' => 'decimal:2',
         'usage_type' => UsageType::class,
         'terms_accepted_at' => 'datetime',
         'dpa_accepted_at' => 'datetime',
@@ -180,13 +181,13 @@ class User extends Authenticatable
 
     /**
      * Get or generate a connect code for this user
-     * 
+     *
      * @return string 6-digit connect code
      */
     public function getConnectCode(): string
     {
         $connectCode = cache()->get("user:$this->id:connect-code");
-        if (!$connectCode) {
+        if (! $connectCode) {
             $expiresAt = now()->addMinutes(30);
             do {
                 $connectCode = mt_rand(100000, 999999);
@@ -202,20 +203,20 @@ class User extends Authenticatable
     /**
      * Retrieve and invalidate a connect code atomically
      * This ensures the code can only be used once
-     * 
-     * @param string $code The 6-digit connect code
+     *
+     * @param  string  $code  The 6-digit connect code
      * @return string|null The user ID associated with the code, or null if invalid/already used
      */
     public static function pullConnectCode(string $code): ?string
     {
         // Atomically retrieve and remove the connect code from cache
         $userId = cache()->pull("connect-code:$code");
-        
+
         // If code was valid, also remove the reverse mapping
         if ($userId !== null) {
             cache()->forget("user:$userId:connect-code");
         }
-        
+
         return $userId;
     }
 
@@ -223,15 +224,15 @@ class User extends Authenticatable
     {
         // Check if user has accounts OR if any workspace they're a member of has accounts
         $hasAccounts = $this->hasAnyAccount();
-        
-        if (!$hasAccounts) {
+
+        if (! $hasAccounts) {
             // Check if any workspace the user is a member of has accounts
             $workspaceIds = $this->workspaces()->pluck('workspaces.id')->toArray();
-            if (!empty($workspaceIds)) {
+            if (! empty($workspaceIds)) {
                 $workspaceAccountCount = OutlookAccount::whereIn('workspace_id', $workspaceIds)->count()
                     + GoogleAccount::whereIn('workspace_id', $workspaceIds)->count()
                     + CalDAVAccount::whereIn('workspace_id', $workspaceIds)->count();
-                
+
                 if ($workspaceAccountCount > 0) {
                     $hasAccounts = true;
                 }
@@ -264,6 +265,24 @@ class User extends Authenticatable
         }
 
         return $this->is_unlimited || $this->is_manually_billed || $this->subscribed();
+    }
+
+    /**
+     * Monthly list price per billable unit for this account, falling back to the global
+     * MANUAL_BILLING_UNIT_PRICE when no per-account price is set.
+     */
+    public function getManualBillingUnitPrice(): float
+    {
+        return (float) ($this->manual_billing_unit_price ?? config('settings.manual_billing_unit_price') ?? 0);
+    }
+
+    /**
+     * Locally computed MRR for a manually-billed account.
+     * Billable usage: displays 1x, boards 2x (see Workspace::getTotalUsageCount).
+     */
+    public function calculateManualMrr(int $displaysCount, int $boardsCount): float
+    {
+        return $this->getManualBillingUnitPrice() * max(1, $displaysCount + ($boardsCount * 2));
     }
 
     /**
@@ -349,7 +368,7 @@ class User extends Authenticatable
 
         // Get the current workspace to scope the display check
         $selectedWorkspace = $this->getSelectedWorkspace();
-        if (!$selectedWorkspace) {
+        if (! $selectedWorkspace) {
             // No workspace context, no upgrade needed
             return false;
         }
@@ -391,6 +410,7 @@ class User extends Authenticatable
                 return true;
             }
         }
+
         return false;
     }
 
@@ -404,14 +424,14 @@ class User extends Authenticatable
 
     /**
      * Get the currently selected workspace (from session) or default to primary workspace
-     * 
+     *
      * Note: This works for all users (including non-Pro users) who are members of workspaces.
      * Workspace access is based on membership, not Pro status.
      */
     public function getSelectedWorkspace(): ?Workspace
     {
         $selectedWorkspaceId = session()->get('selected_workspace_id');
-        
+
         if ($selectedWorkspaceId) {
             // Validate user has access to the selected workspace (checks membership, not Pro status)
             $workspace = $this->workspaces()->find($selectedWorkspaceId);
@@ -421,7 +441,7 @@ class User extends Authenticatable
             // If selected workspace is invalid or user no longer has access, clear it from session
             session()->forget('selected_workspace_id');
         }
-        
+
         // Default to primary workspace (first owned workspace, or first workspace user is a member of)
         return $this->primaryWorkspace();
     }

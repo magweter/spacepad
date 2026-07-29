@@ -16,4 +16,5 @@ return [
     'no_displays' => 'Inga skärmar tillgängliga för denna tavla.',
     'transitioning_minutes' => 'Övergång (:minutes min)',
     'join_meeting' => 'Gå med i mötet',
+    'uncategorised' => 'Övrigt',
 ];
