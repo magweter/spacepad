@@ -55,7 +55,11 @@ class UpdateLemonSqueezySubscriptions extends Command
             try {
                 $totalUsage = $this->getTotalUsageCount($user);
 
-                if ($user->is_unlimited) {
+                if ($user->is_manually_billed) {
+                    // Billed outside Lemon Squeezy — never push usage to LS for these users.
+                    $this->line("Skipping manually-billed user {$user->id} with {$totalUsage} total usage units");
+                    $successCount++;
+                } elseif ($user->is_unlimited) {
                     $this->line("Skipping unlimited user {$user->id} with {$totalUsage} total usage units");
                     $successCount++;
                 } else {
@@ -113,6 +117,11 @@ class UpdateLemonSqueezySubscriptions extends Command
     {
         // Skip unlimited users as they don't need quantity updates
         if ($user->is_unlimited) {
+            return;
+        }
+
+        // Skip manually-billed users — they have no LS subscription to update
+        if ($user->is_manually_billed) {
             return;
         }
 
@@ -202,6 +211,11 @@ class UpdateLemonSqueezySubscriptions extends Command
     {
         // Skip unlimited users as they don't need usage reporting
         if ($user->is_unlimited) {
+            return;
+        }
+
+        // Skip manually-billed users — they have no LS subscription to report usage to
+        if ($user->is_manually_billed) {
             return;
         }
 

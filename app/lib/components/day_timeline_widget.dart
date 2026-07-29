@@ -38,6 +38,10 @@ class _DayTimelineWidgetState extends State<DayTimelineWidget> {
   List<EventModel> _otherDayEvents = [];
   bool _loading = false;
 
+  // Tracks the calendar day the widget last saw, so we can detect a midnight
+  // rollover and advance the view to the new current day (see [_handleDayRollover]).
+  DateTime _lastKnownDay = DateTime.now();
+
   // Auto-scroll state
   late ScrollController _scrollController;
   bool _userHasScrolled = false;
@@ -60,9 +64,12 @@ class _DayTimelineWidgetState extends State<DayTimelineWidget> {
     _scrollController = ScrollController();
     // Scroll after first frame so the viewport dimensions are known.
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToCurrentTime());
-    // Keep current time centred once per minute (unless the user has scrolled).
+    // Keep current time centred once per minute (unless the user has scrolled),
+    // and roll the view over to the new day once midnight passes.
     _autoScrollTimer = Timer.periodic(const Duration(minutes: 1), (_) {
-      if (mounted) setState(() {});
+      if (!mounted) return;
+      _handleDayRollover();
+      setState(() {});
       if (!_userHasScrolled) _scrollToCurrentTime();
     });
   }
@@ -89,6 +96,26 @@ class _DayTimelineWidgetState extends State<DayTimelineWidget> {
     if (mounted) _loadEventsForDate(DateTime.now());
   }
 
+  // ─── Midnight rollover ──────────────────────────────────────────────────────
+
+  /// Detects when the wall-clock day has advanced (e.g. past midnight). If the
+  /// timeline was showing what used to be "today", it rolls forward to the new
+  /// current day so an unattended display never gets stuck on the previous day.
+  /// If the user has deliberately navigated to another day, the view is left
+  /// alone (the idle-reset timer already brings it back after inactivity).
+  void _handleDayRollover() {
+    final now = DateTime.now();
+    if (_isSameDay(now, _lastKnownDay)) return;
+
+    final wasShowingPreviousToday = _isSameDay(_selectedDate, _lastKnownDay);
+    _lastKnownDay = now;
+
+    if (wasShowingPreviousToday) {
+      _userHasScrolled = false;
+      _loadEventsForDate(now);
+    }
+  }
+
   // ─── Auto-scroll ──────────────────────────────────────────────────────────
 
   void _scrollToCurrentTime() {
@@ -111,20 +138,16 @@ class _DayTimelineWidgetState extends State<DayTimelineWidget> {
 
   // ─── Date helpers ─────────────────────────────────────────────────────────
 
-  bool _isToday(DateTime date) {
-    final now = DateTime.now();
-    return date.year == now.year && date.month == now.month && date.day == now.day;
-  }
+  bool _isSameDay(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
 
-  bool _isTomorrow(DateTime date) {
-    final t = DateTime.now().add(const Duration(days: 1));
-    return date.year == t.year && date.month == t.month && date.day == t.day;
-  }
+  bool _isToday(DateTime date) => _isSameDay(date, DateTime.now());
 
-  bool _isYesterday(DateTime date) {
-    final y = DateTime.now().subtract(const Duration(days: 1));
-    return date.year == y.year && date.month == y.month && date.day == y.day;
-  }
+  bool _isTomorrow(DateTime date) =>
+      _isSameDay(date, DateTime.now().add(const Duration(days: 1)));
+
+  bool _isYesterday(DateTime date) =>
+      _isSameDay(date, DateTime.now().subtract(const Duration(days: 1)));
 
   String _formatSelectedDate() {
     if (_isToday(_selectedDate)) return 'timeline_today'.tr;

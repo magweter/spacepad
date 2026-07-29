@@ -209,15 +209,15 @@ class BoardController extends Controller
         if ($currentEvent) {
             $minutesLeft = $now->diffInMinutes($currentEvent->end, false);
             if ($minutesLeft < $transitioningMinutes && $minutesLeft > 0) {
-                return $minutesLeft;
+                return (int) ceil($minutesLeft);
             }
         }
-        
+
         // If next event is starting soon
         if ($nextEvent) {
             $minutesUntil = $now->diffInMinutes($nextEvent->start, false);
             if ($minutesUntil < $transitioningMinutes && $minutesUntil > 0) {
-                return $minutesUntil;
+                return (int) ceil($minutesUntil);
             }
         }
         

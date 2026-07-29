@@ -6,8 +6,8 @@ use App\Models\RoadmapItem;
 use App\Models\User;
 use App\Models\Workspace;
 use App\Models\WorkspaceMember;
-use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
@@ -19,14 +19,14 @@ class AdminController extends Controller
     private function checkAdminAccess(): void
     {
         $user = Auth::user();
-        
+
         // Prevent access if impersonating
         if (session()->get('impersonating')) {
             abort(403, 'Cannot access admin panel while impersonating. Please stop impersonating first.');
         }
-        
+
         // Check if current user is admin
-        if (!$user || !$user->isAdmin() || config('settings.is_self_hosted')) {
+        if (! $user || ! $user->isAdmin() || config('settings.is_self_hosted')) {
             abort(403);
         }
     }
@@ -37,11 +37,11 @@ class AdminController extends Controller
 
         // Stats from the pre-computed analytics snapshot — gracefully returns zeros if not yet populated
         try {
-            $mrrStats = DB::table('analytics_users')
+            $userStats = DB::table('analytics_users')
                 ->selectRaw('COUNT(CASE WHEN last_device_activity_at >= ? THEN 1 END) as active_users_count', [now()->subDays(7)])
                 ->first();
         } catch (\Exception $e) {
-            $mrrStats = null;
+            $userStats = null;
         }
 
         try {
@@ -56,17 +56,17 @@ class AdminController extends Controller
         $allUsersQuery = User::query()
             ->withCount('displays')
             ->withCount('boards')
-            ->with(['subscriptions' => function($query) {
-                $query->where(function($q) {
+            ->with(['subscriptions' => function ($query) {
+                $query->where(function ($q) {
                     $q->whereNull('ends_at')
-                      ->orWhere('ends_at', '>', now());
+                        ->orWhere('ends_at', '>', now());
                 });
             }]);
 
         if ($search) {
-            $allUsersQuery->where(function($query) use ($search) {
+            $allUsersQuery->where(function ($query) use ($search) {
                 $query->where('name', 'like', "%{$search}%")
-                      ->orWhere('email', 'like', "%{$search}%");
+                    ->orWhere('email', 'like', "%{$search}%");
             });
         }
 
@@ -83,7 +83,7 @@ class AdminController extends Controller
 
         return view('pages.admin', [
             'allUsers' => $allUsers,
-            'activeUsersCount' => $mrrStats->active_users_count ?? 0,
+            'activeUsersCount' => $userStats->active_users_count ?? 0,
             'totalInstances' => $instanceStats->total_instances ?? 0,
             'activeInstancesCount' => $instanceStats->active_instances_count ?? 0,
             'roadmapItems' => $roadmapItems,
@@ -104,26 +104,63 @@ class AdminController extends Controller
             'displays',
             'devices',
             'workspaces',
-            'subscriptions' => function($query) {
-                $query->where(function($q) {
+            'subscriptions' => function ($query) {
+                $query->where(function ($q) {
                     $q->whereNull('ends_at')
-                      ->orWhere('ends_at', '>', now());
+                        ->orWhere('ends_at', '>', now());
                 })->orderByDesc('created_at');
             },
         ]);
 
+        // RefreshAnalytics writes a row for every user with a default status of "none",
+        // so only surface subscription info when the user actually has a subscription.
         $analyticsRow = DB::table('analytics_users')->where('user_id', $user->id)->first();
-        $subscriptionInfo = $analyticsRow ? [
+        $subscriptionInfo = ($analyticsRow && $analyticsRow->subscription_status !== 'none') ? [
             'status' => $analyticsRow->subscription_status,
             'price' => $analyticsRow->mrr_current,
             'mrr' => $analyticsRow->mrr_current,
             'ends_at' => $analyticsRow->subscription_ends_at,
         ] : null;
 
+        // Recent license-count / MRR changes (empty if the table isn't present, e.g. self-hosted)
+        try {
+            $billingChanges = \App\Models\BillingChange::where('user_id', $user->id)
+                ->orderByDesc('detected_at')
+                ->limit(20)
+                ->get();
+        } catch (\Exception $e) {
+            $billingChanges = collect();
+        }
+
         return view('pages.admin.user', [
             'user' => $user,
             'subscriptionInfo' => $subscriptionInfo,
+            'billingChanges' => $billingChanges,
         ]);
+    }
+
+    /**
+     * Update a user's manual billing setting.
+     *
+     * Manually-billed users are invoiced through our own accounting system instead of
+     * Lemon Squeezy. They receive Pro access without an LS subscription, and their MRR is
+     * computed locally from usage (see RefreshAnalytics) rather than fetched from LS.
+     */
+    public function updateBilling(Request $request, User $user): RedirectResponse
+    {
+        $this->checkAdminAccess();
+
+        $user->update([
+            'is_manually_billed' => $request->boolean('is_manually_billed'),
+        ]);
+
+        logger()->info('Admin updated manual billing', [
+            'user_id' => $user->id,
+            'admin_id' => Auth::id(),
+            'is_manually_billed' => $user->is_manually_billed,
+        ]);
+
+        return back()->with('success', 'Billing settings updated.');
     }
 
     /**
@@ -132,7 +169,7 @@ class AdminController extends Controller
     public function deleteUser(Request $request, User $user): RedirectResponse
     {
         $this->checkAdminAccess();
-        
+
         $admin = Auth::user();
 
         // Prevent deleting yourself
@@ -223,13 +260,13 @@ class AdminController extends Controller
             foreach ($ownedWorkspaces as $workspace) {
                 // Get other members (excluding the user being deleted)
                 $otherMembers = $workspace->members()->where('user_id', '!=', $user->id)->get();
-                
+
                 if ($otherMembers->isNotEmpty()) {
                     // Find first admin or first member to transfer ownership
                     $newOwner = $otherMembers->first(function ($member) {
                         return $member->pivot->role === \App\Enums\WorkspaceRole::ADMIN->value;
                     }) ?? $otherMembers->first();
-                    
+
                     if ($newOwner) {
                         // Transfer ownership
                         WorkspaceMember::where('workspace_id', $workspace->id)
@@ -269,6 +306,10 @@ class AdminController extends Controller
                 $user->subscriptions()->delete();
             }
 
+            // Remove the user's billing-change history — those rows keep a denormalized
+            // copy of the user's email and name, so they must not outlive the account.
+            \App\Models\BillingChange::where('user_id', $user->id)->delete();
+
             // Finally, delete the user
             $user->delete();
 
@@ -288,7 +329,7 @@ class AdminController extends Controller
     public function impersonate(User $user): RedirectResponse
     {
         $this->checkAdminAccess();
-        
+
         $admin = Auth::user();
 
         // Prevent impersonating yourself
@@ -326,14 +367,15 @@ class AdminController extends Controller
     public function stopImpersonating(): RedirectResponse
     {
         $impersonatorId = session()->get('impersonator_id');
-        
-        if (!$impersonatorId) {
+
+        if (! $impersonatorId) {
             return redirect()->route('dashboard');
         }
 
         $impersonator = User::find($impersonatorId);
-        if (!$impersonator || !$impersonator->isAdmin()) {
+        if (! $impersonator || ! $impersonator->isAdmin()) {
             session()->forget(['impersonating', 'impersonator_id']);
+
             return redirect()->route('dashboard');
         }
 
