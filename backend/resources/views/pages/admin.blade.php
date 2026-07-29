@@ -166,13 +166,13 @@
                                             </td>
                                             <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{ $item->created_at->format('d M Y') }}</td>
                                             <td class="whitespace-nowrap px-3 py-4 text-right">
-                                                <div class="flex justify-end gap-2">
-                                                    <form action="{{ route('admin.roadmap.approve', $item) }}" method="POST">
+                                                <div class="flex items-center justify-end gap-2">
+                                                    <form action="{{ route('admin.roadmap.approve', $item) }}" method="POST" class="flex">
                                                         @csrf
                                                         <button type="submit" class="text-green-600 hover:text-green-900 font-medium text-sm">Approve</button>
                                                     </form>
                                                     <a href="{{ route('admin.roadmap.edit', $item) }}" class="text-blue-600 hover:text-blue-900 font-medium text-sm">Edit</a>
-                                                    <form action="{{ route('admin.roadmap.destroy', $item) }}" method="POST" onsubmit="return confirm('Delete this suggestion?')">
+                                                    <form action="{{ route('admin.roadmap.destroy', $item) }}" method="POST" class="flex" onsubmit="return confirm('Delete this suggestion?')">
                                                         @csrf @method('DELETE')
                                                         <button type="submit" class="text-red-600 hover:text-red-900 font-medium text-sm">Delete</button>
                                                     </form>
@@ -219,9 +219,9 @@
                                     <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{ $item->expected_at?->format('M Y') ?? '—' }}</td>
                                     <td class="whitespace-nowrap px-3 py-4 text-sm font-semibold text-gray-700">{{ $item->votes_count }}</td>
                                     <td class="whitespace-nowrap px-3 py-4 text-right">
-                                        <div class="flex justify-end gap-2">
+                                        <div class="flex items-center justify-end gap-2">
                                             <a href="{{ route('admin.roadmap.edit', $item) }}" class="text-blue-600 hover:text-blue-900 font-medium text-sm">Edit</a>
-                                            <form action="{{ route('admin.roadmap.destroy', $item) }}" method="POST" onsubmit="return confirm('Delete this item?')">
+                                            <form action="{{ route('admin.roadmap.destroy', $item) }}" method="POST" class="flex" onsubmit="return confirm('Delete this item?')">
                                                 @csrf @method('DELETE')
                                                 <button type="submit" class="text-red-600 hover:text-red-900 font-medium text-sm">Delete</button>
                                             </form>
