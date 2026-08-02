@@ -3,7 +3,6 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class DisplayProfileRequest extends FormRequest
 {
@@ -57,11 +56,14 @@ class DisplayProfileRequest extends FormRequest
             'text_reserved' => 'nullable|string|max:255',
             'text_checkin' => 'nullable|string|max:255',
 
-            // Linked displays
-            'display_ids' => 'nullable|array',
-            'display_ids.*' => [
-                Rule::exists('displays', 'id')->where('workspace_id', $workspaceId),
-            ],
+            // Images: same rules as the display configuration screen
+            'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'remove_logo' => 'boolean',
+            'background_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'remove_background_image' => 'boolean',
+            'default_background' => 'nullable|string|in:default_1,default_2,default_3,default_4,default_5,default_6,default_7,default_8',
+            'advertisement_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:4096',
+            'remove_advertisement_image' => 'boolean',
         ];
     }
 }

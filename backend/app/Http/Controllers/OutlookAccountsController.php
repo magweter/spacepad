@@ -8,6 +8,8 @@ use App\Models\OutlookAccount;
 use App\Services\OutlookService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Enum;
 use Illuminate\Validation\Rules\In;
 
@@ -37,7 +39,7 @@ class OutlookAccountsController extends Controller
     /**
      * @throws \Exception
      */
-    public function callback(): \Illuminate\Http\Response|RedirectResponse
+    public function callback(): Response|RedirectResponse
     {
         // Log every callback hit so we can diagnose cases where the admin-consent
         // branch is unexpectedly skipped (e.g. Microsoft sending a different
@@ -121,7 +123,11 @@ class OutlookAccountsController extends Controller
         // Clear the session value after retrieving it
         session()->forget('outlook_permission_type');
 
-        $outlookAccount = $this->outlookService->authenticateOutlookAccount($authCode, $permissionType);
+        $outlookAccount = $this->outlookService->authenticateOutlookAccount(
+            $authCode,
+            $permissionType,
+            auth()->user()->getSelectedWorkspace(),
+        );
 
         return redirect()->route('dashboard')->with('success', 'Microsoft account "'.$outlookAccount->email.'" has been connected successfully.');
     }
@@ -131,14 +137,14 @@ class OutlookAccountsController extends Controller
         $request->validate([
             'outlook_account_id' => [
                 'required',
-                \Illuminate\Validation\Rule::exists('outlook_accounts', 'id')->where('user_id', auth()->id()),
+                Rule::exists('outlook_accounts', 'id'),
             ],
             'booking_method' => ['required', new Enum(OutlookBookingMethod::class)],
         ]);
 
-        $outlookAccount = OutlookAccount::where('id', $request->outlook_account_id)
-            ->where('user_id', auth()->id())
-            ->firstOrFail();
+        $outlookAccount = OutlookAccount::findOrFail($request->outlook_account_id);
+
+        $this->authorize('update', $outlookAccount);
 
         if ($request->booking_method === OutlookBookingMethod::ADMIN_CONSENT->value) {
             // Don't save admin_consent yet — only confirm it after the consent callback
@@ -161,6 +167,8 @@ class OutlookAccountsController extends Controller
 
     public function delete(OutlookAccount $outlookAccount): RedirectResponse
     {
+        $this->authorize('delete', $outlookAccount);
+
         if ($outlookAccount->calendars()->exists()) {
             return redirect()->route('dashboard')->with('error', 'Cannot disconnect this account because it is used by one or more displays.');
         }

@@ -2,9 +2,9 @@
 
 namespace App\Policies;
 
+use App\Models\Device;
 use App\Models\Display;
 use App\Models\User;
-use App\Models\Device;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
 class DisplayPolicy
@@ -24,12 +24,15 @@ class DisplayPolicy
      */
     public function update(User $user, Display $display): bool
     {
-        if (!$display->workspace_id) {
+        if (! $display->workspace_id) {
             return false;
         }
 
+        // Any member may manage the workspace's content. Managing the workspace itself
+        // (members, billing) is owner/admin only — see WorkspacePolicy.
         $workspace = $display->workspace;
-        return $workspace && $workspace->canBeManagedBy($user);
+
+        return $workspace && $workspace->hasMember($user);
     }
 
     /**
@@ -37,12 +40,15 @@ class DisplayPolicy
      */
     public function delete(User $user, Display $display): bool
     {
-        if (!$display->workspace_id) {
+        if (! $display->workspace_id) {
             return false;
         }
 
+        // Any member may manage the workspace's content. Managing the workspace itself
+        // (members, billing) is owner/admin only — see WorkspacePolicy.
         $workspace = $display->workspace;
-        return $workspace && $workspace->canBeManagedBy($user);
+
+        return $workspace && $workspace->hasMember($user);
     }
 
     /**
@@ -52,19 +58,20 @@ class DisplayPolicy
     {
         // Handle User model
         if ($user instanceof User) {
-            if (!$display->workspace_id) {
+            if (! $display->workspace_id) {
                 return false;
             }
 
             $workspace = $display->workspace;
+
             return $workspace && $workspace->hasMember($user);
         }
-        
+
         // Handle Device model
         if ($user instanceof Device) {
             return $user->display_id === $display->id;
         }
-        
+
         return false;
     }
 }

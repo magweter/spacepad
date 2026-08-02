@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\WorkspaceRole;
-use App\Models\WorkspaceMember;
+use App\Models\User;
+use App\Services\WorkspaceService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -12,6 +12,8 @@ use Illuminate\View\View;
 
 class ProfileController extends Controller
 {
+    public function __construct(protected WorkspaceService $workspaces) {}
+
     public function show(): View
     {
         $user = auth()->user();
@@ -29,7 +31,7 @@ class ProfileController extends Controller
             'confirm_email' => ['required', 'email'],
         ]);
 
-        /** @var \App\Models\User $user */
+        /** @var User $user */
         $user = Auth::user();
 
         if ($request->input('confirm_email') !== $user->email) {
@@ -39,71 +41,10 @@ class ProfileController extends Controller
         DB::transaction(function () use ($user) {
             $user->tokens()->delete();
 
-            foreach ($user->displays as $display) {
-                $display->eventSubscriptions()->delete();
-                $display->settings()->delete();
-                $display->events()->delete();
-                $display->devices()->delete();
-                $display->delete();
-            }
-
-            $user->devices()->delete();
-            $user->rooms()->delete();
-
-            foreach ($user->outlookAccounts as $account) {
-                foreach ($account->calendars as $calendar) {
-                    $calendar->events()->delete();
-                    $calendar->delete();
-                }
-                $account->delete();
-            }
-
-            foreach ($user->googleAccounts as $account) {
-                foreach ($account->calendars as $calendar) {
-                    $calendar->events()->delete();
-                    $calendar->delete();
-                }
-                $account->delete();
-            }
-
-            foreach ($user->caldavAccounts as $account) {
-                foreach ($account->calendars as $calendar) {
-                    $calendar->events()->delete();
-                    $calendar->delete();
-                }
-                $account->delete();
-            }
-
-            foreach ($user->ownedWorkspaces()->get() as $workspace) {
-                $otherMembers = $workspace->members()->where('user_id', '!=', $user->id)->get();
-
-                if ($otherMembers->isNotEmpty()) {
-                    $newOwner = $otherMembers->first(fn ($m) => $m->pivot->role === WorkspaceRole::ADMIN->value)
-                        ?? $otherMembers->first();
-
-                    WorkspaceMember::where('workspace_id', $workspace->id)
-                        ->where('user_id', $newOwner->id)
-                        ->update(['role' => WorkspaceRole::OWNER]);
-                } else {
-                    foreach ($workspace->displays as $display) {
-                        $display->eventSubscriptions()->delete();
-                        $display->settings()->delete();
-                        $display->events()->delete();
-                        $display->devices()->delete();
-                        $display->delete();
-                    }
-                    $workspace->devices()->delete();
-                    foreach ($workspace->calendars as $calendar) {
-                        $calendar->events()->delete();
-                        $calendar->delete();
-                    }
-                    $workspace->rooms()->delete();
-                    WorkspaceMember::where('workspace_id', $workspace->id)->delete();
-                    $workspace->delete();
-                }
-            }
-
-            WorkspaceMember::where('user_id', $user->id)->delete();
+            // Deliberately workspace-first: data lives in a workspace, and user_id only
+            // records who created it. Deleting by $user->displays would take a shared
+            // workspace's displays down with a single departing colleague.
+            $this->workspaces->detachUserFromAllWorkspaces($user);
 
             if (method_exists($user, 'subscriptions')) {
                 $user->subscriptions()->delete();
@@ -119,7 +60,7 @@ class ProfileController extends Controller
                 'deleted_user_id' => $userId,
             ]);
 
-            \App\Models\User::where('id', $userId)->delete();
+            User::where('id', $userId)->delete();
         });
 
         Auth::logout();

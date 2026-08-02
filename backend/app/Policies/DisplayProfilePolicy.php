@@ -36,9 +36,11 @@ class DisplayProfilePolicy
             return false;
         }
 
+        // Any member may manage the workspace's content. Managing the workspace itself
+        // (members, billing) is owner/admin only — see WorkspacePolicy.
         $workspace = $profile->workspace;
 
-        return $workspace && $workspace->canBeManagedBy($user);
+        return $workspace && $workspace->hasMember($user);
     }
 
     /**
@@ -50,8 +52,10 @@ class DisplayProfilePolicy
             return false;
         }
 
+        // Any member may manage the workspace's content. Managing the workspace itself
+        // (members, billing) is owner/admin only — see WorkspacePolicy.
         $workspace = $profile->workspace;
 
-        return $workspace && $workspace->canBeManagedBy($user);
+        return $workspace && $workspace->hasMember($user);
     }
 }

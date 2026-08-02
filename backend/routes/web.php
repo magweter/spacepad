@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\AdminMergeController;
 use App\Http\Controllers\AdminRoadmapController;
 use App\Http\Controllers\Auth\GoogleController;
 use App\Http\Controllers\Auth\LoginController;
@@ -15,6 +16,7 @@ use App\Http\Controllers\DisplayController;
 use App\Http\Controllers\DisplayDiagnosticsController;
 use App\Http\Controllers\DisplaySettingsController;
 use App\Http\Controllers\GoogleAccountsController;
+use App\Http\Controllers\Invitations\AcceptInvitationController;
 use App\Http\Controllers\LicenseController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\OutlookAccountsController;
@@ -24,12 +26,24 @@ use App\Http\Controllers\RoadmapController;
 use App\Http\Controllers\RoomController;
 use App\Http\Controllers\SupportController;
 use App\Http\Controllers\WorkspaceController;
+use App\Http\Controllers\WorkspaceInvitationController;
+use App\Http\Controllers\WorkspaceMemberController;
 use Illuminate\Support\Facades\Route;
 
 // Public board routes (no authentication required)
 Route::middleware('throttle:public_tokens')->group(function () {
     Route::get('/b/{token}', [BoardController::class, 'public'])->name('boards.public');
     Route::get('/b/{token}/logo', [BoardController::class, 'servePublicLogo'])->name('boards.public.logo');
+});
+
+// Accepting a workspace invitation. Deliberately outside the auth group: the token is the
+// authentication. Also outside 'user.active', so a brand-new invitee is not bounced to
+// onboarding before they have joined anything.
+Route::middleware('throttle:invitations')->group(function () {
+    Route::get('/invitations/{token}', [AcceptInvitationController::class, 'show'])->name('invitations.show');
+    Route::post('/invitations/{token}', [AcceptInvitationController::class, 'accept'])->name('invitations.accept');
+    Route::post('/invitations/{token}/decline', [AcceptInvitationController::class, 'decline'])->name('invitations.decline');
+    Route::post('/invitations/{token}/switch-account', [AcceptInvitationController::class, 'switchAccount'])->name('invitations.switch-account');
 });
 
 Route::get('/login', [LoginController::class, 'create'])
@@ -76,7 +90,6 @@ Route::middleware(['auth', 'user.update-last-activity', 'gtm'])->group(function 
     Route::post('/onboarding/skip', [OnboardingController::class, 'skip'])->name('onboarding.skip');
 
     Route::post('/outlook-accounts/auth', [OutlookAccountsController::class, 'auth'])->name('outlook-accounts.auth');
-    Route::get('/outlook-accounts/calendars', [OutlookAccountsController::class, 'getCalendars']);
     Route::post('/outlook-accounts/booking-method', [OutlookAccountsController::class, 'setBookingMethod'])->name('outlook-accounts.set-booking-method');
     Route::delete('/outlook-accounts/{outlookAccount}', [OutlookAccountsController::class, 'delete'])->name('outlook-accounts.delete');
 
@@ -84,7 +97,6 @@ Route::middleware(['auth', 'user.update-last-activity', 'gtm'])->group(function 
     Route::post('/google-accounts/auth', [GoogleAccountsController::class, 'auth'])->name('google-accounts.auth');
     Route::post('/google-accounts/service-account', [GoogleAccountsController::class, 'uploadServiceAccount'])->name('google-accounts.service-account');
     Route::get('/google-accounts/callback', [GoogleAccountsController::class, 'callback']);
-    Route::get('/google-accounts/calendars', [GoogleAccountsController::class, 'getCalendars']);
     Route::delete('/google-accounts/{googleAccount}', [GoogleAccountsController::class, 'delete'])->name('google-accounts.delete');
 
     Route::get('/caldav-accounts/create', [CalDAVAccountsController::class, 'create'])->name('caldav-accounts.create');
@@ -98,21 +110,26 @@ Route::middleware(['auth', 'user.update-last-activity', 'gtm'])->group(function 
         ->name('displays.updateStatus');
     Route::delete('/displays/{display}', [DisplayController::class, 'delete'])->name('displays.delete');
 
-    // Display settings routes
-    Route::get('/displays/{display}/settings', [DisplaySettingsController::class, 'index'])
-        ->name('displays.settings.index');
-    Route::put('/displays/{display}/settings', [DisplaySettingsController::class, 'update'])
-        ->name('displays.settings.update');
+    // Display configuration: one screen, saved per section
+    Route::get('/displays/{display}/configure', [DisplaySettingsController::class, 'configure'])
+        ->name('displays.configure');
+    Route::put('/displays/{display}/configure/{section}', [DisplaySettingsController::class, 'updateSection'])
+        ->name('displays.section.update');
+    Route::post('/displays/{display}/configure/{section}/reset', [DisplaySettingsController::class, 'resetSection'])
+        ->name('displays.section.reset');
     Route::put('/displays/{display}/profile', [DisplaySettingsController::class, 'updateProfile'])
         ->name('displays.profile.update');
     Route::post('/displays/{display}/settings/reset-to-profile', [DisplaySettingsController::class, 'resetToProfile'])
         ->name('displays.settings.reset-to-profile');
+    Route::post('/displays/profile/bulk', [DisplaySettingsController::class, 'bulkAssignProfile'])
+        ->name('displays.profile.bulk');
 
-    // Display customization routes
-    Route::get('/displays/{display}/customization', [DisplaySettingsController::class, 'customization'])
+    // The settings and customization screens were merged into the configuration screen above; keep
+    // the old URLs working for bookmarks and links in earlier e-mails.
+    Route::get('/displays/{display}/settings', fn (string $display) => redirect()->route('displays.configure', $display))
+        ->name('displays.settings.index');
+    Route::get('/displays/{display}/customization', fn (string $display) => redirect()->route('displays.configure', $display))
         ->name('displays.customization');
-    Route::put('/displays/{display}/customization', [DisplaySettingsController::class, 'updateCustomization'])
-        ->name('displays.customization.update');
 
     Route::get('/calendars/outlook/{id}', [CalendarController::class, 'outlook'])
         ->name('calendars.outlook');
@@ -129,6 +146,24 @@ Route::middleware(['auth', 'user.update-last-activity', 'gtm'])->group(function 
 
     Route::post('/workspaces/switch', [WorkspaceController::class, 'switch'])->name('workspaces.switch');
 
+    // Literal /workspaces/... paths must stay above any /workspaces/{workspace} route.
+    Route::get('/workspaces/members', [WorkspaceMemberController::class, 'index'])->name('workspaces.members');
+    Route::patch('/workspaces/members/{member}', [WorkspaceMemberController::class, 'update'])->name('workspaces.members.update');
+    Route::delete('/workspaces/members/{member}', [WorkspaceMemberController::class, 'destroy'])->name('workspaces.members.destroy');
+    Route::post('/workspaces/leave', [WorkspaceMemberController::class, 'leave'])->name('workspaces.leave');
+
+    Route::post('/workspaces/invitations', [WorkspaceInvitationController::class, 'store'])
+        ->middleware('throttle:workspace_invites')->name('workspaces.invitations.store');
+    Route::post('/workspaces/invitations/{invitation}/resend', [WorkspaceInvitationController::class, 'resend'])
+        ->middleware('throttle:workspace_invites')->name('workspaces.invitations.resend');
+    Route::delete('/workspaces/invitations/{invitation}', [WorkspaceInvitationController::class, 'destroy'])
+        ->name('workspaces.invitations.destroy');
+
+    Route::post('/workspaces', [WorkspaceController::class, 'store'])->name('workspaces.store');
+    Route::patch('/workspaces/{workspace}', [WorkspaceController::class, 'update'])->name('workspaces.update');
+    Route::delete('/workspaces/{workspace}', [WorkspaceController::class, 'destroy'])->name('workspaces.destroy');
+
+    Route::post('/billing/checkout', [BillingController::class, 'checkout'])->name('billing.checkout');
     Route::get('/billing/thanks', [BillingController::class, 'thanks'])->name('billing.thanks');
 
     Route::get('/account', [ProfileController::class, 'show'])->name('profile.show');
@@ -140,6 +175,10 @@ Route::middleware(['auth', 'user.update-last-activity', 'gtm'])->group(function 
     Route::post('/admin/users/{user}/billing', [AdminController::class, 'updateBilling'])->name('admin.users.billing');
     Route::post('/admin/users/{user}/impersonate', [AdminController::class, 'impersonate'])->name('admin.users.impersonate');
     Route::post('/admin/stop-impersonating', [AdminController::class, 'stopImpersonating'])->name('admin.stop-impersonating');
+
+    Route::get('/admin/merge', [AdminMergeController::class, 'index'])->name('admin.merge.index');
+    Route::post('/admin/merge/preview', [AdminMergeController::class, 'preview'])->name('admin.merge.preview');
+    Route::post('/admin/merge', [AdminMergeController::class, 'store'])->name('admin.merge.store');
 
     // Display image serving route
     Route::get('/displays/{display}/images/{type}', [DisplaySettingsController::class, 'serveImage'])
@@ -159,6 +198,7 @@ Route::middleware(['auth', 'user.update-last-activity', 'gtm'])->group(function 
     Route::get('/profiles/{profile}/edit', [ProfilesController::class, 'edit'])->name('profiles.edit');
     Route::put('/profiles/{profile}', [ProfilesController::class, 'update'])->name('profiles.update');
     Route::delete('/profiles/{profile}', [ProfilesController::class, 'destroy'])->name('profiles.destroy');
+    Route::get('/profiles/{profile}/images/{type}', [ProfilesController::class, 'serveImage'])->name('profiles.images');
 
     // Boards routes
     Route::get('/boards/create', [BoardController::class, 'create'])->name('boards.create');

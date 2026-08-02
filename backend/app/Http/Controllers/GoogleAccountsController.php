@@ -2,11 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\PermissionType;
 use App\Enums\GoogleBookingMethod;
+use App\Enums\PermissionType;
 use App\Models\GoogleAccount;
 use App\Services\GoogleService;
-use Google\Service\Exception;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
@@ -26,16 +25,13 @@ class GoogleAccountsController extends Controller
     public function setBookingMethod(Request $request): RedirectResponse
     {
         $request->validate([
-            'google_account_id' => [
-                'required',
-                Rule::exists('google_accounts', 'id')->where('user_id', auth()->id()),
-            ],
+            'google_account_id' => ['required', Rule::exists('google_accounts', 'id')],
             'booking_method' => ['required', Rule::in(['service_account', 'user_account'])],
         ]);
 
-        $googleAccount = GoogleAccount::where('id', $request->google_account_id)
-            ->where('user_id', auth()->id())
-            ->firstOrFail();
+        $googleAccount = GoogleAccount::findOrFail($request->google_account_id);
+
+        $this->authorize('update', $googleAccount);
 
         $googleAccount->update([
             'booking_method' => GoogleBookingMethod::from($request->booking_method),
@@ -68,17 +64,11 @@ class GoogleAccountsController extends Controller
 
     /**
      * Handle service account file upload for workspace accounts.
-     *
-     * @param Request $request
-     * @return RedirectResponse
      */
     public function uploadServiceAccount(Request $request): RedirectResponse
     {
         $request->validate([
-            'google_account_id' => [
-                'required',
-                Rule::exists('google_accounts', 'id')->where('user_id', auth()->id()),
-            ],
+            'google_account_id' => ['required', Rule::exists('google_accounts', 'id')],
             'service_account_file' => [
                 'required',
                 'file',
@@ -87,14 +77,14 @@ class GoogleAccountsController extends Controller
                 function ($attribute, $value, $fail) {
                     $content = file_get_contents($value->getRealPath());
                     $json = json_decode($content, true);
-                    
-                    if (!$json || !isset($json['type']) || $json['type'] !== 'service_account') {
+
+                    if (! $json || ! isset($json['type']) || $json['type'] !== 'service_account') {
                         $fail('The file must be a valid Google Service Account JSON file.');
                     }
-                    
+
                     $required = ['private_key', 'client_email', 'project_id'];
                     foreach ($required as $field) {
-                        if (!isset($json[$field])) {
+                        if (! isset($json[$field])) {
                             $fail("The service account file is missing required field: {$field}");
                         }
                     }
@@ -102,20 +92,22 @@ class GoogleAccountsController extends Controller
             ],
         ]);
 
-        $googleAccount = GoogleAccount::where('id', $request->google_account_id)
-            ->where('user_id', auth()->id())
-            ->firstOrFail();
+        $googleAccount = GoogleAccount::findOrFail($request->google_account_id);
+
+        $this->authorize('update', $googleAccount);
 
         // Ensure it's a workspace account
         if (! $googleAccount->isBusiness()) {
             return redirect()->route('dashboard')->with('error', 'Service account is only required for Google Workspace accounts.');
         }
 
-        // Store file in user-specific directory
-        $userDir = 'google-service-accounts/' . auth()->id();
-        $fileName = 'google-account-' . $googleAccount->id . '-' . time() . '.json';
-        $filePath = $userDir . '/' . $fileName;
-        
+        // Store the file per workspace, so a colleague re-uploading it lands in the same
+        // place. Existing accounts keep working either way: the path is persisted on the
+        // record, so previously uploaded user-scoped files stay readable.
+        $directory = 'google-service-accounts/'.($googleAccount->workspace_id ?? $googleAccount->user_id);
+        $fileName = 'google-account-'.$googleAccount->id.'-'.time().'.json';
+        $filePath = $directory.'/'.$fileName;
+
         // Delete old file if exists
         if ($googleAccount->service_account_file_path && Storage::exists($googleAccount->service_account_file_path)) {
             Storage::delete($googleAccount->service_account_file_path);
@@ -124,7 +116,7 @@ class GoogleAccountsController extends Controller
         // Read file content and encrypt it before storing
         $fileContent = file_get_contents($request->file('service_account_file')->getRealPath());
         $encryptedContent = Crypt::encryptString($fileContent);
-        
+
         // Store encrypted file - explicitly construct path to ensure correct value is stored
         if (! Storage::put($filePath, $encryptedContent)) {
             return redirect()->route('dashboard')->with('error', 'Failed to save service account file. Please try again.');
@@ -156,33 +148,41 @@ class GoogleAccountsController extends Controller
         session()->forget('google_booking_method');
 
         // Don't set booking_method initially - will be set based on account type
-        $googleAccount = $this->googleService->authenticateGoogleAccount($authCode, $permissionType, null);
+        $googleAccount = $this->googleService->authenticateGoogleAccount(
+            $authCode,
+            $permissionType,
+            null,
+            auth()->user()->getSelectedWorkspace(),
+        );
 
         // If write permission, automatically detect account type and set booking method
         if ($permissionType === PermissionType::WRITE) {
             // Refresh account to get hosted_domain
             $googleAccount->refresh();
-            
+
             // If personal account, automatically set to USER_ACCOUNT
-            if (!$googleAccount->isBusiness()) {
+            if (! $googleAccount->isBusiness()) {
                 $googleAccount->update([
                     'booking_method' => GoogleBookingMethod::USER_ACCOUNT,
                 ]);
+
                 return redirect()->route('dashboard')
-                    ->with('success', 'Google account "' . $googleAccount->email . '" has been connected successfully.');
+                    ->with('success', 'Google account "'.$googleAccount->email.'" has been connected successfully.');
             }
-            
+
             // If workspace account, show booking method selection modal
             return redirect()->route('dashboard')
-                ->with('success', 'Google account "' . $googleAccount->email . '" has been connected successfully.')
+                ->with('success', 'Google account "'.$googleAccount->email.'" has been connected successfully.')
                 ->with('open-google-booking-method-modal', $googleAccount->id);
         }
 
-        return redirect()->route('dashboard')->with('success', 'Google account "' . $googleAccount->email . '" has been connected successfully.');
+        return redirect()->route('dashboard')->with('success', 'Google account "'.$googleAccount->email.'" has been connected successfully.');
     }
 
     public function delete(GoogleAccount $googleAccount): RedirectResponse
     {
+        $this->authorize('delete', $googleAccount);
+
         if ($googleAccount->calendars()->exists()) {
             return redirect()->route('dashboard')->with('error', 'Cannot disconnect this account because it is used by one or more displays.');
         }

@@ -1,4 +1,4 @@
-@props(['display'])
+@props(['display', 'selectable' => false])
 
 @php
     $statusBadgeClass = match ($display->status) {
@@ -7,9 +7,19 @@
         \App\Enums\DisplayStatus::DEACTIVATED => 'bg-gray-100 text-gray-700 ring-gray-600/10',
         \App\Enums\DisplayStatus::ERROR => 'bg-red-50 text-red-800 ring-red-600/15',
     };
+
+    $deviates = \App\Helpers\DisplaySettings::deviatesFromProfile($display);
 @endphp
 
 <tr class="transition-colors hover:bg-gray-50/90">
+    @if($selectable)
+        <td class="whitespace-nowrap py-4 pl-4 pr-0 align-middle">
+            {{-- x-model on the shared Alpine bulk state; the component gets the ids from the server --}}
+            <input type="checkbox" value="{{ $display->id }}" x-model="selected"
+                   aria-label="Select {{ $display->name }}"
+                   class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600">
+        </td>
+    @endif
     <td class="whitespace-nowrap py-4 pl-4 pr-3 align-middle sm:pl-4">
         <div class="min-w-0 max-w-xs sm:max-w-sm">
             <div class="text-sm font-semibold leading-6 text-gray-900 truncate">{{ $display->name }}</div>
@@ -125,8 +135,20 @@
             @endif
         </div>
     </td>
+    <td class="whitespace-nowrap px-3 py-4 align-middle text-sm">
+        @if($display->profile)
+            <div class="min-w-0 max-w-[11rem]">
+                <div class="truncate font-medium text-gray-900">{{ $display->profile->name }}</div>
+                @if($deviates)
+                    <div class="text-xs text-amber-700">Customised</div>
+                @endif
+            </div>
+        @else
+            <span class="text-gray-400">&mdash;</span>
+        @endif
+    </td>
     <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right align-middle text-sm font-medium sm:pr-4">
-        <div class="flex justify-end gap-x-2">
+        <div class="flex items-center justify-end gap-x-2">
             <form action="{{ route('displays.updateStatus', $display) }}" method="POST" class="inline">
                 @csrf
                 @method('PATCH')
@@ -140,17 +162,12 @@
                 </button>
             </form>
             @if(auth()->user()->hasProForCurrentWorkspace())
-                <a href="{{ route('displays.customization', $display) }}" class="inline-flex items-center rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-indigo-600 shadow-sm ring-1 ring-inset ring-indigo-300 hover:bg-indigo-50" title="Customize display (Pro)">
-                    <x-icons.brush class="h-4 w-4" />
-                </a>
-                <a href="{{ route('displays.settings.index', $display) }}" class="inline-flex items-center rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-blue-600 shadow-sm ring-1 ring-inset ring-blue-300 hover:bg-blue-50" title="Display settings (Pro)">
+                {{-- Settings and customization were merged into one configuration screen --}}
+                <a href="{{ route('displays.configure', $display) }}" class="inline-flex items-center rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-blue-600 shadow-sm ring-1 ring-inset ring-blue-300 hover:bg-blue-50" title="Configure display (Pro)">
                     <x-icons.settings class="h-4 w-4" />
                 </a>
             @else
-                <span class="inline-flex items-center rounded-md bg-gray-100 px-2.5 py-1.5 text-sm font-semibold text-gray-400 shadow-sm ring-1 ring-inset ring-gray-200 cursor-not-allowed" title="Upgrade to Pro to unlock customization">
-                    <x-icons.brush class="h-4 w-4" />
-                </span>
-                <span class="inline-flex items-center rounded-md bg-gray-100 px-2.5 py-1.5 text-sm font-semibold text-gray-400 shadow-sm ring-1 ring-inset ring-gray-200 cursor-not-allowed" title="Upgrade to Pro to unlock settings">
+                <span class="inline-flex items-center rounded-md bg-gray-100 px-2.5 py-1.5 text-sm font-semibold text-gray-400 shadow-sm ring-1 ring-inset ring-gray-200 cursor-not-allowed" title="Upgrade to Pro to configure displays">
                     <x-icons.settings class="h-4 w-4" />
                 </span>
             @endif

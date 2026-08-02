@@ -19,12 +19,21 @@ beforeEach(function () {
     session()->put('selected_workspace_id', $this->workspace->id);
 });
 
-test('user can view the profiles index', function () {
+test('the profiles url redirects to the dashboard tab', function () {
     DisplayProfile::factory()->create(['workspace_id' => $this->workspace->id]);
 
     $this->actingAs($this->user)
         ->get(route('profiles.index'))
-        ->assertOk();
+        ->assertRedirect(route('dashboard', ['tab' => 'profiles']));
+});
+
+test('the profiles tab lists the workspace profiles', function () {
+    DisplayProfile::factory()->create(['workspace_id' => $this->workspace->id, 'name' => 'Ground floor']);
+
+    $this->actingAs($this->user)
+        ->get(route('dashboard', ['tab' => 'profiles']))
+        ->assertOk()
+        ->assertSee('Ground floor');
 });
 
 test('non-pro users cannot access profiles', function () {
@@ -62,50 +71,57 @@ test('user can create a profile with settings', function () {
         ->and(ProfileSettings::get($profile, 'text_available'))->toBe('Vrij');
 });
 
-test('creating a profile links the selected displays', function () {
-    $displays = Display::factory()->count(2)->create([
+test('the profile form no longer assigns displays', function () {
+    $display = Display::factory()->create([
         'workspace_id' => $this->workspace->id,
         'status' => DisplayStatus::ACTIVE,
     ]);
 
+    // Posting display_ids must be ignored: assigning happens from the displays overview, so a
+    // profile can never silently take a display away from another profile.
     $this->actingAs($this->user)->post(route('profiles.store'), [
         'name' => 'Bulk profile',
-        'display_ids' => $displays->pluck('id')->toArray(),
+        'display_ids' => [$display->id],
     ])->assertRedirect();
 
-    $profile = DisplayProfile::where('name', 'Bulk profile')->first();
-    foreach ($displays as $display) {
-        expect($display->fresh()->display_profile_id)->toBe($profile->id);
-    }
+    expect($display->fresh()->display_profile_id)->toBeNull();
 });
 
-test('updating a profile changes settings and re-syncs linked displays', function () {
+test('updating a profile changes its settings and leaves the links alone', function () {
     $profile = DisplayProfile::factory()->create(['workspace_id' => $this->workspace->id]);
-    $displayA = Display::factory()->create(['workspace_id' => $this->workspace->id, 'display_profile_id' => $profile->id]);
-    $displayB = Display::factory()->create(['workspace_id' => $this->workspace->id]);
+    $linked = Display::factory()->create(['workspace_id' => $this->workspace->id, 'display_profile_id' => $profile->id]);
 
     $this->actingAs($this->user)->put(route('profiles.update', $profile), [
         'name' => 'Renamed',
         'booking_enabled' => '1',
-        'display_ids' => [$displayB->id], // link B, unlink A
     ])->assertRedirect(route('profiles.index'));
 
     expect($profile->fresh()->name)->toBe('Renamed')
         ->and(ProfileSettings::get($profile->fresh(), 'booking_enabled'))->toBeTrue()
-        ->and($displayA->fresh()->display_profile_id)->toBeNull()
-        ->and($displayB->fresh()->display_profile_id)->toBe($profile->id);
+        ->and($linked->fresh()->display_profile_id)->toBe($profile->id);
 });
 
-test('deleting a profile detaches its displays', function () {
+test('deleting a profile copies its settings onto the linked displays', function () {
     $profile = DisplayProfile::factory()->create(['workspace_id' => $this->workspace->id]);
+    ProfileSettings::set($profile, 'text_available', 'Vrij');
+    ProfileSettings::set($profile, 'booking_enabled', true, 'boolean');
+
     $display = Display::factory()->create(['workspace_id' => $this->workspace->id, 'display_profile_id' => $profile->id]);
+    // A value the display already overrides must survive untouched.
+    DisplaySettings::setSetting($display, 'text_available', 'Eigen tekst');
 
     $this->actingAs($this->user)
         ->delete(route('profiles.destroy', $profile))
         ->assertRedirect(route('profiles.index'));
 
     $this->assertDatabaseMissing('display_profiles', ['id' => $profile->id]);
-    expect($display->fresh()->display_profile_id)->toBeNull();
+
+    $fresh = $display->fresh()->load('settings');
+    expect($fresh->display_profile_id)->toBeNull()
+        // Inherited value was copied down, so the room keeps behaving the same...
+        ->and(DisplaySettings::getSetting($fresh, 'booking_enabled'))->toBeTrue()
+        // ...and the display's own override won.
+        ->and(DisplaySettings::getSetting($fresh, 'text_available'))->toBe('Eigen tekst');
 });
 
 test('a user cannot manage a profile in another workspace', function () {
@@ -117,18 +133,18 @@ test('a user cannot manage a profile in another workspace', function () {
         ->assertForbidden();
 });
 
-test('a display can be linked to a profile from the display settings page', function () {
+test('a display can be linked to a profile from the configuration screen', function () {
     $profile = DisplayProfile::factory()->create(['workspace_id' => $this->workspace->id]);
     $display = Display::factory()->create(['workspace_id' => $this->workspace->id, 'user_id' => $this->user->id]);
 
     $this->actingAs($this->user)
         ->put(route('displays.profile.update', $display), ['display_profile_id' => $profile->id])
-        ->assertRedirect(route('displays.settings.index', $display));
+        ->assertRedirect(route('displays.configure', $display));
 
     expect($display->fresh()->display_profile_id)->toBe($profile->id);
 });
 
-test('the display settings page renders with the profile link section', function () {
+test('the configuration screen renders with the profile link section', function () {
     $profile = DisplayProfile::factory()->create(['workspace_id' => $this->workspace->id, 'name' => 'Ground floor']);
     $display = Display::factory()->create([
         'workspace_id' => $this->workspace->id,
@@ -137,10 +153,10 @@ test('the display settings page renders with the profile link section', function
     ]);
 
     $this->actingAs($this->user)
-        ->get(route('displays.settings.index', $display))
+        ->get(route('displays.configure', $display))
         ->assertOk()
         ->assertSee('Ground floor')
-        ->assertSee('Reset settings to profile');
+        ->assertSee('Reset all sections to profile');
 });
 
 test('resetting a display to its profile removes its own settings', function () {
@@ -157,7 +173,7 @@ test('resetting a display to its profile removes its own settings', function () 
 
     $this->actingAs($this->user)
         ->post(route('displays.settings.reset-to-profile', $display))
-        ->assertRedirect(route('displays.settings.index', $display));
+        ->assertRedirect(route('displays.configure', $display));
 
     // Own setting gone → now inherits the profile value.
     expect(DisplaySettings::getSetting($display->fresh(), 'text_available'))->toBe('Vrij');

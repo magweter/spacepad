@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Support\Collection;
 
 class Board extends Model
 {
@@ -31,6 +32,7 @@ class Board extends Model
         'font_family',
         'language',
         'view_mode',
+        'categories',
         'show_meeting_title',
         'show_join_button',
         'is_public',
@@ -44,6 +46,7 @@ class Board extends Model
         'show_next_event' => 'boolean',
         'show_transitioning' => 'boolean',
         'transitioning_minutes' => 'integer',
+        'categories' => 'array',
         'show_meeting_title' => 'boolean',
         'show_join_button' => 'boolean',
         'is_public' => 'boolean',
@@ -117,5 +120,66 @@ class Board extends Model
     public function getDisplayCountAttribute(): int
     {
         return $this->getDisplaysToShowQuery()->count();
+    }
+
+    /**
+     * Group display status rows into this board's configured categories.
+     *
+     * Returns an ordered collection of ['name' => ?string, 'displays' => Collection]. Category
+     * order and the order of displays within a category follow the stored `categories` JSON, so
+     * the array order is what the board renders. A null name is the catch-all group for displays
+     * that are not in any category; it is always last.
+     *
+     * Categories that end up empty are skipped (an empty section header on the board is noise),
+     * and display ids that no longer resolve to a shown display are ignored — this is what keeps
+     * the JSON safe when a display is deleted or removed from the board.
+     *
+     * @param  Collection<int, array{display: Display}>  $displayData
+     * @return Collection<int, array{name: string|null, displays: Collection}>
+     */
+    public function groupDisplayData(Collection $displayData): Collection
+    {
+        $categories = $this->categories ?? [];
+
+        if (empty($categories)) {
+            return collect([['name' => null, 'displays' => $displayData]]);
+        }
+
+        $byId = $displayData->keyBy(fn ($row) => $row['display']->id);
+        $groups = collect();
+        $assigned = [];
+
+        foreach ($categories as $category) {
+            $name = trim((string) ($category['name'] ?? ''));
+
+            if ($name === '') {
+                continue;
+            }
+
+            $displays = collect();
+
+            foreach ($category['display_ids'] ?? [] as $displayId) {
+                if (isset($assigned[$displayId]) || ! $byId->has($displayId)) {
+                    continue;
+                }
+
+                $assigned[$displayId] = true;
+                $displays->push($byId->get($displayId));
+            }
+
+            if ($displays->isNotEmpty()) {
+                $groups->push(['name' => $name, 'displays' => $displays]);
+            }
+        }
+
+        $ungrouped = $displayData
+            ->reject(fn ($row) => isset($assigned[$row['display']->id]))
+            ->values();
+
+        if ($ungrouped->isNotEmpty()) {
+            $groups->push(['name' => null, 'displays' => $ungrouped]);
+        }
+
+        return $groups;
     }
 }

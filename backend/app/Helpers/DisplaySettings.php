@@ -25,6 +25,20 @@ class DisplaySettings
     }
 
     /**
+     * The value stored on the display itself, ignoring anything inherited from its profile.
+     *
+     * Needed wherever inheriting is not good enough — deleting an uploaded file, for instance: the
+     * resolved path may belong to the profile, and removing it there would strip the image from every
+     * other display that follows the same profile.
+     */
+    public static function getOwnSetting(Display $display, string $key, mixed $default = null): mixed
+    {
+        [$hasOwn, $ownValue] = self::resolveOwnSetting($display, $key);
+
+        return $hasOwn ? $ownValue : $default;
+    }
+
+    /**
      * Resolve a setting stored directly on the display.
      *
      * @return array{0: bool, 1: mixed} [found, value]
@@ -123,6 +137,81 @@ class DisplaySettings
         }
 
         return $settings;
+    }
+
+    /**
+     * Whether a section still follows the linked profile.
+     *
+     * A section follows the profile when the display has no own value for any of that section's
+     * profile-owned keys. Saving a section writes those keys, which is exactly what detaches it —
+     * so this needs no extra column to track. Uploaded images are ignored here: they always live
+     * on the display and would otherwise make a section look detached.
+     *
+     * Returns false when there is no profile at all; "follows profile" then has no meaning.
+     */
+    public static function sectionFollowsProfile(Display $display, string $section): bool
+    {
+        if (! $display->display_profile_id) {
+            return false;
+        }
+
+        $keys = DisplaySettingSections::ownershipKeys($section);
+
+        if ($keys === []) {
+            return true;
+        }
+
+        if ($display->relationLoaded('settings')) {
+            return ! $display->settings->contains(fn ($setting) => in_array($setting->key, $keys, true));
+        }
+
+        return ! DisplaySetting::where('display_id', $display->id)
+            ->whereIn('key', $keys)
+            ->exists();
+    }
+
+    /**
+     * Whether the display deviates from its profile in at least one section. Drives the
+     * "· customised" hint in the displays overview.
+     */
+    public static function deviatesFromProfile(Display $display): bool
+    {
+        if (! $display->display_profile_id) {
+            return false;
+        }
+
+        foreach (array_keys(DisplaySettingSections::all()) as $section) {
+            if (! self::sectionFollowsProfile($display, $section)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Drop the display's own values for one section so it follows its profile again. Uploaded
+     * images are deliberately kept — they are not part of the profile.
+     */
+    public static function resetSection(Display $display, string $section): bool
+    {
+        $keys = DisplaySettingSections::ownershipKeys($section);
+
+        if ($keys === []) {
+            return true;
+        }
+
+        try {
+            DisplaySetting::where('display_id', $display->id)
+                ->whereIn('key', $keys)
+                ->delete();
+
+            return true;
+        } catch (\Exception $e) {
+            report($e);
+
+            return false;
+        }
     }
 
     /**

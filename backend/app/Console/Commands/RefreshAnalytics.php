@@ -2,8 +2,10 @@
 
 namespace App\Console\Commands;
 
+use App\Enums\WorkspaceRole;
 use App\Models\Instance;
 use App\Models\User;
+use App\Models\Workspace;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -74,15 +76,26 @@ class RefreshAnalytics extends Command
         User::withCount(['displays', 'boards', 'rooms'])
             ->with([
                 'devices' => fn ($q) => $q->whereNotNull('last_activity_at')->orderByDesc('last_activity_at')->limit(1),
-                'subscriptions' => fn ($q) => $q->where(fn ($s) => $s->whereNull('ends_at')->orWhere('ends_at', '>', $now))->orderByDesc('created_at'),
-                'workspaces' => fn ($q) => $q->withPivot('role')->orderByPivot('created_at'),
+                // Billing hangs off the workspace now, so the subscription and the billable
+                // counts come from there rather than from the user.
+                'workspaces' => fn ($q) => $q->withPivot('role')->orderByPivot('created_at')
+                    ->withCount(['displays', 'boards'])
+                    ->with(['subscriptions' => fn ($s) => $s->where(fn ($q2) => $q2->whereNull('ends_at')->orWhere('ends_at', '>', $now))->orderByDesc('created_at')]),
             ])
             ->whereNull('deleted_at')
             ->chunkById(500, function ($users) use (&$changes, &$userIds, $withMrr, $now, $existingMrr, $existingMrrExpected, $existingInterval, $previous) {
                 $rows = [];
 
                 foreach ($users as $user) {
-                    $subscription = $user->subscriptions->first();
+                    // The workspace that carries this user's billing. Resolved first, because
+                    // everything below reads its flags, its subscription and its usage.
+                    $primaryWorkspace = $user->workspaces->first(fn ($w) => WorkspaceRole::fromPivot($w->pivot->role) === WorkspaceRole::OWNER)
+                        ?? $user->workspaces->first();
+
+                    $billableDisplays = $primaryWorkspace->displays_count ?? 0;
+                    $billableBoards = $primaryWorkspace->boards_count ?? 0;
+
+                    $subscription = $primaryWorkspace?->subscriptions->first();
                     $subscriptionStatus = 'none';
                     $billingInterval = $existingInterval[$user->id] ?? null;
                     $lemonSqueezyId = null;
@@ -92,17 +105,16 @@ class RefreshAnalytics extends Command
                     $mrrCurrent = (float) ($existingMrr[$user->id] ?? 0);
                     $mrrExpected = (float) ($existingMrrExpected[$user->id] ?? 0);
 
-                    if ($user->is_manually_billed) {
+                    if ($primaryWorkspace?->is_manually_billed) {
                         // Billed outside Lemon Squeezy (via our own accounting system).
-                        // MRR is computed locally from usage at the standard list price — no LS API call.
+                        // MRR is computed locally from usage at the account's unit price
+                        // (falling back to the global default) — no LS API call.
                         // Highest precedence so it wins over any stale LS subscription.
                         $subscriptionStatus = 'manual';
                         $billingInterval = 'monthly';
-                        $billableUsage = max(1, $user->displays_count + ($user->boards_count * 2));
-                        $unitPrice = (float) config('settings.manual_billing_unit_price', 0);
-                        $mrrCurrent = $unitPrice * $billableUsage;
+                        $mrrCurrent = $primaryWorkspace->calculateManualMrr($billableDisplays, $billableBoards);
                         $mrrExpected = $mrrCurrent;
-                    } elseif ($user->is_unlimited) {
+                    } elseif ($primaryWorkspace?->is_unlimited) {
                         $subscriptionStatus = 'unlimited';
                     } elseif ($subscription) {
                         $lemonSqueezyId = $subscription->lemon_squeezy_id;
@@ -112,8 +124,7 @@ class RefreshAnalytics extends Command
                         $subscriptionStatus = $subscription->status ?? 'unknown';
 
                         if ($withMrr) {
-                            // Billable usage: displays count as 1x, boards as 2x (see Workspace::getTotalUsageCount)
-                            $billableUsage = $user->displays_count + ($user->boards_count * 2);
+                            $billableUsage = Workspace::calculateUsage($billableDisplays, $billableBoards);
                             $apiData = $this->fetchSubscriptionFromApi($subscription->lemon_squeezy_id, $billableUsage);
 
                             if ($apiData) {
@@ -126,17 +137,16 @@ class RefreshAnalytics extends Command
                         }
                     }
 
-                    $primaryWorkspace = $user->workspaces->first(fn ($w) => $w->pivot->role === \App\Enums\WorkspaceRole::OWNER->value)
-                        ?? $user->workspaces->first();
-
                     // Detect a license-count change vs. the previous snapshot. License count
                     // (billable usage) is the trigger; MRR old/new is recorded alongside it.
                     // Skip users with no previous snapshot (new users / first-ever run) to avoid
                     // a spurious "0 → N" increase for every existing user.
                     $prevRow = $previous->get($user->id);
                     if ($prevRow) {
-                        $newLicenseCount = $user->displays_count + ($user->boards_count * 2);
-                        $prevLicenseCount = (int) $prevRow->displays_count + ((int) $prevRow->boards_count * 2);
+                        // Billable usage is what is charged for, so it is counted per
+                        // workspace rather than per creator.
+                        $newLicenseCount = Workspace::calculateUsage($billableDisplays, $billableBoards);
+                        $prevLicenseCount = Workspace::calculateUsage((int) $prevRow->displays_count, (int) $prevRow->boards_count);
 
                         if ($newLicenseCount !== $prevLicenseCount) {
                             $prevMrr = (float) $prevRow->mrr_current;
@@ -146,9 +156,9 @@ class RefreshAnalytics extends Command
                                 'email' => $user->email,
                                 'name' => $user->name,
                                 'previous_displays_count' => (int) $prevRow->displays_count,
-                                'new_displays_count' => $user->displays_count,
+                                'new_displays_count' => $billableDisplays,
                                 'previous_boards_count' => (int) $prevRow->boards_count,
-                                'new_boards_count' => $user->boards_count,
+                                'new_boards_count' => $billableBoards,
                                 'previous_license_count' => $prevLicenseCount,
                                 'new_license_count' => $newLicenseCount,
                                 'license_delta' => $newLicenseCount - $prevLicenseCount,
@@ -173,9 +183,11 @@ class RefreshAnalytics extends Command
                         'registered_at' => $user->created_at,
                         'last_user_activity_at' => $user->last_activity_at,
                         'last_device_activity_at' => $user->devices->first()?->last_activity_at,
-                        'is_unlimited' => $user->is_unlimited ?? false,
-                        'displays_count' => $user->displays_count,
-                        'boards_count' => $user->boards_count,
+                        'is_unlimited' => $primaryWorkspace?->is_unlimited ?? false,
+                        // Billable counts, so this row and billing_changes agree with what is
+                        // actually charged for.
+                        'displays_count' => $billableDisplays,
+                        'boards_count' => $billableBoards,
                         'rooms_count' => $user->rooms_count,
                         'subscription_status' => $subscriptionStatus,
                         'billing_interval' => $billingInterval,

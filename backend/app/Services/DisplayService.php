@@ -36,13 +36,18 @@ class DisplayService
             return new PermissionResult(false, 'Display not found', 404);
         }
 
-        // Get all workspace IDs the user is a member of
-        $workspaceIds = $user->workspaces->pluck('id');
+        // Scope to the device's own workspace. Using every workspace the pairing user
+        // belongs to would let a tablet paired for one workspace reach another team's
+        // displays as soon as that person joined a second workspace. Devices paired before
+        // workspace_id was set fall back to the old behaviour.
+        $workspaceIds = $device->workspace_id
+            ? collect([$device->workspace_id])
+            : $user->workspaces->pluck('id');
+
         if ($workspaceIds->isEmpty()) {
             return new PermissionResult(false, 'User is not a member of any workspace', 403);
         }
 
-        // Find display in any of the user's workspaces
         $display = Display::with('workspace.members')
             ->whereIn('workspace_id', $workspaceIds)
             ->find($displayId);

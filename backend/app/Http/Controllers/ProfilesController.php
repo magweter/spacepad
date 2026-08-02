@@ -2,43 +2,32 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\DisplayStatus;
+use App\Helpers\DisplaySettings;
+use App\Helpers\DisplaySettingSections;
 use App\Helpers\ProfileSettings;
 use App\Http\Requests\DisplayProfileRequest;
-use App\Models\Display;
 use App\Models\DisplayProfile;
+use App\Services\ImageService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 
 class ProfilesController extends Controller
 {
-    /**
-     * List the display profiles for the current workspace.
-     */
-    public function index(): View|RedirectResponse
-    {
-        $user = auth()->user();
+    public function __construct(
+        protected ImageService $imageService
+    ) {}
 
-        if (! $user->hasProForCurrentWorkspace()) {
+    /**
+     * The profile list lives in the dashboard as a tab, next to Displays and Boards, so this only
+     * keeps the /profiles URL working.
+     */
+    public function index(): RedirectResponse
+    {
+        if (! auth()->user()->hasProForCurrentWorkspace()) {
             abort(403, 'Profiles is a Pro feature. Please upgrade to access this feature.');
         }
 
-        $workspace = $user->getSelectedWorkspace();
-
-        if (! $workspace) {
-            abort(404, 'No workspace found');
-        }
-
-        $profiles = DisplayProfile::where('workspace_id', $workspace->id)
-            ->withCount('displays')
-            ->with('user')
-            ->orderBy('name')
-            ->get();
-
-        return view('pages.profiles.index', [
-            'profiles' => $profiles,
-            'workspace' => $workspace,
-        ]);
+        return redirect()->route('dashboard', ['tab' => 'profiles']);
     }
 
     /**
@@ -62,8 +51,7 @@ class ProfilesController extends Controller
 
         return view('pages.profiles.form', [
             'profile' => null,
-            'displays' => $this->workspaceDisplays($workspace->id),
-            'linkedDisplayIds' => [],
+            'linkedDisplays' => collect(),
             'settings' => [],
             'workspace' => $workspace,
         ]);
@@ -95,7 +83,6 @@ class ProfilesController extends Controller
         ]);
 
         $this->applySettings($profile, $request);
-        $this->syncDisplays($profile, $request->input('display_ids', []), $workspace->id);
 
         return redirect()->route('profiles.index')
             ->with('success', 'Profile created successfully.');
@@ -116,8 +103,7 @@ class ProfilesController extends Controller
 
         return view('pages.profiles.form', [
             'profile' => $profile,
-            'displays' => $this->workspaceDisplays($profile->workspace_id),
-            'linkedDisplayIds' => $profile->displays()->pluck('id')->toArray(),
+            'linkedDisplays' => $profile->displays()->orderBy('name')->get(),
             'settings' => ProfileSettings::all($profile),
             'workspace' => $profile->workspace,
         ]);
@@ -139,15 +125,17 @@ class ProfilesController extends Controller
         $profile->update(['name' => $request->validated('name')]);
 
         $this->applySettings($profile, $request);
-        $this->syncDisplays($profile, $request->input('display_ids', []), $profile->workspace_id);
 
         return redirect()->route('profiles.index')
             ->with('success', 'Profile updated successfully.');
     }
 
     /**
-     * Remove the specified profile. Linked displays are automatically detached
-     * (display_profile_id is set to null via the foreign key constraint).
+     * Remove the specified profile.
+     *
+     * The profile's values are copied onto the linked displays first, so rooms keep behaving exactly
+     * as they did. Without that copy the displays would fall back to the built-in defaults the moment
+     * the foreign key is nulled — a silent change on every wall.
      */
     public function destroy(DisplayProfile $profile): RedirectResponse
     {
@@ -159,21 +147,102 @@ class ProfilesController extends Controller
 
         $this->authorize('delete', $profile);
 
+        $this->copySettingsToLinkedDisplays($profile);
+
         $profile->delete();
 
         return redirect()->route('profiles.index')
-            ->with('success', 'Profile deleted successfully.');
+            ->with('success', 'Profile deleted. Linked displays kept its settings as their own.');
     }
 
     /**
-     * Active/ready displays in the workspace, used for the link selection.
+     * Handle the profile's uploaded images: logo, background (upload or bundled default) and the
+     * advertisement image. Displays that follow this profile resolve to these paths automatically.
      */
-    private function workspaceDisplays(string $workspaceId)
+    private function applyImages(DisplayProfile $profile, DisplayProfileRequest $request): void
     {
-        return Display::where('workspace_id', $workspaceId)
-            ->whereIn('status', [DisplayStatus::READY, DisplayStatus::ACTIVE])
-            ->orderBy('name')
-            ->get();
+        // Logo
+        if ($request->boolean('remove_logo')) {
+            $this->imageService->removeProfileImageFile($profile, 'logo');
+            ProfileSettings::delete($profile, 'logo');
+        } elseif ($request->hasFile('logo')) {
+            $path = $this->imageService->storeProfileImageFile($request->file('logo'), $profile, 'logo');
+            if ($path) {
+                $this->imageService->removeProfileImageFile($profile, 'logo');
+                ProfileSettings::set($profile, 'logo', $path, 'string');
+            }
+        }
+
+        // Background: removal, custom upload or one of the bundled defaults
+        if ($request->boolean('remove_background_image')) {
+            $this->imageService->removeProfileImageFile($profile, 'background_image');
+            ProfileSettings::delete($profile, 'background_image');
+        } elseif ($request->hasFile('background_image')) {
+            $path = $this->imageService->storeProfileImageFile($request->file('background_image'), $profile, 'background');
+            if ($path) {
+                $this->imageService->removeProfileImageFile($profile, 'background_image');
+                ProfileSettings::set($profile, 'background_image', $path, 'string');
+            }
+        } elseif ($request->filled('default_background')) {
+            $key = $request->input('default_background');
+            if (isset(ImageService::DEFAULT_BACKGROUNDS[$key])) {
+                $this->imageService->removeProfileImageFile($profile, 'background_image');
+                ProfileSettings::set($profile, 'background_image', $key, 'string');
+            }
+        }
+
+        // Advertisement image
+        if ($request->boolean('remove_advertisement_image')) {
+            $this->imageService->removeProfileImageFile($profile, 'advertisement_image');
+            ProfileSettings::delete($profile, 'advertisement_image');
+        } elseif ($request->hasFile('advertisement_image')) {
+            if (! auth()->user()->hasAdvertisementFeature()) {
+                abort(403, 'Advertisement feature is not enabled for your account.');
+            }
+            $path = $this->imageService->storeProfileImageFile($request->file('advertisement_image'), $profile, 'advertisement');
+            if ($path) {
+                $this->imageService->removeProfileImageFile($profile, 'advertisement_image');
+                ProfileSettings::set($profile, 'advertisement_image', $path, 'string');
+            }
+        }
+    }
+
+    /**
+     * Serve a profile image for the previews on the profile form.
+     */
+    public function serveImage(DisplayProfile $profile, string $type)
+    {
+        $this->authorize('update', $profile);
+
+        return $this->imageService->serveProfileImage($profile, $type);
+    }
+
+    /**
+     * Write the profile's settings onto each linked display, leaving values the display already
+     * overrides untouched.
+     */
+    private function copySettingsToLinkedDisplays(DisplayProfile $profile): void
+    {
+        $profileSettings = ProfileSettings::all($profile);
+
+        if ($profileSettings === []) {
+            return;
+        }
+
+        $types = DisplaySettingSections::allProfileKeys();
+
+        foreach ($profile->displays()->with('settings')->get() as $display) {
+            $ownKeys = $display->settings->pluck('key')->all();
+
+            foreach ($profileSettings as $key => $value) {
+                // An existing override is the display's own choice; never overwrite it.
+                if (in_array($key, $ownKeys, true)) {
+                    continue;
+                }
+
+                DisplaySettings::setSetting($display, $key, $value, $types[$key] ?? 'string');
+            }
+        }
     }
 
     /**
@@ -210,6 +279,8 @@ class ProfilesController extends Controller
             }
         }
 
+        $this->applyImages($profile, $request);
+
         // Advertisement timing is gated behind the advertisement feature (mirrors display settings).
         if (auth()->user()->hasAdvertisementFeature()) {
             if ($request->filled('advertisement_interval')) {
@@ -219,28 +290,5 @@ class ProfilesController extends Controller
                 ProfileSettings::set($profile, 'advertisement_duration', (int) $request->input('advertisement_duration'), 'integer');
             }
         }
-    }
-
-    /**
-     * Link the given displays to this profile and detach any previously-linked
-     * displays that are no longer selected. Scoped to the workspace.
-     *
-     * @param  array<int, string>  $displayIds
-     */
-    private function syncDisplays(DisplayProfile $profile, array $displayIds, string $workspaceId): void
-    {
-        $validIds = Display::where('workspace_id', $workspaceId)
-            ->whereIn('id', $displayIds)
-            ->pluck('id')
-            ->toArray();
-
-        if (! empty($validIds)) {
-            Display::whereIn('id', $validIds)->update(['display_profile_id' => $profile->id]);
-        }
-
-        // Detach displays currently linked to this profile that were not selected.
-        Display::where('display_profile_id', $profile->id)
-            ->whereNotIn('id', $validIds)
-            ->update(['display_profile_id' => null]);
     }
 }

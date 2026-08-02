@@ -1,0 +1,221 @@
+name: Security
+
+# Two scanners, three ecosystems:
+#   SAST  — Semgrep over PHP, JavaScript, Dockerfiles and the workflows themselves
+#   SCA   — Trivy over backend/composer.lock, backend/pnpm-lock.yaml, app/pubspec.lock
+#           and app/ios/Podfile.lock, plus the published container image
+#
+# Every job reports in full to Security > Code scanning, and separately applies a narrower
+# blocking gate. Reporting is never filtered; only the gate is. That split is deliberate —
+# see .trivyignore.yaml for the currently accepted findings.
+#
+# No `paths:` filter: unlike tests.yml this must also cover app/ and the workflows, and a
+# scheduled run has to scan everything regardless of what changed.
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+  pull_request:
+    branches:
+      - main
+      - dev
+  schedule:
+    # Monday 06:17 UTC. New CVEs land against unchanged code, so a weekly sweep is the
+    # point of this workflow as much as the per-PR runs are. A failing scheduled run
+    # emails the repository owner.
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  sast:
+    name: SAST (Semgrep)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # Installed from PyPI rather than run via the semgrep/semgrep container: that image
+      # is Alpine-based, and the Node binary GitHub mounts into container jobs is
+      # glibc-linked, which breaks every JavaScript action in the same job — including the
+      # SARIF upload below.
+      - name: Install Semgrep
+        run: pip install --disable-pip-version-check --quiet semgrep
+
+      - name: Run Semgrep
+        # Never fail here. Exit status is decided by the explicit gate further down, so
+        # that the SARIF always gets uploaded first.
+        continue-on-error: true
+        run: |
+          semgrep scan \
+            --config=p/php \
+            --config=p/javascript \
+            --config=p/security-audit \
+            --config=p/dockerfile \
+            --config=p/github-actions \
+            --sarif --output=semgrep.sarif \
+            --metrics=off \
+            --exclude=vendor \
+            --exclude=node_modules \
+            --exclude=build \
+            --exclude=.dart_tool \
+            --exclude=Pods \
+            --exclude=public \
+            --exclude='*.min.js'
+
+      # continue-on-error above also swallows a crashed scan. An empty or missing report
+      # means the scan did not run, which must not read as "nothing found".
+      - name: Verify the scan produced a report
+        run: test -s semgrep.sarif
+
+      # Fork pull requests do not get security-events: write, and the upload would fail the
+      # job for an outside contributor. Their findings still surface once the branch is
+      # merged into dev.
+      - name: Upload results to code scanning
+        if: always() && github.event.pull_request.head.repo.fork != true
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: semgrep.sarif
+          category: semgrep
+
+      # Semgrep records severity on the rule, not on the individual result, so the level
+      # has to be looked up per finding. Only ERROR blocks; WARNING and INFO are reported
+      # and left in the Security tab.
+      - name: Block on ERROR-severity findings
+        run: |
+          jq -r '
+            .runs[]
+            | (.tool.driver.rules | INDEX(.id)) as $rules
+            | .results[]
+            | select($rules[.ruleId].defaultConfiguration.level == "error")
+            | "\(.locations[0].physicalLocation.artifactLocation.uri):\(.locations[0].physicalLocation.region.startLine)  \(.ruleId)"
+          ' semgrep.sarif > semgrep-errors.txt
+
+          count=$(wc -l < semgrep-errors.txt | tr -d ' ')
+
+          if [ "$count" -gt 0 ]; then
+            echo "::error::Semgrep found $count ERROR-severity finding(s)."
+            cat semgrep-errors.txt
+            exit 1
+          fi
+
+          echo "No ERROR-severity findings."
+
+  dependencies:
+    name: SCA (Trivy)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Unfiltered: every severity, no ignore file. This is what populates the Security tab.
+      - name: Scan dependencies (report)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln
+          format: sarif
+          output: trivy-dependencies.sarif
+          skip-dirs: 'backend/vendor,backend/node_modules,app/build'
+
+      - name: Upload results to code scanning
+        if: always() && github.event.pull_request.head.repo.fork != true
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: trivy-dependencies.sarif
+          category: trivy-dependencies
+
+      # The gate. Narrower on purpose:
+      #   ignore-unfixed  — a CVE with no released fix is not something a PR author can act
+      #                     on; it stays visible in the report above
+      #   .trivyignore.yaml — dated, documented exceptions for findings that predate this
+      #                     workflow, so the gate blocks new problems rather than old ones
+      - name: Block on fixable CRITICAL/HIGH
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: '1'
+          format: table
+          trivyignores: .trivyignore.yaml
+          skip-dirs: 'backend/vendor,backend/node_modules,app/build'
+          # Trivy and its database are already on the runner from the step above.
+          skip-setup-trivy: 'true'
+
+  image:
+    name: Container image (Trivy)
+    # Base-image CVEs move on the upstream's schedule, not on ours, and building the image
+    # again per PR would double the cost of the release pipeline for information the
+    # dependency job already covers. Weekly against the published image instead.
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+      security-events: write
+      actions: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Scan published image (report)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: image
+          image-ref: ghcr.io/${{ github.repository }}:dev
+          format: sarif
+          output: trivy-image.sarif
+
+      - name: Upload results to code scanning
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: trivy-image.sarif
+          category: trivy-image
+
+      - name: Block on fixable CRITICAL/HIGH
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: image
+          image-ref: ghcr.io/${{ github.repository }}:dev
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: '1'
+          format: table
+          trivyignores: .trivyignore.yaml
+          skip-setup-trivy: 'true'

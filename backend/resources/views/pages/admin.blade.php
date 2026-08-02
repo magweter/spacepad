@@ -45,6 +45,12 @@
                         <span class="ml-1.5 inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">{{ $pendingCount }}</span>
                     @endif
                 </button>
+                <a
+                    href="{{ route('admin.merge.index') }}"
+                    class="whitespace-nowrap border-b-2 border-transparent py-4 px-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700"
+                >
+                    Merge workspaces
+                </a>
             </nav>
         </div>
 
@@ -84,7 +90,7 @@
                                 <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{ $user->displays_count }}</td>
                                 <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{ $user->boards_count ?? 0 }}</td>
                                 <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                                    @if($user->hasPro())
+                                    @if($user->ownedWorkspaces->contains(fn ($workspace) => $workspace->hasPro()))
                                         <span class="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">Yes</span>
                                     @else
                                         <span class="inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-600/20">No</span>
@@ -166,13 +172,13 @@
                                             </td>
                                             <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{ $item->created_at->format('d M Y') }}</td>
                                             <td class="whitespace-nowrap px-3 py-4 text-right">
-                                                <div class="flex justify-end gap-2">
-                                                    <form action="{{ route('admin.roadmap.approve', $item) }}" method="POST">
+                                                <div class="flex items-center justify-end gap-2">
+                                                    <form action="{{ route('admin.roadmap.approve', $item) }}" method="POST" class="flex">
                                                         @csrf
                                                         <button type="submit" class="text-green-600 hover:text-green-900 font-medium text-sm">Approve</button>
                                                     </form>
                                                     <a href="{{ route('admin.roadmap.edit', $item) }}" class="text-blue-600 hover:text-blue-900 font-medium text-sm">Edit</a>
-                                                    <form action="{{ route('admin.roadmap.destroy', $item) }}" method="POST" onsubmit="return confirm('Delete this suggestion?')">
+                                                    <form action="{{ route('admin.roadmap.destroy', $item) }}" method="POST" class="flex" onsubmit="return confirm('Delete this suggestion?')">
                                                         @csrf @method('DELETE')
                                                         <button type="submit" class="text-red-600 hover:text-red-900 font-medium text-sm">Delete</button>
                                                     </form>
@@ -219,9 +225,9 @@
                                     <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{ $item->expected_at?->format('M Y') ?? '—' }}</td>
                                     <td class="whitespace-nowrap px-3 py-4 text-sm font-semibold text-gray-700">{{ $item->votes_count }}</td>
                                     <td class="whitespace-nowrap px-3 py-4 text-right">
-                                        <div class="flex justify-end gap-2">
+                                        <div class="flex items-center justify-end gap-2">
                                             <a href="{{ route('admin.roadmap.edit', $item) }}" class="text-blue-600 hover:text-blue-900 font-medium text-sm">Edit</a>
-                                            <form action="{{ route('admin.roadmap.destroy', $item) }}" method="POST" onsubmit="return confirm('Delete this item?')">
+                                            <form action="{{ route('admin.roadmap.destroy', $item) }}" method="POST" class="flex" onsubmit="return confirm('Delete this item?')">
                                                 @csrf @method('DELETE')
                                                 <button type="submit" class="text-red-600 hover:text-red-900 font-medium text-sm">Delete</button>
                                             </form>

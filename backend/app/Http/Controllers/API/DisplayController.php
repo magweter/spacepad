@@ -40,8 +40,12 @@ class DisplayController extends ApiController
             return $this->success(data: []);
         }
 
-        // Get displays from all workspaces the user is a member of
-        $workspaceIds = $user->workspaces->pluck('id');
+        // Scope to the device's own workspace, so the room picker never lists another
+        // team's displays. Devices paired before workspace_id was set fall back.
+        $workspaceIds = $device->workspace_id
+            ? collect([$device->workspace_id])
+            : $user->workspaces->pluck('id');
+
         if ($workspaceIds->isEmpty()) {
             return $this->success(data: []);
         }

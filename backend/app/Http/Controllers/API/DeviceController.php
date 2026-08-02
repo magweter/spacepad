@@ -47,8 +47,12 @@ class DeviceController extends ApiController
             );
         }
 
-        // Get all workspace IDs the user is a member of
-        $workspaceIds = $user->workspaces->pluck('id');
+        // Scope to the device's own workspace, so a tablet cannot be pointed at another
+        // team's display. Devices paired before workspace_id was set fall back.
+        $workspaceIds = $device->workspace_id
+            ? collect([$device->workspace_id])
+            : $user->workspaces->pluck('id');
+
         if ($workspaceIds->isEmpty()) {
             return $this->error(
                 message: 'User is not a member of any workspace',
@@ -56,7 +60,6 @@ class DeviceController extends ApiController
             );
         }
 
-        // Find display in any of the user's workspaces
         $display = Display::query()
             ->whereIn('workspace_id', $workspaceIds)
             ->find($data['display_id']);

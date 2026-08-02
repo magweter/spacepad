@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Enums\Provider;
-use App\Services\OutlookService;
+use App\Models\GoogleAccount;
+use App\Models\OutlookAccount;
 use App\Services\GoogleService;
+use App\Services\OutlookService;
 use Google\Service\Exception as GoogleException;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Contracts\View\Factory;
@@ -16,45 +18,52 @@ class RoomController extends Controller
     public function __construct(
         protected OutlookService $outlookService,
         protected GoogleService $googleService
-    ) {
-    }
+    ) {}
 
     public function outlook(string $id): View|Factory|Application
     {
+        // Resolved and authorized outside the try, so an authorization failure surfaces as
+        // a 403 instead of being swallowed into a "could not fetch rooms" view.
+        $account = OutlookAccount::findOrFail($id);
+        $this->authorize('view', $account);
+
         try {
-            $account = auth()->user()->outlookAccounts()->findOrFail($id);
             $rooms = $this->outlookService->fetchRooms($account);
 
             return view('components.rooms.picker', [
                 'rooms' => collect($rooms)->map(function (array $room) {
                     return [
                         'emailAddress' => $room['emailAddress'],
-                        'name' => $room['displayName']
+                        'name' => $room['displayName'],
                     ];
                 })->toArray(),
                 'type' => Provider::OUTLOOK,
             ]);
         } catch (ConnectionException $e) {
-            logger()->error('Outlook API connection error: ' . $e->getMessage());
+            logger()->error('Outlook API connection error: '.$e->getMessage());
+
             return view('components.rooms.picker', [
                 'rooms' => [],
                 'type' => Provider::OUTLOOK,
-                'error' => 'Could not connect to Outlook. Please try again later.'
+                'error' => 'Could not connect to Outlook. Please try again later.',
             ]);
         } catch (\Exception $e) {
-            logger()->error('Outlook rooms fetch error: ' . $e->getMessage());
+            logger()->error('Outlook rooms fetch error: '.$e->getMessage());
+
             return view('components.rooms.picker', [
                 'rooms' => [],
                 'type' => Provider::OUTLOOK,
-                'error' => 'Could not fetch rooms from Outlook. Please check your permissions and try again.'
+                'error' => 'Could not fetch rooms from Outlook. Please check your permissions and try again.',
             ]);
         }
     }
 
     public function google(string $id): View|Factory|Application
     {
+        $account = GoogleAccount::findOrFail($id);
+        $this->authorize('view', $account);
+
         try {
-            $account = auth()->user()->googleAccounts()->findOrFail($id);
             $rooms = $this->googleService->fetchRooms($account);
 
             return view('components.rooms.picker', [
@@ -67,7 +76,7 @@ class RoomController extends Controller
                 'type' => Provider::GOOGLE,
             ]);
         } catch (GoogleException $e) {
-            logger()->error('Google API error: ' . $e->getMessage());
+            logger()->error('Google API error: '.$e->getMessage());
 
             // Check for insufficient permissions error
             if (str_contains($e->getMessage(), 'insufficientPermissions') ||
@@ -75,21 +84,22 @@ class RoomController extends Controller
                 return view('components.rooms.picker', [
                     'rooms' => [],
                     'type' => Provider::GOOGLE,
-                    'error' => 'Insufficient permissions to access Google Calendar. Please ensure you have granted all required permissions during authentication.'
+                    'error' => 'Insufficient permissions to access Google Calendar. Please ensure you have granted all required permissions during authentication.',
                 ]);
             }
 
             return view('components.rooms.picker', [
                 'rooms' => [],
                 'type' => Provider::GOOGLE,
-                'error' => 'Could not fetch rooms from Google. Please check your permissions and try again.'
+                'error' => 'Could not fetch rooms from Google. Please check your permissions and try again.',
             ]);
         } catch (\Exception $e) {
-            logger()->error('Google rooms fetch error: ' . $e->getMessage());
+            logger()->error('Google rooms fetch error: '.$e->getMessage());
+
             return view('components.rooms.picker', [
                 'rooms' => [],
                 'type' => Provider::GOOGLE,
-                'error' => 'Could not fetch rooms from Google. Please try again later.'
+                'error' => 'Could not fetch rooms from Google. Please try again later.',
             ]);
         }
     }

@@ -2,8 +2,11 @@
 
 namespace App\Services;
 
-use App\Models\Display;
 use App\Helpers\DisplaySettings;
+use App\Helpers\ProfileSettings;
+use App\Models\Board;
+use App\Models\Display;
+use App\Models\DisplayProfile;
 use Illuminate\Support\Facades\Storage;
 
 class ImageService
@@ -35,19 +38,21 @@ class ImageService
             ];
         }, self::DEFAULT_BACKGROUNDS, array_keys(self::DEFAULT_BACKGROUNDS));
     }
+
     /**
      * Get the logo URL for a display
      */
     public function getLogoUrl(Display $display): ?string
     {
         $logo = DisplaySettings::getLogo($display);
-        if (!$logo) {
+        if (! $logo) {
             return null;
         }
 
         // Add version parameter based on when logo was last updated
         $version = $this->getImageVersion($display, 'logo');
-        return url('api/displays/' . $display->id . '/images/logo') . '?v=' . $version;
+
+        return url('api/displays/'.$display->id.'/images/logo').'?v='.$version;
     }
 
     /**
@@ -56,12 +61,13 @@ class ImageService
     public function getAdvertisementImageUrl(Display $display): ?string
     {
         $advertisement = DisplaySettings::getAdvertisementImage($display);
-        if (!$advertisement) {
+        if (! $advertisement) {
             return null;
         }
 
         $version = $this->getImageVersion($display, 'advertisement');
-        return url('api/displays/' . $display->id . '/images/advertisement') . '?v=' . $version;
+
+        return url('api/displays/'.$display->id.'/images/advertisement').'?v='.$version;
     }
 
     /**
@@ -70,7 +76,7 @@ class ImageService
     public function getBackgroundImageUrl(Display $display): ?string
     {
         $background = DisplaySettings::getBackgroundImage($display);
-        if (!$background) {
+        if (! $background) {
             return null;
         }
 
@@ -81,7 +87,8 @@ class ImageService
 
         // Add version parameter based on when background was last updated
         $version = $this->getImageVersion($display, 'background');
-        return url('api/displays/' . $display->id . '/images/background') . '?v=' . $version;
+
+        return url('api/displays/'.$display->id.'/images/background').'?v='.$version;
     }
 
     /**
@@ -128,7 +135,7 @@ class ImageService
             abort(404, 'Invalid image type');
         }
 
-        if (!$imagePath || !Storage::disk('public')->exists($imagePath)) {
+        if (! $imagePath || ! Storage::disk('public')->exists($imagePath)) {
             abort(404, 'Image not found');
         }
 
@@ -141,8 +148,9 @@ class ImageService
     public function storeLogoFile($file, Display $display): ?string
     {
         try {
-            $filename = 'logo_' . $display->id . '_' . time() . '.' . $file->getClientOriginalExtension();
+            $filename = 'logo_'.$display->id.'_'.time().'.'.$file->getClientOriginalExtension();
             $path = $file->storeAs('displays/logos', $filename, 'public');
+
             return $path;
         } catch (\Exception $e) {
             return null;
@@ -155,8 +163,9 @@ class ImageService
     public function storeBackgroundImageFile($file, Display $display): ?string
     {
         try {
-            $filename = 'background_' . $display->id . '_' . time() . '.' . $file->getClientOriginalExtension();
+            $filename = 'background_'.$display->id.'_'.time().'.'.$file->getClientOriginalExtension();
             $path = $file->storeAs('displays/backgrounds', $filename, 'public');
+
             return $path;
         } catch (\Exception $e) {
             return null;
@@ -169,8 +178,9 @@ class ImageService
     public function storeAdvertisementFile($file, Display $display): ?string
     {
         try {
-            $filename = 'advertisement_' . $display->id . '_' . time() . '.' . $file->getClientOriginalExtension();
+            $filename = 'advertisement_'.$display->id.'_'.time().'.'.$file->getClientOriginalExtension();
             $path = $file->storeAs('displays/advertisements', $filename, 'public');
+
             return $path;
         } catch (\Exception $e) {
             return null;
@@ -178,60 +188,147 @@ class ImageService
     }
 
     /**
-     * Remove logo file from storage
+     * Remove the display's own logo file from storage.
      */
     public function removeLogoFile(Display $display): void
     {
-        $currentLogo = DisplaySettings::getLogo($display);
-        if ($currentLogo && Storage::disk('public')->exists($currentLogo)) {
-            Storage::disk('public')->delete($currentLogo);
-        }
+        $this->deleteOwnedFile($display, 'logo');
     }
 
     /**
-     * Remove background image file from storage
+     * Remove the display's own background image file from storage.
      */
     public function removeBackgroundImageFile(Display $display): void
     {
-        $currentBackground = DisplaySettings::getBackgroundImage($display);
-        if ($currentBackground && Storage::disk('public')->exists($currentBackground)) {
-            Storage::disk('public')->delete($currentBackground);
+        $this->deleteOwnedFile($display, 'background_image');
+    }
+
+    /**
+     * Remove the display's own advertisement image file from storage.
+     */
+    public function removeAdvertisementFile(Display $display): void
+    {
+        $this->deleteOwnedFile($display, 'advertisement_image');
+    }
+
+    /**
+     * Delete an uploaded file only when the display owns it.
+     *
+     * Reading the resolved value would return the linked profile's path when the display inherits the
+     * image — deleting that file would strip the image from every display following that profile.
+     * Bundled default backgrounds are keys, not stored files, so they are skipped too.
+     */
+    private function deleteOwnedFile(Display $display, string $key): void
+    {
+        $path = DisplaySettings::getOwnSetting($display, $key);
+
+        if (! $path || isset(self::DEFAULT_BACKGROUNDS[$path])) {
+            return;
+        }
+
+        if (Storage::disk('public')->exists($path)) {
+            Storage::disk('public')->delete($path);
         }
     }
 
     /**
-     * Remove advertisement image file from storage
+     * Store an image for a profile and return its path.
+     *
+     * Profile images live in their own folders so that a display inheriting one resolves to the
+     * profile's file, while a display that uploads its own keeps a separate file.
      */
-    public function removeAdvertisementFile(Display $display): void
+    public function storeProfileImageFile($file, DisplayProfile $profile, string $type): ?string
     {
-        $currentAd = DisplaySettings::getAdvertisementImage($display);
-        if ($currentAd && Storage::disk('public')->exists($currentAd)) {
-            Storage::disk('public')->delete($currentAd);
+        $folder = match ($type) {
+            'logo' => 'profiles/logos',
+            'background' => 'profiles/backgrounds',
+            'advertisement' => 'profiles/advertisements',
+            default => null,
+        };
+
+        if ($folder === null) {
+            return null;
         }
+
+        try {
+            $filename = $type.'_'.$profile->id.'_'.time().'.'.$file->getClientOriginalExtension();
+
+            return $file->storeAs($folder, $filename, 'public');
+        } catch (\Exception $e) {
+            report($e);
+
+            return null;
+        }
+    }
+
+    /**
+     * Remove a profile's stored image file. Bundled default backgrounds are keys, not files.
+     */
+    public function removeProfileImageFile(DisplayProfile $profile, string $key): void
+    {
+        $path = ProfileSettings::get($profile, $key);
+
+        if (! $path || isset(self::DEFAULT_BACKGROUNDS[$path])) {
+            return;
+        }
+
+        if (Storage::disk('public')->exists($path)) {
+            Storage::disk('public')->delete($path);
+        }
+    }
+
+    /**
+     * Serve a profile image, used for the previews on the profile form.
+     */
+    public function serveProfileImage(DisplayProfile $profile, string $type)
+    {
+        $key = match ($type) {
+            'logo' => 'logo',
+            'background' => 'background_image',
+            'advertisement' => 'advertisement_image',
+            default => abort(404, 'Invalid image type'),
+        };
+
+        $path = ProfileSettings::get($profile, $key);
+
+        if ($path && isset(self::DEFAULT_BACKGROUNDS[$path])) {
+            $publicPath = public_path(self::DEFAULT_BACKGROUNDS[$path]);
+            if (file_exists($publicPath)) {
+                return response()->file($publicPath);
+            }
+        }
+
+        if (! $path || ! Storage::disk('public')->exists($path)) {
+            abort(404, 'Image not found');
+        }
+
+        return response()->file(Storage::disk('public')->path($path));
     }
 
     /**
      * Get the logo URL for a board
      */
-    public function getBoardLogoUrl(\App\Models\Board $board): ?string
+    public function getBoardLogoUrl(Board $board): ?string
     {
-        if (!$board->logo) {
+        if (! $board->logo) {
             return null;
         }
 
         // Add version parameter based on when logo was last updated
         $version = $board->updated_at->timestamp;
-        return url('boards/' . $board->id . '/images/logo') . '?v=' . $version;
+
+        return url('boards/'.$board->id.'/images/logo').'?v='.$version;
     }
 
     /**
      * Store a logo file for a board and return the path
      */
-    public function storeBoardLogoFile($file, \App\Models\Board $board): ?string
+    public function storeBoardLogoFile($file, Board $board): ?string
     {
         try {
-            $filename = 'logo_' . $board->id . '_' . time() . '.' . $file->getClientOriginalExtension();
+            $filename = 'logo_'.$board->id.'_'.time().'.'.$file->getClientOriginalExtension();
             $path = $file->storeAs('boards/logos', $filename, 'public');
+
             return $path;
         } catch (\Exception $e) {
             return null;
@@ -241,7 +338,7 @@ class ImageService
     /**
      * Remove logo file from storage for a board
      */
-    public function removeBoardLogoFile(\App\Models\Board $board): void
+    public function removeBoardLogoFile(Board $board): void
     {
         if ($board->logo && Storage::disk('public')->exists($board->logo)) {
             Storage::disk('public')->delete($board->logo);
@@ -251,9 +348,9 @@ class ImageService
     /**
      * Serve board logo image
      */
-    public function serveBoardLogo(\App\Models\Board $board)
+    public function serveBoardLogo(Board $board)
     {
-        if (!$board->logo || !Storage::disk('public')->exists($board->logo)) {
+        if (! $board->logo || ! Storage::disk('public')->exists($board->logo)) {
             abort(404, 'Logo not found');
         }
 

@@ -4,7 +4,6 @@
 @section('content')
     @php
         $isSelfHosted = config('settings.is_self_hosted');
-        $checkout = auth()->user()->getCheckoutUrl(route('displays.create'));
         $userHasPro = auth()->user()->hasProForCurrentWorkspace();
     @endphp
 

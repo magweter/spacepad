@@ -33,13 +33,15 @@ class BoardPolicy
      */
     public function update(User $user, Board $board): bool
     {
-        // User must be able to manage the workspace (owner/admin)
-        if (!$board->workspace_id) {
+        if (! $board->workspace_id) {
             return false;
         }
 
+        // Any member may manage the workspace's content. Managing the workspace itself
+        // (members, billing) is owner/admin only — see WorkspacePolicy.
         $workspace = $board->workspace;
-        return $workspace && $workspace->canBeManagedBy($user);
+
+        return $workspace && $workspace->hasMember($user);
     }
 
     /**
@@ -47,12 +49,14 @@ class BoardPolicy
      */
     public function delete(User $user, Board $board): bool
     {
-        // User must be able to manage the workspace (owner/admin)
-        if (!$board->workspace_id) {
+        if (! $board->workspace_id) {
             return false;
         }
 
+        // Any member may manage the workspace's content. Managing the workspace itself
+        // (members, billing) is owner/admin only — see WorkspacePolicy.
         $workspace = $board->workspace;
-        return $workspace && $workspace->canBeManagedBy($user);
+
+        return $workspace && $workspace->hasMember($user);
     }
 }

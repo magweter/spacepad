@@ -62,16 +62,22 @@ jobs:
 
       - name: Determine version
         id: version
+        # Ref values are passed through env rather than interpolated into the script:
+        # a `${{ }}` expression inside `run:` is substituted before the shell sees it, so a
+        # crafted ref name would be executed as shell. Flagged by Semgrep as
+        # github-actions.security.run-shell-injection.
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
         run: |
-          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+          if [[ "$REF_TYPE" == "tag" ]]; then
             # Strip leading 'v' so the app displays "1.7.0" not "v1.7.0"
-            VERSION="${{ github.ref_name }}"
-            echo "git_tag=${VERSION#v}" >> $GITHUB_OUTPUT
-            echo "git_commit=" >> $GITHUB_OUTPUT
+            echo "git_tag=${REF_NAME#v}" >> "$GITHUB_OUTPUT"
+            echo "git_commit=" >> "$GITHUB_OUTPUT"
           else
-            echo "git_tag=" >> $GITHUB_OUTPUT
+            echo "git_tag=" >> "$GITHUB_OUTPUT"
             # Truncate to 7 chars (standard short SHA)
-            echo "git_commit=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+            echo "git_commit=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Build and push Docker image
