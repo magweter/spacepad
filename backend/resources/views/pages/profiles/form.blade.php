@@ -10,7 +10,9 @@
 
     $inputClass = 'block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6';
     $narrowClass = 'px-3 py-2 block w-32 border rounded-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 sm:text-sm';
-    $selectClass = 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm';
+    // bg-white is load-bearing: without it a select falls back to the browser's own control
+    // background, which disappears against the gray-50 panels.
+    $selectClass = 'block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm';
     $checkClass = 'h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600';
     $radioClass = 'h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-600';
 

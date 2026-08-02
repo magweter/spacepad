@@ -8,6 +8,9 @@
     $narrowClass = 'px-3 py-2 block w-32 border rounded-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 sm:text-sm';
     $checkClass = 'h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600';
     $radioClass = 'h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-600';
+    // bg-white is load-bearing: a select without it falls back to the browser's own control
+    // background, which disappears against the gray-50 panels on this page.
+    $selectClass = 'block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm';
 @endphp
 
 @section('content')
@@ -41,7 +44,7 @@
                 @method('PUT')
                 <div class="flex-auto">
                     <label for="display_profile_id" class="block text-sm font-medium text-gray-700 mb-1">Linked profile</label>
-                    <select name="display_profile_id" id="display_profile_id" class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                    <select name="display_profile_id" id="display_profile_id" class="{{ $selectClass }}">
                         <option value="">No profile</option>
                         @foreach($profiles as $profile)
                             <option value="{{ $profile->id }}" {{ $display->display_profile_id === $profile->id ? 'selected' : '' }}>{{ $profile->name }}</option>
@@ -268,7 +271,7 @@
                 <div class="space-y-6">
                     <div>
                         <label for="font_family" class="block text-sm font-medium text-gray-700 mb-1">Font family</label>
-                        <select name="font_family" id="font_family" class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        <select name="font_family" id="font_family" class="{{ $selectClass }}">
                             @foreach(['Inter', 'Roboto', 'Open Sans', 'Lato', 'Poppins', 'Montserrat'] as $font)
                                 <option value="{{ $font }}" {{ old('font_family', $ds::getFontFamily($display)) === $font ? 'selected' : '' }}>{{ $font }}</option>
                             @endforeach
