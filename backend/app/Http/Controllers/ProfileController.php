@@ -14,15 +14,16 @@ class ProfileController extends Controller
 {
     public function __construct(protected WorkspaceService $workspaces) {}
 
+    /**
+     * The personal account page.
+     *
+     * Deliberately workspace-independent: identity and account deletion only. Subscription
+     * and usage live on the workspace they belong to (see WorkspaceMemberController), which
+     * also keeps this page meaningful for someone who is in several workspaces.
+     */
     public function show(): View
     {
-        $user = auth()->user();
-        $selectedWorkspace = $user->getSelectedWorkspace();
-        $usageBreakdown = $selectedWorkspace?->getUsageBreakdown();
-
-        return view('pages.profile', [
-            'usageBreakdown' => $usageBreakdown,
-        ]);
+        return view('pages.profile');
     }
 
     public function destroy(Request $request): RedirectResponse

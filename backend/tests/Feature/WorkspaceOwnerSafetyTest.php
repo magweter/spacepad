@@ -36,6 +36,10 @@ function teamWithRoles(array $roles = ['owner', 'admin', 'member']): array
     return [$workspace, $users, $memberships];
 }
 
+/**
+ * Act as the given user with this workspace selected. Named for its most common use; it
+ * works for any member.
+ */
 function asOwnerOf(Workspace $workspace, User $owner): void
 {
     test()->actingAs($owner);
@@ -195,6 +199,33 @@ test('the members page is reachable and lists the team', function () {
         ->assertViewIs('pages.workspaces.members')
         ->assertSee($users['admin']->email)
         ->assertSee($users['member']->email);
+});
+
+test('only the owner gets subscription controls on the manage workspace page', function () {
+    [$workspace, $users] = teamWithRoles(['owner', 'admin', 'member']);
+    $workspace->update(['is_unlimited' => true]);
+
+    // Everyone sees what the workspace is billed for...
+    foreach (['owner', 'admin', 'member'] as $role) {
+        asOwnerOf($workspace, $users[$role]);
+
+        $this->get(route('workspaces.members'))
+            ->assertOk()
+            ->assertSee('Total billed to subscription');
+    }
+
+    // ...but only the owner can act on it. Before billing moved here, the button was on the
+    // personal account page and shown to every member.
+    asOwnerOf($workspace, $users['owner']);
+    $this->get(route('workspaces.members'))->assertSee('Manage subscription');
+
+    foreach (['admin', 'member'] as $role) {
+        asOwnerOf($workspace, $users[$role]);
+
+        $this->get(route('workspaces.members'))
+            ->assertDontSee('Manage subscription')
+            ->assertSee('Only its owner can change the subscription');
+    }
 });
 
 test('an outsider cannot see the members page of a workspace they are not in', function () {

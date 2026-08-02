@@ -34,6 +34,9 @@ class WorkspaceMemberController extends Controller
             'invitations' => $workspace->invitations()->pending()->with('invitedBy')->latest()->get(),
             'myRole' => $workspace->getUserRole($user),
             'canInvite' => $user->hasProForWorkspace($workspace),
+            // Billing belongs to the workspace, so the usage that is charged for is shown
+            // here rather than on the personal account page.
+            'usageBreakdown' => $workspace->getUsageBreakdown(),
         ]);
     }
 
