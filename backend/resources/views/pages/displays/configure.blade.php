@@ -30,6 +30,36 @@
 
         <x-alerts.alert :errors="$errors" />
 
+        {{-- Read-only reference. Sits at the top so you can confirm you are on the right display,
+             and see whether it is actually syncing, before changing anything below. --}}
+        <div class="mb-6 border border-gray-200 rounded-lg p-6 bg-gray-50">
+            <h3 class="text-base font-semibold text-gray-900 mb-4">Display information</h3>
+            <dl class="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2">
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Display name</dt>
+                    <dd class="text-sm text-gray-900">{{ $display->display_name }}</dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Calendar</dt>
+                    <dd class="text-sm text-gray-900">{{ $display->calendar?->name ?? '—' }}</dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Status</dt>
+                    <dd class="text-sm">
+                        @if($display->status === \App\Enums\DisplayStatus::ACTIVE)
+                            <span class="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">Active</span>
+                        @else
+                            <span class="inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10">Inactive</span>
+                        @endif
+                    </dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Last sync</dt>
+                    <dd class="text-sm text-gray-900">{{ $display->last_sync_at ? $display->last_sync_at->diffForHumans() : 'Never' }}</dd>
+                </div>
+            </dl>
+        </div>
+
         {{-- Profile. Informational: linking and unlinking happen from the Displays tab, where you
              can act on several displays at once. This page is about configuring this one. --}}
         <div class="mb-6 border border-gray-200 rounded-lg p-6 bg-gray-50">
@@ -44,7 +74,7 @@
                 </p>
 
                 <ul class="mt-3 space-y-1 text-sm text-gray-500 list-disc list-inside">
-                    <li>Editing that profile updates every display still following it — including this one.</li>
+                    <li>Editing that profile updates every display still following it, including this one.</li>
                     <li>You can still give a section its own values here; saving a section is what detaches that one section, the rest keep following the profile.</li>
                 </ul>
 
@@ -422,35 +452,6 @@
                     </div>
                 </x-displays.section-card>
             @endif
-
-            {{-- Read-only reference --}}
-            <div class="border border-gray-200 rounded-lg p-6 bg-gray-50">
-                <h3 class="text-base font-semibold text-gray-900 mb-4">Display information</h3>
-                <dl class="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2">
-                    <div>
-                        <dt class="text-sm font-medium text-gray-500">Display name</dt>
-                        <dd class="text-sm text-gray-900">{{ $display->display_name }}</dd>
-                    </div>
-                    <div>
-                        <dt class="text-sm font-medium text-gray-500">Calendar</dt>
-                        <dd class="text-sm text-gray-900">{{ $display->calendar?->name ?? '—' }}</dd>
-                    </div>
-                    <div>
-                        <dt class="text-sm font-medium text-gray-500">Status</dt>
-                        <dd class="text-sm">
-                            @if($display->status === \App\Enums\DisplayStatus::ACTIVE)
-                                <span class="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">Active</span>
-                            @else
-                                <span class="inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10">Inactive</span>
-                            @endif
-                        </dd>
-                    </div>
-                    <div>
-                        <dt class="text-sm font-medium text-gray-500">Last sync</dt>
-                        <dd class="text-sm text-gray-900">{{ $display->last_sync_at ? $display->last_sync_at->diffForHumans() : 'Never' }}</dd>
-                    </div>
-                </dl>
-            </div>
         </div>
     </x-cards.card>
 @endsection
