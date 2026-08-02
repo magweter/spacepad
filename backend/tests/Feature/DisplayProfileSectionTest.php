@@ -199,18 +199,20 @@ test('bulk assigning rejects a profile from another workspace', function () {
 });
 
 test('the displays overview shows the linked profile and flags a customised display', function () {
+    // The profile sits as a chip under the display name; deviating adds a marker to its tooltip.
     $this->actingAs($this->user)
         ->get(route('dashboard', ['tab' => 'displays']))
         ->assertOk()
         ->assertSee('Meeting rooms')
-        ->assertDontSee('Customised');
+        ->assertDontSee('with its own settings in one or more sections');
 
     saveSection($this, $this->display, DisplaySettingSections::BRANDING, ['font_family' => 'Lato']);
 
     $this->actingAs($this->user)
         ->get(route('dashboard', ['tab' => 'displays']))
         ->assertOk()
-        ->assertSee('Customised');
+        ->assertSee('Meeting rooms')
+        ->assertSee('with its own settings in one or more sections');
 });
 
 test('the configuration screen shows a badge per section', function () {

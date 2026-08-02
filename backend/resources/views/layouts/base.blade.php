@@ -55,10 +55,6 @@
 
                                 <div class="my-1 border-t border-gray-100"></div>
 
-                                <a href="{{ route('workspaces.members') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
-                                    Team members
-                                </a>
-
                                 <form action="{{ route('workspaces.store') }}" method="POST" x-data="{ naming: false }">
                                     @csrf
                                     <button type="button" x-show="!naming" @click="naming = true"
@@ -78,7 +74,7 @@
                     @endif
 
                     <a href="{{ route('workspaces.members') }}" class="rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300 hover:text-black">
-                        Team
+                        Manage workspace
                     </a>
                     @if(!session('impersonating') && auth()->user()->isAdmin() && !config('settings.is_self_hosted'))
                         <a href="{{ route('admin.index') }}" class="rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300 hover:text-black">

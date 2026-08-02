@@ -65,7 +65,7 @@
                     @endif
                     <p class="mt-2 text-xs text-gray-500">
                         A display follows this profile per section. If someone changes, say, the branding on one
-                        display, only that section stops following this profile — the rest keeps updating.
+                        display, only that section stops following this profile. The rest keeps updating.
                     </p>
                 </div>
 

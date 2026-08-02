@@ -26,6 +26,20 @@
             @if(filled($display->display_name))
                 <div class="text-xs leading-5 text-gray-500 truncate">{{ $display->display_name }}</div>
             @endif
+            @if($display->profile)
+                {{-- Shown here rather than in its own column: a sixth column squeezes every other cell --}}
+                <a href="{{ route('profiles.edit', $display->profile) }}"
+                   title="{{ $deviates ? 'Follows the profile ' . $display->profile->name . ', with its own settings in one or more sections' : 'Follows the profile ' . $display->profile->name }}"
+                   class="mt-1 inline-flex max-w-full items-center gap-1 rounded-md bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-200 hover:bg-gray-200">
+                    <svg class="h-3 w-3 shrink-0 text-gray-400" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                    </svg>
+                    <span class="truncate">{{ $display->profile->name }}</span>
+                    @if($deviates)
+                        <span class="shrink-0 text-amber-600" title="This display has its own settings in one or more sections">&bull;</span>
+                    @endif
+                </a>
+            @endif
         </div>
     </td>
     <td class="whitespace-nowrap px-3 py-4 align-middle text-sm">
@@ -128,24 +142,12 @@
                     <span class="text-xs text-gray-500">Synced {{ $display->last_sync_at->diffForHumans() }}</span>
                 @endif
             @else
-                <span class="text-sm text-gray-500">No devices linked</span>
+                <span class="text-sm text-gray-500">No devices</span>
                 @if($display->last_sync_at)
-                    <span class="text-xs text-gray-500">Last calendar sync {{ $display->last_sync_at->diffForHumans() }}</span>
+                    <span class="text-xs text-gray-500" title="Last calendar sync">Synced {{ $display->last_sync_at->diffForHumans() }}</span>
                 @endif
             @endif
         </div>
-    </td>
-    <td class="whitespace-nowrap px-3 py-4 align-middle text-sm">
-        @if($display->profile)
-            <div class="min-w-0 max-w-[11rem]">
-                <div class="truncate font-medium text-gray-900">{{ $display->profile->name }}</div>
-                @if($deviates)
-                    <div class="text-xs text-amber-700">Customised</div>
-                @endif
-            </div>
-        @else
-            <span class="text-gray-400">&mdash;</span>
-        @endif
     </td>
     <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right align-middle text-sm font-medium sm:pr-4">
         <div class="flex items-center justify-end gap-x-2">

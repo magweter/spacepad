@@ -515,8 +515,7 @@
                                     <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Name</th>
                                     <th scope="col" class="px-3 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Calendar account</th>
                                     <th scope="col" class="px-3 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Status</th>
-                                    <th scope="col" class="px-3 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Devices & sync</th>
-                                    <th scope="col" class="px-3 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Profile</th>
+                                    <th scope="col" class="px-3 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Devices</th>
                                     <th scope="col" class="relative py-3.5 pr-4 pl-3 text-right">
                                         <span class="sr-only">Actions</span>
                                     </th>
@@ -527,7 +526,7 @@
                                     <x-displays.table-row :display="$display" :selectable="$canBulkAssign" />
                                 @empty
                                     <tr>
-                                        <td colspan="{{ $canBulkAssign ? 7 : 6 }}" class="px-6 py-16 text-center">
+                                        <td colspan="{{ $canBulkAssign ? 6 : 5 }}" class="px-6 py-16 text-center">
                                             <div class="flex flex-col items-center justify-center">
                                                 <x-icons.display class="mx-auto mb-3 h-10 w-10 text-gray-400" />
                                                 <h3 class="mb-2 text-base font-semibold text-gray-900">

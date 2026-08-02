@@ -33,7 +33,7 @@
                 <h3 class="text-base font-semibold text-gray-900">Profile</h3>
                 <p class="mt-1 text-sm text-gray-500">
                     A profile holds the same sections as below. Every section either follows the profile or has
-                    its own values for this display — saving a section is what detaches that one section.
+                    its own values for this display, saving a section is what detaches that one section.
                 </p>
             </div>
             <form action="{{ route('displays.profile.update', $display) }}" method="POST" class="flex items-end gap-3">
