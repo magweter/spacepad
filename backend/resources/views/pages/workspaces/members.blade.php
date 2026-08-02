@@ -232,7 +232,7 @@
             <h2 class="text-base font-semibold text-gray-900 mb-1">Invite a colleague</h2>
             <p class="text-sm text-gray-500 mb-4">
                 They receive an email with a link that signs them in and adds them to this workspace.
-                There is no per-user charge — billing is based on your displays and boards.
+                There is no per-user charge, billing is based on your displays and boards.
             </p>
 
             <form action="{{ route('workspaces.invitations.store') }}" method="POST" class="flex flex-col sm:flex-row gap-2 sm:items-start">

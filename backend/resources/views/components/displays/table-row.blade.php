@@ -26,20 +26,6 @@
             @if(filled($display->display_name))
                 <div class="text-xs leading-5 text-gray-500 truncate">{{ $display->display_name }}</div>
             @endif
-            @if($display->profile)
-                {{-- Shown here rather than in its own column: a sixth column squeezes every other cell --}}
-                <a href="{{ route('profiles.edit', $display->profile) }}"
-                   title="{{ $deviates ? 'Follows the profile ' . $display->profile->name . ', with its own settings in one or more sections' : 'Follows the profile ' . $display->profile->name }}"
-                   class="mt-1 inline-flex max-w-full items-center gap-1 rounded-md bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-200 hover:bg-gray-200">
-                    <svg class="h-3 w-3 shrink-0 text-gray-400" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-                    </svg>
-                    <span class="truncate">{{ $display->profile->name }}</span>
-                    @if($deviates)
-                        <span class="shrink-0 text-amber-600" title="This display has its own settings in one or more sections">&bull;</span>
-                    @endif
-                </a>
-            @endif
         </div>
     </td>
     <td class="whitespace-nowrap px-3 py-4 align-middle text-sm">
@@ -165,8 +151,28 @@
             </form>
             @if(auth()->user()->hasProForCurrentWorkspace())
                 {{-- Settings and customization were merged into one configuration screen --}}
-                <a href="{{ route('displays.configure', $display) }}" class="inline-flex items-center rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-blue-600 shadow-sm ring-1 ring-inset ring-blue-300 hover:bg-blue-50" title="Configure display (Pro)">
+                {{-- The linked profile rides along on this button rather than as a separate label in
+                     the name cell: it is the same thing you click to change it, and it keeps every
+                     row two lines tall. --}}
+                {{-- A dot on the button rather than a name label: the profile belongs with the
+                     thing you click to change it, and a name here widens the actions column enough
+                     to push the row past the card. Blue means it follows its profile, amber means
+                     it deviates somewhere; the tooltip names it. --}}
+                <a href="{{ route('displays.configure', $display) }}"
+                   class="relative inline-flex items-center rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-blue-600 shadow-sm ring-1 ring-inset ring-blue-300 hover:bg-blue-50"
+                   title="{{ $display->profile
+                        ? ($deviates
+                            ? 'Configure display — follows the profile “'.$display->profile->name.'”, with its own settings in one or more sections'
+                            : 'Configure display — follows the profile “'.$display->profile->name.'”')
+                        : 'Configure display (Pro)' }}">
                     <x-icons.settings class="h-4 w-4" />
+                    @if($display->profile)
+                        <span class="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full ring-2 ring-white {{ $deviates ? 'bg-amber-500' : 'bg-blue-500' }}"
+                              aria-hidden="true"></span>
+                        <span class="sr-only">
+                            Follows the profile {{ $display->profile->name }}{{ $deviates ? ', with its own settings in one or more sections' : '' }}
+                        </span>
+                    @endif
                 </a>
             @else
                 <span class="inline-flex items-center rounded-md bg-gray-100 px-2.5 py-1.5 text-sm font-semibold text-gray-400 shadow-sm ring-1 ring-inset ring-gray-200 cursor-not-allowed" title="Upgrade to Pro to configure displays">
