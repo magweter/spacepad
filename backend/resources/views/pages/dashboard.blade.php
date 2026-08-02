@@ -377,6 +377,10 @@
                 // Checkboxes are shown as soon as there is more than one display, even when no profile
                 // exists yet — otherwise nobody discovers that displays can be configured in bulk.
                 $canBulkAssign = auth()->user()->hasProForCurrentWorkspace() && $displays->count() > 1;
+
+                // The how-to below is onboarding, not a permanent fixture: once a profile has actually
+                // been applied to a display, it has done its job and would be noise on every visit.
+                $hasAssignedProfile = $displays->contains(fn ($d) => $d->display_profile_id !== null);
             @endphp
             <div id="tab-content-displays" class="tab-content"
                  x-data="displayBulkActions(@js($displays->map(fn ($d) => [
@@ -422,23 +426,28 @@
                 </div>
 
                 @if($canBulkAssign)
-                    {{-- Idle hint: makes bulk editing discoverable before anything is ticked --}}
-                    <div x-show="selected.length === 0"
-                         class="mt-4 flex items-start gap-2 rounded-xl border border-dashed border-gray-300 bg-gray-50 px-4 py-3">
-                        <svg class="mt-0.5 h-4 w-4 shrink-0 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
-                        </svg>
-                        <p class="text-sm text-gray-600">
-                            <span class="font-medium text-gray-900">Configure several displays at once.</span>
-                            Select displays with the checkboxes and apply a profile, a reusable set of settings such as
-                            check-in, booking, texts and branding.
-                            @if($profiles->isEmpty())
-                                <a href="{{ route('profiles.create') }}" class="font-medium text-blue-600 hover:text-blue-500">Create your first profile</a>.
-                            @else
-                                <a href="{{ route('dashboard', ['tab' => 'profiles']) }}" class="font-medium text-blue-600 hover:text-blue-500">Manage profiles</a>.
-                            @endif
-                        </p>
-                    </div>
+                    {{-- Idle hint: makes bulk editing discoverable before anything is ticked. Shown
+                         only until the first profile is actually assigned; after that the how-to is
+                         understood and would be noise on every visit. The bulk bar below always
+                         stays — it is the feature, not the explanation. --}}
+                    @unless($hasAssignedProfile)
+                        <div x-show="selected.length === 0"
+                             class="mt-4 flex items-start gap-2 rounded-xl border border-dashed border-gray-300 bg-gray-50 px-4 py-3">
+                            <svg class="mt-0.5 h-4 w-4 shrink-0 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                            </svg>
+                            <p class="text-sm text-gray-600">
+                                <span class="font-medium text-gray-900">Configure several displays at once.</span>
+                                Select displays with the checkboxes and apply a profile, a reusable set of settings such as
+                                check-in, booking, texts and branding.
+                                @if($profiles->isEmpty())
+                                    <a href="{{ route('profiles.create') }}" class="font-medium text-blue-600 hover:text-blue-500">Create your first profile</a>.
+                                @else
+                                    <a href="{{ route('dashboard', ['tab' => 'profiles']) }}" class="font-medium text-blue-600 hover:text-blue-500">Manage profiles</a>.
+                                @endif
+                            </p>
+                        </div>
+                    @endunless
 
                     {{-- Bulk bar: replaces the hint once something is selected --}}
                     <div x-show="selected.length > 0" x-cloak

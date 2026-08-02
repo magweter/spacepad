@@ -215,6 +215,47 @@ test('the displays overview shows the linked profile and flags a customised disp
         ->assertSee('with its own settings in one or more sections');
 });
 
+test('the bulk how-to shows until a profile has actually been assigned', function () {
+    // Bulk controls only appear with more than one display.
+    Display::factory()->create([
+        'workspace_id' => $this->workspace->id,
+        'user_id' => $this->user->id,
+        'status' => DisplayStatus::ACTIVE,
+        'display_profile_id' => null,
+    ]);
+
+    // The fixture display already follows a profile, so the how-to has served its purpose.
+    $this->actingAs($this->user)
+        ->get(route('dashboard', ['tab' => 'displays']))
+        ->assertOk()
+        ->assertDontSee('Configure several displays at once');
+
+    // With nothing assigned anywhere, it comes back.
+    Display::where('workspace_id', $this->workspace->id)->update(['display_profile_id' => null]);
+
+    $this->actingAs($this->user)
+        ->get(route('dashboard', ['tab' => 'displays']))
+        ->assertOk()
+        ->assertSee('Configure several displays at once');
+});
+
+test('hiding the how-to does not take the bulk assign controls with it', function () {
+    Display::factory()->create([
+        'workspace_id' => $this->workspace->id,
+        'user_id' => $this->user->id,
+        'status' => DisplayStatus::ACTIVE,
+        'display_profile_id' => null,
+    ]);
+
+    // The how-to is onboarding; the bulk bar is the feature and must always stay.
+    $this->actingAs($this->user)
+        ->get(route('dashboard', ['tab' => 'displays']))
+        ->assertOk()
+        ->assertDontSee('Configure several displays at once')
+        ->assertSee('Assign profile')
+        ->assertSee('Unlink');
+});
+
 test('the configuration screen shows a badge per section', function () {
     saveSection($this, $this->display, DisplaySettingSections::BRANDING, ['font_family' => 'Lato']);
 
