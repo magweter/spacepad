@@ -35,8 +35,9 @@
                     </span>
                     <form action="{{ route('displays.section.reset', ['display' => $display, 'section' => $section]) }}" method="POST">
                         @csrf
-                        <button type="submit" class="text-xs font-medium text-blue-600 hover:text-blue-500 whitespace-nowrap">
-                            &#8617; Follow profile
+                        <button type="submit"
+                            class="whitespace-nowrap rounded-md bg-white px-2.5 py-1.5 text-xs font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
+                            Follow profile
                         </button>
                     </form>
                 @endif

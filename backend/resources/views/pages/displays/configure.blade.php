@@ -54,7 +54,10 @@
                 <form action="{{ route('displays.settings.reset-to-profile', $display) }}" method="POST" class="mt-3"
                       onsubmit="return confirm('Reset every section to follow the profile? All settings customised on this display will be removed.');">
                     @csrf
-                    <button type="submit" class="text-sm font-medium text-red-600 hover:text-red-500">Reset all sections to profile</button>
+                    <button type="submit"
+                        class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-red-700 shadow-sm ring-1 ring-inset ring-red-300 hover:bg-red-50">
+                        Reset all sections to profile
+                    </button>
                 </form>
             @endif
         </div>
