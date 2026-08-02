@@ -30,38 +30,48 @@
 
         <x-alerts.alert :errors="$errors" />
 
-        {{-- Profile link --}}
+        {{-- Profile. Informational: linking and unlinking happen from the Displays tab, where you
+             can act on several displays at once. This page is about configuring this one. --}}
         <div class="mb-6 border border-gray-200 rounded-lg p-6 bg-gray-50">
-            <div class="mb-4">
-                <h3 class="text-base font-semibold text-gray-900">Profile</h3>
-                <p class="mt-1 text-sm text-gray-500">
-                    A profile holds the same sections as below. Every section either follows the profile or has
-                    its own values for this display, saving a section is what detaches that one section.
+            <h3 class="text-base font-semibold text-gray-900">Profile</h3>
+
+            @if($display->profile)
+                @php $deviates = \App\Helpers\DisplaySettings::deviatesFromProfile($display); @endphp
+
+                <p class="mt-1 text-sm text-gray-700">
+                    This display follows
+                    <a href="{{ route('profiles.edit', $display->profile) }}" class="font-semibold text-blue-600 hover:text-blue-500">{{ $display->profile->name }}</a>.
                 </p>
-            </div>
-            <form action="{{ route('displays.profile.update', $display) }}" method="POST" class="flex items-end gap-3">
-                @csrf
-                @method('PUT')
-                <div class="flex-auto">
-                    <label for="display_profile_id" class="block text-sm font-medium text-gray-700 mb-1">Linked profile</label>
-                    <select name="display_profile_id" id="display_profile_id" class="{{ $selectClass }}">
-                        <option value="">No profile</option>
-                        @foreach($profiles as $profile)
-                            <option value="{{ $profile->id }}" {{ $display->display_profile_id === $profile->id ? 'selected' : '' }}>{{ $profile->name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <button type="submit" class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Save link</button>
-            </form>
-            @if($display->display_profile_id)
-                <form action="{{ route('displays.settings.reset-to-profile', $display) }}" method="POST" class="mt-3"
-                      onsubmit="return confirm('Reset every section to follow the profile? All settings customised on this display will be removed.');">
-                    @csrf
-                    <button type="submit"
-                        class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-red-700 shadow-sm ring-1 ring-inset ring-red-300 hover:bg-red-50">
-                        Reset all sections to profile
-                    </button>
-                </form>
+
+                <ul class="mt-3 space-y-1 text-sm text-gray-500 list-disc list-inside">
+                    <li>Editing that profile updates every display still following it — including this one.</li>
+                    <li>You can still give a section its own values here; saving a section is what detaches that one section, the rest keep following the profile.</li>
+                </ul>
+
+                {{-- Only offered when there is something to undo. --}}
+                @if($deviates)
+                    <form action="{{ route('displays.settings.reset-to-profile', $display) }}" method="POST" class="mt-4"
+                          onsubmit="return confirm('Reset every section to follow the profile? All settings customised on this display will be removed.');">
+                        @csrf
+                        <button type="submit"
+                            class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-red-700 shadow-sm ring-1 ring-inset ring-red-300 hover:bg-red-50">
+                            Reset all sections to profile
+                        </button>
+                    </form>
+                @endif
+
+                <p class="mt-4 text-xs text-gray-500">
+                    To link this display to a different profile, or unlink it,
+                    <a href="{{ route('dashboard') }}" class="font-medium text-blue-600 hover:text-blue-500">use the Displays tab</a>.
+                </p>
+            @else
+                <p class="mt-1 text-sm text-gray-700">
+                    This display is not linked to a profile, so everything below applies to this display only.
+                </p>
+                <p class="mt-3 text-xs text-gray-500">
+                    A profile holds these same sections and keeps many displays in step at once.
+                    <a href="{{ route('dashboard') }}" class="font-medium text-blue-600 hover:text-blue-500">Link one from the Displays tab</a>.
+                </p>
             @endif
         </div>
 

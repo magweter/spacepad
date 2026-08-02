@@ -144,8 +144,29 @@ test('a display can be linked to a profile from the configuration screen', funct
     expect($display->fresh()->display_profile_id)->toBe($profile->id);
 });
 
-test('the configuration screen renders with the profile link section', function () {
+test('the configuration screen names the followed profile without offering to switch it', function () {
     $profile = DisplayProfile::factory()->create(['workspace_id' => $this->workspace->id, 'name' => 'Ground floor']);
+    $display = Display::factory()->create([
+        'workspace_id' => $this->workspace->id,
+        'user_id' => $this->user->id,
+        'display_profile_id' => $profile->id,
+    ]);
+
+    $response = $this->actingAs($this->user)
+        ->get(route('displays.configure', $display))
+        ->assertOk()
+        ->assertSee('Ground floor')
+        ->assertSee('This display follows');
+
+    // Linking and unlinking belong to the Displays tab, which can do it in bulk.
+    $response->assertDontSee('name="display_profile_id"', false);
+
+    // Nothing deviates yet, so there is nothing to reset.
+    $response->assertDontSee('Reset all sections to profile');
+});
+
+test('the reset action appears only once a section has its own values', function () {
+    $profile = DisplayProfile::factory()->create(['workspace_id' => $this->workspace->id]);
     $display = Display::factory()->create([
         'workspace_id' => $this->workspace->id,
         'user_id' => $this->user->id,
@@ -154,9 +175,27 @@ test('the configuration screen renders with the profile link section', function 
 
     $this->actingAs($this->user)
         ->get(route('displays.configure', $display))
-        ->assertOk()
-        ->assertSee('Ground floor')
+        ->assertDontSee('Reset all sections to profile');
+
+    DisplaySettings::setSetting($display, 'text_available', 'Override');
+
+    $this->actingAs($this->user)
+        ->get(route('displays.configure', $display))
         ->assertSee('Reset all sections to profile');
+});
+
+test('a display without a profile is told so instead of being offered a picker', function () {
+    $display = Display::factory()->create([
+        'workspace_id' => $this->workspace->id,
+        'user_id' => $this->user->id,
+        'display_profile_id' => null,
+    ]);
+
+    $this->actingAs($this->user)
+        ->get(route('displays.configure', $display))
+        ->assertOk()
+        ->assertSee('not linked to a profile')
+        ->assertDontSee('name="display_profile_id"', false);
 });
 
 test('resetting a display to its profile removes its own settings', function () {

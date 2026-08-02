@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Helpers\DisplaySettings;
 use App\Helpers\DisplaySettingSections;
 use App\Models\Display;
-use App\Models\DisplayProfile;
 use App\Models\DisplaySetting;
 use App\Services\ImageService;
 use Illuminate\Contracts\View\View;
@@ -32,12 +31,11 @@ class DisplaySettingsController extends Controller
             return redirect()->route('dashboard')->with('error', 'Display configuration is only available for Pro users.');
         }
 
+        // No profile list: linking and unlinking live on the Displays tab, which can do it for
+        // several displays at once. This screen only reports which profile is followed.
         return view('pages.displays.configure', [
             'display' => $display->load('calendar', 'settings', 'profile.settings'),
             'sections' => DisplaySettingSections::all(),
-            'profiles' => DisplayProfile::where('workspace_id', $display->workspace_id)
-                ->orderBy('name')
-                ->get(),
         ]);
     }
 
