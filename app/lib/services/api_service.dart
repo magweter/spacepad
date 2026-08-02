@@ -124,10 +124,18 @@ class ApiService {
   }
 
   static Map<String, String>? _getHeaders() {
+    final DateTime now = DateTime.now();
+
     Map<String, String> headers = {
       'Content-Type' : 'application/json',
       'Accept' : 'application/json',
-      'Accept-Language' : GetX.Get.locale?.languageCode ?? 'en'
+      'Accept-Language' : GetX.Get.locale?.languageCode ?? 'en',
+      // Tell the backend which calendar day this tablet is on. The server runs in its own
+      // timezone (usually UTC) and cannot know ours, so without this it has to guess the day
+      // boundary — which either cut off part of our evening or leaked tomorrow's bookings into
+      // the payload. Sent on every request so each endpoint can answer for the right day.
+      'X-Local-Date' : _localDate(now),
+      'X-Utc-Offset' : now.timeZoneOffset.inMinutes.toString(),
     };
 
     if (AuthService.instance.getAuthToken() != null) {
@@ -135,5 +143,13 @@ class ApiService {
     }
 
     return headers;
+  }
+
+  /// The device's calendar date as YYYY-MM-DD, in its own timezone.
+  static String _localDate(DateTime now) {
+    final String month = now.month.toString().padLeft(2, '0');
+    final String day = now.day.toString().padLeft(2, '0');
+
+    return '${now.year}-$month-$day';
   }
 }

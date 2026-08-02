@@ -271,7 +271,16 @@ class DashboardController extends GetxController {
   }
 
   List<EventModel> get upcomingEvents {
-    List<EventModel> nextEvents = events.where((e) => e.start.isAfter(DateTime.now())).toList();
+    final DateTime now = DateTime.now();
+    // Midnight tonight: anything from here on belongs to another day.
+    final DateTime endOfToday = DateTime(now.year, now.month, now.day).add(const Duration(days: 1));
+
+    // Only what is still to come *today*. Without the upper bound, a room with nothing left on the
+    // agenda showed tomorrow's first meeting as "Next" with just a time, which reads as if it were
+    // about to start. With it, the screen falls back to "No upcoming events" for the rest of the day.
+    List<EventModel> nextEvents = events
+        .where((e) => e.start.isAfter(now) && e.start.isBefore(endOfToday))
+        .toList();
 
     nextEvents.sort((a, b) => a.start.compareTo(b.start));
 

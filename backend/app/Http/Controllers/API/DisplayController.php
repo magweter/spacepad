@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Services\DisplayService;
 use App\Services\EventService;
 use App\Services\ImageService;
+use App\Support\LocalDay;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -86,7 +87,11 @@ class DisplayController extends ApiController
                 ? Carbon::parse($request->query('date'))->startOfDay()
                 : null;
 
-            $events = $this->eventService->getEventsForDisplay($displayId, $date);
+            $events = $this->eventService->getEventsForDisplay(
+                $displayId,
+                $date,
+                LocalDay::tryFromRequest($request, $date)
+            );
 
             return $this->success(data: EventResource::collection($events));
         } catch (\Exception $e) {
@@ -96,7 +101,7 @@ class DisplayController extends ApiController
         }
     }
 
-    public function getData(string $displayId): JsonResponse
+    public function getData(Request $request, string $displayId): JsonResponse
     {
         /** @var Device $device */
         $device = auth()->user();
@@ -119,9 +124,13 @@ class DisplayController extends ApiController
         $display = null;
         $events = [];
 
+        // Resolved once and passed on, so the window we log is provably the window we answered with.
+        $requestedDay = LocalDay::tryFromRequest($request);
+        $day = $requestedDay ?? LocalDay::serverDay(Carbon::now());
+
         try {
             $display = $this->displayService->getDisplay($displayId);
-            $events = $this->eventService->getEventsForDisplay($displayId);
+            $events = $this->eventService->getEventsForDisplay($displayId, null, $day);
         } catch (\Exception $e) {
             $exception = $e;
         }
@@ -137,6 +146,14 @@ class DisplayController extends ApiController
             'display_name' => $display?->name ?? 'Unknown',
             'duration_ms' => $duration,
             'ip' => request()->ip(),
+            // What the tablet said about its own day, and the window we answered with. Without this
+            // a "wrong day of events" report is guesswork: you cannot tell an old app build (no
+            // headers, server day) from a tablet in another timezone.
+            'local_date_header' => $request->header('X-Local-Date'),
+            'utc_offset_header' => $request->header('X-Utc-Offset'),
+            'day_source' => $requestedDay !== null ? 'tablet' : 'server',
+            'day_start' => $day->start->toIso8601String(),
+            'day_end' => $day->end->toIso8601String(),
         ]);
 
         if ($exception !== null) {
