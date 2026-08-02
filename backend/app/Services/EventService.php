@@ -565,15 +565,15 @@ class EventService
      */
     private function getAllEvents(Display $display, ?Carbon $start = null, ?Carbon $end = null): Collection
     {
-        // Default to a timezone-tolerant window (yesterday .. tomorrow, in UTC) rather than
-        // just the UTC day. A display can be in any timezone, and UTC day boundaries can be
-        // up to ~14h off from the display's local day — for far-offset zones (e.g. New
-        // Zealand, UTC+12) part of the local day fell outside a UTC-day window, which made
-        // rooms intermittently show "no bookings / available all day" while Google/Outlook
-        // had events. The app filters these events back down to the local day / current time,
-        // so returning a slightly wider range is safe.
-        $start = $start ?? now()->subDay()->startOfDay();
-        $end = $end ?? now()->addDay()->endOfDay();
+        // Default to the display's own day. This window was briefly widened to yesterday..tomorrow
+        // (v1.8.1) so that far-offset timezones could not lose part of their local day at the UTC
+        // day boundary, on the assumption that every client clamps back to the local day. The
+        // tablet's status screen does not: it picks the first event after "now", so tomorrow's
+        // first booking showed up as "Next" with only a time, reading as if it were today.
+        // Returning just today is the safer default until the display's timezone is actually known;
+        // the ?date= endpoint keeps its wider window because the schedule view does clamp.
+        $start = $start ?? $display->getStartTime();
+        $end = $end ?? $display->getEndTime();
 
         $calendar = $display->calendar()
             ->with(['googleAccount', 'outlookAccount', 'caldavAccount', 'room'])
