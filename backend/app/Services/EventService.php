@@ -599,6 +599,13 @@ class EventService
         // narrow the result to their own day (see getEventsForDisplay). Staying a day either side
         // keeps bookings near a far-offset display's local midnight inside the request, and lets
         // one cached collection serve tablets in different timezones.
+        //
+        // Widening this window is only safe because of that narrowing. When it was widened without
+        // it (v1.8.1) the tablet's status screen picked the first event after "now", so tomorrow's
+        // first booking showed up as "Next" with just a time and read as if it were today — the
+        // reason it was reverted on dev. Every status response now goes through clampToDay(), and a
+        // client that does not state its timezone is clamped to the server's day, so that cannot
+        // happen again.
         $start = $start ?? now()->subDay()->startOfDay();
         $end = $end ?? now()->addDay()->endOfDay();
 
