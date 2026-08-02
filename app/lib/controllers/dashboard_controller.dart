@@ -531,12 +531,20 @@ class DashboardController extends GetxController {
     try {
       isExtending.value = true;
       extendDuration.value = minutes;
-      final newEnd = currentEvent!.end.add(Duration(minutes: minutes));
-      await DisplayService.instance.extendEvent(displayId.value, currentEvent!.id, newEnd);
-      await fetchDisplayData();
+      final event = currentEvent!;
+      final newEnd = event.end.add(Duration(minutes: minutes));
+      await DisplayService.instance.extendEvent(displayId.value, event.id, newEnd);
+
+      // Apply the new end time locally first so the display updates the moment the extend
+      // succeeds, instead of only after the round-trip below.
+      event.end = newEnd;
+      events.refresh();
+
       Toast.showSuccess('event_extended'.tr);
       _extendOptionsTimer?.cancel();
       showExtendOptions.value = false;
+
+      await fetchDisplayData();
     } catch (e) {
       if (e is ApiException && e.message != null) {
         Toast.showError(e.message!);

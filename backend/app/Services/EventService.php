@@ -407,6 +407,7 @@ class EventService
         }
 
         $event->update(['end' => $newEnd]);
+        $this->markEventExtended($display->id, [$event->id, $event->external_id], $newEnd);
         $this->clearEventsCache($display);
     }
 
@@ -436,6 +437,7 @@ class EventService
             $this->googleService->patchEventEndTime($calendar->googleAccount, $calendar, $externalId, $newEnd);
         }
 
+        $this->markEventExtended($display->id, [$externalId], $newEnd);
         $this->clearEventsCache($display);
     }
 
@@ -661,6 +663,14 @@ class EventService
 
                 if ($tabletBooking) {
                     $matchedTabletIds[$tabletBooking->id] = true;
+                }
+
+                // An event extended moments ago can still come back from the provider with its
+                // old end time. Prefer the end we know we wrote, so the tablet shows the new
+                // time on its very next refresh instead of after the provider catches up.
+                $extendedEnd = $this->getExtendedEnd($display->id, $ext['id'], $tabletBooking?->id);
+                if ($extendedEnd && $extendedEnd->gt($eventEnd)) {
+                    $eventEnd = $extendedEnd;
                 }
 
                 // Grace-period check only applies to pure external events; tablet bookings
@@ -1044,6 +1054,38 @@ class EventService
         // Keep the released flag until the event has ended + 1 hour buffer
         $ttl = $eventEnd ? max(0, $eventEnd->timestamp - now()->timestamp) + 3600 : 86400;
         Cache::put("released:{$displayId}:{$externalId}", true, $ttl);
+    }
+
+    /**
+     * Remember the end time we just wrote for an extended event.
+     *
+     * Clearing the events cache alone is not enough: Microsoft Graph and Google Calendar are
+     * eventually consistent, so the re-fetch that happens milliseconds later can still return
+     * the old end time — and that stale value would then be cached again for the full TTL.
+     * Keyed by every identifier the event can surface under (DB row id and external id),
+     * because tablet bookings are matched back to their external copy by either.
+     */
+    private function markEventExtended(string $displayId, array $eventKeys, Carbon $newEnd): void
+    {
+        foreach (array_filter($eventKeys) as $key) {
+            Cache::put("extended:{$displayId}:{$key}", $newEnd->toIso8601String(), now()->addMinutes(2));
+        }
+    }
+
+    /**
+     * Get the end time of a just-extended event, if it was extended within the last 2 minutes.
+     */
+    private function getExtendedEnd(string $displayId, ?string ...$eventKeys): ?Carbon
+    {
+        foreach (array_filter($eventKeys) as $key) {
+            $value = Cache::get("extended:{$displayId}:{$key}");
+
+            if ($value) {
+                return Carbon::parse($value);
+            }
+        }
+
+        return null;
     }
 
     /**
