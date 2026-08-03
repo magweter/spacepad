@@ -50,6 +50,34 @@ test('non-pro users cannot access profiles', function () {
         ->assertForbidden();
 });
 
+test('a non-pro user gets the same tab teaser for profiles as for boards', function () {
+    $free = User::factory()->active()->create([
+        'is_unlimited' => false,
+        'is_manually_billed' => false,
+        'usage_type' => UsageType::BUSINESS,
+    ]);
+    session()->put('selected_workspace_id', $free->primaryWorkspace()->id);
+
+    $response = $this->actingAs($free)->get(route('dashboard'))->assertOk();
+
+    // The tab stays visible and explains itself instead of quietly not being there.
+    $response->assertSee('Profiles (Pro Feature)');
+    $response->assertSee('Boards (Pro Feature)');
+    $response->assertSee('id="tab-profiles"', false);
+
+    // But it cannot be opened, and none of its content is rendered.
+    $response->assertDontSee('id="tab-content-profiles"', false);
+    $response->assertDontSee("switchTab('profiles')", false);
+});
+
+test('a pro user gets a working profiles tab instead of the teaser', function () {
+    $response = $this->actingAs($this->user)->get(route('dashboard'))->assertOk();
+
+    $response->assertSee("switchTab('profiles')", false);
+    $response->assertSee('id="tab-content-profiles"', false);
+    $response->assertDontSee('Profiles (Pro Feature)');
+});
+
 test('user can create a profile with settings', function () {
     $response = $this->actingAs($this->user)->post(route('profiles.store'), [
         'name' => 'Meeting rooms NL',

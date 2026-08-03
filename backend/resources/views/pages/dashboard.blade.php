@@ -368,6 +368,23 @@
                         <button onclick="switchTab('profiles')" id="tab-profiles" class="tab-button border-b-2 border-transparent pb-4 px-1 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap">
                             Profiles <span class="ml-1 inline-flex items-center rounded-md bg-green-50 px-1.5 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">New</span>
                         </button>
+                    @else
+                        {{-- Same teaser as Boards: the tab stays visible but disabled, so the feature
+                             is discoverable instead of simply missing. --}}
+                        <div class="relative group">
+                            <button type="button" disabled id="tab-profiles" class="tab-button border-b-2 border-transparent pb-4 px-1 text-sm font-medium text-gray-400 cursor-not-allowed whitespace-nowrap flex items-center gap-1">
+                                Profiles
+                                <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                                </svg>
+                            </button>
+                            <div class="absolute left-0 top-full mt-2 w-72 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
+                                <div class="font-semibold mb-1">Profiles (Pro Feature)</div>
+                                <div class="mb-2">Profiles are reusable sets of display settings. Link displays to a profile and they all follow it, so you configure many rooms at once instead of one by one.</div>
+                                <div>Find more information on <a href="https://spacepad.io" target="_blank" class="underline font-semibold hover:text-blue-300">spacepad.io</a></div>
+                                <div class="absolute bottom-full left-4 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-gray-900"></div>
+                            </div>
+                        </div>
                     @endif
                 </nav>
             </div>
