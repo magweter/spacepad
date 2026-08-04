@@ -2,26 +2,24 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\Provider;
 use App\Enums\DisplayStatus;
+use App\Enums\Provider;
 use App\Events\UserOnboarded;
 use App\Http\Requests\CreateDisplayRequest;
+use App\Models\CalDAVAccount;
 use App\Models\Calendar;
 use App\Models\Display;
+use App\Models\GoogleAccount;
 use App\Models\OutlookAccount;
 use App\Models\Room;
-use App\Models\CalDAVAccount;
-use App\Services\OutlookService;
-use App\Services\GoogleService;
 use App\Services\CalDAVService;
+use App\Services\GoogleService;
+use App\Services\OutlookService;
 use Exception;
-use Illuminate\Contracts\View\Factory;
 use Illuminate\Contracts\View\View;
-use Illuminate\Foundation\Application;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use App\Models\GoogleAccount;
 
 class DisplayController extends Controller
 {
@@ -29,8 +27,7 @@ class DisplayController extends Controller
         protected OutlookService $outlookService,
         protected GoogleService $googleService,
         protected CalDAVService $caldavService
-    ) {
-    }
+    ) {}
 
     public function create(): View
     {
@@ -83,24 +80,25 @@ class DisplayController extends Controller
         };
 
         $user = auth()->user();
-        
+
         // Get workspace from request, session (selected workspace), or default to primary
-        $workspaceId = $validatedData['workspace_id'] 
+        $workspaceId = $validatedData['workspace_id']
             ?? session()->get('selected_workspace_id')
             ?? $user->primaryWorkspace()?->id;
-        
-        if (!$workspaceId) {
+
+        if (! $workspaceId) {
             return redirect()->back()->with('error', 'No workspace found. Please contact support.');
         }
-        
+
         // Verify user has access to this workspace
         $workspace = $user->workspaces()->find($workspaceId);
-        if (!$workspace) {
+        if (! $workspace) {
             return redirect()->back()->with('error', 'You do not have access to this workspace.');
         }
-        
-        // Check if user can create displays in this workspace (owner/admin)
-        if (!$workspace->canBeManagedBy($user)) {
+
+        // Any member of the workspace may add displays to it; only workspace administration
+        // (members, billing) is restricted to owners and admins.
+        if (! $workspace->hasMember($user)) {
             return redirect()->back()->with('error', 'You do not have permission to create displays in this workspace.');
         }
 
@@ -133,7 +131,7 @@ class DisplayController extends Controller
         $this->authorize('update', $display);
 
         $data = $request->validate([
-            'status' => 'required|in:active,deactivated'
+            'status' => 'required|in:active,deactivated',
         ]);
 
         $display->update(['status' => $data['status']]);
@@ -202,7 +200,7 @@ class DisplayController extends Controller
 
         $calendarData = explode(',', $validatedData['calendar']);
         $calendarName = $this->extractCalendarName($calendarData[1] ?? '');
-        
+
         $calendar = Calendar::firstOrCreate([
             'calendar_id' => $calendarData[0],
             'workspace_id' => $workspace->id,

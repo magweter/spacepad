@@ -271,7 +271,16 @@ class DashboardController extends GetxController {
   }
 
   List<EventModel> get upcomingEvents {
-    List<EventModel> nextEvents = events.where((e) => e.start.isAfter(DateTime.now())).toList();
+    final DateTime now = DateTime.now();
+    // Midnight tonight: anything from here on belongs to another day.
+    final DateTime endOfToday = DateTime(now.year, now.month, now.day).add(const Duration(days: 1));
+
+    // Only what is still to come *today*. Without the upper bound, a room with nothing left on the
+    // agenda showed tomorrow's first meeting as "Next" with just a time, which reads as if it were
+    // about to start. With it, the screen falls back to "No upcoming events" for the rest of the day.
+    List<EventModel> nextEvents = events
+        .where((e) => e.start.isAfter(now) && e.start.isBefore(endOfToday))
+        .toList();
 
     nextEvents.sort((a, b) => a.start.compareTo(b.start));
 
@@ -531,12 +540,20 @@ class DashboardController extends GetxController {
     try {
       isExtending.value = true;
       extendDuration.value = minutes;
-      final newEnd = currentEvent!.end.add(Duration(minutes: minutes));
-      await DisplayService.instance.extendEvent(displayId.value, currentEvent!.id, newEnd);
-      await fetchDisplayData();
+      final event = currentEvent!;
+      final newEnd = event.end.add(Duration(minutes: minutes));
+      await DisplayService.instance.extendEvent(displayId.value, event.id, newEnd);
+
+      // Apply the new end time locally first so the display updates the moment the extend
+      // succeeds, instead of only after the round-trip below.
+      event.end = newEnd;
+      events.refresh();
+
       Toast.showSuccess('event_extended'.tr);
       _extendOptionsTimer?.cancel();
       showExtendOptions.value = false;
+
+      await fetchDisplayData();
     } catch (e) {
       if (e is ApiException && e.message != null) {
         Toast.showError(e.message!);

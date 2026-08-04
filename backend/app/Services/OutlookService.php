@@ -9,6 +9,7 @@ use App\Models\Calendar;
 use App\Models\Display;
 use App\Models\EventSubscription;
 use App\Models\OutlookAccount;
+use App\Models\Workspace;
 use Exception;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
@@ -39,7 +40,7 @@ class OutlookService
     /**
      * Get the access token for Google Calendar API
      *
-     * @throws \Exception
+     * @throws Exception
      */
     private function ensureAuthenticated(&$outlookAccount): void
     {
@@ -118,9 +119,9 @@ class OutlookService
      *
      * @param  string|PermissionType  $permissionType  'read' or 'write', or PermissionType enum
      *
-     * @throws \Exception
+     * @throws Exception
      */
-    public function authenticateOutlookAccount(string $authCode, string|PermissionType $permissionType = PermissionType::READ): OutlookAccount
+    public function authenticateOutlookAccount(string $authCode, string|PermissionType $permissionType = PermissionType::READ, ?Workspace $workspace = null): OutlookAccount
     {
         $oauthTokenEndpoint = "https://login.microsoftonline.com/{$this->tenantId}/oauth2/v2.0/token";
 
@@ -155,9 +156,10 @@ class OutlookService
 
         $tenantId = $this->getTenantId($tokenData['access_token']);
 
-        // Get selected workspace (from session or default to primary)
-        $selectedWorkspace = auth()->user()->getSelectedWorkspace();
-        $workspaceId = $selectedWorkspace?->id;
+        // The workspace is passed in by the caller. Falling back to the session here would
+        // silently produce a workspace-less account outside a request (queued job, CLI),
+        // and such rows are invisible to every workspace-scoped query and policy.
+        $workspaceId = ($workspace ?? auth()->user()->getSelectedWorkspace())?->id;
 
         // Save the Outlook account and tokens
         return OutlookAccount::updateOrCreate(
@@ -199,7 +201,7 @@ class OutlookService
             $data = Arr::get($response->json(), 'value') ?? [];
 
             return Arr::get($data, '0.id');
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             report($e);
 
             return null;
@@ -209,7 +211,7 @@ class OutlookService
     /**
      * Refresh Outlook access token.
      *
-     * @throws \Exception
+     * @throws Exception
      */
     protected function refreshToken(OutlookAccount &$outlookAccount): void
     {
@@ -269,7 +271,7 @@ class OutlookService
      *
      * @return mixed
      *
-     * @throws \Exception
+     * @throws Exception
      */
     public function fetchEventsByUser(
         OutlookAccount $outlookAccount,
@@ -309,7 +311,7 @@ class OutlookService
                 'outlook_account_id' => $outlookAccount->id,
                 'email' => $emailAddress,
             ]);
-            throw new \Exception("Outlook API error for $emailAddress: $error", $response->status());
+            throw new Exception("Outlook API error for $emailAddress: $error", $response->status());
         }
 
         return Arr::get($response->json(), 'value') ?? [];
@@ -320,7 +322,7 @@ class OutlookService
      *
      * @return mixed
      *
-     * @throws \Exception
+     * @throws Exception
      */
     public function fetchEventsByCalendar(
         OutlookAccount $outlookAccount,
@@ -350,7 +352,7 @@ class OutlookService
                 'outlook_account_id' => $outlookAccount->id,
                 'calendar_id' => $calendarId,
             ]);
-            throw new \Exception("Outlook API error for calendar $calendarId: $error", $response->status());
+            throw new Exception("Outlook API error for calendar $calendarId: $error", $response->status());
         }
 
         return Arr::get($response->json(), 'value') ?? [];
@@ -359,7 +361,7 @@ class OutlookService
     /**
      * Fetch calendars from the authenticated user's Outlook account.
      *
-     * @throws \Exception
+     * @throws Exception
      */
     public function fetchCalendars(OutlookAccount $outlookAccount): mixed
     {
@@ -376,7 +378,7 @@ class OutlookService
     /**
      * Fetch rooms from the authenticated user's Outlook account.
      *
-     * @throws \Exception
+     * @throws Exception
      */
     public function fetchRooms(OutlookAccount $outlookAccount): mixed
     {
@@ -393,7 +395,7 @@ class OutlookService
     /**
      * Create an event in Outlook calendar.
      *
-     * @throws \Exception
+     * @throws Exception
      */
     public function createEvent(
         OutlookAccount $outlookAccount,
@@ -487,7 +489,7 @@ class OutlookService
     /**
      * Delete an event from Outlook calendar.
      *
-     * @throws \Exception
+     * @throws Exception
      */
     public function deleteEvent(
         OutlookAccount $outlookAccount,
@@ -563,14 +565,14 @@ class OutlookService
             ]);
 
         if (! $response->successful()) {
-            throw new \Exception('Failed to update Outlook event end time: '.$response->body());
+            throw new Exception('Failed to update Outlook event end time: '.$response->body());
         }
     }
 
     /**
      * Create an event subscription for Outlook calendar events.
      *
-     * @throws \Exception
+     * @throws Exception
      */
     public function createEventSubscriptionByUser(
         OutlookAccount $outlookAccount,
@@ -580,7 +582,7 @@ class OutlookService
         // Try the correct path with /calendar/ first
         try {
             return $this->createEventSubscription($outlookAccount, $display, "/users/$emailAddress/calendar/events");
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // If it fails with a resource invalid error, try without /calendar/ path as backup
             if (str_contains($e->getMessage(), 'Resource') && str_contains($e->getMessage(), 'invalid')) {
                 logger()->warning('Subscription failed with /calendar/events path, trying /events as backup', [
@@ -599,7 +601,7 @@ class OutlookService
     /**
      * Create an event subscription for Outlook calendar events.
      *
-     * @throws \Exception
+     * @throws Exception
      */
     public function createEventSubscriptionByCalendar(
         OutlookAccount $outlookAccount,
@@ -612,7 +614,7 @@ class OutlookService
     /**
      * Create an event subscription for Outlook calendar events.
      *
-     * @throws \Exception
+     * @throws Exception
      */
     private function createEventSubscription(
         OutlookAccount $outlookAccount,
@@ -692,7 +694,7 @@ class OutlookService
     /**
      * Delete an event subscription in Outlook.
      *
-     * @throws \Exception
+     * @throws Exception
      */
     public function deleteEventSubscription(
         OutlookAccount $outlookAccount,

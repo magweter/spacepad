@@ -1,0 +1,93 @@
+# Accepted vulnerabilities — blocking gate only.
+#
+# This file is passed ONLY to the gating step in .github/workflows/security.yml. The
+# reporting step runs without it, so everything listed here still shows up in full in the
+# GitHub Security tab. Nothing is hidden; these are only prevented from failing the build.
+#
+# Every entry below is a build-time dependency of the Vite asset pipeline
+# (backend/pnpm-lock.yaml). They run inside the `node_builder` stage of backend/Dockerfile
+# and are never present in the runtime image, which only receives the compiled assets.
+# That makes them real-but-low-exposure: worth fixing, not worth blocking every PR over
+# before the first Renovate batch has landed.
+#
+# All of them have a fix available. Renovate raises vulnerability PRs outside its normal
+# schedule, so these should be resolved within days of it being installed.
+#
+# `expiredAt` is a deliberate forcing function: once the date passes, the entry stops
+# applying and the build goes red again. Do not extend the dates without a reason —
+# bump the packages instead, then delete the entry.
+
+vulnerabilities:
+  # --- tar (transitive, via the pnpm/vite toolchain) — fixed in 7.5.19+ -----------------
+  - id: CVE-2026-59873 # CRITICAL
+    paths:
+      - "backend/pnpm-lock.yaml"
+    statement: "Build-time only (Vite asset pipeline); not in the runtime image. Fixed by upgrading tar to >= 7.5.19."
+    expiredAt: 2026-09-01
+  - id: CVE-2026-59874
+    paths:
+      - "backend/pnpm-lock.yaml"
+    statement: "Build-time only; fixed by upgrading tar to >= 7.5.18."
+    expiredAt: 2026-09-01
+  - id: CVE-2026-23745
+    paths:
+      - "backend/pnpm-lock.yaml"
+    statement: "Build-time only; fixed by upgrading tar to >= 7.5.3."
+    expiredAt: 2026-09-01
+  - id: CVE-2026-23950
+    paths:
+      - "backend/pnpm-lock.yaml"
+    statement: "Build-time only; fixed by upgrading tar to >= 7.5.4."
+    expiredAt: 2026-09-01
+  - id: CVE-2026-24842
+    paths:
+      - "backend/pnpm-lock.yaml"
+    statement: "Build-time only; fixed by upgrading tar to >= 7.5.7."
+    expiredAt: 2026-09-01
+  - id: CVE-2026-26960
+    paths:
+      - "backend/pnpm-lock.yaml"
+    statement: "Build-time only; fixed by upgrading tar to >= 7.5.8."
+    expiredAt: 2026-09-01
+  - id: CVE-2026-29786
+    paths:
+      - "backend/pnpm-lock.yaml"
+    statement: "Build-time only; fixed by upgrading tar to >= 7.5.10."
+    expiredAt: 2026-09-01
+  - id: CVE-2026-31802
+    paths:
+      - "backend/pnpm-lock.yaml"
+    statement: "Build-time only; fixed by upgrading tar to >= 7.5.11."
+    expiredAt: 2026-09-01
+
+  # --- vite / rollup / postcss / picomatch ---------------------------------------------
+  - id: CVE-2026-39363
+    paths:
+      - "backend/pnpm-lock.yaml"
+    statement: "Vite dev/build tooling; fixed in 6.4.2 within the current major line."
+    expiredAt: 2026-09-01
+  - id: CVE-2026-53571
+    paths:
+      - "backend/pnpm-lock.yaml"
+    statement: "Vite dev/build tooling; fixed in 6.4.3 within the current major line."
+    expiredAt: 2026-09-01
+  - id: CVE-2026-27606
+    paths:
+      - "backend/pnpm-lock.yaml"
+    statement: "Rollup, transitive via Vite; fixed in 4.59.0."
+    expiredAt: 2026-09-01
+  - id: CVE-2026-45623
+    paths:
+      - "backend/pnpm-lock.yaml"
+    statement: "PostCSS, transitive via the Tailwind/Vite pipeline; fixed in 8.5.12."
+    expiredAt: 2026-09-01
+  - id: GHSA-r28c-9q8g-f849
+    paths:
+      - "backend/pnpm-lock.yaml"
+    statement: "PostCSS, transitive; fixed in 8.5.18."
+    expiredAt: 2026-09-01
+  - id: CVE-2026-33671
+    paths:
+      - "backend/pnpm-lock.yaml"
+    statement: "picomatch, transitive glob matching in the build toolchain; fixed in 2.3.2 / 4.0.4."
+    expiredAt: 2026-09-01

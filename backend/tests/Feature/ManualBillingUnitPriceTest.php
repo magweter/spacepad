@@ -29,11 +29,19 @@ beforeEach(function () {
     }
 });
 
+/**
+ * Manual billing lives on the workspace: usage is measured per workspace, so that is what
+ * is invoiced. The helper still returns the user, because the admin route is addressed by
+ * user and applies to their billing workspace.
+ */
 function manuallyBilledUserWithUsage(?float $unitPrice, int $displays = 2, int $boards = 1): User
 {
-    $user = User::factory()->active()->create([
+    $user = User::factory()->active()->create();
+
+    $user->primaryWorkspace()->update([
         'is_manually_billed' => true,
         'manual_billing_unit_price' => $unitPrice,
+        'billing_owner_user_id' => $user->id,
     ]);
 
     for ($i = 0; $i < $displays; $i++) {
@@ -77,7 +85,7 @@ test('an unset per-account unit price falls back to the global default', functio
 
     Artisan::call('app:refresh-analytics');
 
-    expect($user->manual_billing_unit_price)->toBeNull()
+    expect($user->primaryWorkspace()->manual_billing_unit_price)->toBeNull()
         ->and(analyticsMrrFor($user))->toBe(20.0);
 });
 
@@ -128,7 +136,7 @@ test('an admin can set the per-account unit price and MRR updates immediately', 
         ])
         ->assertSessionHasNoErrors();
 
-    expect((float) $user->fresh()->manual_billing_unit_price)->toBe(12.50)
+    expect((float) $user->primaryWorkspace()->fresh()->manual_billing_unit_price)->toBe(12.50)
         ->and(analyticsMrrFor($user))->toBe(50.0);
 });
 
@@ -149,7 +157,7 @@ test('clearing the per-account unit price falls back to the global default', fun
         ])
         ->assertSessionHasNoErrors();
 
-    expect($user->fresh()->manual_billing_unit_price)->toBeNull()
+    expect($user->primaryWorkspace()->fresh()->manual_billing_unit_price)->toBeNull()
         ->and(analyticsMrrFor($user))->toBe(20.0);
 });
 
@@ -180,5 +188,5 @@ test('a negative unit price is rejected', function () {
         ])
         ->assertSessionHasErrors('manual_billing_unit_price');
 
-    expect((float) $user->fresh()->manual_billing_unit_price)->toBe(12.50);
+    expect((float) $user->primaryWorkspace()->fresh()->manual_billing_unit_price)->toBe(12.50);
 });

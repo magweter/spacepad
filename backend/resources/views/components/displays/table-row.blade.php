@@ -1,4 +1,4 @@
-@props(['display'])
+@props(['display', 'selectable' => false])
 
 @php
     $statusBadgeClass = match ($display->status) {
@@ -7,9 +7,19 @@
         \App\Enums\DisplayStatus::DEACTIVATED => 'bg-gray-100 text-gray-700 ring-gray-600/10',
         \App\Enums\DisplayStatus::ERROR => 'bg-red-50 text-red-800 ring-red-600/15',
     };
+
+    $deviates = \App\Helpers\DisplaySettings::deviatesFromProfile($display);
 @endphp
 
 <tr class="transition-colors hover:bg-gray-50/90">
+    @if($selectable)
+        <td class="whitespace-nowrap py-4 pl-4 pr-0 align-middle">
+            {{-- x-model on the shared Alpine bulk state; the component gets the ids from the server --}}
+            <input type="checkbox" value="{{ $display->id }}" x-model="selected"
+                   aria-label="Select {{ $display->name }}"
+                   class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600">
+        </td>
+    @endif
     <td class="whitespace-nowrap py-4 pl-4 pr-3 align-middle sm:pl-4">
         <div class="min-w-0 max-w-xs sm:max-w-sm">
             <div class="text-sm font-semibold leading-6 text-gray-900 truncate">{{ $display->name }}</div>
@@ -118,15 +128,15 @@
                     <span class="text-xs text-gray-500">Synced {{ $display->last_sync_at->diffForHumans() }}</span>
                 @endif
             @else
-                <span class="text-sm text-gray-500">No devices linked</span>
+                <span class="text-sm text-gray-500">No devices</span>
                 @if($display->last_sync_at)
-                    <span class="text-xs text-gray-500">Last calendar sync {{ $display->last_sync_at->diffForHumans() }}</span>
+                    <span class="text-xs text-gray-500" title="Last calendar sync">Synced {{ $display->last_sync_at->diffForHumans() }}</span>
                 @endif
             @endif
         </div>
     </td>
     <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right align-middle text-sm font-medium sm:pr-4">
-        <div class="flex justify-end gap-x-2">
+        <div class="flex items-center justify-end gap-x-2">
             <form action="{{ route('displays.updateStatus', $display) }}" method="POST" class="inline">
                 @csrf
                 @method('PATCH')
@@ -140,17 +150,32 @@
                 </button>
             </form>
             @if(auth()->user()->hasProForCurrentWorkspace())
-                <a href="{{ route('displays.customization', $display) }}" class="inline-flex items-center rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-indigo-600 shadow-sm ring-1 ring-inset ring-indigo-300 hover:bg-indigo-50" title="Customize display (Pro)">
-                    <x-icons.brush class="h-4 w-4" />
-                </a>
-                <a href="{{ route('displays.settings.index', $display) }}" class="inline-flex items-center rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-blue-600 shadow-sm ring-1 ring-inset ring-blue-300 hover:bg-blue-50" title="Display settings (Pro)">
+                {{-- Settings and customization were merged into one configuration screen --}}
+                {{-- The linked profile rides along on this button rather than as a separate label in
+                     the name cell: it is the same thing you click to change it, and it keeps every
+                     row two lines tall. --}}
+                {{-- A dot on the button rather than a name label: the profile belongs with the
+                     thing you click to change it, and a name here widens the actions column enough
+                     to push the row past the card. Blue means it follows its profile, amber means
+                     it deviates somewhere; the tooltip names it. --}}
+                <a href="{{ route('displays.configure', $display) }}"
+                   class="relative inline-flex items-center rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-blue-600 shadow-sm ring-1 ring-inset ring-blue-300 hover:bg-blue-50"
+                   title="{{ $display->profile
+                        ? ($deviates
+                            ? 'Configure display — follows the profile “'.$display->profile->name.'”, with its own settings in one or more sections'
+                            : 'Configure display — follows the profile “'.$display->profile->name.'”')
+                        : 'Configure display (Pro)' }}">
                     <x-icons.settings class="h-4 w-4" />
+                    @if($display->profile)
+                        <span class="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full ring-2 ring-white {{ $deviates ? 'bg-amber-500' : 'bg-blue-500' }}"
+                              aria-hidden="true"></span>
+                        <span class="sr-only">
+                            Follows the profile {{ $display->profile->name }}{{ $deviates ? ', with its own settings in one or more sections' : '' }}
+                        </span>
+                    @endif
                 </a>
             @else
-                <span class="inline-flex items-center rounded-md bg-gray-100 px-2.5 py-1.5 text-sm font-semibold text-gray-400 shadow-sm ring-1 ring-inset ring-gray-200 cursor-not-allowed" title="Upgrade to Pro to unlock customization">
-                    <x-icons.brush class="h-4 w-4" />
-                </span>
-                <span class="inline-flex items-center rounded-md bg-gray-100 px-2.5 py-1.5 text-sm font-semibold text-gray-400 shadow-sm ring-1 ring-inset ring-gray-200 cursor-not-allowed" title="Upgrade to Pro to unlock settings">
+                <span class="inline-flex items-center rounded-md bg-gray-100 px-2.5 py-1.5 text-sm font-semibold text-gray-400 shadow-sm ring-1 ring-inset ring-gray-200 cursor-not-allowed" title="Upgrade to Pro to configure displays">
                     <x-icons.settings class="h-4 w-4" />
                 </span>
             @endif

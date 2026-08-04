@@ -10,9 +10,14 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
-test('account page shows correct usage breakdown for workspace', function () {
+/**
+ * Usage is billed per workspace, so it is shown on Manage workspace rather than on the
+ * personal account page — which must stay the same whichever workspace is selected.
+ */
+test('the manage workspace page shows the usage breakdown for that workspace', function () {
     $user = User::factory()->active()->create();
     $workspace = $user->primaryWorkspace();
+    session()->put('selected_workspace_id', $workspace->id);
 
     Display::factory()->count(3)->create([
         'workspace_id' => $workspace->id,
@@ -24,10 +29,10 @@ test('account page shows correct usage breakdown for workspace', function () {
     ]);
 
     $response = $this->actingAs($user)
-        ->get(route('profile.show'));
+        ->get(route('workspaces.members'));
 
     $response->assertStatus(200);
-    $response->assertViewIs('pages.profile');
+    $response->assertViewIs('pages.workspaces.members');
     $response->assertViewHas('usageBreakdown', function ($breakdown) {
         return $breakdown['displays'] === 3
             && $breakdown['boards'] === 2
@@ -36,10 +41,8 @@ test('account page shows correct usage breakdown for workspace', function () {
     });
 });
 
-test('account page passes usage breakdown to view', function () {
-    $user = User::factory()->active()->create([
-        'is_unlimited' => true,
-    ]);
+test('the usage breakdown is passed even without Pro', function () {
+    $user = User::factory()->active()->create();
     $workspace = $user->primaryWorkspace();
     session()->put('selected_workspace_id', $workspace->id);
 
@@ -53,8 +56,25 @@ test('account page passes usage breakdown to view', function () {
     ]);
 
     $response = $this->actingAs($user)
-        ->get(route('profile.show'));
+        ->get(route('workspaces.members'));
 
     $response->assertStatus(200);
     $response->assertViewHas('usageBreakdown');
+});
+
+test('the account page no longer carries workspace billing', function () {
+    $user = User::factory()->active()->create();
+    $workspace = $user->primaryWorkspace();
+
+    Display::factory()->create([
+        'workspace_id' => $workspace->id,
+        'status' => DisplayStatus::ACTIVE,
+    ]);
+
+    $response = $this->actingAs($user)->get(route('profile.show'));
+
+    $response->assertStatus(200);
+    $response->assertViewIs('pages.profile');
+    $response->assertViewMissing('usageBreakdown');
+    $response->assertDontSee('Total billed to subscription');
 });

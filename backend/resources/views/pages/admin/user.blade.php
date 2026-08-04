@@ -60,16 +60,16 @@
                 </dl>
             </div>
 
-            @if($user->hasPro() || $subscriptionInfo)
+            @if($billingWorkspace?->hasPro() || $subscriptionInfo)
                 <div class="border border-gray-200 rounded-lg p-6">
                     <h3 class="text-base font-semibold text-gray-900 mb-4">Subscription Information</h3>
                     <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <div>
                             <dt class="text-sm font-medium text-gray-500">Plan</dt>
                             <dd class="mt-1">
-                                @if($user->is_unlimited)
+                                @if($billingWorkspace?->is_unlimited)
                                     <span class="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">Unlimited</span>
-                                @elseif($user->is_manually_billed)
+                                @elseif($billingWorkspace?->is_manually_billed)
                                     <span class="inline-flex items-center rounded-md bg-purple-50 px-2 py-1 text-xs font-medium text-purple-700 ring-1 ring-inset ring-purple-600/20">Manually Billed</span>
                                 @elseif($subscriptionInfo)
                                     <span class="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20">Pro</span>
@@ -173,13 +173,20 @@
                     <div class="space-y-4">
                         <label class="flex items-center gap-2">
                             <input type="checkbox" name="is_manually_billed" value="1"
-                                   @checked(old('is_manually_billed', $user->is_manually_billed))
+                                   @checked(old('is_manually_billed', $billingWorkspace?->is_manually_billed))
                                    class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
                             <span class="text-sm text-gray-900">Manually billed (Pro without Lemon Squeezy)</span>
                         </label>
                         @php
                             $globalUnitPrice = config('settings.manual_billing_unit_price');
-                            $billableUnits = max(1, $user->displays->count() + ($user->boards->count() * 2));
+                            // Usage is measured per workspace, which is what is billed.
+                            $billableUnits = $billingWorkspace
+                                ? max(1, \App\Models\Workspace::calculateUsage(
+                                    $billingWorkspace->displays()->count(),
+                                    $billingWorkspace->boards()->count(),
+                                ))
+                                : 1;
+                            $unitPrice = $billingWorkspace?->getManualBillingUnitPrice() ?? 0;
                         @endphp
                         <div>
                             <label for="manual_billing_unit_price" class="block text-sm font-medium text-gray-700 mb-1">
@@ -191,16 +198,16 @@
                                 </div>
                                 <input type="number" step="0.01" min="0" name="manual_billing_unit_price"
                                        id="manual_billing_unit_price"
-                                       value="{{ old('manual_billing_unit_price', $user->manual_billing_unit_price) }}"
+                                       value="{{ old('manual_billing_unit_price', $billingWorkspace?->manual_billing_unit_price) }}"
                                        placeholder="{{ $globalUnitPrice ?? '0.00' }}"
                                        class="block w-full rounded-md border-gray-300 pl-7 text-sm focus:border-blue-500 focus:ring-blue-500">
                             </div>
                             <p class="mt-1 text-xs text-gray-500">
                                 Leave empty to use the global default (${{ number_format((float) ($globalUnitPrice ?? 0), 2) }}
                                 from <code>MANUAL_BILLING_UNIT_PRICE</code>).
-                                Effective MRR: ${{ number_format($user->getManualBillingUnitPrice(), 2) }} &times;
+                                Effective MRR: ${{ number_format($unitPrice, 2) }} &times;
                                 {{ $billableUnits }} {{ Str::plural('unit', $billableUnits) }} =
-                                ${{ number_format($user->getManualBillingUnitPrice() * $billableUnits, 2) }}.
+                                ${{ number_format($unitPrice * $billableUnits, 2) }}.
                             </p>
                             @error('manual_billing_unit_price')
                                 <p class="mt-1 text-xs text-red-600">{{ $message }}</p>

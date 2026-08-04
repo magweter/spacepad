@@ -3,22 +3,33 @@
 namespace App\Models;
 
 use App\Enums\UsageType;
+use App\Enums\UserStatus;
 use App\Enums\WorkspaceRole;
-use App\Services\InstanceService;
 use App\Traits\HasLastActivity;
 use App\Traits\HasUlid;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Laravel\Sanctum\HasApiTokens;
 use LemonSqueezy\Laravel\Billable;
-use LemonSqueezy\Laravel\Checkout;
 
 class User extends Authenticatable
 {
     use Billable, HasApiTokens, HasFactory, HasLastActivity, HasUlid, Notifiable;
+
+    /**
+     * Whether newly created users get their own personal workspace.
+     *
+     * Normally they should. An invited colleague should not: they are joining an existing
+     * workspace, and an empty "Someone's Workspace" alongside it is pure confusion. Toggled
+     * by User::createForInvitation().
+     */
+    public static bool $autoCreateWorkspace = true;
 
     /**
      * Boot the model.
@@ -29,6 +40,10 @@ class User extends Authenticatable
 
         // Auto-create workspace when user is created
         static::created(function ($user) {
+            if (! static::$autoCreateWorkspace) {
+                return;
+            }
+
             // Only create if user doesn't already have a workspace
             if (! $user->workspaces()->exists()) {
                 $workspace = Workspace::create([
@@ -169,6 +184,42 @@ class User extends Authenticatable
         return $this->workspaces()->get();
     }
 
+    /**
+     * Create the account for someone accepting a workspace invitation.
+     *
+     * Possession of the invitation token proves control of the mailbox, which is the same
+     * trust level as the magic login link — so the address counts as verified and there is
+     * nothing left to onboard: the workspace they are joining already has calendar
+     * accounts. Without skipping onboarding, CheckUserActive would bounce them to
+     * /onboarding instead of the dashboard.
+     *
+     * No personal workspace is created; they are joining someone else's.
+     */
+    public static function createForInvitation(WorkspaceInvitation $invitation): self
+    {
+        static::$autoCreateWorkspace = false;
+
+        try {
+            $user = static::create([
+                'name' => Str::before($invitation->email, '@'),
+                'email' => $invitation->email,
+                'email_verified_at' => now(),
+                'password' => Hash::make(Str::random(40)),
+                'status' => UserStatus::ACTIVE,
+                // Joining a company workspace: mirror the inviter, who has already answered
+                // this question, rather than asking again.
+                'usage_type' => $invitation->invitedBy?->usage_type ?? UsageType::BUSINESS,
+                'terms_accepted_at' => now(),
+                'dpa_accepted_at' => now(),
+                'skipped_onboarding_at' => now(),
+            ]);
+        } finally {
+            static::$autoCreateWorkspace = true;
+        }
+
+        return $user;
+    }
+
     public function hasAnyDisplay(): bool
     {
         return $this->displays()->count() > 0;
@@ -180,14 +231,21 @@ class User extends Authenticatable
     }
 
     /**
-     * Get or generate a connect code for this user
+     * Get or generate a connect code for this user's primary workspace.
+     *
+     * @deprecated Pairing is workspace-scoped. Use Workspace::getConnectCode($user) with
+     *             the workspace the tablet should end up in — going through the primary
+     *             workspace is exactly the bug that put devices in the wrong place.
      *
      * @return string 6-digit connect code
      */
     public function getConnectCode(): string
     {
-        $connectCode = cache()->get("user:$this->id:connect-code");
-        if (! $connectCode) {
+        $workspace = $this->primaryWorkspace();
+
+        if (! $workspace) {
+            // No workspace to pair into; fall back to a bare user-scoped code, which
+            // Workspace::pullConnectCode() still understands.
             $expiresAt = now()->addMinutes(30);
             do {
                 $connectCode = mt_rand(100000, 999999);
@@ -195,29 +253,22 @@ class User extends Authenticatable
 
             cache()->put("user:$this->id:connect-code", $connectCode, $expiresAt);
             cache()->put("connect-code:$connectCode", $this->id, $expiresAt);
+
+            return (string) $connectCode;
         }
 
-        return $connectCode;
+        return $workspace->getConnectCode($this);
     }
 
     /**
-     * Retrieve and invalidate a connect code atomically
-     * This ensures the code can only be used once
+     * @deprecated Use Workspace::pullConnectCode(), which also resolves the workspace the
+     *             code was generated for.
      *
-     * @param  string  $code  The 6-digit connect code
-     * @return string|null The user ID associated with the code, or null if invalid/already used
+     * @return string|null The user ID associated with the code, or null if invalid/used
      */
     public static function pullConnectCode(string $code): ?string
     {
-        // Atomically retrieve and remove the connect code from cache
-        $userId = cache()->pull("connect-code:$code");
-
-        // If code was valid, also remove the reverse mapping
-        if ($userId !== null) {
-            cache()->forget("user:$userId:connect-code");
-        }
-
-        return $userId;
+        return Workspace::pullConnectCode($code)['user_id'] ?? null;
     }
 
     public function isOnboarded(): bool
@@ -248,7 +299,7 @@ class User extends Authenticatable
         return $this->usage_type && ($hasAccounts || $skipped);
     }
 
-    public function featureFlags(): \Illuminate\Database\Eloquent\Relations\HasOne
+    public function featureFlags(): HasOne
     {
         return $this->hasOne(UserFeatureFlag::class);
     }
@@ -258,65 +309,29 @@ class User extends Authenticatable
         return (bool) $this->featureFlags?->advertisement;
     }
 
+    /**
+     * @deprecated Pro is a property of a workspace, not a person. Use
+     *             hasProForCurrentWorkspace() or hasProForWorkspace(). Kept as a delegate
+     *             so the many existing call sites keep working.
+     */
     public function hasPro(): bool
     {
-        if (config('settings.is_self_hosted')) {
-            return $this->usage_type === UsageType::PERSONAL || InstanceService::hasValidLicense();
-        }
-
-        return $this->is_unlimited || $this->is_manually_billed || $this->subscribed();
+        return $this->hasProForCurrentWorkspace();
     }
 
     /**
-     * Monthly list price per billable unit for this account, falling back to the global
-     * MANUAL_BILLING_UNIT_PRICE when no per-account price is set.
-     */
-    public function getManualBillingUnitPrice(): float
-    {
-        return (float) ($this->manual_billing_unit_price ?? config('settings.manual_billing_unit_price') ?? 0);
-    }
-
-    /**
-     * Locally computed MRR for a manually-billed account.
-     * Billable usage: displays 1x, boards 2x (see Workspace::getTotalUsageCount).
-     */
-    public function calculateManualMrr(int $displaysCount, int $boardsCount): float
-    {
-        return $this->getManualBillingUnitPrice() * max(1, $displaysCount + ($boardsCount * 2));
-    }
-
-    /**
-     * Check if the user has Pro for the current workspace context.
-     * Returns true if the user has Pro OR if the selected workspace has Pro (any owner has Pro).
+     * Whether the workspace the user is currently looking at has Pro.
      */
     public function hasProForCurrentWorkspace(): bool
     {
-        // If user has Pro, they have Pro everywhere
-        if ($this->hasPro()) {
-            return true;
-        }
-
-        // Check if the selected workspace has Pro (any owner has Pro)
-        $selectedWorkspace = $this->getSelectedWorkspace();
-        if ($selectedWorkspace && $selectedWorkspace->hasPro()) {
-            return true;
-        }
-
-        return false;
+        return $this->getSelectedWorkspace()?->hasPro() ?? false;
     }
 
     /**
-     * Check if the user has Pro for a specific workspace.
-     * Returns true if the user has Pro OR if the workspace has Pro (any owner has Pro).
+     * Whether a specific workspace has Pro.
      */
     public function hasProForWorkspace(Workspace $workspace): bool
     {
-        // If user has Pro, they have Pro everywhere
-        if ($this->hasPro()) {
-            return true;
-        }
-
-        // Check if the workspace has Pro (any owner has Pro)
         return $workspace->hasPro();
     }
 
@@ -337,20 +352,6 @@ class User extends Authenticatable
     }
 
     /**
-     * Check if the user should upgrade to Pro
-     */
-    public function shouldUpgrade(): bool
-    {
-        // Self Hosted: If the user is a personal user, use a soft limit
-        if (config('settings.is_self_hosted') && $this->isPersonalUser()) {
-            return false;
-        }
-
-        // Cloud Hosted: If the user is a business user and doesn't have Pro, they should upgrade
-        return ! $this->hasPro() && $this->hasAnyDisplay();
-    }
-
-    /**
      * Check if the user should upgrade to Pro for the current workspace context.
      * Returns false if the user has Pro OR if the selected workspace has Pro.
      */
@@ -366,30 +367,16 @@ class User extends Authenticatable
             return false;
         }
 
-        // Get the current workspace to scope the display check
         $selectedWorkspace = $this->getSelectedWorkspace();
         if (! $selectedWorkspace) {
             // No workspace context, no upgrade needed
             return false;
         }
 
-        // Cloud Hosted: Check if the user has any displays in the current workspace
-        return $this->displays()->where('workspace_id', $selectedWorkspace->id)->exists();
-    }
-
-    public function getCheckoutUrl(?string $redirectUrl = null): ?Checkout
-    {
-        $redirectUrl ??= route('dashboard');
-
-        if (config('settings.is_self_hosted')) {
-            return null;
-        }
-
-        $cacheKey = "user:{$this->id}:checkout-url:{$redirectUrl}";
-
-        return cache()->remember($cacheKey, now()->addHour(), function () use ($redirectUrl) {
-            return auth()->user()->subscribe(config('settings.cloud_hosted_pro_plan_id'))->redirectTo($redirectUrl);
-        });
+        // Any display in the workspace counts, not only the ones this user created. Billing
+        // is per workspace, and the old creator-scoped check meant an invited member never
+        // saw the upgrade prompt for a workspace that was over the free limit.
+        return $selectedWorkspace->displays()->exists();
     }
 
     /**

@@ -5,12 +5,13 @@ namespace Database\Factories;
 use App\Enums\UsageType;
 use App\Enums\UserStatus;
 use App\Models\OutlookAccount;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\User>
+ * @extends Factory<User>
  */
 class UserFactory extends Factory
 {
@@ -58,7 +59,13 @@ class UserFactory extends Factory
             'usage_type' => UsageType::PERSONAL,
             'terms_accepted_at' => now(),
         ])->afterCreating(function ($user) {
-            OutlookAccount::factory()->create(['user_id' => $user->id]);
+            // Stamp the workspace too. Without it the account is invisible to every
+            // workspace-scoped query and policy, which silently baked the
+            // nullable-workspace_id trap into every fixture.
+            OutlookAccount::factory()->create([
+                'user_id' => $user->id,
+                'workspace_id' => $user->primaryWorkspace()?->id,
+            ]);
         });
     }
 }

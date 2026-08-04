@@ -1,0 +1,24 @@
+# pnpm settings for the asset pipeline.
+#
+# Since pnpm v10 this file — not .npmrc and not the "pnpm" field in package.json — is where
+# settings live. Only auth and registry configuration is still read from .npmrc.
+
+# Supply-chain protection: refuse to resolve any version published less than 24 hours
+# (1440 minutes) ago.
+#
+# Nearly every npm compromise of the last few years followed the same shape: a maintainer
+# account is taken over, a malicious patch release is published, and it is caught and
+# unpublished within hours. Anyone who installed during that window is affected; anyone who
+# waited a day is not. This costs nothing here — the asset pipeline has no need for a
+# release the same day it lands.
+#
+# pnpm v11 turns this on by default at the same value. It is set explicitly because the
+# version pinned in the Dockerfile is v10, where the default is 0 (off).
+#
+# Note that this only takes effect when versions are actually resolved: local `pnpm update`
+# and Renovate's lockfile updates. The Docker build runs `pnpm install --frozen-lockfile`,
+# which installs exactly what the lockfile already pins and resolves nothing.
+#
+# Renovate applies the same 3-day delay independently — see minimumReleaseAge in
+# renovate.json at the repository root.
+minimumReleaseAge: 1440

@@ -1,0 +1,109 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":dependencyDashboard",
+    ":semanticCommitTypeAll(chore)",
+    "helpers:pinGitHubActionDigests"
+  ],
+  "timezone": "Europe/Amsterdam",
+  "schedule": ["before 7am on monday"],
+  "baseBranches": ["dev"],
+  "labels": ["dependencies"],
+  "prConcurrentLimit": 6,
+  "prHourlyLimit": 2,
+  "rebaseWhen": "conflicted",
+  "ignorePaths": ["**/node_modules/**", "**/vendor/**", "app/build/**"],
+  "constraints": {
+    "pnpm": "10.11.0"
+  },
+  "minimumReleaseAge": "3 days",
+  "osvVulnerabilityAlerts": true,
+  "vulnerabilityAlerts": {
+    "labels": ["dependencies", "security"],
+    "schedule": ["at any time"],
+    "minimumReleaseAge": null
+  },
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 7am on the first day of the month"]
+  },
+  "packageRules": [
+    {
+      "description": "Major upgrades never open a PR on their own — they queue on the dependency dashboard until ticked. Keeps a Laravel 13 or Vite 8 bump from landing unannounced.",
+      "matchUpdateTypes": ["major"],
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": "Laravel first-party runtime packages move as one PR; they are released in lockstep and are pointless to review separately.",
+      "matchManagers": ["composer"],
+      "matchPackageNames": [
+        "laravel/framework",
+        "laravel/sanctum",
+        "laravel/socialite",
+        "laravel/tinker"
+      ],
+      "groupName": "laravel"
+    },
+    {
+      "description": "PHP dev tooling — not shipped to production, safe to batch.",
+      "matchManagers": ["composer"],
+      "matchPackageNames": [
+        "laravel/pail",
+        "laravel/pint",
+        "laravel/sail",
+        "pestphp/**",
+        "mockery/mockery",
+        "nunomaduro/collision",
+        "fakerphp/faker"
+      ],
+      "groupName": "php dev tooling"
+    },
+    {
+      "description": "OpenTelemetry packages have to move together or the SDK and the auto-instrumentation drift apart.",
+      "matchManagers": ["composer"],
+      "matchPackageNames": ["open-telemetry/**"],
+      "groupName": "opentelemetry"
+    },
+    {
+      "description": "Calendar and billing SDKs stay in their own PRs. A regression in one of these silently breaks sync or billing for every customer, so keep them bisectable and reviewed individually.",
+      "matchManagers": ["composer"],
+      "matchPackageNames": [
+        "google/apiclient",
+        "microsoft/microsoft-graph",
+        "socialiteproviders/microsoft",
+        "sabre/dav",
+        "sabre/vobject",
+        "lemonsqueezy/laravel"
+      ],
+      "labels": ["dependencies", "integrations"]
+    },
+    {
+      "description": "The Vite/Tailwind asset pipeline is build-time only and tiny — one grouped PR per week keeps its transitive tree (tar, postcss, rollup) current, which is where the CVE backlog sits.",
+      "matchManagers": ["npm"],
+      "groupName": "frontend build toolchain"
+    },
+    {
+      "description": "Flutter/Dart packages batch into one PR; the app ships on its own release cadence.",
+      "matchManagers": ["pub"],
+      "groupName": "flutter app"
+    },
+    {
+      "description": "GitHub Actions batch into one PR.",
+      "matchManagers": ["github-actions"],
+      "groupName": "github actions"
+    },
+    {
+      "description": "Docker base images batch into one PR.",
+      "matchManagers": ["dockerfile", "docker-compose"],
+      "groupName": "docker base images"
+    },
+    {
+      "description": "The PHP runtime image is tied to composer.json's php constraint and to the extensions installed on top of it. Anything beyond a patch needs a human to change both together.",
+      "matchManagers": ["dockerfile"],
+      "matchPackageNames": ["serversideup/php"],
+      "matchUpdateTypes": ["major", "minor"],
+      "dependencyDashboardApproval": true
+    }
+  ]
+}

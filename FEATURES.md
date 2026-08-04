@@ -75,7 +75,9 @@ The schedule view shows all events for today, tomorrow, and yesterday.
 
 ## Display Settings (Pro)
 
-All settings are per-display and managed from the web portal.
+Managed from the web portal on one **Configure display** screen, grouped into sections (Behavior,
+Display, State texts, Branding, Advertisement). Each section either follows the display's linked
+profile or holds its own values — see [Display Profiles](#display-profiles-pro).
 
 | Setting | Options |
 |---|---|
@@ -98,6 +100,8 @@ All settings are per-display and managed from the web portal.
 ---
 
 ## Display Customization (Pro)
+
+Part of the same **Configure display** screen, in the Branding, State texts and Advertisement sections.
 
 ### Branding
 - Upload a custom **logo** (shown on the display)
@@ -129,11 +133,81 @@ All settings are per-display and managed from the web portal.
 
 ---
 
+## Display Profiles (Pro)
+
+Reusable sets of display settings ("themes") so an admin can configure many displays at once
+instead of one by one.
+
+- Create, edit and delete **profiles** per workspace. A profile holds the same **sections** as an
+  individual display: Behavior, Display, State texts, Branding and Advertisement — **including the
+  images** (logo, background, advertisement image), so one upload covers every room that follows the
+  profile. A display can still upload its own, which overrides the profile for that display only.
+- **Assigning** happens from the Displays tab: select displays with checkboxes and assign a profile in
+  bulk, or unlink them. Assigning clears the selected displays' own settings so they genuinely follow
+  the profile; a warning first states how many displays that affects. Unlinking keeps their values.
+- The Displays overview shows each display's linked profile, marked **Customised** when at least one
+  section deviates.
+- Linked displays inherit the profile's settings **live** — editing the profile updates every linked
+  display automatically.
+- **Inheritance is per section.** Each section on a display either follows the profile or has its own
+  values, shown with a "Follows profile" / "Own settings" badge. Saving a section is what detaches that
+  one section — the others keep following the profile. Every section has a "Follow profile" action to
+  hand it back, plus "Reset all sections to profile" for the whole display.
+- Deleting a profile **copies its values onto the linked displays** as their own settings, so rooms keep
+  behaving exactly as they did instead of silently reverting to defaults.
+
+---
+
+## Team & Workspaces (Pro)
+
+A workspace is the shared container for displays, boards, calendar accounts and settings — and the
+unit that billing is based on. Colleagues work together inside one workspace instead of each keeping
+a separate account with its own invisible set of displays.
+
+### Roles
+
+| | Owner | Admin | Member |
+|---|---|---|---|
+| Manage displays, boards, profiles, calendar accounts | ✓ | ✓ | ✓ |
+| Rename the workspace | ✓ | ✓ | |
+| Invite colleagues, withdraw invitations | ✓ | ✓ | |
+| Change roles, remove members | ✓ | | |
+| Billing and subscription | ✓ | | |
+
+### Invitations
+- Invite by email address as Admin or Member; ownership is never handed out by invitation
+- One click from the email joins the workspace — no separate sign-up step and no second login email
+- Valid for 7 days; can be re-sent (which invalidates the previous link) or withdrawn
+- Someone signed in under a different address is told so, instead of silently joining the wrong account
+- Removing a member takes away their access only — everything they created stays in the workspace
+
+### Bringing existing data along
+- While accepting an invitation, an invitee can move their own displays, boards, devices and calendar
+  accounts into the workspace they are joining
+- Their old workspace is left behind empty, and can then be deleted from the Team page
+
+### Switching and managing workspaces
+- Workspace switcher in the top bar, always visible, showing the current workspace and your role
+- Rename a workspace, or create an additional one (for a second site, for example)
+- Delete a leftover **empty** workspace yourself, provided you own it, you are its only member, it is
+  not being billed, and you still administer another workspace
+
+### Billing
+- Billing is per workspace: displays count once, boards count double
+- **No per-user charge** — inviting colleagues costs nothing
+- Only the owner can start or manage a subscription; other members are pointed at the owner rather
+  than shown a button that fails
+
+---
+
 ## Web Portal
 
 - **Dashboard** — overview of all connected displays and their current status
-- **Display settings** — per-display behavior configuration
-- **Display customization** — branding and visual configuration
+- **Team** — invite colleagues, manage roles, and switch between workspaces
+- **Display configuration** — one screen per display with Behavior, Display, State texts, Branding and
+  Advertisement sections, each following its profile or holding its own values. Every option carries an
+  info tooltip explaining what happens when it is switched on
+- **Profiles** — reusable settings sets, assigned to displays in bulk from the Displays tab
 - **Display diagnostics** — connection health, last sync, troubleshooting info, and a one-click reset of an errored calendar account's status so a fresh token is attempted
 - **Calendar accounts** — connect and manage Google, Microsoft, and CalDAV accounts
 - **Boards** — create and manage multi-room overview boards
@@ -167,10 +241,14 @@ The tablet app is fully localized in:
 
 ## Plans
 
+Plans apply per workspace. Usage is measured in units: a display counts as 1, a board as 2. There is
+no charge per team member.
+
 ### Free
 - 1 display
 - Real-time calendar sync
 - Basic event viewing
+- Single user — inviting colleagues requires Pro
 
 ### Pro
 - Unlimited displays
@@ -178,4 +256,5 @@ The tablet app is fully localized in:
 - Full customization (logo, background, fonts, state text, advertisement)
 - Future bookings
 - Meeting boards
+- Team collaboration — shared workspaces with Owner / Admin / Member roles, at no cost per user
 - Priority support

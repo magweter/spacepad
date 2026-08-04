@@ -2,31 +2,30 @@
 
 namespace App\Console\Commands;
 
-use App\Enums\DisplayStatus;
-use App\Models\User;
+use App\Models\Workspace;
+use App\Services\LemonSqueezyUsageService;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
+/**
+ * Push each workspace's billable usage to Lemon Squeezy.
+ *
+ * Previously iterated users and summed usage across *every* workspace they were a member
+ * of, so a person invited into a colleague's workspace had that colleague's displays and
+ * boards added to their own subscription quantity. Harmless while everyone had exactly one
+ * workspace; a real over-billing bug the moment invitations exist.
+ */
 class UpdateLemonSqueezySubscriptions extends Command
 {
-    /**
-     * The name and signature of the console command.
-     *
-     * @var string
-     */
-    protected $signature = 'app:update-lemonsqueezy-subscriptions';
+    protected $signature = 'app:update-lemonsqueezy-subscriptions {--dry-run : Show what would be pushed without calling the API}';
 
-    /**
-     * The console command description.
-     *
-     * @var string
-     */
-    protected $description = 'Update Lemon Squeezy subscriptions using both quantity-based and usage-based billing methods';
+    protected $description = 'Push billable usage (displays x1 + boards x2) per workspace to Lemon Squeezy';
 
-    /**
-     * Execute the console command.
-     */
+    public function __construct(private readonly LemonSqueezyUsageService $usage)
+    {
+        parent::__construct();
+    }
+
     public function handle(): int
     {
         if (config('settings.is_self_hosted')) {
@@ -35,329 +34,139 @@ class UpdateLemonSqueezySubscriptions extends Command
             return self::SUCCESS;
         }
 
-        $this->info('Starting Lemon Squeezy subscription updates...');
+        $dryRun = (bool) $this->option('dry-run');
 
-        // Get all users with active subscriptions
-        $usersWithSubscriptions = User::where(function ($query) {
-            $query->where('is_unlimited', true)
-                ->orWhereHas('subscriptions', function ($subQuery) {
-                    $subQuery->where('ends_at', null) // Active subscription
-                        ->orWhere('ends_at', '>', now()); // Not expired
-                });
-        })->get();
-
-        $this->info("Found {$usersWithSubscriptions->count()} users with active subscriptions");
+        if ($dryRun) {
+            $this->warn('Dry run: no API calls will be made.');
+        }
 
         $successCount = 0;
         $errorCount = 0;
+        $skippedCount = 0;
 
-        foreach ($usersWithSubscriptions as $user) {
-            try {
-                $totalUsage = $this->getTotalUsageCount($user);
+        $this->billableWorkspaces()->chunkById(200, function ($workspaces) use (&$successCount, &$errorCount, &$skippedCount, $dryRun) {
+            foreach ($workspaces as $workspace) {
+                $units = Workspace::calculateUsage($workspace->displays_count, $workspace->boards_count);
 
-                if ($user->is_manually_billed) {
-                    // Billed outside Lemon Squeezy — never push usage to LS for these users.
-                    $this->line("Skipping manually-billed user {$user->id} with {$totalUsage} total usage units");
+                try {
+                    if ($workspace->is_manually_billed) {
+                        // Invoiced through our own accounting, so there is nothing at Lemon
+                        // Squeezy to update.
+                        $this->line("Skipping manually-billed workspace {$workspace->id} ({$units} units)");
+                        $skippedCount++;
+
+                        continue;
+                    }
+
+                    if ($workspace->is_unlimited) {
+                        $this->line("Skipping unlimited workspace {$workspace->id} ({$units} units)");
+                        $skippedCount++;
+
+                        continue;
+                    }
+
+                    $subscription = $workspace->subscriptions->first();
+
+                    if (! $subscription) {
+                        $skippedCount++;
+
+                        continue;
+                    }
+
+                    if ($dryRun) {
+                        $this->line(sprintf(
+                            'workspace=%s subscription=%s units=%d',
+                            $workspace->id,
+                            $subscription->lemon_squeezy_id,
+                            $units,
+                        ));
+                        $successCount++;
+
+                        continue;
+                    }
+
+                    if (! $this->usage->hasApiKey()) {
+                        $this->warn('No Lemon Squeezy API key configured; nothing pushed.');
+                        $skippedCount++;
+
+                        continue;
+                    }
+
+                    $itemId = $this->usage->resolveSubscriptionItemId($subscription->lemon_squeezy_id);
+
+                    if (! $itemId) {
+                        $errorCount++;
+                        Log::warning('No Lemon Squeezy subscription item to bill against', [
+                            'workspace_id' => $workspace->id,
+                            'subscription_id' => $subscription->lemon_squeezy_id,
+                        ]);
+
+                        continue;
+                    }
+
+                    // The Pro variant is either quantity-based or metered, so one of these is
+                    // always a no-op. Both are attempted and the outcome logged; once it is
+                    // clear from production which one answers, the dead branch can go.
+                    $quantityOk = $this->usage->setQuantity($itemId, $units);
+                    $usageOk = $this->usage->recordUsage($itemId, $units);
+
+                    if (! $quantityOk && ! $usageOk) {
+                        // Previously these failures went to Log::debug and still counted as a
+                        // success, so a broken push looked like a clean run.
+                        $errorCount++;
+                        Log::warning('Neither billing method accepted the usage push', [
+                            'workspace_id' => $workspace->id,
+                            'subscription_item_id' => $itemId,
+                            'units' => $units,
+                        ]);
+
+                        continue;
+                    }
+
+                    Log::info('Pushed workspace usage to Lemon Squeezy', [
+                        'workspace_id' => $workspace->id,
+                        'subscription_item_id' => $itemId,
+                        'units' => $units,
+                        'quantity_accepted' => $quantityOk,
+                        'usage_record_accepted' => $usageOk,
+                    ]);
+
                     $successCount++;
-                } elseif ($user->is_unlimited) {
-                    $this->line("Skipping unlimited user {$user->id} with {$totalUsage} total usage units");
-                    $successCount++;
-                } else {
-                    // Try both quantity-based and usage-based billing methods
-                    $this->updateQuantityBasedBilling($user, $totalUsage);
-                    $this->updateUsageBasedBilling($user, $totalUsage);
-                    $successCount++;
-                    $this->info("Updated subscription for user {$user->id} with {$totalUsage} total usage units (displays + boards*2)");
+                    $this->info("Updated workspace {$workspace->id} with {$units} units (displays + boards*2)");
+                } catch (\Exception $e) {
+                    $errorCount++;
+                    $this->error("Failed to update workspace {$workspace->id}: {$e->getMessage()}");
+                    Log::error('Workspace usage push failed', [
+                        'workspace_id' => $workspace->id,
+                        'error' => $e->getMessage(),
+                    ]);
                 }
-            } catch (\Exception $e) {
-                $errorCount++;
-                $this->error("Failed to update subscription for user {$user->id}: {$e->getMessage()}");
-                Log::error('Subscription update failed', [
-                    'user_id' => $user->id,
-                    'error' => $e->getMessage(),
-                    'trace' => $e->getTraceAsString(),
-                ]);
             }
-        }
+        });
 
-        $this->info("Subscription updates completed: {$successCount} successful, {$errorCount} errors");
+        $this->info("Completed: {$successCount} pushed, {$skippedCount} skipped, {$errorCount} errors");
 
         return $errorCount === 0 ? self::SUCCESS : self::FAILURE;
     }
 
     /**
-     * Get the count of active displays for a user
+     * Workspaces that are either unlimited or carry a live subscription.
      */
-    private function getActiveDisplayCount(User $user): int
+    private function billableWorkspaces()
     {
-        return $user->displays()
-            ->whereIn('status', [DisplayStatus::READY, DisplayStatus::ACTIVE])
-            ->count();
-    }
-
-    /**
-     * Get the total usage count for a user across all their workspaces
-     * Displays count as 1x, Boards count as 2x
-     */
-    private function getTotalUsageCount(User $user): int
-    {
-        $totalUsage = 0;
-
-        foreach ($user->workspaces as $workspace) {
-            $totalUsage += $workspace->getTotalUsageCount();
-        }
-
-        return $totalUsage;
-    }
-
-    /**
-     * Update subscription using quantity-based billing
-     */
-    private function updateQuantityBasedBilling(User $user, int $displayCount): void
-    {
-        // Skip unlimited users as they don't need quantity updates
-        if ($user->is_unlimited) {
-            return;
-        }
-
-        // Skip manually-billed users — they have no LS subscription to update
-        if ($user->is_manually_billed) {
-            return;
-        }
-
-        // Get the user's active subscription
-        $subscription = $user->subscriptions()
+        return Workspace::query()
             ->where(function ($query) {
-                $query->whereNull('ends_at')
-                    ->orWhere('ends_at', '>', now());
+                $query->where('is_unlimited', true)
+                    ->orWhere('is_manually_billed', true)
+                    ->orWhereHas('subscriptions', function ($subQuery) {
+                        $subQuery->whereNull('ends_at')->orWhere('ends_at', '>', now());
+                    });
             })
-            ->first();
-
-        if (! $subscription) {
-            return; // No subscription found, skip silently
-        }
-
-        $apiKey = config('lemon-squeezy.api_key');
-        if (! $apiKey) {
-            return; // No API key, skip silently
-        }
-
-        try {
-            // Get subscription details from Lemon Squeezy API to find subscription items
-            $subscriptionResponse = Http::withToken($apiKey)
-                ->withHeaders([
-                    'Accept' => 'application/vnd.api+json',
-                ])
-                ->get('https://api.lemonsqueezy.com/v1/subscriptions/'.$subscription->lemon_squeezy_id);
-
-            if (! $subscriptionResponse->successful()) {
-                return; // Failed to fetch subscription, skip silently
-            }
-
-            $subscriptionData = $subscriptionResponse->json();
-
-            // Get subscription items from the response (handle different response structures)
-            $subscriptionItems = $this->getSubscriptionItems($subscriptionData, $apiKey, $subscription->lemon_squeezy_id);
-
-            if (empty($subscriptionItems)) {
-                return; // No subscription items found, skip silently
-            }
-
-            // Find the first subscription item (assuming single item per subscription)
-            $subscriptionItem = $subscriptionItems[0];
-            $subscriptionItemId = $this->getSubscriptionItemId($subscriptionItem);
-
-            if (! $subscriptionItemId) {
-                return; // Could not get subscription item ID, skip silently
-            }
-
-            // Update subscription item quantity using quantity-based billing
-            $response = Http::withToken($apiKey)
-                ->withHeaders([
-                    'Accept' => 'application/vnd.api+json',
-                    'Content-Type' => 'application/vnd.api+json',
-                ])
-                ->patch("https://api.lemonsqueezy.com/v1/subscription-items/{$subscriptionItemId}", [
-                    'data' => [
-                        'type' => 'subscription-items',
-                        'id' => $subscriptionItemId,
-                        'attributes' => [
-                            'quantity' => $displayCount,
-                        ],
-                    ],
-                ]);
-
-            if ($response->successful()) {
-                Log::info('Quantity-based billing updated successfully', [
-                    'user_id' => $user->id,
-                    'subscription_item_id' => $subscriptionItemId,
-                    'display_count' => $displayCount,
-                ]);
-            }
-
-        } catch (\Exception $e) {
-            // Log but don't throw - let the usage-based billing method try
-            Log::debug('Quantity-based billing update failed', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-            ]);
-        }
-    }
-
-    /**
-     * Update subscription using usage-based billing
-     */
-    private function updateUsageBasedBilling(User $user, int $displayCount): void
-    {
-        // Skip unlimited users as they don't need usage reporting
-        if ($user->is_unlimited) {
-            return;
-        }
-
-        // Skip manually-billed users — they have no LS subscription to report usage to
-        if ($user->is_manually_billed) {
-            return;
-        }
-
-        // Get the user's active subscription
-        $subscription = $user->subscriptions()
-            ->where(function ($query) {
-                $query->where('ends_at', null)
-                    ->orWhere('ends_at', '>', now());
-            })
-            ->first();
-
-        if (! $subscription) {
-            return; // No subscription found, skip silently
-        }
-
-        $apiKey = config('lemon-squeezy.api_key');
-        if (! $apiKey) {
-            return; // No API key, skip silently
-        }
-
-        try {
-            // Get subscription details from Lemon Squeezy API to find subscription items
-            $subscriptionResponse = Http::withToken($apiKey)
-                ->withHeaders([
-                    'Accept' => 'application/vnd.api+json',
-                ])
-                ->get('https://api.lemonsqueezy.com/v1/subscriptions/'.$subscription->lemon_squeezy_id);
-
-            if (! $subscriptionResponse->successful()) {
-                return; // Failed to fetch subscription, skip silently
-            }
-
-            $subscriptionData = $subscriptionResponse->json();
-
-            // Get subscription items from the response (handle different response structures)
-            $subscriptionItems = $this->getSubscriptionItems($subscriptionData, $apiKey, $subscription->lemon_squeezy_id);
-
-            if (empty($subscriptionItems)) {
-                return; // No subscription items found, skip silently
-            }
-
-            // Find the first subscription item (assuming single item per subscription)
-            $subscriptionItem = $subscriptionItems[0];
-            $subscriptionItemId = $this->getSubscriptionItemId($subscriptionItem);
-
-            if (! $subscriptionItemId) {
-                return; // Could not get subscription item ID, skip silently
-            }
-
-            // Report usage to Lemon Squeezy using the usage-records API endpoint
-            $response = Http::withToken($apiKey)
-                ->withHeaders([
-                    'Accept' => 'application/vnd.api+json',
-                    'Content-Type' => 'application/vnd.api+json',
-                ])
-                ->post('https://api.lemonsqueezy.com/v1/usage-records', [
-                    'data' => [
-                        'type' => 'usage-records',
-                        'attributes' => [
-                            'quantity' => $displayCount,
-                            'action' => 'set', // Set the usage count for the current period
-                        ],
-                        'relationships' => [
-                            'subscription-item' => [
-                                'data' => [
-                                    'type' => 'subscription-items',
-                                    'id' => $subscriptionItemId,
-                                ],
-                            ],
-                        ],
-                    ],
-                ]);
-
-            if ($response->successful()) {
-                Log::info('Usage-based billing updated successfully', [
-                    'user_id' => $user->id,
-                    'subscription_item_id' => $subscriptionItemId,
-                    'display_count' => $displayCount,
-                ]);
-            }
-
-        } catch (\Exception $e) {
-            // Log but don't throw - let the quantity-based billing method try
-            Log::debug('Usage-based billing update failed', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-            ]);
-        }
-    }
-
-    /**
-     * Extract subscription items from Lemon Squeezy API response
-     */
-    private function getSubscriptionItems(array $subscriptionData, string $apiKey, string $subscriptionId): array
-    {
-        $subscriptionItems = [];
-
-        // Check if subscription_items is in the attributes
-        if (isset($subscriptionData['data']['attributes']['subscription_items'])) {
-            $subscriptionItems = $subscriptionData['data']['attributes']['subscription_items'];
-        }
-        // Check if subscription_items is in the relationships
-        elseif (isset($subscriptionData['data']['relationships']['subscription_items']['data'])) {
-            $subscriptionItems = $subscriptionData['data']['relationships']['subscription_items']['data'];
-        }
-        // Check if subscription_items is in the included data
-        elseif (isset($subscriptionData['included'])) {
-            $subscriptionItems = collect($subscriptionData['included'])
-                ->filter(fn ($item) => $item['type'] === 'subscription-items')
-                ->toArray();
-        } else {
-            // Try to fetch subscription items directly
-            $subscriptionItemsResponse = Http::withToken($apiKey)
-                ->withHeaders([
-                    'Accept' => 'application/vnd.api+json',
-                ])
-                ->get('https://api.lemonsqueezy.com/v1/subscription-items?filter[subscription_id]='.$subscriptionId);
-
-            if ($subscriptionItemsResponse->successful()) {
-                $subscriptionItemsData = $subscriptionItemsResponse->json();
-
-                if (isset($subscriptionItemsData['data']) && ! empty($subscriptionItemsData['data'])) {
-                    $subscriptionItems = $subscriptionItemsData['data'];
-                }
-            }
-        }
-
-        return $subscriptionItems;
-    }
-
-    /**
-     * Extract subscription item ID from Lemon Squeezy API response
-     */
-    private function getSubscriptionItemId(array $subscriptionItem): ?string
-    {
-        // Handle different response structures
-        if (isset($subscriptionItem['id'])) {
-            return $subscriptionItem['id'];
-        } elseif (isset($subscriptionItem['attributes']['id'])) {
-            return $subscriptionItem['attributes']['id'];
-        }
-
-        return null;
+            ->withCount(['displays', 'boards'])
+            ->with(['subscriptions' => function ($query) {
+                $query->where(function ($q) {
+                    $q->whereNull('ends_at')->orWhere('ends_at', '>', now());
+                })->orderByDesc('created_at');
+            }]);
     }
 }

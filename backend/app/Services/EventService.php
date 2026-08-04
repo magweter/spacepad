@@ -9,6 +9,7 @@ use App\Helpers\DisplaySettings;
 use App\Models\Calendar;
 use App\Models\Display;
 use App\Models\Event;
+use App\Support\LocalDay;
 use Exception;
 use Google\Service\Calendar\Event as GoogleEvent;
 use Illuminate\Support\Arr;
@@ -32,7 +33,7 @@ class EventService
      *
      * @throws Exception
      */
-    public function getEventsForDisplay($display, ?Carbon $forDate = null): Collection
+    public function getEventsForDisplay($display, ?Carbon $forDate = null, ?LocalDay $day = null): Collection
     {
         $display = Display::query()
             ->withCount(['eventSubscriptions' => function ($query) {
@@ -42,15 +43,27 @@ class EventService
             ->findOrFail($display);
 
         // When fetching for a specific date, skip caching and side-effects.
-        // Widen the range by ±1 day so the requested LOCAL day is fully covered regardless of
-        // the display's timezone (a UTC-day window can miss the local morning/evening for
-        // far-offset zones). The app clamps events back to the selected local day.
         if ($forDate !== null) {
-            $start = $forDate->copy()->subDay()->startOfDay();
-            $end = $forDate->copy()->addDay()->endOfDay();
+            if ($day === null) {
+                // The caller did not state its timezone (an older app build). Keep the previous
+                // contract: hand back a day either side and let the client clamp, so nothing near
+                // its local midnight goes missing.
+                return $this->getAllEvents(
+                    $display,
+                    $forDate->copy()->subDay()->startOfDay(),
+                    $forDate->copy()->addDay()->endOfDay()
+                );
+            }
 
-            return $this->getAllEvents($display, $start, $end);
+            [$fetchStart, $fetchEnd] = $day->fetchRange();
+
+            return $this->clampToDay($this->getAllEvents($display, $fetchStart, $fetchEnd), $day);
         }
+
+        // For the status screen the day always matters: a client that does not state one gets the
+        // server's day rather than a wide range, because anything beyond today reads on the tablet
+        // as if it were happening now.
+        $day ??= LocalDay::serverDay(Carbon::now());
 
         // Update last sync timestamp
         $display->updateLastSyncAt();
@@ -100,7 +113,22 @@ class EventService
             $events = $this->getAllEvents($display);
         }
 
-        return $events;
+        // The cached collection deliberately spans more than a day so tablets in different
+        // timezones can share it; narrowing to the caller's day happens here, per request.
+        return $this->clampToDay($events, $day);
+    }
+
+    /**
+     * Keep only the events that touch the given day.
+     *
+     * Overlap rather than containment: a meeting running across midnight belongs to both days, and
+     * dropping it would make a room look free while it is in use.
+     */
+    private function clampToDay(Collection $events, LocalDay $day): Collection
+    {
+        return $events
+            ->filter(fn (Event $event) => $day->overlaps($event->start, $event->end))
+            ->values();
     }
 
     /**
@@ -407,6 +435,7 @@ class EventService
         }
 
         $event->update(['end' => $newEnd]);
+        $this->markEventExtended($display->id, [$event->id, $event->external_id], $newEnd);
         $this->clearEventsCache($display);
     }
 
@@ -436,6 +465,7 @@ class EventService
             $this->googleService->patchEventEndTime($calendar->googleAccount, $calendar, $externalId, $newEnd);
         }
 
+        $this->markEventExtended($display->id, [$externalId], $newEnd);
         $this->clearEventsCache($display);
     }
 
@@ -565,15 +595,19 @@ class EventService
      */
     private function getAllEvents(Display $display, ?Carbon $start = null, ?Carbon $end = null): Collection
     {
-        // Default to the display's own day. This window was briefly widened to yesterday..tomorrow
-        // (v1.8.1) so that far-offset timezones could not lose part of their local day at the UTC
-        // day boundary, on the assumption that every client clamps back to the local day. The
-        // tablet's status screen does not: it picks the first event after "now", so tomorrow's
-        // first booking showed up as "Next" with only a time, reading as if it were today.
-        // Returning just today is the safer default until the display's timezone is actually known;
-        // the ?date= endpoint keeps its wider window because the schedule view does clamp.
-        $start = $start ?? $display->getStartTime();
-        $end = $end ?? $display->getEndTime();
+        // This is the range asked of the calendar providers, not what a client gets back: callers
+        // narrow the result to their own day (see getEventsForDisplay). Staying a day either side
+        // keeps bookings near a far-offset display's local midnight inside the request, and lets
+        // one cached collection serve tablets in different timezones.
+        //
+        // Widening this window is only safe because of that narrowing. When it was widened without
+        // it (v1.8.1) the tablet's status screen picked the first event after "now", so tomorrow's
+        // first booking showed up as "Next" with just a time and read as if it were today — the
+        // reason it was reverted on dev. Every status response now goes through clampToDay(), and a
+        // client that does not state its timezone is clamped to the server's day, so that cannot
+        // happen again.
+        $start = $start ?? now()->subDay()->startOfDay();
+        $end = $end ?? now()->addDay()->endOfDay();
 
         $calendar = $display->calendar()
             ->with(['googleAccount', 'outlookAccount', 'caldavAccount', 'room'])
@@ -661,6 +695,14 @@ class EventService
 
                 if ($tabletBooking) {
                     $matchedTabletIds[$tabletBooking->id] = true;
+                }
+
+                // An event extended moments ago can still come back from the provider with its
+                // old end time. Prefer the end we know we wrote, so the tablet shows the new
+                // time on its very next refresh instead of after the provider catches up.
+                $extendedEnd = $this->getExtendedEnd($display->id, $ext['id'], $tabletBooking?->id);
+                if ($extendedEnd && $extendedEnd->gt($eventEnd)) {
+                    $eventEnd = $extendedEnd;
                 }
 
                 // Grace-period check only applies to pure external events; tablet bookings
@@ -1044,6 +1086,38 @@ class EventService
         // Keep the released flag until the event has ended + 1 hour buffer
         $ttl = $eventEnd ? max(0, $eventEnd->timestamp - now()->timestamp) + 3600 : 86400;
         Cache::put("released:{$displayId}:{$externalId}", true, $ttl);
+    }
+
+    /**
+     * Remember the end time we just wrote for an extended event.
+     *
+     * Clearing the events cache alone is not enough: Microsoft Graph and Google Calendar are
+     * eventually consistent, so the re-fetch that happens milliseconds later can still return
+     * the old end time — and that stale value would then be cached again for the full TTL.
+     * Keyed by every identifier the event can surface under (DB row id and external id),
+     * because tablet bookings are matched back to their external copy by either.
+     */
+    private function markEventExtended(string $displayId, array $eventKeys, Carbon $newEnd): void
+    {
+        foreach (array_filter($eventKeys) as $key) {
+            Cache::put("extended:{$displayId}:{$key}", $newEnd->toIso8601String(), now()->addMinutes(2));
+        }
+    }
+
+    /**
+     * Get the end time of a just-extended event, if it was extended within the last 2 minutes.
+     */
+    private function getExtendedEnd(string $displayId, ?string ...$eventKeys): ?Carbon
+    {
+        foreach (array_filter($eventKeys) as $key) {
+            $value = Cache::get("extended:{$displayId}:{$key}");
+
+            if ($value) {
+                return Carbon::parse($value);
+            }
+        }
+
+        return null;
     }
 
     /**
