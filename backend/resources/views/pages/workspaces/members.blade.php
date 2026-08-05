@@ -74,8 +74,8 @@
             </div>
             @if($monthlyCost !== null)
                 <div class="flex items-center justify-between text-sm py-2 border-t border-gray-100">
-                    <span class="text-gray-700">{{ $usageBreakdown['total'] }} unit(s) &times; &euro;{{ number_format($unitPrice, 2) }}</span>
-                    <span class="font-medium text-gray-900">&euro;{{ number_format($monthlyCost, 2) }} per month</span>
+                    <span class="text-gray-700">{{ $usageBreakdown['total'] }} unit(s) &times; {{ $currencySymbol }}{{ number_format($unitPrice, 2) }}</span>
+                    <span class="font-medium text-gray-900">{{ $currencySymbol }}{{ number_format($monthlyCost, 2) }} per month</span>
                 </div>
             @endif
         </div>
@@ -100,14 +100,29 @@
                     {{ $subscription->trial_ends_at->format('j F Y') }}. Nothing to do, and your
                     displays keep running.
                     @if($monthlyCost !== null)
-                        At your current usage that is &euro;{{ number_format($monthlyCost, 2) }} per month.
+                        At your current usage that is {{ $currencySymbol }}{{ number_format($monthlyCost, 2) }} per month.
                     @endif
                 </p>
             </div>
         @endif
 
         @can('manageBilling', $workspace)
-            @if($workspace->hasPro())
+            {{-- A manually billed workspace has no Lemon Squeezy subscription, so the modal
+                 pointing at their order emails would send them looking for something that
+                 does not exist. --}}
+            @if($workspace->is_manually_billed)
+                <p class="text-sm text-gray-500">
+                    We invoice this workspace directly at the agreed price, so there is no
+                    subscription to manage here. For anything about your invoice, email
+                    <a href="mailto:support@spacepad.io" class="text-blue-600 hover:text-blue-700">support@spacepad.io</a>.
+                </p>
+            @elseif($workspace->is_unlimited && !config('settings.is_self_hosted'))
+                {{-- Cloud only: on a self-hosted instance Pro comes from an instance licence,
+                     which is a Lemon Squeezy subscription like any other. --}}
+                <p class="text-sm text-gray-500">
+                    This workspace has Pro at no charge.
+                </p>
+            @elseif($workspace->hasPro())
                 <button type="button"
                     onclick="window.dispatchEvent(new CustomEvent('open-modal', { detail: 'manage-subscription' }))"
                     class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">

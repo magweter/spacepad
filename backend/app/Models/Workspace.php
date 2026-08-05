@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\DB;
 use LemonSqueezy\Laravel\Billable;
 use LemonSqueezy\Laravel\Checkout;
 
@@ -424,6 +425,73 @@ class Workspace extends Model
     public function getManualBillingUnitPrice(): float
     {
         return (float) ($this->manual_billing_unit_price ?? config('settings.unit_price') ?? 0);
+    }
+
+    /**
+     * The price per unit to quote on this workspace's own subscription card, or null when
+     * there is nothing honest to quote.
+     *
+     * Two billing routes, two prices. A manually billed workspace is invoiced by us, so it
+     * sees the price we actually invoice, including a negotiated one: quoting the list price
+     * to a non-profit on a discount contradicts the invoice that lands in its inbox. Every
+     * other workspace is charged by Lemon Squeezy, which only knows the list price.
+     *
+     * Null on a self-hosted instance (nothing is billed per unit there), for an unlimited
+     * workspace (it is never charged) and when no list price is configured at all.
+     */
+    public function getQuotedUnitPrice(): ?float
+    {
+        if (config('settings.is_self_hosted') || $this->is_unlimited) {
+            return null;
+        }
+
+        $price = $this->is_manually_billed
+            ? $this->getManualBillingUnitPrice()
+            : $this->subscribedUnitPrice() ?? (float) (config('settings.unit_price') ?? 0);
+
+        return $price > 0 ? $price : null;
+    }
+
+    /**
+     * What Lemon Squeezy actually charges this workspace per unit, or null if that is not
+     * known yet.
+     *
+     * Taken from the analytics snapshot, which app:refresh-analytics resolves from the Lemon
+     * Squeezy API: a coupon, a grandfathered price and a yearly interval are all already
+     * accounted for there, so this beats quoting the list price at a customer who is not on
+     * it. Read from the snapshot rather than live because a page render must never wait on
+     * their API.
+     *
+     * Per unit rather than the stored monthly total, so the amount shown follows today's
+     * usage instead of the usage at the last refresh.
+     */
+    private function subscribedUnitPrice(): ?float
+    {
+        try {
+            $snapshot = DB::table('analytics_workspaces')
+                ->where('workspace_id', $this->id)
+                ->first(['mrr_current', 'units']);
+        } catch (\Throwable) {
+            // The table is cloud-only and this must never take a page down with it.
+            return null;
+        }
+
+        if (! $snapshot || (float) $snapshot->mrr_current <= 0) {
+            return null;
+        }
+
+        return (float) $snapshot->mrr_current / max(1, (int) $snapshot->units);
+    }
+
+    /**
+     * Currency symbol belonging to getQuotedUnitPrice().
+     *
+     * Manual invoices are raised in euro by our own accounting. Lemon Squeezy charges in the
+     * store currency, US dollars, so its customers must not be shown euro amounts.
+     */
+    public function getQuotedCurrencySymbol(): string
+    {
+        return $this->is_manually_billed ? '€' : '$';
     }
 
     /**
