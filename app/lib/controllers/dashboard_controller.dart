@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:get/get.dart';
 import 'package:spacepad/components/toast.dart';
@@ -32,7 +33,25 @@ class DashboardController extends GetxController {
   
   Timer? _clock;
   Timer? _dataTimer;
-  
+
+  // Poll cadence. Each tick picks a fresh random offset inside this window instead of
+  // running on a fixed 60s period, because a fleet that all lost the server at the same
+  // moment (a reboot, a network blip) otherwise comes back in lockstep and keeps arriving
+  // in the same second of every minute from then on.
+  static const int _pollMinSeconds = 55;
+  static const int _pollJitterSeconds = 10;
+
+  // Backoff after a failed fetch. Without it an unreachable server keeps getting hit once
+  // a minute by every tablet in the building for as long as it stays down.
+  static const int _pollBackoffCapSeconds = 600;
+  int _consecutiveFailures = 0;
+
+  // Set when polling is torn down for good (room switch, dispose), so a fetch that is
+  // already in flight does not schedule another round after its timer was cancelled.
+  bool _pollingStopped = false;
+
+  final Random _random = Random();
+
   // Track refresh state to prevent spamming
   final RxBool isRefreshing = RxBool(false);
   DateTime? _lastRefreshTime;
@@ -67,14 +86,45 @@ class DashboardController extends GetxController {
   }
 
   void initializeTimers() {
-    final int millisecondsToNextSecond = DateTime.now().millisecond;
-
-    // Start a timer that aligns with the next second for data refresh (every 60 seconds)
-    Future.delayed(Duration(milliseconds: millisecondsToNextSecond), () {
-      _dataTimer = Timer.periodic(const Duration(seconds: 60), (timer) => fetchDisplayData());
-    });
+    _pollingStopped = false;
+    _scheduleNextFetch();
 
     _clock = Timer.periodic(const Duration(seconds: 1), (timer) => updateTime());
+  }
+
+  /// Schedules the next data refresh one delay ahead, rather than on a fixed period.
+  ///
+  /// Chaining the next timer only after the current fetch settles has a second benefit
+  /// over Timer.periodic: a slow or hanging request can never stack up behind itself,
+  /// so one tablet can never have several fetches in flight at once.
+  void _scheduleNextFetch() {
+    _dataTimer?.cancel();
+
+    if (_pollingStopped) return;
+
+    _dataTimer = Timer(_nextPollDelay(), () async {
+      await fetchDisplayData();
+      _scheduleNextFetch();
+    });
+  }
+
+  Duration _nextPollDelay() {
+    if (_consecutiveFailures == 0) {
+      return Duration(
+        seconds: _pollMinSeconds + _random.nextInt(_pollJitterSeconds + 1),
+      );
+    }
+
+    // Double per failure (60s, 120s, 240s, ...) up to the cap. The delay is then drawn
+    // from the whole [half, full] range instead of used as-is, so tablets that failed on
+    // the same tick do not converge on an identical retry moment — and certainly not once
+    // they all pile up against the cap.
+    final int ceiling = min(
+      60 * (1 << min(_consecutiveFailures - 1, 5)),
+      _pollBackoffCapSeconds,
+    );
+
+    return Duration(seconds: ceiling ~/ 2 + _random.nextInt(ceiling ~/ 2 + 1));
   }
 
   void startAdvertisementTimers() {
@@ -323,19 +373,22 @@ class DashboardController extends GetxController {
       isOffline.value = false;
       isServerUnreachable.value = false;
       _lastSuccessfulFetchAt = DateTime.now();
+      _consecutiveFailures = 0;
       return true;
     } catch (e) {
       isDataStale.value = true;
       isOffline.value = _isNoInternetError(e);
       isServerUnreachable.value = !_isNoInternetError(e) && _isConnectivityError(e);
+      _consecutiveFailures++;
       return false;
     }
   }
 
   void switchRoom() {
+    _pollingStopped = true;
     _clock?.cancel();
     _dataTimer?.cancel();
-    
+
     Get.offAll(() => const DisplayPage());
   }
 
@@ -362,6 +415,11 @@ class DashboardController extends GetxController {
       Toast.showSuccess('display_data_refreshed'.tr);
     }
     isRefreshing.value = false;
+
+    // Restart the cadence from now. Without this a tap during a backoff would refresh the
+    // data but leave the long retry delay standing, so the next automatic poll could still
+    // be minutes away even though the server is demonstrably reachable again.
+    _scheduleNextFetch();
   }
 
   Future<void> bookRoom(int duration) async {
@@ -717,7 +775,9 @@ class DashboardController extends GetxController {
   bool _isConnectivityError(dynamic e) {
     final s = e.toString().toLowerCase();
     return e is SocketException ||
+        e is TimeoutException ||
         s.contains('socketexception') ||
+        s.contains('timeoutexception') ||
         s.contains('failed host lookup') ||
         s.contains('network is unreachable') ||
         s.contains('connection refused') ||
@@ -726,6 +786,7 @@ class DashboardController extends GetxController {
 
   @override
   void dispose() {
+    _pollingStopped = true;
     _clock?.cancel();
     _dataTimer?.cancel();
     _bookingOptionsTimer?.cancel();

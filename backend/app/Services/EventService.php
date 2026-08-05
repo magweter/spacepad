@@ -81,7 +81,7 @@ class EventService
         if ($cacheEnabled && $display->event_subscriptions_count > 0) {
             $events = cache()->remember(
                 key: $display->getEventsCacheKey(),
-                ttl: now()->addMinutes(15),
+                ttl: $this->jitteredCacheTtl(15),
                 callback: function () use ($display) {
                     logger()->info('Fetching events from API (cache miss)', [
                         'display_id' => $display->id,
@@ -94,7 +94,7 @@ class EventService
         } elseif ($cacheEnabled) {
             $events = cache()->remember(
                 key: $display->getEventsCacheKey().':fallback',
-                ttl: now()->addMinutes(2),
+                ttl: $this->jitteredCacheTtl(2),
                 callback: function () use ($display) {
                     logger()->info('Fetching events from API (no event subscription)', [
                         'display_id' => $display->id,
@@ -116,6 +116,25 @@ class EventService
         // The cached collection deliberately spans more than a day so tablets in different
         // timezones can share it; narrowing to the caller's day happens here, per request.
         return $this->clampToDay($events, $day);
+    }
+
+    /**
+     * A cache TTL with up to 20% of extra spread added on top.
+     *
+     * The TTL is anchored to the moment of the cache miss, so displays that miss together stay
+     * phase-locked: the whole fleet re-expires inside the same window, misses together again, and
+     * sets the same TTL once more. One event that empties every entry at once — a cache flush, or a
+     * restart on a non-persistent store — is enough to enter that state, and nothing pulls it apart
+     * again, so every cycle from then on lands as a burst of external calendar calls.
+     *
+     * The extra seconds are per entry, which is what breaks the lock: each cycle spreads the fleet
+     * a little further apart until the misses are distributed across the whole interval.
+     */
+    private function jitteredCacheTtl(int $minutes): Carbon
+    {
+        $spread = (int) ceil($minutes * 60 * 0.2);
+
+        return now()->addMinutes($minutes)->addSeconds(random_int(0, $spread));
     }
 
     /**

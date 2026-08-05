@@ -104,10 +104,14 @@ class AdminController extends Controller
             },
         ]);
 
-        // RefreshAnalytics writes a row for every user with a default status of "none",
-        // so only surface subscription info when the user actually has a subscription.
-        $analyticsRow = DB::table('analytics_users')->where('user_id', $user->id)->first();
-        $subscriptionInfo = ($analyticsRow && $analyticsRow->subscription_status !== 'none') ? [
+        // RefreshAnalytics writes a row per membership, and only the row of the member who
+        // carries the billing holds the subscription. Anyone else gets "member" (a colleague
+        // on someone else's plan) or "none" (nothing to bill) — neither is worth surfacing.
+        $analyticsRow = DB::table('analytics_users')
+            ->where('user_id', $user->id)
+            ->orderByDesc('is_billing_owner')
+            ->first();
+        $subscriptionInfo = ($analyticsRow && ! in_array($analyticsRow->subscription_status, ['none', 'member'], true)) ? [
             'status' => $analyticsRow->subscription_status,
             'price' => $analyticsRow->mrr_current,
             'mrr' => $analyticsRow->mrr_current,
@@ -174,7 +178,7 @@ class AdminController extends Controller
             'manual_billing_unit_price' => $workspace->manual_billing_unit_price,
         ]);
 
-        $this->refreshManualMrr($workspace, $user);
+        $this->refreshManualMrr($workspace);
 
         return back()->with('success', 'Billing settings updated.');
     }
@@ -196,7 +200,7 @@ class AdminController extends Controller
      * Only while manually billed — once the flag is off, Lemon Squeezy is the only source
      * for MRR, so the row is left for the scheduled refresh to re-derive.
      */
-    private function refreshManualMrr(Workspace $workspace, User $user): void
+    private function refreshManualMrr(Workspace $workspace): void
     {
         if (! $workspace->is_manually_billed) {
             return;
@@ -208,13 +212,19 @@ class AdminController extends Controller
                 $workspace->boards()->count(),
             );
 
-            DB::table('analytics_users')->where('user_id', $user->id)->update([
-                'subscription_status' => 'manual',
-                'billing_interval' => 'monthly',
-                'mrr_current' => $mrr,
-                'mrr_expected' => $mrr,
-                'updated_at' => now(),
-            ]);
+            // Target the workspace's billing row only. Updating every row this user appears
+            // on would repeat the same MRR across each of their memberships, which is exactly
+            // the double count the snapshot is built to avoid.
+            DB::table('analytics_users')
+                ->where('workspace_id', $workspace->id)
+                ->where('is_billing_owner', true)
+                ->update([
+                    'subscription_status' => 'manual',
+                    'billing_interval' => 'monthly',
+                    'mrr_current' => $mrr,
+                    'mrr_expected' => $mrr,
+                    'updated_at' => now(),
+                ]);
         } catch (\Exception $e) {
             // Analytics table isn't present (e.g. self-hosted) — the scheduled refresh will catch up.
         }

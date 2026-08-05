@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -12,6 +13,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
   ApiService._();
+
+  /// Cap on how long a single request may take.
+  ///
+  /// Without this the socket falls back to the platform's TCP timeout, which on Android is
+  /// over two minutes. A server that stops accepting connections (a restart, say) would
+  /// then leave requests hanging far longer than the poll interval, and every one of them
+  /// completes the instant the server comes back — the whole fleet at once.
+  static const Duration _requestTimeout = Duration(seconds: 15);
 
   static Future<bool> setBaseUrl(String apiUrl) async {
     var sharedPrefs = await SharedPreferences.getInstance();
@@ -34,7 +43,9 @@ class ApiService {
     if (kDebugMode) print('GET: $baseUrl$endpoint');
 
     try {
-      Response response = await http.get(Uri.parse('$baseUrl$endpoint'), headers: _getHeaders());
+      Response response = await http
+          .get(Uri.parse('$baseUrl$endpoint'), headers: _getHeaders())
+          .timeout(_requestTimeout);
 
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
@@ -62,7 +73,7 @@ class ApiService {
           Uri.parse('$baseUrl$endpoint'),
           headers: _getHeaders(),
           body: jsonEncode(body)
-      );
+      ).timeout(_requestTimeout);
 
       if ([200, 201, 202, 204].contains(response.statusCode)) {
         return jsonDecode(response.body);
@@ -84,7 +95,7 @@ class ApiService {
           Uri.parse('$baseUrl$endpoint'),
           headers: _getHeaders(),
           body: jsonEncode(body)
-      );
+      ).timeout(_requestTimeout);
 
       if ([200, 201, 202, 204].contains(response.statusCode)) {
         return jsonDecode(response.body);
@@ -106,7 +117,7 @@ class ApiService {
           Uri.parse('$baseUrl$endpoint'),
           headers: _getHeaders(),
           body: jsonEncode(body)
-      );
+      ).timeout(_requestTimeout);
 
       if (response.statusCode == 204) {
         return;

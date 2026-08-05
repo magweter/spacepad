@@ -69,7 +69,8 @@ The schedule view shows all events for today, tomorrow, and yesterday.
 ### Stale Data & Connectivity Indicators
 - Stale data warning when the display hasn't synced recently
 - Distinction between **no internet** and **server unreachable**
-- Tap the indicator to manually trigger a refresh
+- Tap the indicator to manually trigger a refresh — this also resets the retry schedule
+- While the server stays unreachable the tablet retries with increasing delays (up to 10 minutes) instead of every minute, so a whole building of tablets does not hammer a recovering server
 
 ---
 
@@ -197,6 +198,10 @@ a separate account with its own invisible set of displays.
 - **No per-user charge** — inviting colleagues costs nothing
 - Only the owner can start or manage a subscription; other members are pointed at the owner rather
   than shown a button that fails
+- A workspace on trial is simply an activated workspace: the trial converts to a paid subscription on
+  its own, so nothing on the dashboard asks anyone to buy. The workspace page carries the countdown,
+  the date the subscription starts, and what the current usage costs per month
+- A workspace that already has a subscription cannot start a second checkout
 
 ---
 

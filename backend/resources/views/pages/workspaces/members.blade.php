@@ -72,7 +72,39 @@
                 <span class="font-medium text-blue-900">Total billed to subscription</span>
                 <span class="font-bold text-blue-900">{{ $usageBreakdown['total'] }} unit(s)</span>
             </div>
+            @if($monthlyCost !== null)
+                <div class="flex items-center justify-between text-sm py-2 border-t border-gray-100">
+                    <span class="text-gray-700">{{ $usageBreakdown['total'] }} unit(s) &times; &euro;{{ number_format($unitPrice, 2) }}</span>
+                    <span class="font-medium text-gray-900">&euro;{{ number_format($monthlyCost, 2) }} per month</span>
+                </div>
+            @endif
         </div>
+
+        {{-- Trial countdown. A trial is an ordinary subscription that Lemon Squeezy converts on
+             its own, so this states when that happens rather than asking anyone to buy: a second
+             checkout would create a second subscription and bill the workspace twice. --}}
+        @if($subscription?->onTrial() && $subscription->trial_ends_at)
+            @php $trialDaysLeft = (int) ceil(now()->diffInDays($subscription->trial_ends_at, false)) @endphp
+            <div class="mb-5 rounded-lg bg-blue-50 border border-blue-100 p-4">
+                <p class="text-sm font-semibold text-blue-900">
+                    @if($trialDaysLeft <= 0)
+                        Your trial ends today
+                    @elseif($trialDaysLeft === 1)
+                        1 day left of your trial
+                    @else
+                        {{ $trialDaysLeft }} days left of your trial
+                    @endif
+                </p>
+                <p class="text-sm text-blue-800 mt-1">
+                    Your subscription starts automatically on
+                    {{ $subscription->trial_ends_at->format('j F Y') }} — nothing to do, and your
+                    displays keep running.
+                    @if($monthlyCost !== null)
+                        At your current usage that is &euro;{{ number_format($monthlyCost, 2) }} per month.
+                    @endif
+                </p>
+            </div>
+        @endif
 
         @can('manageBilling', $workspace)
             @if($workspace->hasPro())

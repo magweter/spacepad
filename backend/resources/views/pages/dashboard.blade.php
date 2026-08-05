@@ -165,45 +165,10 @@
         </div>
     @endif
 
-    {{-- Trial Countdown Banner --}}
-    @if(!$isSelfHosted && $trialSubscription && $trialSubscription->trial_ends_at)
-        @php $trialDaysLeft = (int) ceil(now()->diffInDays($trialSubscription->trial_ends_at, false)) @endphp
-        @if($trialSubscription->trial_ends_at->isFuture() && $trialDaysLeft <= 14)
-            <div class="mb-4 rounded-xl bg-amber-50 border border-amber-200 p-4 flex items-center gap-4">
-                <div class="flex-shrink-0">
-                    <span class="inline-flex items-center justify-center h-10 w-10 rounded-full bg-amber-100">
-                        <svg class="h-5 w-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
-                        </svg>
-                    </span>
-                </div>
-                <div class="flex-1">
-                    <h3 class="text-sm font-semibold text-amber-900">
-                        @if($trialDaysLeft === 0)
-                            Your trial expires today
-                        @elseif($trialDaysLeft === 1)
-                            Your trial expires tomorrow
-                        @else
-                            Your trial expires in {{ $trialDaysLeft }} days
-                        @endif
-                    </h3>
-                    <p class="text-sm text-amber-800">Subscribe now to keep all your displays running without interruption.</p>
-                </div>
-                <div class="flex-shrink-0">
-                    @if($canPay)
-                        <form action="{{ route('billing.checkout') }}" method="POST">
-                            @csrf
-                            <button type="submit" class="inline-flex items-center rounded-md bg-amber-600 px-3 py-2 text-sm font-semibold text-white shadow-xs hover:bg-amber-700">
-                                Subscribe now
-                            </button>
-                        </form>
-                    @else
-                        <p class="text-sm text-amber-800">Ask the owner of this workspace to subscribe.</p>
-                    @endif
-                </div>
-            </div>
-        @endif
-    @endif
+    {{-- No trial banner here on purpose. A trial is an ordinary subscription that converts by
+         itself, so hasPro() is already true and the workspace is simply activated. Urging
+         someone to "subscribe now" would be untrue, and acting on it would buy a second
+         subscription. The countdown and the cost live on the workspace page instead. --}}
 
     {{-- Getting Started Checklist --}}
     @php

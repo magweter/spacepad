@@ -23,6 +23,15 @@ class BillingController extends Controller
         abort_unless($workspace !== null, 404, 'No workspace found');
         $this->authorize('manageBilling', $workspace);
 
+        // Lemon Squeezy happily sells a second subscription for the same workspace, and
+        // Checkout::url() asks it to without ever looking at what is already there. A trial
+        // counts as subscribed, so this also covers the window in which someone is trialling
+        // and follows a stale tab or an old link back to the checkout.
+        if ($workspace->subscribed()) {
+            return redirect()->route('workspaces.members')
+                ->with('info', 'This workspace already has a subscription.');
+        }
+
         $checkout = $workspace->getCheckoutUrl(route('billing.thanks'));
 
         abort_if($checkout === null, 404);

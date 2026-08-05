@@ -23,6 +23,8 @@ beforeEach(function () {
         '2026_05_30_000002_add_workspace_to_analytics_users.php',
         '2026_05_30_000003_add_subscription_columns_to_analytics_instances.php',
         '2026_07_05_000001_create_billing_changes_table.php',
+        '2026_08_04_000001_scope_analytics_users_to_workspaces.php',
+        '2026_08_04_000002_add_workspace_to_billing_changes.php',
     ] as $file) {
         $migration = require database_path("migrations/{$file}");
         $migration->up();

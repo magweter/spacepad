@@ -28,6 +28,14 @@ class WorkspaceMemberController extends Controller
 
         $this->authorize('viewMembers', $workspace);
 
+        $usageBreakdown = $workspace->getUsageBreakdown();
+
+        // A trial is a real subscription that converts on its own, so the dashboard treats a
+        // trialling workspace as activated. The countdown belongs here instead, next to the
+        // usage it will be charged for.
+        $subscription = config('settings.is_self_hosted') ? null : $workspace->subscription();
+        $unitPrice = (float) (config('settings.cloud_hosted_pro_unit_price') ?? 0);
+
         return view('pages.workspaces.members', [
             'workspace' => $workspace,
             'members' => $workspace->members()->orderBy('name')->get(),
@@ -36,7 +44,10 @@ class WorkspaceMemberController extends Controller
             'canInvite' => $user->hasProForWorkspace($workspace),
             // Billing belongs to the workspace, so the usage that is charged for is shown
             // here rather than on the personal account page.
-            'usageBreakdown' => $workspace->getUsageBreakdown(),
+            'usageBreakdown' => $usageBreakdown,
+            'subscription' => $subscription,
+            'unitPrice' => $unitPrice > 0 ? $unitPrice : null,
+            'monthlyCost' => $unitPrice > 0 ? $unitPrice * $usageBreakdown['total'] : null,
         ]);
     }
 

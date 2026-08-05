@@ -93,15 +93,6 @@ class DashboardController extends Controller
             ? Device::where('workspace_id', $selectedWorkspace->id)->exists()
             : false;
 
-        $trialSubscription = null;
-        if (! $isSelfHosted) {
-            // The subscription belongs to the workspace now, not the person looking at it.
-            $sub = $selectedWorkspace?->subscription();
-            if ($sub && $sub->onTrial()) {
-                $trialSubscription = $sub;
-            }
-        }
-
         return view('pages.dashboard', [
             'outlookAccounts' => $outlookAccounts,
             'googleAccounts' => $googleAccounts,
@@ -119,7 +110,6 @@ class DashboardController extends Controller
             'isSelfHosted' => $isSelfHosted,
             'hasDisplay' => $hasDisplay,
             'hasDevice' => $hasDevice,
-            'trialSubscription' => $trialSubscription,
         ]);
     }
 }
