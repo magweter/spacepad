@@ -17,7 +17,7 @@ uses(RefreshDatabase::class);
  */
 function pendingInvitation(string $email = 'trnka@playup.sk', WorkspaceRole $role = WorkspaceRole::MEMBER): array
 {
-    $owner = User::factory()->active()->create(['is_unlimited' => true]);
+    $owner = User::factory()->active()->unlimited()->create();
     $workspace = Workspace::factory()->create(['name' => 'Playup']);
 
     WorkspaceMember::create([

@@ -35,7 +35,7 @@
                                     @endif
                                 </td>
                                 <td class="px-3 py-3 text-sm text-gray-500">
-                                    {{ $item->submittedBy?->name ?? '—' }}<br>
+                                    {{ $item->submittedBy?->name ?? '-' }}<br>
                                     <span class="text-xs text-gray-400">{{ $item->submittedBy?->email }}</span>
                                 </td>
                                 <td class="px-3 py-3 text-sm text-gray-500">{{ $item->created_at->format('d M Y') }}</td>
@@ -90,7 +90,7 @@
                                 </span>
                             </td>
                             <td class="px-3 py-3 text-sm text-gray-500">
-                                {{ $item->expected_at?->format('M Y') ?? '—' }}
+                                {{ $item->expected_at?->format('M Y') ?? '-' }}
                             </td>
                             <td class="px-3 py-3 text-sm font-semibold text-gray-700">
                                 {{ $item->votes_count }}

@@ -16,7 +16,7 @@ class RefreshAnalytics extends Command
 {
     protected $signature = 'app:refresh-analytics {--mrr : Also refresh MRR data from LemonSqueezy API}';
 
-    protected $description = 'Refresh analytics_users and analytics_instances snapshot tables for Metabase';
+    protected $description = 'Refresh the analytics_workspaces and analytics_instances snapshot tables for Metabase';
 
     public function handle(): int
     {
@@ -43,7 +43,7 @@ class RefreshAnalytics extends Command
             $withMrr = $this->option('mrr');
             $this->info('Refreshing analytics tables'.($withMrr ? ' (including MRR)' : '').'...');
 
-            $this->refreshUsers($withMrr);
+            $this->refreshWorkspaces($withMrr);
             $this->refreshInstances($withMrr);
 
             $this->info('Analytics refresh completed.');
@@ -54,36 +54,26 @@ class RefreshAnalytics extends Command
         return self::SUCCESS;
     }
 
-    private function refreshUsers(bool $withMrr): void
+    private function refreshWorkspaces(bool $withMrr): void
     {
         $now = now();
 
-        // Last run's figures, keyed by workspace. Both the MRR carried over on a fast run and
-        // the licence-change detection key on the workspace rather than on a user: the
-        // subscription belongs to the workspace, so handing billing to a colleague is not a
-        // change in usage and must not be reported as one.
-        //
-        // Deliberately not filtered to is_billing_owner. The first run after this became a
-        // per-membership snapshot finds that flag false on every row, and filtering on it
-        // would carry nothing over and reset every subscription's MRR to zero until an --mrr
-        // run happened to succeed. Ordering ascending instead means the owner's row is the
-        // last one keyBy() sees, so it wins wherever one exists.
-        $previous = DB::table('analytics_users')
-            ->whereNotNull('workspace_id')
-            ->orderBy('is_billing_owner')
-            ->select('workspace_id', 'displays_count', 'boards_count', 'mrr_current', 'mrr_expected', 'billing_interval')
+        // Last run's money figures, so a fast refresh does not clobber what an --mrr run
+        // fetched from the API. Usage is not carried over: it is read straight off the
+        // workspace's counter columns, which are always current.
+        $previous = DB::table('analytics_workspaces')
+            ->select('workspace_id', 'mrr_current', 'mrr_expected', 'billing_interval')
             ->get()
             ->keyBy('workspace_id');
 
-        $changes = [];
         $rowCount = 0;
 
-        // Walking workspaces rather than users is what keeps usage counted once: each
-        // workspace is visited exactly once and its figures land on exactly one member.
-        // Chunked so memory stays flat as the table grows.
+        // One row per workspace, because that is what carries a subscription. Chunked so
+        // memory stays flat as the table grows.
         Workspace::query()
-            ->withCount(['displays', 'boards', 'rooms'])
+            ->withCount(['rooms', 'members'])
             ->withMax('devices', 'last_activity_at')
+            ->withMax('members', 'last_activity_at')
             ->with([
                 'members' => fn ($q) => $q->whereNull('users.deleted_at')->orderByPivot('created_at'),
                 'billingOwnerUser',
@@ -91,64 +81,30 @@ class RefreshAnalytics extends Command
                     ->where(fn ($sub) => $sub->whereNull('ends_at')->orWhere('ends_at', '>', $now))
                     ->orderByDesc('created_at'),
             ])
-            ->chunkById(200, function ($workspaces) use (&$changes, &$rowCount, $withMrr, $now, $previous) {
+            ->chunkById(200, function ($workspaces) use (&$rowCount, $withMrr, $now, $previous) {
                 $rows = [];
 
                 foreach ($workspaces as $workspace) {
-                    $snapshot = $previous->get($workspace->id);
-                    $billingUser = $this->resolveBillingUser($workspace);
-                    $billing = $this->resolveBilling($workspace, $withMrr, $snapshot);
+                    $billing = $this->resolveBilling($workspace, $withMrr, $previous->get($workspace->id));
+                    $rows[] = $this->workspaceRow($workspace, $billing, $now);
 
-                    if ($change = $this->detectLicenceChange($workspace, $billing, $billingUser, $snapshot, $now)) {
-                        $changes[] = $change;
-                    }
-
-                    foreach ($workspace->members as $member) {
-                        $rows[] = $this->userRow(
-                            $member,
-                            $workspace,
-                            $member->id === $billingUser?->id ? $billing : null,
-                            $now
-                        );
+                    if ($withMrr) {
+                        $this->priceOutstandingChanges($workspace, $billing);
                     }
                 }
 
                 $rowCount += count($rows);
-                $this->upsertUserRows($rows);
+                $this->upsertWorkspaceRows($rows);
             });
 
-        // Someone who belongs to no workspace still deserves a row: they registered, there
-        // is simply nothing to bill yet.
-        User::query()
-            ->whereNull('deleted_at')
-            ->whereDoesntHave('workspaces')
-            ->chunkById(500, function ($users) use (&$rowCount, $now) {
-                $rows = [];
-
-                foreach ($users as $user) {
-                    $rows[] = $this->userRow($user, null, null, $now);
-                }
-
-                $rowCount += count($rows);
-                $this->upsertUserRows($rows);
-            });
-
-        // Whatever this run did not stamp belongs to a user or workspace that is gone. Only
-        // prune when something was seen: after a failed run the timestamp filter would
-        // otherwise match every row and wipe the snapshot.
+        // Whatever this run did not stamp belongs to a workspace that is gone. Only prune
+        // when something was seen: after a failed run the timestamp filter would otherwise
+        // match every row and wipe the snapshot.
         if ($rowCount > 0) {
-            DB::table('analytics_users')->where('refreshed_at', '<', $now)->delete();
+            DB::table('analytics_workspaces')->where('refreshed_at', '<', $now)->delete();
         }
 
-        $this->line("Upserted {$rowCount} user rows.");
-
-        foreach (array_chunk($changes, 100) as $chunk) {
-            DB::table('billing_changes')->insert($chunk);
-        }
-
-        if ($changes !== []) {
-            $this->line('Recorded '.count($changes).' billing change(s).');
-        }
+        $this->line("Upserted {$rowCount} workspace rows.");
     }
 
     /**
@@ -181,12 +137,15 @@ class RefreshAnalytics extends Command
      */
     private function resolveBilling(Workspace $workspace, bool $withMrr, ?object $previous): array
     {
-        $displays = (int) ($workspace->displays_count ?? 0);
-        $boards = (int) ($workspace->boards_count ?? 0);
+        // Straight off the counter columns. Nothing here counts rows: what the snapshot
+        // reports and what the customer is invoiced for are the same two numbers.
+        $displays = (int) $workspace->displays_count;
+        $boards = (int) $workspace->boards_count;
 
         $billing = [
             'displays_count' => $displays,
             'boards_count' => $boards,
+            'units' => Workspace::calculateUsage($displays, $boards),
             'rooms_count' => (int) ($workspace->rooms_count ?? 0),
             'is_unlimited' => (bool) $workspace->is_unlimited,
             'subscription_status' => 'none',
@@ -207,7 +166,7 @@ class RefreshAnalytics extends Command
             // precedence so it wins over any stale LS subscription.
             $billing['subscription_status'] = 'manual';
             $billing['billing_interval'] = 'monthly';
-            $billing['mrr_current'] = $workspace->calculateManualMrr($displays, $boards);
+            $billing['mrr_current'] = $workspace->calculateManualMrr();
             $billing['mrr_expected'] = $billing['mrr_current'];
 
             return $billing;
@@ -219,7 +178,7 @@ class RefreshAnalytics extends Command
             return $billing;
         }
 
-        $subscription = $workspace->subscriptions->first();
+        $subscription = $workspace->liveSubscription();
 
         if (! $subscription) {
             return $billing;
@@ -234,7 +193,7 @@ class RefreshAnalytics extends Command
         if ($withMrr) {
             $apiData = $this->fetchSubscriptionFromApi(
                 $subscription->lemon_squeezy_id,
-                Workspace::calculateUsage($displays, $boards)
+                $billing['units']
             );
 
             if ($apiData) {
@@ -250,97 +209,40 @@ class RefreshAnalytics extends Command
     }
 
     /**
-     * A change in what this workspace is charged for, measured against the last snapshot.
-     *
-     * Billable usage is the trigger; the MRR either side is recorded alongside it. A
-     * workspace without a previous snapshot is skipped, so the first run after a deploy does
-     * not report every existing customer as having grown from zero.
+     * One workspace, as the reporting layer sees it.
      *
      * @param  array<string, mixed>  $billing
-     * @return array<string, mixed>|null
-     */
-    private function detectLicenceChange(Workspace $workspace, array $billing, ?User $billingUser, ?object $previous, Carbon $now): ?array
-    {
-        if (! $previous || ! $billingUser) {
-            return null;
-        }
-
-        $newLicenceCount = Workspace::calculateUsage($billing['displays_count'], $billing['boards_count']);
-        $previousLicenceCount = Workspace::calculateUsage((int) $previous->displays_count, (int) $previous->boards_count);
-
-        if ($newLicenceCount === $previousLicenceCount) {
-            return null;
-        }
-
-        $previousMrr = (float) $previous->mrr_current;
-
-        return [
-            // Who to contact: the member carrying the billing at the moment of detection.
-            'user_id' => $billingUser->id,
-            'email' => $billingUser->email,
-            'name' => $billingUser->name,
-            // What actually changed.
-            'workspace_id' => $workspace->id,
-            'workspace_name' => $workspace->name,
-            'previous_displays_count' => (int) $previous->displays_count,
-            'new_displays_count' => $billing['displays_count'],
-            'previous_boards_count' => (int) $previous->boards_count,
-            'new_boards_count' => $billing['boards_count'],
-            'previous_license_count' => $previousLicenceCount,
-            'new_license_count' => $newLicenceCount,
-            'license_delta' => $newLicenceCount - $previousLicenceCount,
-            'previous_mrr' => $previousMrr,
-            'new_mrr' => $billing['mrr_current'],
-            'mrr_delta' => $billing['mrr_current'] - $previousMrr,
-            'change_type' => $newLicenceCount > $previousLicenceCount ? 'increase' : 'decrease',
-            'subscription_status' => $billing['subscription_status'],
-            'detected_at' => $now,
-            'created_at' => $now,
-            'updated_at' => $now,
-        ];
-    }
-
-    /**
-     * One row per membership.
-     *
-     * `$billing` is filled only for the member who carries the workspace's billing; every
-     * other row keeps the workspace figures at zero, so a SUM over this table is a sum over
-     * workspaces rather than over colleagues.
-     *
-     * @param  array<string, mixed>|null  $billing
      * @return array<string, mixed>
      */
-    private function userRow(User $user, ?Workspace $workspace, ?array $billing, Carbon $now): array
+    private function workspaceRow(Workspace $workspace, array $billing, Carbon $now): array
     {
+        $contact = $this->resolveBillingUser($workspace);
+
         return [
-            'user_id' => $user->id,
-            'workspace_id' => $workspace?->id,
-            'workspace_name' => $workspace?->name,
-            'is_billing_owner' => $billing !== null,
-            'email' => $user->email,
-            'name' => $user->name,
-            'registered_at' => $user->created_at,
-            'last_user_activity_at' => $user->last_activity_at,
-            // Workspace-wide, and on every member's row rather than only the billing owner's:
-            // the tablets belong to the team, so a colleague in a workspace whose displays are
-            // live is an active user too. Safe to repeat because it is a timestamp, not a
-            // figure anything sums.
-            'last_device_activity_at' => $workspace?->devices_max_last_activity_at,
-            'is_unlimited' => $billing['is_unlimited'] ?? false,
-            'displays_count' => $billing['displays_count'] ?? 0,
-            'boards_count' => $billing['boards_count'] ?? 0,
-            'rooms_count' => $billing['rooms_count'] ?? 0,
-            // 'member' rather than 'none': this row is not an account that never subscribed,
-            // it is a colleague on someone else's plan. Lumping the two together would
-            // inflate every count of unconverted accounts.
-            'subscription_status' => $billing['subscription_status'] ?? ($workspace ? 'member' : 'none'),
-            'billing_interval' => $billing['billing_interval'] ?? null,
-            'trial_ends_at' => $billing['trial_ends_at'] ?? null,
-            'subscription_ends_at' => $billing['subscription_ends_at'] ?? null,
-            'subscription_renews_at' => $billing['subscription_renews_at'] ?? null,
-            'lemon_squeezy_id' => $billing['lemon_squeezy_id'] ?? null,
-            'mrr_current' => $billing['mrr_current'] ?? 0,
-            'mrr_expected' => $billing['mrr_expected'] ?? 0,
+            'workspace_id' => $workspace->id,
+            'workspace_name' => $workspace->name,
+            'members_count' => (int) ($workspace->members_count ?? 0),
+            'billing_user_id' => $contact?->id,
+            'billing_user_email' => $contact?->email,
+            'billing_user_name' => $contact?->name,
+            'displays_count' => $billing['displays_count'],
+            'boards_count' => $billing['boards_count'],
+            'rooms_count' => $billing['rooms_count'],
+            'units' => $billing['units'],
+            'is_unlimited' => $billing['is_unlimited'],
+            'is_manually_billed' => (bool) $workspace->is_manually_billed,
+            'manual_billing_unit_price' => $workspace->manual_billing_unit_price,
+            'subscription_status' => $billing['subscription_status'],
+            'billing_interval' => $billing['billing_interval'],
+            'trial_ends_at' => $billing['trial_ends_at'],
+            'subscription_ends_at' => $billing['subscription_ends_at'],
+            'subscription_renews_at' => $billing['subscription_renews_at'],
+            'lemon_squeezy_id' => $billing['lemon_squeezy_id'],
+            'mrr_current' => $billing['mrr_current'],
+            'mrr_expected' => $billing['mrr_expected'],
+            'workspace_created_at' => $workspace->created_at,
+            'last_member_activity_at' => $workspace->members_max_last_activity_at,
+            'last_device_activity_at' => $workspace->devices_max_last_activity_at,
             'refreshed_at' => $now,
             'created_at' => $now,
             'updated_at' => $now,
@@ -350,17 +252,67 @@ class RefreshAnalytics extends Command
     /**
      * @param  array<int, array<string, mixed>>  $rows
      */
-    private function upsertUserRows(array $rows): void
+    private function upsertWorkspaceRows(array $rows): void
     {
         foreach (array_chunk($rows, 100) as $chunk) {
-            DB::table('analytics_users')->upsert(
+            DB::table('analytics_workspaces')->upsert(
                 $chunk,
-                ['user_id', 'workspace_id'],
-                ['workspace_name', 'is_billing_owner', 'email', 'name', 'registered_at', 'last_user_activity_at',
-                    'last_device_activity_at', 'is_unlimited', 'displays_count', 'boards_count', 'rooms_count',
-                    'subscription_status', 'billing_interval', 'trial_ends_at', 'subscription_ends_at',
-                    'subscription_renews_at', 'lemon_squeezy_id', 'mrr_current', 'mrr_expected', 'refreshed_at', 'updated_at']
+                ['workspace_id'],
+                ['workspace_name', 'members_count', 'billing_user_id', 'billing_user_email', 'billing_user_name',
+                    'displays_count', 'boards_count', 'rooms_count', 'units', 'is_unlimited', 'is_manually_billed',
+                    'manual_billing_unit_price', 'subscription_status', 'billing_interval', 'trial_ends_at',
+                    'subscription_ends_at', 'subscription_renews_at', 'lemon_squeezy_id', 'mrr_current',
+                    'mrr_expected', 'workspace_created_at', 'last_member_activity_at', 'last_device_activity_at',
+                    'refreshed_at', 'updated_at']
             );
+        }
+    }
+
+    /**
+     * Put a price on the changes RecordBillingChange could not price itself.
+     *
+     * A usage change is recorded the moment it happens, which is long before anyone has
+     * asked Lemon Squeezy what the subscription is now worth. Those rows carry a null
+     * new_mrr until a run with --mrr gets an answer.
+     *
+     * Priced per row from the unit rate rather than by stamping the current MRR on all of
+     * them: several changes can pile up between two runs, and giving each of them the
+     * end-state figure would say the first display cost as much as all of them together.
+     *
+     * @param  array<string, mixed>  $billing
+     */
+    private function priceOutstandingChanges(Workspace $workspace, array $billing): void
+    {
+        $units = (int) $billing['units'];
+        $mrr = (float) $billing['mrr_current'];
+
+        if ($units < 1 || $mrr <= 0) {
+            return;
+        }
+
+        $unitPrice = $mrr / $units;
+
+        // Fetched up front rather than chunked. Writing new_mrr takes each row out of the
+        // whereNull filter, so a paged walk would shift under itself and skip rows. The set
+        // is only what has gone unpriced since the last --mrr run, per workspace.
+        $pending = DB::table('billing_changes')
+            ->where('workspace_id', $workspace->id)
+            ->whereNull('new_mrr')
+            ->orderBy('id')
+            ->get();
+
+        foreach ($pending as $change) {
+            $newMrr = round($unitPrice * (int) $change->new_license_count, 2);
+            $previousMrr = $change->previous_mrr !== null
+                ? (float) $change->previous_mrr
+                : round($unitPrice * (int) $change->previous_license_count, 2);
+
+            DB::table('billing_changes')->where('id', $change->id)->update([
+                'previous_mrr' => $previousMrr,
+                'new_mrr' => $newMrr,
+                'mrr_delta' => round($newMrr - $previousMrr, 2),
+                'updated_at' => now(),
+            ]);
         }
     }
 
@@ -387,8 +339,12 @@ class RefreshAnalytics extends Command
             $mrrExpected = (float) ($existingMrrExpected[$instance->id] ?? 0);
 
             if ($withMrr && $instance->license_key) {
-                // Billable usage: displays count as 1x, boards as 2x (see Workspace::getTotalUsageCount)
-                $billableUsage = max(1, (int) $instance->displays_count + ((int) $instance->boards_count * 2));
+                // A self-hosted instance reports its totals over the wire rather than
+                // holding workspaces, but it is priced by the same rule.
+                $billableUsage = max(1, Workspace::calculateUsage(
+                    (int) $instance->displays_count,
+                    (int) $instance->boards_count,
+                ));
                 $instanceMrr = $this->fetchInstanceMrr($instance->license_key, $billableUsage);
 
                 if ($instanceMrr) {

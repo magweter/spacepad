@@ -2,6 +2,10 @@
 @section('title', 'Merge workspaces')
 
 @section('content')
+    <x-admin.stats />
+
+    <x-admin.tabs active="merge" />
+
     <x-alerts.alert />
 
     <x-cards.card class="mb-6">
@@ -112,7 +116,7 @@
                 @else
                     <ul class="text-sm text-gray-700 space-y-0.5">
                         @foreach($preview['members'] as $member)
-                            <li>{{ $member['email'] }} — {{ $member['from'] }} &rarr; {{ $member['to'] }}</li>
+                            <li>{{ $member['email'] }}: {{ $member['from'] }} &rarr; {{ $member['to'] }}</li>
                         @endforeach
                     </ul>
                 @endif
@@ -131,7 +135,7 @@
                 <div class="bg-white rounded-lg p-4 mb-4">
                     <h3 class="text-sm font-semibold text-gray-900 mb-2">Duplicate calendar accounts</h3>
                     <p class="text-xs text-gray-500 mb-2">
-                        These will be moved as additional connected accounts, not merged — their OAuth
+                        These will be moved as additional connected accounts, not merged. Their OAuth
                         tokens differ and re-pointing calendars would break sync. Disconnect one by hand
                         afterwards.
                     </p>

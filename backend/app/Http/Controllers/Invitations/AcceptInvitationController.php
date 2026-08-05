@@ -147,7 +147,7 @@ class AcceptInvitationController extends Controller
                     $request->boolean('adopt_orphans'),
                 );
 
-                $message .= " Your data from \"{$source->name}\" has been moved across — that workspace is now empty and can be deleted from the Team page.";
+                $message .= " Your data from \"{$source->name}\" has been moved across. That workspace is now empty and can be deleted from the Team page.";
             }
         }
 

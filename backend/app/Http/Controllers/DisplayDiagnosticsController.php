@@ -6,6 +6,7 @@ use App\Enums\AccountStatus;
 use App\Enums\DisplayStatus;
 use App\Enums\GoogleBookingMethod;
 use App\Enums\OutlookBookingMethod;
+use App\Enums\PermissionType;
 use App\Models\Display;
 use App\Services\CalDAVService;
 use App\Services\EventService;
@@ -56,8 +57,8 @@ class DisplayDiagnosticsController extends Controller
             [
                 'Provider' => $provider,
                 'Calendar ID' => $calendar->calendar_id,
-                'Type' => $calendar->room ? 'Room resource — fetches by room email' : 'User calendar — fetches by calendar ID',
-                'Room email' => $calendar->room?->email_address ?? '—',
+                'Type' => $calendar->room ? 'Room resource, fetches by room email' : 'User calendar, fetches by calendar ID',
+                'Room email' => $calendar->room?->email_address ?? '-',
             ]
         );
 
@@ -76,17 +77,17 @@ class DisplayDiagnosticsController extends Controller
         $tokenExpired = $tokenExpiresAt ? now()->gt($tokenExpiresAt) : true;
         $hasRefreshToken = ! empty($account->refresh_token);
         $accountStatus = $account->status?->value ?? (string) $account->status ?? 'unknown';
-        $accountEmail = $account->email ?? '—';
+        $accountEmail = $account->email ?? '-';
 
         $authStatus = (! $tokenExpired || $hasRefreshToken) ? 'ok' : 'error';
         $authMessage = $tokenExpired
-            ? ($hasRefreshToken ? 'Access token expired — will be refreshed automatically on next request' : 'Access token expired and no refresh token available')
+            ? ($hasRefreshToken ? 'Access token expired, will be refreshed automatically on next request' : 'Access token expired and no refresh token available')
             : 'Access token is valid';
 
         $steps[] = $this->step(2, 'Account authentication', $authStatus, $authMessage, [
             'Account email' => $accountEmail,
             'Account status' => $accountStatus,
-            'Token expires at' => $tokenExpiresAt ? $tokenExpiresAt->toDateTimeString().' (UTC)' : '—',
+            'Token expires at' => $tokenExpiresAt ? $tokenExpiresAt->toDateTimeString().' (UTC)' : '-',
             'Token expired' => $tokenExpired ? 'Yes' : 'No',
             'Has refresh token' => $hasRefreshToken ? 'Yes' : 'No',
         ]);
@@ -97,7 +98,7 @@ class DisplayDiagnosticsController extends Controller
 
         // ── Step 3: Permission & booking capability check ─────────────────────
         $permType = $account->permission_type ?? null;
-        $permValue = $permType instanceof \App\Enums\PermissionType ? $permType->value : (string) $permType;
+        $permValue = $permType instanceof PermissionType ? $permType->value : (string) $permType;
         $hasWrite = in_array($permValue, ['write', 'read_write'], true);
         $needsWrite = $display->isBookingEnabled();
 
@@ -153,37 +154,37 @@ class DisplayDiagnosticsController extends Controller
         if (! $hasWrite && $needsWrite) {
             // Booking enabled but account is read-only
             $permStatus = 'warning';
-            $permMessage = 'Booking is enabled on this display but the account has read-only access — bookings made from the tablet will fail.';
+            $permMessage = 'Booking is enabled on this display but the account has read-only access, so bookings made from the tablet will fail.';
             $fixNote = 'Go to Accounts, disconnect this account, and reconnect it with "Read & Write" permission.';
 
         } elseif (! $hasWrite) {
             // Read-only, booking not needed
-            $permMessage = 'Read-only access — events are displayed on the tablet. Bookings from the tablet are not enabled for this display.';
+            $permMessage = 'Read-only access: events are displayed on the tablet. Bookings from the tablet are not enabled for this display.';
 
         } elseif ($needsWrite && $calendar->google_account_id && $account->isBusiness() && ! $googleMethodValue) {
             // Write + Google Workspace but no booking method configured
             $permStatus = 'warning';
-            $permMessage = 'Write access granted but no booking method is configured — room bookings will fail until a method is selected.';
+            $permMessage = 'Write access granted but no booking method is configured, so room bookings will fail until a method is selected.';
             $fixNote = 'Go to Accounts, click the calendar icon next to this account, and choose a booking method.';
 
         } elseif ($needsWrite && $calendar->google_account_id && $googleMethodValue === 'service_account' && empty($account->service_account_file_path)) {
             // Service account selected but file not uploaded
             $permStatus = 'error';
-            $permMessage = 'Booking method is set to "Service account" but the service account JSON file has not been uploaded — bookings will fail.';
+            $permMessage = 'Booking method is set to "Service account" but the service account JSON file has not been uploaded, so bookings will fail.';
             $fixNote = 'Go to Accounts, click the calendar icon next to this account, and upload the service account JSON file.';
 
         } elseif ($needsWrite && $calendar->outlook_account_id && $account->isBusiness() && ! $outlookMethodValue) {
             // Write + Microsoft business but no booking method
             $permStatus = 'warning';
-            $permMessage = 'Write access granted but no booking method is configured — room bookings will fail until a method is selected.';
+            $permMessage = 'Write access granted but no booking method is configured, so room bookings will fail until a method is selected.';
             $fixNote = 'Go to Accounts, click the calendar icon next to this account, and choose a booking method.';
 
         } elseif ($needsWrite && $calendar->outlook_account_id && ($outlookMethodValue ?? null) === 'admin_consent') {
             // Admin consent method — note that admin must have approved
-            $permMessage = 'Booking method is set to "Admin consent" — room bookings use app-level permissions. Ensure your M365 tenant admin has completed the one-time consent step.';
+            $permMessage = 'Booking method is set to "Admin consent": room bookings use app-level permissions. Ensure your M365 tenant admin has completed the one-time consent step.';
 
         } elseif ($needsWrite) {
-            $permMessage = 'Write access granted — bookings from the tablet are supported.';
+            $permMessage = 'Write access granted: bookings from the tablet are supported.';
 
         } else {
             $permMessage = 'Read & Write access is granted. Booking from the tablet is currently disabled in display settings.';
@@ -220,10 +221,10 @@ class DisplayDiagnosticsController extends Controller
                 foreach ($raw as $e) {
                     $rawNorm[] = [
                         'title' => $e['subject'] ?? '(no title)',
-                        'start' => $e['start']['dateTime'] ?? '—',
-                        'end' => $e['end']['dateTime'] ?? '—',
+                        'start' => $e['start']['dateTime'] ?? '-',
+                        'end' => $e['end']['dateTime'] ?? '-',
                         'all_day' => ($e['isAllDay'] ?? false) ? 'Yes' : 'No',
-                        'status' => '—',
+                        'status' => '-',
                     ];
                 }
 
@@ -237,10 +238,10 @@ class DisplayDiagnosticsController extends Controller
                 foreach ($googleEvents as $e) {
                     $rawNorm[] = [
                         'title' => $e->getSummary() ?? '(no title)',
-                        'start' => $e->getStart()->getDateTime() ?? $e->getStart()->getDate() ?? '—',
-                        'end' => $e->getEnd()->getDateTime() ?? $e->getEnd()->getDate() ?? '—',
+                        'start' => $e->getStart()->getDateTime() ?? $e->getStart()->getDate() ?? '-',
+                        'end' => $e->getEnd()->getDateTime() ?? $e->getEnd()->getDate() ?? '-',
                         'all_day' => ($e->getStart()->getDate() !== null) ? 'Yes' : 'No',
-                        'status' => $e->getStatus() ?? '—',
+                        'status' => $e->getStatus() ?? '-',
                     ];
                 }
 
@@ -254,10 +255,10 @@ class DisplayDiagnosticsController extends Controller
                 foreach ($caldavEvents as $e) {
                     $rawNorm[] = [
                         'title' => $e['summary'] ?? '(no title)',
-                        'start' => $e['start'] ?? '—',
-                        'end' => $e['end'] ?? '—',
+                        'start' => $e['start'] ?? '-',
+                        'end' => $e['end'] ?? '-',
                         'all_day' => ($e['isAllDay'] ?? false) ? 'Yes' : 'No',
-                        'status' => '—',
+                        'status' => '-',
                     ];
                 }
             }
@@ -295,7 +296,7 @@ class DisplayDiagnosticsController extends Controller
 
         if ($rawCount === 0) {
             $steps[] = $this->step(5, 'Apply server-side filters', 'warning',
-                'Nothing to filter — no events came from the API.',
+                'Nothing to filter: no events came from the API.',
                 ['Note' => 'No timed events were returned so no filtering was applied.']
             );
             $steps[] = $this->step(6, 'Events delivered to tablet', 'warning',
@@ -337,8 +338,8 @@ class DisplayDiagnosticsController extends Controller
 
         $deliveredPreview = $deliveredEvents->take(10)->map(fn ($e) => [
             'title' => $e->summary ?? '(no title)',
-            'start' => $e->start?->toDateTimeString() ?? '—',
-            'end' => $e->end?->toDateTimeString() ?? '—',
+            'start' => $e->start?->toDateTimeString() ?? '-',
+            'end' => $e->end?->toDateTimeString() ?? '-',
         ])->values()->toArray();
 
         $cacheKey = $display->getEventsCacheKey();
@@ -350,7 +351,7 @@ class DisplayDiagnosticsController extends Controller
             $deliveredCount.' event(s) delivered to the tablet for today',
             [
                 'count' => $deliveredCount,
-                'Cache active' => $isCached ? 'Yes — tablet may see up to 15 min stale data' : 'No — tablet always fetches live',
+                'Cache active' => $isCached ? 'Yes, tablet may see up to 15 min stale data' : 'No, tablet always fetches live',
                 'Webhook subscriptions' => $subsCount,
                 'events' => $deliveredPreview,
             ]
@@ -407,7 +408,7 @@ class DisplayDiagnosticsController extends Controller
 
         return response()->json([
             'ok' => true,
-            'message' => 'Account status reset to connected — re-running to attempt a fresh token.',
+            'message' => 'Account status reset to connected, re-running to attempt a fresh token.',
         ]);
     }
 
@@ -429,14 +430,14 @@ class DisplayDiagnosticsController extends Controller
         $steps[] = $this->step(7, 'Webhook / real-time updates',
             $subStatus,
             $subsCount === 0
-                ? 'No webhook registered — calendar changes won\'t push instantly, but the tablet still polls every 60 s'
-                : "$subsCount subscription(s) active — real-time push enabled",
+                ? 'No webhook registered: calendar changes won\'t push instantly, but the tablet still polls every 60 s'
+                : "$subsCount subscription(s) active, real-time push enabled",
             $subsCount === 0
                 ? [
                     'Active subscriptions' => 0,
                     'Real-time push' => 'Disabled',
-                    'Device polling' => 'Every 60 seconds — all events stay up to date',
-                    'Impact on display' => 'None — the display works normally without webhooks',
+                    'Device polling' => 'Every 60 seconds, all events stay up to date',
+                    'Impact on display' => 'None, the display works normally without webhooks',
                 ]
                 : array_merge(
                     ['Active subscriptions' => $subsCount],

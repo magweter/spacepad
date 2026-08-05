@@ -347,9 +347,9 @@
                                                 @endif
                                             </div>
                                         </div>
-                                        <span class="text-sm board-text-secondary next-event-empty" hidden>—</span>
+                                        <span class="text-sm board-text-secondary next-event-empty" hidden>-</span>
                                     @else
-                                        <span class="text-sm board-text-secondary">—</span>
+                                        <span class="text-sm board-text-secondary">-</span>
                                     @endif
                                 </td>
                             @endif

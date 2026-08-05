@@ -97,7 +97,7 @@
                 </p>
                 <p class="text-sm text-blue-800 mt-1">
                     Your subscription starts automatically on
-                    {{ $subscription->trial_ends_at->format('j F Y') }} — nothing to do, and your
+                    {{ $subscription->trial_ends_at->format('j F Y') }}. Nothing to do, and your
                     displays keep running.
                     @if($monthlyCost !== null)
                         At your current usage that is &euro;{{ number_format($monthlyCost, 2) }} per month.
@@ -189,7 +189,7 @@
                                 @endif
                             </td>
                             <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                                {{ $member->pivot->created_at?->format('d M Y') ?? '—' }}
+                                {{ $member->pivot->created_at?->format('d M Y') ?? '-' }}
                             </td>
                             <td class="relative whitespace-nowrap py-4 pl-3 text-right text-sm">
                                 @if(!$isSelf && auth()->user()->can('removeMember', $workspace))
@@ -234,7 +234,7 @@
                             <tr>
                                 <td class="whitespace-nowrap py-4 pr-3 text-sm font-medium text-gray-900">{{ $invitation->email }}</td>
                                 <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{ $invitation->role->label() }}</td>
-                                <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{ $invitation->invitedBy?->name ?? '—' }}</td>
+                                <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{ $invitation->invitedBy?->name ?? '-' }}</td>
                                 <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{ $invitation->expires_at->diffForHumans() }}</td>
                                 <td class="relative whitespace-nowrap py-4 pl-3 text-right text-sm space-x-3">
                                     @can('invite', $workspace)
@@ -282,8 +282,8 @@
                     <label for="invite_role" class="sr-only">Role</label>
                     <select id="invite_role" name="role"
                         class="block w-full px-3 py-2 border rounded-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
-                        <option value="member">Member — manages displays and boards</option>
-                        <option value="admin">Admin — can also invite colleagues</option>
+                        <option value="member">Member: manages displays and boards</option>
+                        <option value="admin">Admin: can also invite colleagues</option>
                     </select>
                     @error('role')
                         <p class="mt-1 text-xs text-red-600">{{ $message }}</p>

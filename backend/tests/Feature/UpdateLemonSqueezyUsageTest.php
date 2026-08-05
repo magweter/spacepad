@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\WorkspaceRole;
+use App\Events\WorkspaceUsageChanged;
 use App\Models\Board;
 use App\Models\Display;
 use App\Models\User;
@@ -9,6 +10,7 @@ use App\Models\WorkspaceMember;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
 
 uses(RefreshDatabase::class);
@@ -20,6 +22,12 @@ beforeEach(function () {
     ]);
 
     cache()->flush();
+
+    // This file is about the hourly reconciliation pass. Creating a display also pushes
+    // its own usage through PushWorkspaceUsageToLemonSqueezy, which on the sync queue
+    // would land in the middle of the arrange step and be mistaken for the command's
+    // work. Silencing the event leaves the command as the only thing calling the API.
+    Event::fake([WorkspaceUsageChanged::class]);
 });
 
 /**

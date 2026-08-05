@@ -41,7 +41,7 @@
                 </div>
                 <div>
                     <dt class="text-sm font-medium text-gray-500">Calendar</dt>
-                    <dd class="text-sm text-gray-900">{{ $display->calendar?->name ?? '—' }}</dd>
+                    <dd class="text-sm text-gray-900">{{ $display->calendar?->name ?? '-' }}</dd>
                 </div>
                 <div>
                     <dt class="text-sm font-medium text-gray-500">Status</dt>
@@ -117,7 +117,7 @@
                                {{ $ds::isCheckInEnabled($display) ? 'checked' : '' }}>
                         <div>
                             <span class="flex items-center gap-1.5 text-sm font-medium text-gray-900">Require check-in
-                                <x-info-tip text="Attendees must confirm on the display that the meeting is happening. If nobody checks in within the grace period, the room is released and shows as available again — so no-show bookings stop blocking the room." />
+                                <x-info-tip text="Attendees must confirm on the display that the meeting is happening. If nobody checks in within the grace period, the room is released and shows as available again, so no-show bookings stop blocking the room." />
                             </span>
                             <p class="text-xs text-gray-500">Attendees confirm the meeting on the display; no check-in releases the room.</p>
                         </div>
@@ -143,7 +143,7 @@
                                {{ $ds::isBookingEnabled($display) ? 'checked' : '' }}>
                         <div>
                             <span class="flex items-center gap-1.5 text-sm font-medium text-gray-900">Allow booking from the display
-                                <x-info-tip text="Bookings are written back to the connected calendar, which requires write permission on that account — with read-only access the booking will fail." />
+                                <x-info-tip text="Bookings are written back to the connected calendar, which requires write permission on that account. With read-only access the booking will fail." />
                             </span>
                             <p class="text-xs text-gray-500">Users can reserve the room straight from the tablet.</p>
                         </div>
@@ -184,10 +184,10 @@
 
                     <div class="pt-4 border-t border-gray-100">
                         <p class="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-2">Who can cancel a meeting
-                            <x-info-tip text="Controls the End meeting button. 'Tablet bookings only' lets people end what was booked on the tablet but never a meeting from someone's calendar — the safest choice for shared calendars." />
+                            <x-info-tip text="Controls the End meeting button. 'Tablet bookings only' lets people end what was booked on the tablet but never a meeting from someone's calendar, the safest choice for shared calendars." />
                         </p>
                         <div class="space-y-2">
-                            @foreach(['all' => 'Everyone — any event can be cancelled (default)', 'tablet_only' => 'Tablet bookings only', 'none' => 'Nobody — cancelling is disabled'] as $value => $label)
+                            @foreach(['all' => 'Everyone: any event can be cancelled (default)', 'tablet_only' => 'Tablet bookings only', 'none' => 'Nobody: cancelling is disabled'] as $value => $label)
                                 <label class="flex items-center gap-2 cursor-pointer">
                                     <input type="radio" name="cancel_permission" value="{{ $value }}" class="{{ $radioClass }}"
                                            {{ $ds::getCancelPermission($display) === $value ? 'checked' : '' }}>
@@ -265,7 +265,7 @@
                             <x-info-tip text="Thickness of the coloured status border around the screen. Large reads clearly from a corridor; small suits a tablet you stand right in front of." />
                         </p>
                         <div class="space-y-2">
-                            @foreach(['small' => 'Small — thin borders, minimalist', 'medium' => 'Medium — standard (default)', 'large' => 'Large — thick borders, better visibility'] as $value => $label)
+                            @foreach(['small' => 'Small: thin borders, minimalist', 'medium' => 'Medium: standard (default)', 'large' => 'Large: thick borders, better visibility'] as $value => $label)
                                 <label class="flex items-center gap-2 cursor-pointer">
                                     <input type="radio" name="border_thickness" value="{{ $value }}" class="{{ $radioClass }}"
                                            {{ $ds::getBorderThickness($display) === $value ? 'checked' : '' }}>

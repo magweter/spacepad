@@ -477,7 +477,7 @@ class OutlookService
             }
 
             if ($errorCode === 'ErrorAccessDenied') {
-                throw new Exception('Access denied by Microsoft 365 — the connected account does not have permission to book this room.', 403);
+                throw new Exception('Access denied by Microsoft 365: the connected account does not have permission to book this room.', 403);
             }
 
             throw new Exception('Failed to create Outlook event: '.$response->body());

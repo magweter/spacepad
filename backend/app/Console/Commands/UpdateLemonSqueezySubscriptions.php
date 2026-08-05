@@ -14,6 +14,11 @@ use Illuminate\Support\Facades\Log;
  * of, so a person invited into a colleague's workspace had that colleague's displays and
  * boards added to their own subscription quantity. Harmless while everyone had exactly one
  * workspace; a real over-billing bug the moment invitations exist.
+ *
+ * Since usage changes push themselves through PushWorkspaceUsageToLemonSqueezy, this is
+ * no longer how quantities normally reach Lemon Squeezy. It stays scheduled as the
+ * reconciliation pass: it walks every billable workspace, so a queue job that was lost or
+ * rejected is put right within the hour.
  */
 class UpdateLemonSqueezySubscriptions extends Command
 {
@@ -46,7 +51,7 @@ class UpdateLemonSqueezySubscriptions extends Command
 
         $this->billableWorkspaces()->chunkById(200, function ($workspaces) use (&$successCount, &$errorCount, &$skippedCount, $dryRun) {
             foreach ($workspaces as $workspace) {
-                $units = Workspace::calculateUsage($workspace->displays_count, $workspace->boards_count);
+                $units = $workspace->getTotalUsageCount();
 
                 try {
                     if ($workspace->is_manually_billed) {
@@ -65,7 +70,7 @@ class UpdateLemonSqueezySubscriptions extends Command
                         continue;
                     }
 
-                    $subscription = $workspace->subscriptions->first();
+                    $subscription = $workspace->liveSubscription();
 
                     if (! $subscription) {
                         $skippedCount++;
@@ -92,44 +97,14 @@ class UpdateLemonSqueezySubscriptions extends Command
                         continue;
                     }
 
-                    $itemId = $this->usage->resolveSubscriptionItemId($subscription->lemon_squeezy_id);
-
-                    if (! $itemId) {
+                    // Failures are logged inside the service and counted as errors here.
+                    // They used to go to Log::debug and still count as a success, so a
+                    // broken push looked like a clean run.
+                    if (! $this->usage->pushUnits($subscription->lemon_squeezy_id, $units, ['workspace_id' => $workspace->id])) {
                         $errorCount++;
-                        Log::warning('No Lemon Squeezy subscription item to bill against', [
-                            'workspace_id' => $workspace->id,
-                            'subscription_id' => $subscription->lemon_squeezy_id,
-                        ]);
 
                         continue;
                     }
-
-                    // The Pro variant is either quantity-based or metered, so one of these is
-                    // always a no-op. Both are attempted and the outcome logged; once it is
-                    // clear from production which one answers, the dead branch can go.
-                    $quantityOk = $this->usage->setQuantity($itemId, $units);
-                    $usageOk = $this->usage->recordUsage($itemId, $units);
-
-                    if (! $quantityOk && ! $usageOk) {
-                        // Previously these failures went to Log::debug and still counted as a
-                        // success, so a broken push looked like a clean run.
-                        $errorCount++;
-                        Log::warning('Neither billing method accepted the usage push', [
-                            'workspace_id' => $workspace->id,
-                            'subscription_item_id' => $itemId,
-                            'units' => $units,
-                        ]);
-
-                        continue;
-                    }
-
-                    Log::info('Pushed workspace usage to Lemon Squeezy', [
-                        'workspace_id' => $workspace->id,
-                        'subscription_item_id' => $itemId,
-                        'units' => $units,
-                        'quantity_accepted' => $quantityOk,
-                        'usage_record_accepted' => $usageOk,
-                    ]);
 
                     $successCount++;
                     $this->info("Updated workspace {$workspace->id} with {$units} units (displays + boards*2)");
@@ -162,7 +137,6 @@ class UpdateLemonSqueezySubscriptions extends Command
                         $subQuery->whereNull('ends_at')->orWhere('ends_at', '>', now());
                     });
             })
-            ->withCount(['displays', 'boards'])
             ->with(['subscriptions' => function ($query) {
                 $query->where(function ($q) {
                     $q->whereNull('ends_at')->orWhere('ends_at', '>', now());

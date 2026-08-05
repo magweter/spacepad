@@ -21,7 +21,7 @@ beforeEach(function () {
  */
 function invitingWorkspace(WorkspaceRole $actorRole = WorkspaceRole::OWNER): array
 {
-    $owner = User::factory()->active()->create(['is_unlimited' => true]);
+    $owner = User::factory()->active()->unlimited()->create();
     $workspace = Workspace::factory()->create(['name' => 'Playup']);
 
     WorkspaceMember::create([
@@ -188,8 +188,6 @@ test('an admin can invite but a member cannot', function () {
 
 test('a non-pro workspace cannot invite', function () {
     $owner = User::factory()->active()->create([
-        'is_unlimited' => false,
-        'is_manually_billed' => false,
         'usage_type' => UsageType::BUSINESS,
     ]);
     $workspace = $owner->primaryWorkspace();

@@ -154,7 +154,7 @@ test('orphaned rows are only adopted when asked for', function () {
 test('accepting an invitation can bring the invitees data along', function () {
     $inviteeEmail = 'trnka@playup.sk';
 
-    $owner = User::factory()->active()->create(['is_unlimited' => true]);
+    $owner = User::factory()->active()->unlimited()->create();
     $team = Workspace::factory()->create(['name' => 'Playup']);
     WorkspaceMember::create([
         'workspace_id' => $team->id,
@@ -196,7 +196,7 @@ test('a hostile source workspace id is ignored', function () {
         'user_id' => $victim->id,
     ]);
 
-    $owner = User::factory()->active()->create(['is_unlimited' => true]);
+    $owner = User::factory()->active()->unlimited()->create();
     $team = Workspace::factory()->create();
     WorkspaceMember::create([
         'workspace_id' => $team->id,

@@ -24,6 +24,8 @@ use Illuminate\Support\Facades\DB;
  */
 class WorkspaceTransferService
 {
+    public function __construct(private WorkspaceUsageService $usage) {}
+
     /**
      * Models that carry workspace_id and move wholesale.
      *
@@ -130,6 +132,13 @@ class WorkspaceTransferService
             }
 
             $this->detachCrossWorkspaceLinks($to);
+
+            // The moves above are mass updates, so no model event fired and neither
+            // workspace's usage counters know anything happened. Recounting both is the
+            // repair, and it is what tells Lemon Squeezy the receiving workspace just
+            // grew.
+            $this->usage->recount($from->refresh());
+            $this->usage->recount($to->refresh());
 
             logger()->info('Workspace data moved', [
                 'from_workspace_id' => $from->id,

@@ -3,6 +3,7 @@
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AdminMergeController;
 use App\Http\Controllers\AdminRoadmapController;
+use App\Http\Controllers\AdminWorkspaceController;
 use App\Http\Controllers\Auth\GoogleController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\MicrosoftController;
@@ -172,7 +173,11 @@ Route::middleware(['auth', 'user.update-last-activity', 'gtm'])->group(function 
     Route::get('/admin', [AdminController::class, 'index'])->name('admin.index');
     Route::get('/admin/users/{user}', [AdminController::class, 'showUser'])->name('admin.users.show');
     Route::delete('/admin/users/{user}', [AdminController::class, 'deleteUser'])->name('admin.users.delete');
-    Route::post('/admin/users/{user}/billing', [AdminController::class, 'updateBilling'])->name('admin.users.billing');
+    // Billing is set on the workspace, which is what holds the subscription and the usage.
+    Route::get('/admin/workspaces', [AdminWorkspaceController::class, 'index'])->name('admin.workspaces.index');
+    Route::get('/admin/workspaces/{workspace}', [AdminWorkspaceController::class, 'show'])->name('admin.workspaces.show');
+    Route::post('/admin/workspaces/{workspace}/billing', [AdminWorkspaceController::class, 'updateBilling'])
+        ->name('admin.workspaces.billing');
     Route::post('/admin/users/{user}/impersonate', [AdminController::class, 'impersonate'])->name('admin.users.impersonate');
     Route::post('/admin/stop-impersonating', [AdminController::class, 'stopImpersonating'])->name('admin.stop-impersonating');
 

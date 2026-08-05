@@ -162,8 +162,8 @@
                    class="relative inline-flex items-center rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-blue-600 shadow-sm ring-1 ring-inset ring-blue-300 hover:bg-blue-50"
                    title="{{ $display->profile
                         ? ($deviates
-                            ? 'Configure display — follows the profile “'.$display->profile->name.'”, with its own settings in one or more sections'
-                            : 'Configure display — follows the profile “'.$display->profile->name.'”')
+                            ? 'Configure display, follows the profile “'.$display->profile->name.'”, with its own settings in one or more sections'
+                            : 'Configure display, follows the profile “'.$display->profile->name.'”')
                         : 'Configure display (Pro)' }}">
                     <x-icons.settings class="h-4 w-4" />
                     @if($display->profile)

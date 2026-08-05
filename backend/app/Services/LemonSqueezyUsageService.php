@@ -73,6 +73,55 @@ class LemonSqueezyUsageService
         return $response->successful();
     }
 
+    /**
+     * Tell Lemon Squeezy what a subscription should now be billed for.
+     *
+     * The Pro variant is either quantity-based or metered, so one of these two calls is
+     * always a no-op. Both are attempted and the outcome logged; once it is clear from
+     * production which one answers, the dead branch can go.
+     *
+     * @param  array<string, mixed>  $context  extra detail for the log line
+     */
+    public function pushUnits(string $subscriptionId, int $units, array $context = []): bool
+    {
+        if (! $this->hasApiKey()) {
+            Log::debug('No Lemon Squeezy API key configured; usage not pushed', $context + ['units' => $units]);
+
+            return false;
+        }
+
+        $itemId = $this->resolveSubscriptionItemId($subscriptionId);
+
+        if (! $itemId) {
+            Log::warning('No Lemon Squeezy subscription item to bill against', $context + [
+                'subscription_id' => $subscriptionId,
+            ]);
+
+            return false;
+        }
+
+        $quantityOk = $this->setQuantity($itemId, $units);
+        $usageOk = $this->recordUsage($itemId, $units);
+
+        if (! $quantityOk && ! $usageOk) {
+            Log::warning('Neither billing method accepted the usage push', $context + [
+                'subscription_item_id' => $itemId,
+                'units' => $units,
+            ]);
+
+            return false;
+        }
+
+        Log::info('Pushed workspace usage to Lemon Squeezy', $context + [
+            'subscription_item_id' => $itemId,
+            'units' => $units,
+            'quantity_accepted' => $quantityOk,
+            'usage_record_accepted' => $usageOk,
+        ]);
+
+        return true;
+    }
+
     public function hasApiKey(): bool
     {
         return (bool) config('lemon-squeezy.api_key');

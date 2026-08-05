@@ -15,9 +15,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    $this->user = User::factory()->active()->create([
-        'is_unlimited' => true, // Make user pro for testing boards
-    ]);
+    $this->user = User::factory()->active()->unlimited()->create();
     $this->workspace = $this->user->primaryWorkspace();
 
     // Set selected workspace in session

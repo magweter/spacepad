@@ -20,11 +20,11 @@ beforeEach(function () {
 
     foreach ([
         '2026_05_30_000001_create_analytics_tables.php',
-        '2026_05_30_000002_add_workspace_to_analytics_users.php',
         '2026_05_30_000003_add_subscription_columns_to_analytics_instances.php',
         '2026_07_05_000001_create_billing_changes_table.php',
-        '2026_08_04_000001_scope_analytics_users_to_workspaces.php',
         '2026_08_04_000002_add_workspace_to_billing_changes.php',
+        '2026_08_05_000002_make_billing_change_mrr_nullable.php',
+        '2026_08_05_000003_create_analytics_workspaces_table.php',
     ] as $file) {
         $migration = require database_path("migrations/{$file}");
         $migration->up();
@@ -33,8 +33,8 @@ beforeEach(function () {
 
 /**
  * Manual billing lives on the workspace: usage is measured per workspace, so that is what
- * is invoiced. The helper still returns the user, because the admin route is addressed by
- * user and applies to their billing workspace.
+ * is invoiced. The helper returns the user because the fixtures need someone to act as and
+ * to own the rows; the billing itself is read and written on their primary workspace.
  */
 function manuallyBilledUserWithUsage(?float $unitPrice, int $displays = 2, int $boards = 1): User
 {
@@ -66,11 +66,14 @@ function manuallyBilledUserWithUsage(?float $unitPrice, int $displays = 2, int $
 
 function analyticsMrrFor(User $user): float
 {
-    return (float) DB::table('analytics_users')->where('user_id', $user->id)->value('mrr_current');
+    // Keyed on the workspace, because that is what the invoice is addressed to.
+    return (float) DB::table('analytics_workspaces')
+        ->where('workspace_id', $user->primaryWorkspace()->id)
+        ->value('mrr_current');
 }
 
 test('the per-account unit price overrides the global default', function () {
-    config(['settings.manual_billing_unit_price' => 5]);
+    config(['settings.unit_price' => 5]);
 
     // 2 displays (1x) + 1 board (2x) = 4 billable units.
     $user = manuallyBilledUserWithUsage(12.50);
@@ -81,7 +84,7 @@ test('the per-account unit price overrides the global default', function () {
 });
 
 test('an unset per-account unit price falls back to the global default', function () {
-    config(['settings.manual_billing_unit_price' => 5]);
+    config(['settings.unit_price' => 5]);
 
     $user = manuallyBilledUserWithUsage(null);
 
@@ -92,7 +95,7 @@ test('an unset per-account unit price falls back to the global default', functio
 });
 
 test('MRR is zero when neither a per-account nor a global unit price is set', function () {
-    config(['settings.manual_billing_unit_price' => null]);
+    config(['settings.unit_price' => null]);
 
     $user = manuallyBilledUserWithUsage(null);
 
@@ -102,7 +105,7 @@ test('MRR is zero when neither a per-account nor a global unit price is set', fu
 });
 
 test('billable usage is floored at one unit for an account with no displays or boards', function () {
-    config(['settings.manual_billing_unit_price' => 5]);
+    config(['settings.unit_price' => 5]);
 
     $user = manuallyBilledUserWithUsage(9.99, displays: 0, boards: 0);
 
@@ -112,7 +115,7 @@ test('billable usage is floored at one unit for an account with no displays or b
 });
 
 test('a per-account price of zero is respected instead of falling back to the global default', function () {
-    config(['settings.manual_billing_unit_price' => 5]);
+    config(['settings.unit_price' => 5]);
 
     $user = manuallyBilledUserWithUsage(0);
 
@@ -122,7 +125,7 @@ test('a per-account price of zero is respected instead of falling back to the gl
 });
 
 test('an admin can set the per-account unit price and MRR updates immediately', function () {
-    config(['settings.manual_billing_unit_price' => 5]);
+    config(['settings.unit_price' => 5]);
 
     $admin = User::factory()->active()->create(['is_admin' => true]);
     $user = manuallyBilledUserWithUsage(null);
@@ -132,7 +135,7 @@ test('an admin can set the per-account unit price and MRR updates immediately', 
     expect(analyticsMrrFor($user))->toBe(20.0);
 
     $this->actingAs($admin)
-        ->post(route('admin.users.billing', $user), [
+        ->post(route('admin.workspaces.billing', $user->primaryWorkspace()), [
             'is_manually_billed' => '1',
             'manual_billing_unit_price' => '12.50',
         ])
@@ -143,7 +146,7 @@ test('an admin can set the per-account unit price and MRR updates immediately', 
 });
 
 test('clearing the per-account unit price falls back to the global default', function () {
-    config(['settings.manual_billing_unit_price' => 5]);
+    config(['settings.unit_price' => 5]);
 
     $admin = User::factory()->active()->create(['is_admin' => true]);
     $user = manuallyBilledUserWithUsage(12.50);
@@ -153,7 +156,7 @@ test('clearing the per-account unit price falls back to the global default', fun
     expect(analyticsMrrFor($user))->toBe(50.0);
 
     $this->actingAs($admin)
-        ->post(route('admin.users.billing', $user), [
+        ->post(route('admin.workspaces.billing', $user->primaryWorkspace()), [
             'is_manually_billed' => '1',
             'manual_billing_unit_price' => '',
         ])
@@ -163,14 +166,14 @@ test('clearing the per-account unit price falls back to the global default', fun
         ->and(analyticsMrrFor($user))->toBe(20.0);
 });
 
-test('the admin user page renders the unit price field with the effective MRR', function () {
-    config(['settings.manual_billing_unit_price' => 5]);
+test('the admin workspace page renders the unit price field with the effective MRR', function () {
+    config(['settings.unit_price' => 5]);
 
     $admin = User::factory()->active()->create(['is_admin' => true]);
     $user = manuallyBilledUserWithUsage(12.50);
 
     $this->actingAs($admin)
-        ->get(route('admin.users.show', $user))
+        ->get(route('admin.workspaces.show', $user->primaryWorkspace()))
         ->assertOk()
         ->assertSee('Monthly price per unit')
         ->assertSee('name="manual_billing_unit_price"', false)
@@ -179,12 +182,49 @@ test('the admin user page renders the unit price field with the effective MRR', 
         ->assertSeeInOrder(['Effective MRR: $12.50', '4 units', '$50.00'], false);
 });
 
+test('the admin user page points at the workspace that carries the billing', function () {
+    $admin = User::factory()->active()->create(['is_admin' => true]);
+    $user = manuallyBilledUserWithUsage(12.50);
+
+    $this->actingAs($admin)
+        ->get(route('admin.users.show', $user))
+        ->assertOk()
+        ->assertSee('Manage workspace billing')
+        ->assertSee(route('admin.workspaces.show', $user->primaryWorkspace()), false);
+});
+
+test('the billing owner must be a member of the workspace', function () {
+    $admin = User::factory()->active()->create(['is_admin' => true]);
+    $user = manuallyBilledUserWithUsage(12.50);
+    $outsider = User::factory()->active()->create();
+
+    $this->actingAs($admin)
+        ->post(route('admin.workspaces.billing', $user->primaryWorkspace()), [
+            'is_manually_billed' => '1',
+            'billing_owner_user_id' => $outsider->id,
+        ])
+        ->assertSessionHas('error');
+
+    expect($user->primaryWorkspace()->fresh()->billing_owner_user_id)->toBe($user->id);
+});
+
+test('the workspace list shows the billable units straight from the counters', function () {
+    $admin = User::factory()->active()->create(['is_admin' => true]);
+    $user = manuallyBilledUserWithUsage(12.50);
+
+    $this->actingAs($admin)
+        ->get(route('admin.workspaces.index'))
+        ->assertOk()
+        ->assertSee($user->primaryWorkspace()->name)
+        ->assertSee('Manually billed');
+});
+
 test('a negative unit price is rejected', function () {
     $admin = User::factory()->active()->create(['is_admin' => true]);
     $user = manuallyBilledUserWithUsage(12.50);
 
     $this->actingAs($admin)
-        ->post(route('admin.users.billing', $user), [
+        ->post(route('admin.workspaces.billing', $user->primaryWorkspace()), [
             'is_manually_billed' => '1',
             'manual_billing_unit_price' => '-1',
         ])

@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\Storage;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    $this->user = User::factory()->active()->create(['is_unlimited' => true]); // Pro
+    $this->user = User::factory()->active()->unlimited()->create(); // Pro
     $this->workspace = $this->user->primaryWorkspace();
     session()->put('selected_workspace_id', $this->workspace->id);
 
@@ -171,7 +171,7 @@ test('bulk unlinking keeps the display values so nothing changes on the wall', f
 });
 
 test('bulk assigning ignores displays from another workspace', function () {
-    $stranger = User::factory()->active()->create(['is_unlimited' => true]);
+    $stranger = User::factory()->active()->unlimited()->create();
     $foreign = Display::factory()->create([
         'workspace_id' => $stranger->primaryWorkspace()->id,
         'status' => DisplayStatus::ACTIVE,
@@ -187,7 +187,7 @@ test('bulk assigning ignores displays from another workspace', function () {
 });
 
 test('bulk assigning rejects a profile from another workspace', function () {
-    $stranger = User::factory()->active()->create(['is_unlimited' => true]);
+    $stranger = User::factory()->active()->unlimited()->create();
     $foreignProfile = DisplayProfile::factory()->create(['workspace_id' => $stranger->primaryWorkspace()->id]);
 
     $this->actingAs($this->user)

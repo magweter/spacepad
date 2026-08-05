@@ -41,8 +41,8 @@ function workspaceActingAs(WorkspaceRole $role): array
         'role' => WorkspaceRole::OWNER,
     ]);
 
-    // Pro comes from the owner in the current (pre-billing-move) model.
-    $owner->update(['is_unlimited' => true]);
+    // Pro is a property of the workspace, so that is where the flag goes.
+    $workspace->update(['is_unlimited' => true]);
 
     if ($role === WorkspaceRole::OWNER) {
         $actor = $owner;
@@ -132,8 +132,6 @@ test('a non-member is denied everything', function () {
 
 test('inviting requires Pro even for the owner', function () {
     $owner = User::factory()->active()->create([
-        'is_unlimited' => false,
-        'is_manually_billed' => false,
         'usage_type' => UsageType::BUSINESS,
     ]);
     $workspace = $owner->primaryWorkspace();

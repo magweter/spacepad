@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\EventSource;
 use App\Enums\EventStatus;
+use App\Enums\OutlookBookingMethod;
 use App\Enums\PermissionType;
 use App\Helpers\DisplaySettings;
 use App\Models\Calendar;
@@ -289,7 +290,7 @@ class EventService
                     }
 
                     return $event;
-                } catch (\Exception $e) {
+                } catch (Exception $e) {
                     logger()->error('Failed to create external event or track it in database', [
                         'error' => $e->getMessage(),
                         'display_id' => $displayId,
@@ -444,7 +445,7 @@ class EventService
                     } elseif ($calendar->google_account_id) {
                         $this->googleService->patchEventEndTime($calendar->googleAccount, $calendar, $event->external_id, $newEnd);
                     }
-                } catch (\Exception $e) {
+                } catch (Exception $e) {
                     logger()->warning('Failed to update DB event end time via API', [
                         'error' => $e->getMessage(),
                         'event_id' => $event->id,
@@ -475,7 +476,7 @@ class EventService
         }
 
         if (! $hasWritePermissions) {
-            throw new Exception('Cannot extend this event — write permission is required', 403);
+            throw new Exception('Cannot extend this event: write permission is required', 403);
         }
 
         if ($calendar->outlook_account_id) {
@@ -810,7 +811,7 @@ class EventService
                     $event->update(['status' => EventStatus::CANCELLED]);
 
                     return;
-                } catch (\Exception $e) {
+                } catch (Exception $e) {
                     logger()->warning('Failed to delete event via API, marking as cancelled', [
                         'error' => $e->getMessage(),
                         'event_id' => $event->id,
@@ -861,7 +862,7 @@ class EventService
                     $this->clearEventsCache($display);
 
                     return;
-                } catch (\Exception $e) {
+                } catch (Exception $e) {
                     logger()->warning('Failed to delete external event via API', [
                         'error' => $e->getMessage(),
                         'external_id' => $externalId,
@@ -902,7 +903,7 @@ class EventService
 
         try {
             if ($calendar->room) {
-                $useAppOnlyToken = $outlookAccount->booking_method === \App\Enums\OutlookBookingMethod::ADMIN_CONSENT;
+                $useAppOnlyToken = $outlookAccount->booking_method === OutlookBookingMethod::ADMIN_CONSENT;
 
                 $events = $this->outlookService->fetchEventsByUser(
                     outlookAccount: $calendar->outlookAccount,
@@ -920,7 +921,7 @@ class EventService
                     endDateTime: $end,
                 );
             }
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             logger()->warning('Failed to fetch Outlook events, returning empty', [
                 'outlook_account_id' => $outlookAccount?->id,
                 'calendar_id' => $calendar->calendar_id,
@@ -942,7 +943,7 @@ class EventService
     }
 
     /**
-     * @throws \Exception
+     * @throws Exception
      */
     private function fetchGoogleEvents(Calendar $calendar, Display $display, ?Carbon $start = null, ?Carbon $end = null): Collection
     {
@@ -953,7 +954,7 @@ class EventService
                 startDateTime: $start ?? $display->getStartTime(),
                 endDateTime: $end ?? $display->getEndTime(),
             );
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             logger()->warning('Failed to fetch Google events, returning empty', [
                 'google_account_id' => $calendar->googleAccount->id,
                 'display_id' => $display->id,
@@ -1187,7 +1188,7 @@ class EventService
                 $delay = $baseDelay * pow(2, $attempt - 1);
                 usleep((int) ($delay * 1000000));
 
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
                 logger()->warning('Error checking event in Google API during wait', [
                     'error' => $e->getMessage(),
                     'external_event_id' => $externalEventId,

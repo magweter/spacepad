@@ -81,7 +81,7 @@
                             <input type="hidden" name="check_in_enabled" value="0">
                             <input id="check_in_enabled" name="check_in_enabled" type="checkbox" value="1" class="mt-0.5 {{ $checkClass }}" {{ $bool('check_in_enabled') ? 'checked' : '' }}>
                             <label for="check_in_enabled" class="text-sm text-gray-900">Require check-in for meetings</label>
-                            <x-info-tip text="Attendees must confirm on the display that the meeting is happening. If nobody checks in within the grace period, the room is released and shows as available again — so no-show bookings stop blocking the room." />
+                            <x-info-tip text="Attendees must confirm on the display that the meeting is happening. If nobody checks in within the grace period, the room is released and shows as available again, so no-show bookings stop blocking the room." />
                         </div>
 
                         <div class="grid grid-cols-2 gap-4 pl-7">
@@ -107,7 +107,7 @@
                             <input type="hidden" name="booking_enabled" value="0">
                             <input id="booking_enabled" name="booking_enabled" type="checkbox" value="1" class="mt-0.5 {{ $checkClass }}" {{ $bool('booking_enabled') ? 'checked' : '' }}>
                             <label for="booking_enabled" class="text-sm text-gray-900">Allow booking from the display</label>
-                            <x-info-tip text="Adds booking buttons to the tablet. Bookings are written back to the connected calendar, which requires write permission on that account — with read-only access the booking will fail." />
+                            <x-info-tip text="Adds booking buttons to the tablet. Bookings are written back to the connected calendar, which requires write permission on that account. With read-only access the booking will fail." />
                         </div>
 
                         <div class="flex items-start gap-3 pl-7">
@@ -134,10 +134,10 @@
                         <div class="pt-4 border-t border-gray-100">
                             <p class="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-2">
                                 Who can cancel a meeting
-                                <x-info-tip text="Controls the End meeting button. 'Tablet bookings only' lets people end what was booked on the tablet but never a meeting from someone's calendar — the safest choice for shared calendars." />
+                                <x-info-tip text="Controls the End meeting button. 'Tablet bookings only' lets people end what was booked on the tablet but never a meeting from someone's calendar, the safest choice for shared calendars." />
                             </p>
                             <div class="space-y-2">
-                                @foreach(['all' => 'Everyone — any event can be cancelled (default)', 'tablet_only' => 'Tablet bookings only', 'none' => 'Nobody — cancelling is disabled'] as $v => $l)
+                                @foreach(['all' => 'Everyone: any event can be cancelled (default)', 'tablet_only' => 'Tablet bookings only', 'none' => 'Nobody: cancelling is disabled'] as $v => $l)
                                     <label class="flex items-center gap-2 cursor-pointer">
                                         <input type="radio" name="cancel_permission" value="{{ $v }}" class="{{ $radioClass }}" {{ $val('cancel_permission', 'all') === $v ? 'checked' : '' }}>
                                         <span class="text-sm text-gray-700">{{ $l }}</span>
@@ -204,7 +204,7 @@
                                 <x-info-tip text="Thickness of the coloured status border around the screen. Large reads clearly from a corridor; small suits a tablet you stand right in front of." />
                             </p>
                             <div class="space-y-2">
-                                @foreach(['small' => 'Small — thin borders, minimalist', 'medium' => 'Medium — standard (default)', 'large' => 'Large — thick borders, better visibility'] as $v => $l)
+                                @foreach(['small' => 'Small: thin borders, minimalist', 'medium' => 'Medium: standard (default)', 'large' => 'Large: thick borders, better visibility'] as $v => $l)
                                     <label class="flex items-center gap-2 cursor-pointer">
                                         <input type="radio" name="border_thickness" value="{{ $v }}" class="{{ $radioClass }}" {{ $val('border_thickness', 'medium') === $v ? 'checked' : '' }}>
                                         <span class="text-sm text-gray-700">{{ $l }}</span>

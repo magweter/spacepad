@@ -19,12 +19,14 @@ uses(RefreshDatabase::class);
  */
 function teamWithRoles(array $roles = ['owner', 'admin', 'member']): array
 {
-    $workspace = Workspace::factory()->create(['name' => 'Playup']);
+    // Pro belongs to the workspace, so the team gets it collectively rather than through
+    // whoever happens to be the owner.
+    $workspace = Workspace::factory()->create(['name' => 'Playup', 'is_unlimited' => true]);
     $users = [];
     $memberships = [];
 
     foreach ($roles as $key) {
-        $user = User::factory()->active()->create(['is_unlimited' => $key === 'owner']);
+        $user = User::factory()->active()->create();
         $users[$key] = $user;
         $memberships[$key] = WorkspaceMember::create([
             'workspace_id' => $workspace->id,

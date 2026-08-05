@@ -23,23 +23,8 @@ class AdminController extends Controller
     {
         $this->checkAdminAccess();
 
-        // Stats from the pre-computed analytics snapshot — gracefully returns zeros if not yet populated
-        try {
-            $userStats = DB::table('analytics_users')
-                ->selectRaw('COUNT(CASE WHEN last_device_activity_at >= ? THEN 1 END) as active_users_count', [now()->subDays(7)])
-                ->first();
-        } catch (\Exception $e) {
-            $userStats = null;
-        }
-
-        try {
-            $instanceStats = DB::table('analytics_instances')
-                ->selectRaw('COUNT(*) as total_instances, COUNT(CASE WHEN last_heartbeat_at >= ? THEN 1 END) as active_instances_count', [now()->subDays(7)])
-                ->first();
-        } catch (\Exception $e) {
-            $instanceStats = null;
-        }
-
+        // The tiles above the tabs are filled by AdminStatsService through a view composer,
+        // so they read the same here as on every other admin screen.
         $search = request()->get('search');
         // Pro is a property of the workspace now, so the Pro column reads the user's owned
         // workspaces rather than a subscription hanging off the user.
@@ -74,9 +59,6 @@ class AdminController extends Controller
 
         return view('pages.admin', [
             'allUsers' => $allUsers,
-            'activeUsersCount' => $userStats->active_users_count ?? 0,
-            'totalInstances' => $instanceStats->total_instances ?? 0,
-            'activeInstancesCount' => $instanceStats->active_instances_count ?? 0,
             'roadmapItems' => $roadmapItems,
         ]);
     }
@@ -104,26 +86,35 @@ class AdminController extends Controller
             },
         ]);
 
-        // RefreshAnalytics writes a row per membership, and only the row of the member who
-        // carries the billing holds the subscription. Anyone else gets "member" (a colleague
-        // on someone else's plan) or "none" (nothing to bill) — neither is worth surfacing.
-        $analyticsRow = DB::table('analytics_users')
-            ->where('user_id', $user->id)
-            ->orderByDesc('is_billing_owner')
-            ->first();
-        $subscriptionInfo = ($analyticsRow && ! in_array($analyticsRow->subscription_status, ['none', 'member'], true)) ? [
+        // The snapshot is keyed on the workspace, because that is what holds a subscription.
+        // A user is shown the state of the workspace they carry the billing for; a colleague
+        // on someone else's plan has nothing of their own to surface.
+        $billingWorkspace = AdminWorkspaceController::billingWorkspaceFor($user);
+
+        try {
+            $analyticsRow = $billingWorkspace
+                ? DB::table('analytics_workspaces')->where('workspace_id', $billingWorkspace->id)->first()
+                : null;
+        } catch (\Exception $e) {
+            $analyticsRow = null;
+        }
+
+        $subscriptionInfo = ($analyticsRow && $analyticsRow->subscription_status !== 'none') ? [
             'status' => $analyticsRow->subscription_status,
             'price' => $analyticsRow->mrr_current,
             'mrr' => $analyticsRow->mrr_current,
             'ends_at' => $analyticsRow->subscription_ends_at,
         ] : null;
 
-        // Recent license-count / MRR changes (empty if the table isn't present, e.g. self-hosted)
+        // Recent licence-count / MRR changes for the workspace they are billed under (empty
+        // if the table isn't present, e.g. self-hosted).
         try {
-            $billingChanges = BillingChange::where('user_id', $user->id)
-                ->orderByDesc('detected_at')
-                ->limit(20)
-                ->get();
+            $billingChanges = $billingWorkspace
+                ? BillingChange::where('workspace_id', $billingWorkspace->id)
+                    ->orderByDesc('detected_at')
+                    ->limit(20)
+                    ->get()
+                : collect();
         } catch (\Exception $e) {
             $billingChanges = collect();
         }
@@ -133,101 +124,8 @@ class AdminController extends Controller
             'subscriptionInfo' => $subscriptionInfo,
             'billingChanges' => $billingChanges,
             // Billing lives on the workspace; the form on this page edits that.
-            'billingWorkspace' => $this->billingWorkspaceFor($user),
+            'billingWorkspace' => $billingWorkspace,
         ]);
-    }
-
-    /**
-     * Update manual billing for a user's billing workspace.
-     *
-     * Manually-billed accounts are invoiced through our own accounting system instead of
-     * Lemon Squeezy. They receive Pro without an LS subscription, and their MRR is computed
-     * locally from usage (see RefreshAnalytics) rather than fetched from LS.
-     *
-     * The flags live on the workspace now, since that is what usage is measured against.
-     * This route stays addressed by user so existing links keep working; it applies to that
-     * user's billing workspace.
-     */
-    public function updateBilling(Request $request, User $user): RedirectResponse
-    {
-        $this->checkAdminAccess();
-
-        $validated = $request->validate([
-            'manual_billing_unit_price' => ['nullable', 'numeric', 'min:0', 'max:99999.99'],
-        ]);
-
-        $workspace = $this->billingWorkspaceFor($user);
-
-        if (! $workspace) {
-            return back()->with('error', 'This user has no workspace to bill.');
-        }
-
-        $price = $validated['manual_billing_unit_price'] ?? null;
-
-        $workspace->update([
-            'is_manually_billed' => $request->boolean('is_manually_billed'),
-            'manual_billing_unit_price' => $price === '' ? null : $price,
-            'billing_owner_user_id' => $workspace->billing_owner_user_id ?? $user->id,
-        ]);
-
-        logger()->info('Admin updated manual billing', [
-            'workspace_id' => $workspace->id,
-            'user_id' => $user->id,
-            'admin_id' => Auth::id(),
-            'is_manually_billed' => $workspace->is_manually_billed,
-            'manual_billing_unit_price' => $workspace->manual_billing_unit_price,
-        ]);
-
-        $this->refreshManualMrr($workspace);
-
-        return back()->with('success', 'Billing settings updated.');
-    }
-
-    /**
-     * The workspace that carries a user's billing.
-     */
-    private function billingWorkspaceFor(User $user): ?Workspace
-    {
-        return Workspace::where('billing_owner_user_id', $user->id)->orderBy('id')->first()
-            ?? $user->ownedWorkspaces()->orderByPivot('created_at')->first()
-            ?? $user->primaryWorkspace();
-    }
-
-    /**
-     * Recompute the stored MRR right away, so the admin screen reflects a new unit price
-     * instead of the value from the last analytics refresh.
-     *
-     * Only while manually billed — once the flag is off, Lemon Squeezy is the only source
-     * for MRR, so the row is left for the scheduled refresh to re-derive.
-     */
-    private function refreshManualMrr(Workspace $workspace): void
-    {
-        if (! $workspace->is_manually_billed) {
-            return;
-        }
-
-        try {
-            $mrr = $workspace->calculateManualMrr(
-                $workspace->displays()->count(),
-                $workspace->boards()->count(),
-            );
-
-            // Target the workspace's billing row only. Updating every row this user appears
-            // on would repeat the same MRR across each of their memberships, which is exactly
-            // the double count the snapshot is built to avoid.
-            DB::table('analytics_users')
-                ->where('workspace_id', $workspace->id)
-                ->where('is_billing_owner', true)
-                ->update([
-                    'subscription_status' => 'manual',
-                    'billing_interval' => 'monthly',
-                    'mrr_current' => $mrr,
-                    'mrr_expected' => $mrr,
-                    'updated_at' => now(),
-                ]);
-        } catch (\Exception $e) {
-            // Analytics table isn't present (e.g. self-hosted) — the scheduled refresh will catch up.
-        }
     }
 
     /**
@@ -275,9 +173,15 @@ class AdminController extends Controller
                 $user->subscriptions()->delete();
             }
 
-            // Remove the user's billing-change history — those rows keep a denormalized
-            // copy of the user's email and name, so they must not outlive the account.
-            BillingChange::where('user_id', $user->id)->delete();
+            // Scrub the user from the billing-change history rather than deleting the rows.
+            // Those rows record what a *workspace* was charged for; the name and email are
+            // only the contact at the time. Deleting them would tear holes in a shared
+            // workspace's history because one colleague closed their account.
+            BillingChange::where('user_id', $user->id)->update([
+                'user_id' => null,
+                'email' => null,
+                'name' => null,
+            ]);
 
             // Finally, delete the user
             $user->delete();

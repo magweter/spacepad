@@ -22,7 +22,7 @@ beforeEach(function () {
     config([
         'settings.is_self_hosted' => false,
         'settings.cloud_hosted_pro_plan_id' => '12345',
-        'settings.cloud_hosted_pro_unit_price' => 6,
+        'settings.unit_price' => 6,
         'lemon-squeezy.api_key' => 'test-key',
         'lemon-squeezy.store' => 'teststore',
     ]);
@@ -101,7 +101,7 @@ test('the workspace page shows the trial countdown and what it will cost', funct
 });
 
 test('the cost estimate is left out when no unit price is configured', function () {
-    config(['settings.cloud_hosted_pro_unit_price' => null]);
+    config(['settings.unit_price' => null]);
 
     [$workspace, $owner] = trialWorkspace();
 

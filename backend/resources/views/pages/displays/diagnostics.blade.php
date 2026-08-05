@@ -7,7 +7,7 @@
     {{-- Header --}}
     <div class="mb-6">
         <h1 class="text-lg font-semibold leading-6 text-gray-900">Calendar Sync Diagnostics</h1>
-        <p class="mt-1 text-sm text-gray-500">Trace the full event pipeline from calendar API to tablet — pinpoint exactly where events disappear.</p>
+        <p class="mt-1 text-sm text-gray-500">Trace the full event pipeline from calendar API to tablet, pinpointing exactly where events disappear.</p>
     </div>
 
     {{-- Display selector --}}
@@ -25,17 +25,16 @@
                     @foreach($displays as $d)
                         <option value="{{ $d->id }}"
                                 data-run-url="{{ route('displays.diagnostics.run', $d) }}"
+                                data-name="{{ $d->name }}"
                                 {{ $selected && $selected->id === $d->id ? 'selected' : '' }}>
                             {{ $d->name }}
                             @if($d->calendar)
-                                —
-                                @if($d->calendar->outlook_account_id) Microsoft 365
-                                @elseif($d->calendar->google_account_id) Google Calendar
-                                @elseif($d->calendar->caldav_account_id) CalDAV
-                                @endif
-                                @if($d->calendar->room) (room) @endif
+                                (@if($d->calendar->outlook_account_id)Microsoft 365
+                                @elseif($d->calendar->google_account_id)Google Calendar
+                                @elseif($d->calendar->caldav_account_id)CalDAV
+                                @endif@if($d->calendar->room), room@endif)
                             @else
-                                — no calendar
+                                (no calendar)
                             @endif
                         </option>
                     @endforeach
@@ -61,7 +60,7 @@
             <svg class="h-4 w-4 text-blue-400 flex-shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
                 <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 009.253 9H9z" clip-rule="evenodd" />
             </svg>
-            <p class="text-sm text-blue-700">Runs a live check for <strong>today's events</strong>. Calls the external calendar API directly — results are never cached.</p>
+            <p class="text-sm text-blue-700">Runs a live check for <strong>today's events</strong>. Calls the external calendar API directly. Results are never cached.</p>
         </div>
 
         {{-- Results area --}}
@@ -115,7 +114,9 @@ async function runDiagnostics() {
     const runTime    = document.getElementById('runTime');
     const label      = document.getElementById('resultsLabel');
     const selEl      = document.getElementById('displaySelect');
-    const displayName= selEl.options[selEl.selectedIndex]?.text?.split('—')[0]?.trim() ?? 'Display';
+    // Read the name from the option rather than parsing its label: the label carries the
+    // calendar provider too, and any separator we split on could occur in a display's name.
+    const displayName= selEl.options[selEl.selectedIndex]?.dataset?.name?.trim() ?? 'Display';
 
     btn.disabled = true;
     runIcon.classList.add('hidden');
@@ -130,7 +131,7 @@ async function runDiagnostics() {
         const resp = await fetch(runUrl, {
             headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
         });
-        if (!resp.ok) throw new Error(`HTTP ${resp.status} — ${resp.statusText}`);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}: ${resp.statusText}`);
         const json = await resp.json();
 
         const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
@@ -202,7 +203,7 @@ function renderData(data) {
         html += '<dl class="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1.5 text-sm mb-3">';
         for (const [key, val] of otherMeta) {
             html += `<dt class="font-medium text-gray-500 whitespace-nowrap">${escHtml(String(key))}</dt>
-                     <dd class="text-gray-900">${escHtml(String(val ?? '—'))}</dd>`;
+                     <dd class="text-gray-900">${escHtml(String(val ?? '-'))}</dd>`;
         }
         html += '</dl>';
     }

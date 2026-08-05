@@ -130,7 +130,7 @@ Part of the same **Configure display** screen, in the Branding, State texts and 
 - Room categories — group the rooms of a board into named sections (e.g. "Downstairs", "Floor 2") by dragging them into categories in the board editor; rooms are shown per category on the board with a labeled section divider, and rooms left ungrouped appear last under "Other"
 - Category order is set per board, so the same rooms can be ordered differently on each board
 - Meeting organizer shown per room (card, grid and table view), using the real organizer from the calendar
-- Today-only scope — the "next up" column and the "available until" text only consider bookings on the current day (in the viewer's timezone). A room whose next booking is on a later day shows "—" and "available until end of day" instead of a date-less time range that looks like it is happening today
+- Today-only scope — the "next up" column and the "available until" text only consider bookings on the current day (in the viewer's timezone). A room whose next booking is on a later day shows "-" and "available until end of day" instead of a date-less time range that looks like it is happening today
 
 ---
 
@@ -195,6 +195,11 @@ a separate account with its own invisible set of displays.
 
 ### Billing
 - Billing is per workspace: displays count once, boards count double
+- The unit total is held on the workspace and updated the moment a display or board is added or
+  removed, so the figure on the Team page, the subscription quantity and the invoice are always the
+  same number
+- Adding or removing a display or board resizes the subscription straight away instead of waiting
+  for the next scheduled sync, and lands on the workspace's billing history
 - **No per-user charge** — inviting colleagues costs nothing
 - Only the owner can start or manage a subscription; other members are pointed at the owner rather
   than shown a button that fails

@@ -136,7 +136,7 @@
                         <div class="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-4 flex items-center gap-4">
                             <div class="shrink-0 w-2 self-stretch rounded-full bg-green-400"></div>
                             <div class="flex-1 min-w-0">
-                                <p class="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1">Preview — Conference Room A</p>
+                                <p class="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1">Preview: Conference Room A</p>
                                 <p class="text-lg font-bold text-gray-900">Available</p>
                                 <p class="text-sm text-gray-500">Next: Team standup at 14:00</p>
                             </div>

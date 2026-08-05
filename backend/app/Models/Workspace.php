@@ -249,6 +249,47 @@ class Workspace extends Model
     }
 
     /**
+     * The subscription that has not run out yet, newest first.
+     *
+     * Uses the eager-loaded collection when there is one, so a chunked walk over every
+     * workspace does not turn into a query per row.
+     */
+    public function liveSubscription()
+    {
+        if ($this->relationLoaded('subscriptions')) {
+            return $this->subscriptions
+                ->filter(fn ($subscription) => $subscription->ends_at === null || $subscription->ends_at->isFuture())
+                ->sortByDesc('created_at')
+                ->first();
+        }
+
+        return $this->subscriptions()
+            ->where(fn ($query) => $query->whereNull('ends_at')->orWhere('ends_at', '>', now()))
+            ->orderByDesc('created_at')
+            ->first();
+    }
+
+    /**
+     * How this workspace pays, in one word.
+     *
+     * The order matters: a workspace invoiced through our own accounting is "manual"
+     * even if a stale Lemon Squeezy subscription is still hanging around, because the
+     * manual arrangement is the one that decides what gets billed.
+     */
+    public function billingStatus(): string
+    {
+        if ($this->is_manually_billed) {
+            return 'manual';
+        }
+
+        if ($this->is_unlimited) {
+            return 'unlimited';
+        }
+
+        return $this->liveSubscription()?->status ?? 'none';
+    }
+
+    /**
      * Check if a user is a member of this workspace
      */
     public function hasMember(User $user): bool
@@ -324,6 +365,16 @@ class Workspace extends Model
             }
         }
 
+        // Resolve the fallback from the loaded members where there are any. Without this a
+        // list of workspaces runs a query per row that has no recorded owner, which is most
+        // of them.
+        if ($this->relationLoaded('members')) {
+            return $this->resolvedBillingOwner = $this->members
+                ->filter(fn (User $member) => WorkspaceRole::fromPivot($member->pivot->role) === WorkspaceRole::OWNER)
+                ->sortBy([['pivot.created_at', 'asc'], ['id', 'asc']])
+                ->first();
+        }
+
         return $this->resolvedBillingOwner = $this->owners()
             ->orderByPivot('created_at')
             ->orderBy('users.id')
@@ -372,15 +423,24 @@ class Workspace extends Model
      */
     public function getManualBillingUnitPrice(): float
     {
-        return (float) ($this->manual_billing_unit_price ?? config('settings.manual_billing_unit_price') ?? 0);
+        return (float) ($this->manual_billing_unit_price ?? config('settings.unit_price') ?? 0);
     }
 
     /**
      * Locally computed MRR for a manually-billed workspace.
+     *
+     * Counts default to the workspace's own, which is what every caller wants. The
+     * arguments exist for the "what would this cost at N units" preview on the admin
+     * screen, where the point is to price something other than today's usage.
      */
-    public function calculateManualMrr(int $displaysCount, int $boardsCount): float
+    public function calculateManualMrr(?int $displaysCount = null, ?int $boardsCount = null): float
     {
-        return $this->getManualBillingUnitPrice() * max(1, self::calculateUsage($displaysCount, $boardsCount));
+        $units = self::calculateUsage(
+            $displaysCount ?? (int) $this->displays_count,
+            $boardsCount ?? (int) $this->boards_count,
+        );
+
+        return $this->getManualBillingUnitPrice() * max(1, $units);
     }
 
     /**
@@ -411,21 +471,27 @@ class Workspace extends Model
     }
 
     /**
-     * Get the total usage count for billing purposes
-     * Displays count as 1x, Boards count as 2x
+     * The billable units this workspace currently uses.
+     *
+     * Read from the counter columns, never counted. WorkspaceUsageService is the only
+     * thing that writes them and app:reconcile-workspace-usage is what proves they are
+     * right, so the team page, the admin screen, the analytics snapshot and the Lemon
+     * Squeezy quantity all necessarily agree.
      */
     public function getTotalUsageCount(): int
     {
-        return self::calculateUsage($this->displays()->count(), $this->boards()->count());
+        return self::calculateUsage((int) $this->displays_count, (int) $this->boards_count);
     }
 
     /**
-     * Get breakdown of usage for display
+     * The same figure, broken out for the people looking at their invoice.
+     *
+     * @return array{displays: int, boards: int, board_usage: int, total: int}
      */
     public function getUsageBreakdown(): array
     {
-        $displayCount = $this->displays()->count();
-        $boardCount = $this->boards()->count();
+        $displayCount = (int) $this->displays_count;
+        $boardCount = (int) $this->boards_count;
 
         return [
             'displays' => $displayCount,

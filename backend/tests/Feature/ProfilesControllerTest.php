@@ -12,9 +12,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    $this->user = User::factory()->active()->create([
-        'is_unlimited' => true, // Pro
-    ]);
+    $this->user = User::factory()->active()->unlimited()->create();
     $this->workspace = $this->user->primaryWorkspace();
     session()->put('selected_workspace_id', $this->workspace->id);
 });
@@ -39,8 +37,6 @@ test('the profiles tab lists the workspace profiles', function () {
 test('non-pro users cannot access profiles', function () {
     // Business user without a license/subscription is non-Pro in both cloud and self-hosted modes.
     $free = User::factory()->active()->create([
-        'is_unlimited' => false,
-        'is_manually_billed' => false,
         'usage_type' => UsageType::BUSINESS,
     ]);
     session()->put('selected_workspace_id', $free->primaryWorkspace()->id);
@@ -52,8 +48,6 @@ test('non-pro users cannot access profiles', function () {
 
 test('a non-pro user gets the same tab teaser for profiles as for boards', function () {
     $free = User::factory()->active()->create([
-        'is_unlimited' => false,
-        'is_manually_billed' => false,
         'usage_type' => UsageType::BUSINESS,
     ]);
     session()->put('selected_workspace_id', $free->primaryWorkspace()->id);
@@ -153,7 +147,7 @@ test('deleting a profile copies its settings onto the linked displays', function
 });
 
 test('a user cannot manage a profile in another workspace', function () {
-    $other = User::factory()->active()->create(['is_unlimited' => true]);
+    $other = User::factory()->active()->unlimited()->create();
     $otherProfile = DisplayProfile::factory()->create(['workspace_id' => $other->primaryWorkspace()->id]);
 
     $this->actingAs($this->user)

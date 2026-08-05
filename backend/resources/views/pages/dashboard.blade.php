@@ -700,7 +700,7 @@
                                                 {{ $profile->displays_count }} {{ $profile->displays_count === 1 ? 'display' : 'displays' }}
                                             </td>
                                             <td class="whitespace-nowrap px-3 py-4 align-middle text-sm text-gray-500">
-                                                {{ $profile->user?->name ?? '—' }}
+                                                {{ $profile->user?->name ?? '-' }}
                                             </td>
                                             <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right align-middle text-sm font-medium sm:pr-4">
                                                 <div class="flex items-center justify-end gap-x-2">

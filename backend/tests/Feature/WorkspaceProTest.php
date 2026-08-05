@@ -52,11 +52,12 @@ test('is_unlimited on the workspace grants Pro', function () {
     expect($workspace->fresh()->hasPro())->toBeTrue();
 });
 
-test('is_unlimited on the owner alone does not grant Pro', function () {
+test('a workspace whose owner has Pro elsewhere does not inherit it', function () {
     [$workspace, $owner] = proWorkspaceWithMember();
 
-    // The flag now has to be on the workspace: the money follows the workspace.
-    $owner->update(['is_unlimited' => true]);
+    // The money follows the workspace, so Pro in one of someone's workspaces says nothing
+    // about another. This used to be a flag on the user, which made it say everything.
+    $owner->primaryWorkspace()->update(['is_unlimited' => true]);
 
     expect($workspace->fresh()->hasPro())->toBeFalse();
 });

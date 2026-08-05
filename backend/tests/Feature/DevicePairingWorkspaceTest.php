@@ -26,7 +26,7 @@ uses(RefreshDatabase::class);
  */
 function memberOfATeam(): array
 {
-    $owner = User::factory()->active()->create(['is_unlimited' => true]);
+    $owner = User::factory()->active()->unlimited()->create();
     $team = Workspace::factory()->create(['name' => 'Playup']);
     WorkspaceMember::create([
         'workspace_id' => $team->id,

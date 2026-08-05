@@ -2,9 +2,14 @@
 
 namespace App\Providers;
 
+use App\Models\Board;
+use App\Models\Display;
 use App\Models\Event as EventModel;
 use App\Models\PersonalAccessToken;
+use App\Observers\BoardObserver;
+use App\Observers\DisplayObserver;
 use App\Observers\EventObserver;
+use App\Services\AdminStatsService;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Foundation\Events\DiagnosingHealth;
 use Illuminate\Http\Request;
@@ -12,6 +17,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Sanctum\Sanctum;
 use LemonSqueezy\Laravel\LemonSqueezy;
@@ -52,7 +58,17 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(20)->by($request->ip());
         });
 
+        // Every admin screen shows the same tiles, so they are filled here rather than by
+        // each admin controller remembering to pass them.
+        View::composer('components.admin.stats', function ($view) {
+            $view->with('stats', app(AdminStatsService::class)->figures());
+        });
+
         EventModel::observe(EventObserver::class);
+
+        // Billable usage is a column on the workspace, not a count. These two keep it true.
+        Display::observe(DisplayObserver::class);
+        Board::observe(BoardObserver::class);
 
         Event::listen(DiagnosingHealth::class, function () {
             DB::connection()->getPdo();

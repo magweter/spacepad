@@ -7,6 +7,7 @@ use App\Enums\UserStatus;
 use App\Enums\WorkspaceRole;
 use App\Traits\HasLastActivity;
 use App\Traits\HasUlid;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -77,9 +78,6 @@ class User extends Authenticatable
         'usage_type',
         'email_verified_at',
         'last_activity_at',
-        'is_unlimited',
-        'is_manually_billed',
-        'manual_billing_unit_price',
         'terms_accepted_at',
         'dpa_accepted_at',
         'is_admin',
@@ -105,9 +103,6 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
         'last_activity_at' => 'datetime',
-        'is_unlimited' => 'boolean',
-        'is_manually_billed' => 'boolean',
-        'manual_billing_unit_price' => 'decimal:2',
         'usage_type' => UsageType::class,
         'terms_accepted_at' => 'datetime',
         'dpa_accepted_at' => 'datetime',
@@ -317,6 +312,26 @@ class User extends Authenticatable
     public function hasPro(): bool
     {
         return $this->hasProForCurrentWorkspace();
+    }
+
+    /**
+     * Whether any workspace this person owns is on the house.
+     *
+     * Read-only, and derived: `users.is_unlimited` was dropped once billing moved to the
+     * workspace. It stays reachable as `$user->is_unlimited` because the self-hosted
+     * heartbeat and the marketing webhooks both report it per person, and those payload
+     * shapes are consumed outside this codebase. Nothing can write it, so the two cannot
+     * drift the way the column and the workspace flag did.
+     */
+    protected function isUnlimited(): Attribute
+    {
+        return Attribute::get(function () {
+            if ($this->relationLoaded('ownedWorkspaces')) {
+                return $this->ownedWorkspaces->contains(fn (Workspace $workspace) => (bool) $workspace->is_unlimited);
+            }
+
+            return $this->ownedWorkspaces()->where('is_unlimited', true)->exists();
+        });
     }
 
     /**

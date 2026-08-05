@@ -17,7 +17,7 @@ class UserWebhookData extends Data
         public ?Carbon $emailVerifiedAt,
         public ?string $microsoftId,
         public ?string $googleId,
-        public ?bool $isBillingExempt,
+        // Derived from the workspaces this person owns; see User::isUnlimited().
         public ?bool $isUnlimited,
         public ?Carbon $lastActivityAt,
         public Carbon $createdAt,

@@ -192,8 +192,8 @@ test('duplicate calendar accounts are reported but never merged away', function 
 test('subscriptions are left completely alone', function () {
     [$source, $target, $sourceOwner] = twoSeparateWorkspaces();
 
-    // Standing in for a paying account: hasActiveSubscription() consults the owners.
-    $sourceOwner->update(['is_unlimited' => true]);
+    // Standing in for a paying account.
+    $source->update(['is_unlimited' => true]);
 
     $this->actingAs($this->admin)
         ->post(route('admin.merge.store'), [
@@ -205,9 +205,10 @@ test('subscriptions are left completely alone', function () {
         ])
         ->assertRedirect();
 
-    // is_unlimited is not a subscription, so the source is empty and does go away — but the
-    // owner's billing flags are untouched either way.
-    expect($sourceOwner->fresh()->is_unlimited)->toBeTrue();
+    // is_unlimited is not a subscription, so the source counts as empty and does go away.
+    // The target's own billing is untouched by the merge either way.
+    expect($target->fresh()->is_unlimited)->toBeFalse();
+    expect($target->fresh()->hasActiveSubscription())->toBeFalse();
 });
 
 test('pending invitations for the source are discarded', function () {

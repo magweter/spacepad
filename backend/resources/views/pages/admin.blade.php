@@ -3,56 +3,10 @@
 @section('title', 'Admin dashboard')
 
 @section('content')
-    <!-- Stats -->
-    <div class="grid grid-cols-2 gap-4 sm:grid-cols-4 mb-6">
-        <div class="bg-white border border-gray-200 rounded-lg p-4">
-            <dt class="text-xs font-medium text-gray-500 truncate">Total Users</dt>
-            <dd class="mt-1 text-xl font-semibold text-gray-900">{{ $allUsers->total() }}</dd>
-        </div>
-        <div class="bg-white border border-gray-200 rounded-lg p-4">
-            <dt class="text-xs font-medium text-gray-500 truncate">Active Users</dt>
-            <dd class="mt-1 text-xl font-semibold text-gray-900">{{ $activeUsersCount }}</dd>
-        </div>
-        <div class="bg-white border border-gray-200 rounded-lg p-4">
-            <dt class="text-xs font-medium text-gray-500 truncate">Active Instances</dt>
-            <dd class="mt-1 text-xl font-semibold text-gray-900">{{ $activeInstancesCount }}</dd>
-        </div>
-        <div class="bg-white border border-gray-200 rounded-lg p-4">
-            <dt class="text-xs font-medium text-gray-500 truncate">Total Instances</dt>
-            <dd class="mt-1 text-xl font-semibold text-gray-900">{{ $totalInstances }}</dd>
-        </div>
-    </div>
+    <x-admin.stats />
 
     <div x-data="{ tab: new URLSearchParams(window.location.search).get('tab') || 'users' }">
-        <!-- Tab Navigation -->
-        <div class="border-b border-gray-200 mb-6">
-            <nav class="-mb-px flex space-x-8">
-                <button
-                    @click="tab = 'users'"
-                    :class="tab === 'users' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'"
-                    class="whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium"
-                >
-                    Users
-                </button>
-                <button
-                    @click="tab = 'roadmap'"
-                    :class="tab === 'roadmap' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'"
-                    class="whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium"
-                >
-                    Roadmap
-                    @php $pendingCount = $roadmapItems->where('is_approved', false)->count(); @endphp
-                    @if($pendingCount)
-                        <span class="ml-1.5 inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">{{ $pendingCount }}</span>
-                    @endif
-                </button>
-                <a
-                    href="{{ route('admin.merge.index') }}"
-                    class="whitespace-nowrap border-b-2 border-transparent py-4 px-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700"
-                >
-                    Merge workspaces
-                </a>
-            </nav>
-        </div>
+        <x-admin.tabs :pending-roadmap-count="$roadmapItems->where('is_approved', false)->count()" />
 
         <!-- Users Tab -->
         <div x-show="tab === 'users'">
@@ -167,7 +121,7 @@
                                                 @endif
                                             </td>
                                             <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                                                {{ $item->submittedBy?->name ?? '—' }}<br>
+                                                {{ $item->submittedBy?->name ?? '-' }}<br>
                                                 <span class="text-xs text-gray-400">{{ $item->submittedBy?->email }}</span>
                                             </td>
                                             <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{ $item->created_at->format('d M Y') }}</td>
@@ -222,7 +176,7 @@
                                             {{ $item->status->label() }}
                                         </span>
                                     </td>
-                                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{ $item->expected_at?->format('M Y') ?? '—' }}</td>
+                                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{ $item->expected_at?->format('M Y') ?? '-' }}</td>
                                     <td class="whitespace-nowrap px-3 py-4 text-sm font-semibold text-gray-700">{{ $item->votes_count }}</td>
                                     <td class="whitespace-nowrap px-3 py-4 text-right">
                                         <div class="flex items-center justify-end gap-2">

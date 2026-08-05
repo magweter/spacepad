@@ -91,8 +91,22 @@ class WorkspaceService
      *
      * Only call this for a workspace that is genuinely being retired — it destroys data
      * belonging to the workspace, not to any one user.
+     *
+     * Model events are off for the duration. Without that, deleting the displays one by
+     * one would walk the workspace's usage counters down to zero a tick at a time and
+     * announce every step, so a workspace being deleted would queue a stream of
+     * subscription resizes and "licence decreased" audit rows against a row that is about
+     * to disappear. Nothing here needs an observer: the workspace goes with it.
      */
     public function purge(Workspace $workspace): void
+    {
+        Model::withoutEvents(fn () => $this->purgeContents($workspace));
+    }
+
+    /**
+     * The teardown itself. Always called through purge(), never directly.
+     */
+    private function purgeContents(Workspace $workspace): void
     {
         foreach ($workspace->displays as $display) {
             $display->eventSubscriptions()->delete();

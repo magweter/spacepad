@@ -34,7 +34,10 @@ class WorkspaceMemberController extends Controller
         // trialling workspace as activated. The countdown belongs here instead, next to the
         // usage it will be charged for.
         $subscription = config('settings.is_self_hosted') ? null : $workspace->subscription();
-        $unitPrice = (float) (config('settings.cloud_hosted_pro_unit_price') ?? 0);
+        // The list price, not the workspace's own manual_billing_unit_price: that override is
+        // a negotiated deal for accounts we invoice ourselves, and quoting it here would show
+        // a Lemon Squeezy customer a price their subscription is not on.
+        $unitPrice = (float) (config('settings.unit_price') ?? 0);
 
         return view('pages.workspaces.members', [
             'workspace' => $workspace,
