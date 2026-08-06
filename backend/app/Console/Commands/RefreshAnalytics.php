@@ -199,9 +199,12 @@ class RefreshAnalytics extends Command
             if ($apiData) {
                 $billing['subscription_status'] = $apiData['status'];
                 $billing['billing_interval'] = $apiData['billing_interval'];
-                // unit_price × quantity already factored in fetchSubscriptionPrice
+                // Current is what Lemon Squeezy invoices today. Expected is what this
+                // workspace's usage should yield, so a trial about to convert counts and a
+                // subscription still sitting at the wrong quantity shows up as a shortfall
+                // instead of quietly reporting the lower figure as the whole truth.
                 $billing['mrr_current'] = $apiData['status'] === 'active' ? $apiData['mrr'] : 0;
-                $billing['mrr_expected'] = in_array($apiData['status'], ['active', 'on_trial']) ? $apiData['mrr'] : 0;
+                $billing['mrr_expected'] = in_array($apiData['status'], ['active', 'on_trial']) ? $apiData['mrr_at_usage'] : 0;
             }
         }
 
@@ -339,8 +342,10 @@ class RefreshAnalytics extends Command
             $mrrExpected = (float) ($existingMrrExpected[$instance->id] ?? 0);
 
             if ($withMrr && $instance->license_key) {
-                // A self-hosted instance reports its totals over the wire rather than
-                // holding workspaces, but it is priced by the same rule.
+                // What the instance reports over the wire instead of holding workspaces here.
+                // Only a metered licence is actually priced on it: the flat self-hosted plans
+                // are billed per licence, so their MRR comes off Lemon Squeezy's own
+                // quantity. See fetchSubscriptionFromApi().
                 $billableUsage = max(1, Workspace::calculateUsage(
                     (int) $instance->displays_count,
                     (int) $instance->boards_count,
@@ -352,6 +357,9 @@ class RefreshAnalytics extends Command
                     $billingInterval = $instanceMrr['billing_interval'];
                     $lemonSqueezyId = $instanceMrr['subscription_id'];
                     $mrrCurrent = $subscriptionStatus === 'active' ? $instanceMrr['mrr'] : 0;
+                    // The invoiced figure for expected too, unlike a workspace: a self-hosted
+                    // licence is priced per instance, so more displays behind it do not make a
+                    // higher invoice to fall short of.
                     $mrrExpected = in_array($subscriptionStatus, ['active', 'on_trial']) ? $instanceMrr['mrr'] : 0;
                 }
             }
@@ -407,25 +415,32 @@ class RefreshAnalytics extends Command
         }
 
         try {
-            // Step 1: find the license key record in LS to get the customer_id
-            $licenseData = $this->cachedGet(
-                "lemonsqueezy:license-key-lookup:{$licenseKey}",
-                'https://api.lemonsqueezy.com/v1/license-keys',
-                ['filter[key]' => $licenseKey],
+            // Step 1: the order this licence was sold with. /license-keys cannot be searched
+            // by the key itself (it answers "Filter parameter key is not allowed"), so the
+            // validate endpoint is what turns a key into something to look up. It reports an
+            // expired key too, which is what keeps an expired licence at zero rather than
+            // simply unknown.
+            $licenseData = $this->cachedPost(
+                "lemonsqueezy:license-validate:{$licenseKey}",
+                'https://api.lemonsqueezy.com/v1/licenses/validate',
+                ['license_key' => $licenseKey],
                 ttlHours: 6,
-                isUsable: fn (array $body) => isset($body['data'][0]['attributes']['customer_id']),
+                isUsable: fn (array $body) => isset($body['meta']['order_id']),
             );
 
-            $customerId = $licenseData['data'][0]['attributes']['customer_id'] ?? null;
-            if (! $customerId) {
+            $orderId = $licenseData['meta']['order_id'] ?? null;
+            if (! $orderId) {
                 return null;
             }
 
-            // Step 2: find subscriptions for this customer
+            // Step 2: the subscription behind that order. Keyed on the order and not the
+            // customer: /subscriptions rejects filter[customer_id] outright, and a customer
+            // who bought both a cloud plan and a self-hosted licence would otherwise have
+            // whichever of the two is newest priced as this instance.
             $subsData = $this->cachedGet(
-                "lemonsqueezy:customer-subscriptions:{$customerId}",
+                "lemonsqueezy:order-subscriptions:{$orderId}",
                 'https://api.lemonsqueezy.com/v1/subscriptions',
-                ['filter[customer_id]' => $customerId],
+                ['filter[order_id]' => $orderId],
                 ttlHours: 6,
                 isUsable: fn (array $body) => ! empty($body['data']),
             );
@@ -484,19 +499,30 @@ class RefreshAnalytics extends Command
             }
 
             $status = $subscriptionData['data']['attributes']['status'] ?? null;
-            $unitPrice = $this->fetchUnitPrice($subscriptionId);
+            $pricing = $this->fetchPricing($subscriptionId);
             $interval = $this->resolveInterval($subscriptionId);
 
-            if ($unitPrice === null) {
+            if ($pricing === null) {
                 return null;
             }
 
-            // MRR = unit price × quantity (billable usage: displays 1x + boards 2x)
-            $mrr = $unitPrice * max(1, $quantity);
+            // A metered price is billed from the usage records we push, and leaves the
+            // quantity on the subscription item at zero, so the reported usage is the only
+            // number available. Every other price is billed on the quantity Lemon Squeezy
+            // itself holds, and that is what to multiply: a flat self-hosted licence sits at
+            // 1 there, and multiplying $10 by that instance's displays would book revenue
+            // nobody is ever invoiced for.
+            $billedQuantity = $pricing['is_metered']
+                ? max(1, $quantity)
+                : max(1, $pricing['quantity'] ?? $quantity);
 
             return [
                 'status' => $status,
-                'mrr' => $mrr,
+                // What Lemon Squeezy invoices, and what today's usage says it should invoice.
+                // The two diverge when a quantity update never reached them, which is a
+                // customer being underbilled: worth seeing rather than averaging away.
+                'mrr' => $pricing['unit_price'] * $billedQuantity,
+                'mrr_at_usage' => $pricing['unit_price'] * max(1, $quantity),
                 'billing_interval' => $interval,
             ];
         } catch (\Exception $e) {
@@ -510,12 +536,7 @@ class RefreshAnalytics extends Command
     }
 
     /**
-     * A cached GET against Lemon Squeezy that only ever stores an answer it can use.
-     *
-     * Cache::remember() kept whatever came back, so a single 404 or rate-limited reply froze
-     * the figures for the whole TTL: every later run read the error straight from cache, made
-     * no request at all, and finished in a second having updated nothing. Six hours of that
-     * for a subscription, a full day for a price — with no sign anything was wrong.
+     * A cached GET against the JSON:API endpoints.
      *
      * @param  array<string, mixed>  $query
      * @param  callable(array<mixed>): bool  $isUsable
@@ -523,23 +544,56 @@ class RefreshAnalytics extends Command
      */
     private function cachedGet(string $cacheKey, string $url, array $query, int $ttlHours, callable $isUsable): ?array
     {
+        return $this->cachedRequest($cacheKey, 'get', $url, $query, $ttlHours, $isUsable);
+    }
+
+    /**
+     * A cached POST, for the licence endpoints: form-encoded plain JSON rather than JSON:API.
+     *
+     * @param  array<string, mixed>  $payload
+     * @param  callable(array<mixed>): bool  $isUsable
+     * @return array<mixed>|null
+     */
+    private function cachedPost(string $cacheKey, string $url, array $payload, int $ttlHours, callable $isUsable): ?array
+    {
+        return $this->cachedRequest($cacheKey, 'post', $url, $payload, $ttlHours, $isUsable);
+    }
+
+    /**
+     * A cached call to Lemon Squeezy that only ever stores an answer it can use.
+     *
+     * Cache::remember() kept whatever came back, so a single 404 or rate-limited reply froze
+     * the figures for the whole TTL: every later run read the error straight from cache, made
+     * no request at all, and finished in a second having updated nothing. Six hours of that
+     * for a subscription, a full day for a price — with no sign anything was wrong.
+     *
+     * @param  array<string, mixed>  $params
+     * @param  callable(array<mixed>): bool  $isUsable
+     * @return array<mixed>|null
+     */
+    private function cachedRequest(string $cacheKey, string $method, string $url, array $params, int $ttlHours, callable $isUsable): ?array
+    {
         $cached = Cache::get($cacheKey);
 
         if (is_array($cached) && $isUsable($cached)) {
             return $cached;
         }
 
-        $body = Http::withToken(config('lemon-squeezy.api_key'))
-            ->withHeaders(['Accept' => 'application/vnd.api+json'])
-            ->timeout(15)
-            ->get($url, $query)
-            ->json();
+        $request = Http::withToken(config('lemon-squeezy.api_key'))->timeout(15);
+
+        // Only the body decides whether an answer is usable, never the status code: the
+        // licence endpoint replies 400 for an expired key while still describing which order
+        // it belongs to, and an expired licence is exactly the case whose MRR must reach
+        // zero rather than be carried over from the last run.
+        $body = $method === 'post'
+            ? $request->accept('application/json')->asForm()->post($url, $params)->json()
+            : $request->withHeaders(['Accept' => 'application/vnd.api+json'])->get($url, $params)->json();
 
         if (! is_array($body) || ! $isUsable($body)) {
             logger()->warning('RefreshAnalytics: unusable response from LemonSqueezy, left uncached so the next run retries', [
                 'url' => $url,
-                'query' => $query,
-                'error' => $body['errors'][0]['title'] ?? null,
+                'query' => $params,
+                'error' => $body['errors'][0]['title'] ?? $body['error'] ?? null,
             ]);
 
             return null;
@@ -550,7 +604,13 @@ class RefreshAnalytics extends Command
         return $body;
     }
 
-    private function fetchUnitPrice(string $subscriptionId): ?float
+    /**
+     * The monthly price of a subscription, what Lemon Squeezy bills that price against, and
+     * whether it is metered.
+     *
+     * @return array{unit_price: float, quantity: int|null, is_metered: bool}|null
+     */
+    private function fetchPricing(string $subscriptionId): ?array
     {
         $itemsData = $this->cachedGet(
             "lemonsqueezy:subscription-items:{$subscriptionId}",
@@ -565,6 +625,7 @@ class RefreshAnalytics extends Command
         }
 
         $priceId = $itemsData['data'][0]['attributes']['price_id'];
+        $quantity = $itemsData['data'][0]['attributes']['quantity'] ?? null;
 
         $priceData = $this->cachedGet(
             "lemonsqueezy:price:{$priceId}",
@@ -588,8 +649,12 @@ class RefreshAnalytics extends Command
         $unitPrice = (float) ($raw / 100);
         $isYearly = strtolower($attrs['renewal_interval_unit'] ?? '') === 'year';
 
-        // Convert yearly unit price to monthly equivalent
-        return $isYearly ? $unitPrice / 12 : $unitPrice;
+        return [
+            // Converted to a monthly equivalent, so a yearly plan is comparable.
+            'unit_price' => $isYearly ? $unitPrice / 12 : $unitPrice,
+            'quantity' => $quantity === null ? null : (int) $quantity,
+            'is_metered' => ($attrs['usage_aggregation'] ?? null) !== null,
+        ];
     }
 
     private function resolveInterval(string $subscriptionId): ?string
