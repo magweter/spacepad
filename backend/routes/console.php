@@ -20,12 +20,12 @@ Schedule::command(RenewEventSubscriptions::class)
     ->withoutOverlapping(5); // Release lock after 5 minutes if still running
 
 Schedule::command(SendHeartbeat::class)
-    ->when(fn() => config('settings.is_self_hosted'))
+    ->when(fn () => config('settings.is_self_hosted'))
     ->hourlyAt($heartbeatMinute)
     ->withoutOverlapping(10); // Release lock after 10 minutes
 
 Schedule::command(ValidateLicense::class)
-    ->when(fn() => config('settings.is_self_hosted') && InstanceService::hasLicense())
+    ->when(fn () => config('settings.is_self_hosted') && InstanceService::hasLicense())
     ->hourlyAt($validateMinute)
     ->withoutOverlapping(10); // Release lock after 10 minutes
 
@@ -33,13 +33,17 @@ Schedule::command(CleanupExpiredEvents::class)
     ->hourly()
     ->withoutOverlapping(10); // Release lock after 10 minutes
 
+// Keep the output: the scheduler otherwise runs every command as `... > /dev/null 2>&1`,
+// and with LOG_CHANNEL falling back to stderr that swallowed the reason a billing push was
+// refused along with it. A failed run reported an exit code and nothing else.
 Schedule::command(UpdateLemonSqueezySubscriptions::class)
-    ->when(fn() => ! config('settings.is_self_hosted'))
+    ->when(fn () => ! config('settings.is_self_hosted'))
     ->hourly()
+    ->appendOutputTo(storage_path('logs/lemonsqueezy-usage.log'))
     ->withoutOverlapping(10); // Release lock after 10 minutes
 
 Schedule::command(CheckMarketingTriggers::class)
-    ->when(fn() => ! config('settings.is_self_hosted'))
+    ->when(fn () => ! config('settings.is_self_hosted'))
     ->hourly()
     ->withoutOverlapping(10); // Release lock after 10 minutes
 
@@ -50,11 +54,11 @@ Schedule::command(ReconcileWorkspaceUsage::class, ['--fix'])
     ->withoutOverlapping(30);
 
 Schedule::command(RefreshAnalytics::class)
-    ->when(fn() => ! config('settings.is_self_hosted'))
+    ->when(fn () => ! config('settings.is_self_hosted'))
     ->everyFiveMinutes()
     ->withoutOverlapping(5);
 
 Schedule::command(RefreshAnalytics::class, ['--mrr'])
-    ->when(fn() => ! config('settings.is_self_hosted'))
+    ->when(fn () => ! config('settings.is_self_hosted'))
     ->everyThirtyMinutes()
     ->withoutOverlapping(30);

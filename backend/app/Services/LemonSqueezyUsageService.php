@@ -2,8 +2,10 @@
 
 namespace App\Services;
 
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 /**
  * Pushing billable usage to Lemon Squeezy.
@@ -36,15 +38,7 @@ class LemonSqueezyUsageService
      */
     public function setQuantity(string $subscriptionItemId, int $quantity): bool
     {
-        $response = $this->request()->patch(self::BASE."/subscription-items/{$subscriptionItemId}", [
-            'data' => [
-                'type' => 'subscription-items',
-                'id' => $subscriptionItemId,
-                'attributes' => ['quantity' => $quantity],
-            ],
-        ]);
-
-        return $response->successful();
+        return $this->quantityResponse($subscriptionItemId, $quantity)->successful();
     }
 
     /**
@@ -52,7 +46,23 @@ class LemonSqueezyUsageService
      */
     public function recordUsage(string $subscriptionItemId, int $quantity): bool
     {
-        $response = $this->request()->post(self::BASE.'/usage-records', [
+        return $this->usageResponse($subscriptionItemId, $quantity)->successful();
+    }
+
+    private function quantityResponse(string $subscriptionItemId, int $quantity): Response
+    {
+        return $this->request()->patch(self::BASE."/subscription-items/{$subscriptionItemId}", [
+            'data' => [
+                'type' => 'subscription-items',
+                'id' => $subscriptionItemId,
+                'attributes' => ['quantity' => $quantity],
+            ],
+        ]);
+    }
+
+    private function usageResponse(string $subscriptionItemId, int $quantity): Response
+    {
+        return $this->request()->post(self::BASE.'/usage-records', [
             'data' => [
                 'type' => 'usage-records',
                 'attributes' => [
@@ -69,8 +79,6 @@ class LemonSqueezyUsageService
                 ],
             ],
         ]);
-
-        return $response->successful();
     }
 
     /**
@@ -100,13 +108,23 @@ class LemonSqueezyUsageService
             return false;
         }
 
-        $quantityOk = $this->setQuantity($itemId, $units);
-        $usageOk = $this->recordUsage($itemId, $units);
+        $quantity = $this->quantityResponse($itemId, $units);
+        $usage = $this->usageResponse($itemId, $units);
+
+        $quantityOk = $quantity->successful();
+        $usageOk = $usage->successful();
 
         if (! $quantityOk && ! $usageOk) {
+            // Both statuses and both reasons, because either one alone is ambiguous: a
+            // metered price rejects the quantity update by design, so the interesting
+            // question is always why the *other* call also failed.
             Log::warning('Neither billing method accepted the usage push', $context + [
                 'subscription_item_id' => $itemId,
                 'units' => $units,
+                'quantity_status' => $quantity->status(),
+                'quantity_error' => $this->errorDetail($quantity),
+                'usage_status' => $usage->status(),
+                'usage_error' => $this->errorDetail($usage),
             ]);
 
             return false;
@@ -127,6 +145,19 @@ class LemonSqueezyUsageService
         return (bool) config('lemon-squeezy.api_key');
     }
 
+    /**
+     * Why Lemon Squeezy turned a call down, in one line.
+     *
+     * The JSON:API detail when there is one, otherwise the raw body, capped so an HTML
+     * error page or a rate-limit response cannot bury the log entry.
+     */
+    private function errorDetail(Response $response): ?string
+    {
+        return $response->json('errors.0.detail')
+            ?? $response->json('errors.0.title')
+            ?? Str::limit((string) $response->body(), 300);
+    }
+
     private function request()
     {
         return Http::withToken(config('lemon-squeezy.api_key'))->withHeaders([
@@ -145,6 +176,7 @@ class LemonSqueezyUsageService
             Log::warning('Could not fetch Lemon Squeezy subscription', [
                 'subscription_id' => $subscriptionId,
                 'status' => $response->status(),
+                'error' => $this->errorDetail($response),
             ]);
 
             return null;

@@ -99,9 +99,18 @@ class UpdateLemonSqueezySubscriptions extends Command
 
                     // Failures are logged inside the service and counted as errors here.
                     // They used to go to Log::debug and still count as a success, so a
-                    // broken push looked like a clean run.
+                    // broken push looked like a clean run. The console line matters as much
+                    // as the log: the scheduler sends a command's output to /dev/null, so
+                    // for a while the only sign of trouble was the exit code, with nothing
+                    // to say which workspace caused it.
                     if (! $this->usage->pushUnits($subscription->lemon_squeezy_id, $units, ['workspace_id' => $workspace->id])) {
                         $errorCount++;
+                        $this->error(sprintf(
+                            'Lemon Squeezy refused workspace %s (subscription %s, %d units)',
+                            $workspace->id,
+                            $subscription->lemon_squeezy_id,
+                            $units,
+                        ));
 
                         continue;
                     }
