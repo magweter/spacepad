@@ -140,6 +140,14 @@ class Workspace extends Model
      */
     public function getConnectCode(User $for): string
     {
+        $review = static::reviewConnectCode();
+
+        // Show the review account its own fixed code, so the dashboard and the code in the
+        // app store review notes never disagree.
+        if ($review && $review['workspace_id'] === $this->id && $review['user_id'] === $for->id) {
+            return $review['code'];
+        }
+
         $cacheKey = "workspace:{$this->id}:user:{$for->id}:connect-code";
 
         $connectCode = cache()->get($cacheKey);
@@ -149,7 +157,8 @@ class Workspace extends Model
 
             do {
                 $connectCode = mt_rand(100000, 999999);
-            } while (cache()->has("connect-code:$connectCode"));
+            } while (cache()->has("connect-code:$connectCode")
+                || ($review && (string) $connectCode === $review['code']));
 
             cache()->put($cacheKey, $connectCode, $expiresAt);
             cache()->put("connect-code:$connectCode", [
@@ -162,12 +171,57 @@ class Workspace extends Model
     }
 
     /**
+     * The fixed pairing code handed to app store reviewers, if one is configured.
+     *
+     * Unlike a normal connect code this one has no TTL and is never consumed, so it works
+     * whenever a reviewer gets to it and survives being used by more than one of them. That
+     * is a standing back door into a single account, so it only exists while the env vars
+     * are set, and it should be cleared once the review is done.
+     *
+     * @return array{code: string, user_id: string, workspace_id: string|null}|null
+     */
+    private static function reviewConnectCode(): ?array
+    {
+        $code = config('settings.review_connect_code');
+        $userId = config('settings.review_connect_user_id');
+
+        if (blank($code) || blank($userId)) {
+            return null;
+        }
+
+        return [
+            'code' => (string) $code,
+            'user_id' => (string) $userId,
+            // Optional: without it AuthController falls back to the user's primary workspace.
+            'workspace_id' => filled($workspaceId = config('settings.review_connect_workspace_id'))
+                ? (string) $workspaceId
+                : null,
+        ];
+    }
+
+    /**
      * Retrieve and invalidate a connect code atomically, so it can only be used once.
      *
      * @return array{user_id: string, workspace_id: string|null}|null
      */
     public static function pullConnectCode(string $code): ?array
     {
+        $review = static::reviewConnectCode();
+
+        // Deliberately before the pull: the review code is never consumed, so a store
+        // reviewer can pair as often as they like and a second reviewer still gets in.
+        if ($review && hash_equals($review['code'], $code)) {
+            logger()->info('Review connect code used', [
+                'user_id' => $review['user_id'],
+                'workspace_id' => $review['workspace_id'],
+            ]);
+
+            return [
+                'user_id' => $review['user_id'],
+                'workspace_id' => $review['workspace_id'],
+            ];
+        }
+
         $payload = cache()->pull("connect-code:$code");
 
         if ($payload === null) {

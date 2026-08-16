@@ -114,6 +114,84 @@ test('re-pairing moves an existing device to the newly chosen workspace', functi
     expect(Device::firstWhere('uid', 'roaming-tablet')->workspace_id)->toBe($team->id);
 });
 
+/**
+ * The fixed code we hand to app store reviewers. It has to outlive the 30 minute TTL and
+ * survive being used more than once, or the review fails on "cannot log in".
+ */
+function configureReviewCode(User $user, ?Workspace $workspace = null, string $code = '424242'): string
+{
+    config()->set('settings.review_connect_code', $code);
+    config()->set('settings.review_connect_user_id', $user->id);
+    config()->set('settings.review_connect_workspace_id', $workspace?->id);
+
+    return $code;
+}
+
+test('the review connect code pairs into the configured workspace', function () {
+    [$member, $team] = memberOfATeam();
+
+    $code = configureReviewCode($member, $team);
+
+    $this->postJson('/api/auth/login', [
+        'code' => $code,
+        'uid' => 'review-tablet',
+        'name' => 'Review tablet',
+    ])->assertOk();
+
+    $device = Device::firstWhere('uid', 'review-tablet');
+
+    expect($device->workspace_id)->toBe($team->id);
+    expect($device->user_id)->toBe($member->id);
+});
+
+test('the review connect code is never used up', function () {
+    [$member, $team] = memberOfATeam();
+
+    $code = configureReviewCode($member, $team);
+
+    $this->postJson('/api/auth/login', ['code' => $code, 'uid' => 'review-1', 'name' => 'One'])->assertOk();
+    $this->postJson('/api/auth/login', ['code' => $code, 'uid' => 'review-2', 'name' => 'Two'])->assertOk();
+
+    expect(Device::whereIn('uid', ['review-1', 'review-2'])->count())->toBe(2);
+});
+
+test('the review connect code falls back to the primary workspace when none is configured', function () {
+    [$member, $team, $personal] = memberOfATeam();
+
+    $code = configureReviewCode($member);
+
+    $this->postJson('/api/auth/login', [
+        'code' => $code,
+        'uid' => 'review-fallback',
+        'name' => 'Review tablet',
+    ])->assertOk();
+
+    expect(Device::firstWhere('uid', 'review-fallback')->workspace_id)->toBe($personal->id);
+});
+
+test('the review connect code does nothing when it is not configured', function () {
+    memberOfATeam();
+
+    $this->postJson('/api/auth/login', [
+        'code' => '424242',
+        'uid' => 'review-tablet',
+        'name' => 'Review tablet',
+    ])->assertJsonPath('success', false);
+
+    expect(Device::firstWhere('uid', 'review-tablet'))->toBeNull();
+});
+
+test('the dashboard shows the review account its fixed code', function () {
+    [$member, $team, $personal] = memberOfATeam();
+
+    $code = configureReviewCode($member, $team);
+
+    expect($team->getConnectCode($member))->toBe($code);
+
+    // Only that one pairing gets the fixed code; everything else still rotates.
+    expect($personal->getConnectCode($member))->not->toBe($code);
+});
+
 test('a device only sees displays from its own workspace', function () {
     [$member, $team, $personal] = memberOfATeam();
 

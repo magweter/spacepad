@@ -45,4 +45,15 @@ return [
 
     'allowed_logins' => array_filter(array_map('trim', explode(',', env('ALLOWED_LOGINS', '')))), // Comma-separated list of allowed domains or emails
 
+    // Fixed pairing code for the app store review account. Left empty everywhere except the
+    // hosted production environment: a store reviewer needs a code that still works whenever
+    // they get around to testing, and that a second reviewer can use again afterwards. The
+    // rotating 30 minute code guarantees neither, which is a rejection waiting to happen.
+    //
+    // Must be exactly 6 digits, the app's connect screen accepts nothing else. Clear these
+    // once the review is through: the code never expires and is never consumed.
+    'review_connect_code' => env('REVIEW_CONNECT_CODE'),
+    'review_connect_user_id' => env('REVIEW_CONNECT_USER_ID'),
+    'review_connect_workspace_id' => env('REVIEW_CONNECT_WORKSPACE_ID'),
+
 ];
