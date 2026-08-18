@@ -292,4 +292,14 @@ class Display extends Model
     {
         return DisplaySettings::setShowOrganizerEnabled($this, $enabled);
     }
+
+    public function getShowRoomName(): bool
+    {
+        return DisplaySettings::getShowRoomName($this);
+    }
+
+    public function setShowRoomName(bool $show): bool
+    {
+        return DisplaySettings::setShowRoomName($this, $show);
+    }
 }

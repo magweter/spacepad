@@ -21,7 +21,7 @@
                 <div class="flow-root">
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
                         <div class="mb-4">
-                            <label for="name" class="block text-sm font-medium leading-6 text-gray-900">Device name</label>
+                            <label for="name" class="block text-sm font-medium leading-6 text-gray-900">Display name</label>
                             <div class="mt-2">
                                 <input type="text" name="name" id="name" value="{{ old('name') }}"
                                        class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6"

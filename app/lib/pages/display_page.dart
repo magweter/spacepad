@@ -106,7 +106,10 @@ class DisplayPage extends StatelessWidget {
                               .map((item) => DropdownMenuItem<DisplayModel>(
                                   value: item,
                                   child: Text(
-                                    item.name,
+                                    // The display name, not the room name: room names are shared
+                                    // on purpose where a building or floor name goes there, which
+                                    // made every entry in this list read the same.
+                                    item.pickerName,
                                     style: const TextStyle(
                                       fontSize: 14,
                                     ),

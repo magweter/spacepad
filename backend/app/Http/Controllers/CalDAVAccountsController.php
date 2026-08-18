@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\PermissionType;
 use App\Models\CalDAVAccount;
 use App\Services\CalDAVService;
+use App\Services\FunnelTracking;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -59,6 +60,8 @@ class CalDAVAccountsController extends Controller
             'password' => $validated['password'],
             'permission_type' => PermissionType::WRITE,
         ]);
+
+        FunnelTracking::calendarConnected($selectedWorkspace, $account->wasRecentlyCreated);
 
         return redirect()
             ->route('dashboard')

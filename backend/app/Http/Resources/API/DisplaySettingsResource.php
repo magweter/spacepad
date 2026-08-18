@@ -50,6 +50,9 @@ class DisplaySettingsResource extends JsonResource
 
             // Organizer
             'show_organizer' => $this->isShowOrganizerEnabled(),
+
+            // Room name in the header corner
+            'show_room_name' => $this->getShowRoomName(),
         ];
     }
 }

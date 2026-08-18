@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\GoogleBookingMethod;
 use App\Enums\PermissionType;
 use App\Models\GoogleAccount;
+use App\Services\FunnelTracking;
 use App\Services\GoogleService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -147,13 +148,17 @@ class GoogleAccountsController extends Controller
         session()->forget('google_permission_type');
         session()->forget('google_booking_method');
 
+        $workspace = auth()->user()->getSelectedWorkspace();
+
         // Don't set booking_method initially - will be set based on account type
         $googleAccount = $this->googleService->authenticateGoogleAccount(
             $authCode,
             $permissionType,
             null,
-            auth()->user()->getSelectedWorkspace(),
+            $workspace,
         );
+
+        FunnelTracking::calendarConnected($workspace, $googleAccount->wasRecentlyCreated);
 
         // If write permission, automatically detect account type and set booking method
         if ($permissionType === PermissionType::WRITE) {

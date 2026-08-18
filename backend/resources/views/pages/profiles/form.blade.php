@@ -60,7 +60,7 @@
                         <div class="flex flex-wrap gap-2">
                             @foreach($linkedDisplays as $linked)
                                 <span class="inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200">
-                                    {{ $linked->display_name ?: $linked->name }}
+                                    {{ $linked->name ?: $linked->display_name }}
                                 </span>
                             @endforeach
                         </div>
@@ -196,6 +196,13 @@
                             <input id="show_meeting_title" name="show_meeting_title" type="checkbox" value="1" class="mt-0.5 {{ $checkClass }}" {{ $bool('show_meeting_title', true) ? 'checked' : '' }}>
                             <label for="show_meeting_title" class="text-sm text-gray-900">Show meeting titles</label>
                             <x-info-tip text="When off, the title is replaced by the Reserved text below. Useful when subjects can be confidential, such as '1-on-1' or a client name." />
+                        </div>
+
+                        <div class="flex items-start gap-3">
+                            <input type="hidden" name="show_room_name" value="0">
+                            <input id="show_room_name" name="show_room_name" type="checkbox" value="1" class="mt-0.5 {{ $checkClass }}" {{ $bool('show_room_name', true) ? 'checked' : '' }}>
+                            <label for="show_room_name" class="text-sm text-gray-900">Show the room name</label>
+                            <x-info-tip text="The room name in the top right corner of the display. Turn this off when the name is already part of your background image, so it is not printed twice." />
                         </div>
 
                         <div class="pt-4 border-t border-gray-100">

@@ -549,4 +549,21 @@ class DisplaySettings
     {
         return self::setSetting($display, 'show_organizer', $enabled, 'boolean');
     }
+
+    /**
+     * Whether the room name is printed in the header corner of the display.
+     *
+     * Defaults to on, because for most rooms that corner is how the display identifies itself.
+     * Turning it off is for the setup where the name already lives in the background image, and
+     * printing it again puts the same words on screen twice.
+     */
+    public static function getShowRoomName(Display $display): bool
+    {
+        return self::getSetting($display, 'show_room_name', true);
+    }
+
+    public static function setShowRoomName(Display $display, bool $show): bool
+    {
+        return self::setSetting($display, 'show_room_name', $show, 'boolean');
+    }
 }

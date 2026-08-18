@@ -9,6 +9,7 @@ use App\Models\Display;
 use App\Models\DisplayProfile;
 use App\Models\GoogleAccount;
 use App\Models\OutlookAccount;
+use App\Services\FunnelTracking;
 use App\Services\OutlookService;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Contracts\View\Factory;
@@ -92,6 +93,12 @@ class DashboardController extends Controller
         $hasDevice = $selectedWorkspace
             ? Device::where('workspace_id', $selectedWorkspace->id)->exists()
             : false;
+
+        // Pairing happens on the tablet, against the API, so the funnel milestone for it can
+        // only be picked up here, the next time the dashboard is opened.
+        if ($hasDevice) {
+            FunnelTracking::devicePaired($selectedWorkspace);
+        }
 
         return view('pages.dashboard', [
             'outlookAccounts' => $outlookAccounts,

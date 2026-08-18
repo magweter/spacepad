@@ -565,6 +565,10 @@ class DashboardController extends GetxController {
     return globalSettings.value?.extendEnabled ?? false;
   }
 
+  bool get showRoomName {
+    return globalSettings.value?.showRoomName ?? true;
+  }
+
   bool get showOrganizer {
     return globalSettings.value?.showOrganizer ?? false;
   }

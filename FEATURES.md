@@ -27,7 +27,9 @@ A privacy-focused room display app that shows real-time room availability, synce
 
 ### Clock & Identity
 - Real-time digital clock
-- Room name displayed prominently
+- Room name displayed prominently, and optionally hidden per display — for rooms whose name is
+  already part of the background image. The corner still responds to a long press, so hidden admin
+  actions stay reachable.
 - Custom logo support
 
 ### Booking
@@ -61,6 +63,10 @@ Four modes to show today's schedule — one per display:
 
 The schedule view shows all events for today, tomorrow, and yesterday.
 
+The full-day modal lists each meeting with its time, title, room and, when **Show organizer** is
+enabled, the meeting organizer. Both the "Show meeting title" and "Show organizer" settings apply to
+every day shown, not just today.
+
 ### Advertisement Display
 - Show a custom image advertisement on the right half of the screen
 - Configurable interval (how often it appears) and duration (how long it stays)
@@ -80,6 +86,18 @@ Managed from the web portal on one **Configure display** screen, grouped into se
 Display, State texts, Branding, Advertisement). Each section either follows the display's linked
 profile or holds its own values — see [Display Profiles](#display-profiles-pro).
 
+### The two names
+
+Every display carries two names, both editable from the Display information block at the top of the
+Configure display screen (they used to be settable only while creating the display):
+
+| Name | Where it is used |
+|---|---|
+| **Display name** | Dashboard only, to tell displays apart. Listed by the tablet's setup wizard and under **Used by** on a profile, so it should be unique per display. |
+| **Room name** | Printed in the top right corner of the tablet, unless "Show room name" is off. Several displays may share it on purpose — a building or floor name, for instance. |
+
+Neither is inherited from a profile: they belong to the display itself.
+
 | Setting | Options |
 |---|---|
 | Check-in | On/off, window (minutes), grace period (minutes) |
@@ -90,12 +108,13 @@ profile or holds its own values — see [Display Profiles](#display-profiles-pro
 | Cancel permission | Everyone / Tablet bookings only / Nobody |
 | Show organizer | On/off |
 | Show meeting title | On/off |
+| Show room name | On/off (default on) |
 | Hide admin actions | On/off |
 | Border thickness | Small / Medium / Large |
 
 ### Admin Action Lockdown
 - Optionally hide the switch-room and logout buttons from the tablet UI
-- When hidden, admins can still access them by long-pressing the room name — they appear for 30 seconds then auto-hide
+- When hidden, admins can still access them by long-pressing the room name — they appear for 30 seconds then auto-hide. This works with "Show room name" off too: the text goes, the long-press target stays.
 - Full kiosk lockdown via Android Screen Pinning, Android Lock Task Mode (MDM), or iOS Guided Access
 
 ---
@@ -147,7 +166,8 @@ instead of one by one.
   bulk, or unlink them. Assigning clears the selected displays' own settings so they genuinely follow
   the profile; a warning first states how many displays that affects. Unlinking keeps their values.
 - The Displays overview shows each display's linked profile, marked **Customised** when at least one
-  section deviates.
+  section deviates. The profile's own **Used by** list names each display by its display name, which
+  is the unique one.
 - Linked displays inherit the profile's settings **live** — editing the profile updates every linked
   display automatically.
 - **Inheritance is per section.** Each section on a display either follows the profile or has its own

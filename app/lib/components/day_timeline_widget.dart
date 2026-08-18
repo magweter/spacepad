@@ -177,7 +177,13 @@ class _DayTimelineWidgetState extends State<DayTimelineWidget> {
         widget.controller.displayId.value,
         date,
       );
-      if (mounted) setState(() { _otherDayEvents = events; _loading = false; });
+      // These events bypass DashboardController's central masking (it only runs on today's
+      // events), so apply the "show meeting title" setting here too.
+      final maskedEvents = events.map((e) {
+        e.summary = widget.controller.getDisplayableSummary(e);
+        return e;
+      }).toList();
+      if (mounted) setState(() { _otherDayEvents = maskedEvents; _loading = false; });
     } catch (_) {
       if (mounted) setState(() => _loading = false);
     }

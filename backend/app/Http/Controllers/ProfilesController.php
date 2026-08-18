@@ -254,7 +254,7 @@ class ProfilesController extends Controller
         $booleans = [
             'check_in_enabled', 'booking_enabled', 'hide_admin_actions', 'view_schedule',
             'allow_future_bookings', 'extend_enabled', 'show_organizer',
-            'show_meeting_title', 'advertisement_enabled',
+            'show_meeting_title', 'show_room_name', 'advertisement_enabled',
         ];
         foreach ($booleans as $key) {
             ProfileSettings::set($profile, $key, $request->boolean($key), 'boolean');

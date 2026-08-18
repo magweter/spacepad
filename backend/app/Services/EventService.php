@@ -18,6 +18,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class EventService
 {
@@ -551,7 +552,10 @@ class EventService
             'location' => $location,
             'description' => $description,
             'join_url' => $joinUrl,
-            'organizer_name' => $outlookEvent['organizer']['emailAddress']['name'] ?? null,
+            'organizer_name' => $this->presentableOrganizerName(
+                $outlookEvent['organizer']['emailAddress']['name'] ?? null,
+                $outlookEvent['organizer']['emailAddress']['address'] ?? null,
+            ),
             'start' => $startDateStr,
             'end' => $endDateStr,
             'timezone' => 'UTC',
@@ -570,20 +574,102 @@ class EventService
         $description = $googleEvent->getDescription();
         $joinUrl = $googleEvent->getHangoutLink() ?? $this->extractMeetingUrl($description);
 
-        $organizer = $googleEvent->getOrganizer();
-
         return [
             'id' => $googleEvent->getId(),
             'summary' => $this->cleanSubject($googleEvent->getSummary()),
             'location' => $googleEvent->getLocation(),
             'description' => $description,
             'join_url' => $joinUrl,
-            'organizer_name' => $organizer?->getDisplayName() ?? $organizer?->getEmail() ?? null,
+            'organizer_name' => $this->googleOrganizerName($googleEvent),
             'start' => $isAllDay ? $start->getDate() : $start->getDateTime(),
             'end' => $isAllDay ? $end->getDate() : $end->getDateTime(),
             'timezone' => $start->getTimeZone() ?? $end->getTimeZone() ?? 'UTC',
             'isAllDay' => $isAllDay,
         ];
+    }
+
+    /**
+     * The name to show for whoever booked a Google event.
+     *
+     * Google only fills `organizer.displayName` for named calendars, so for a person it is
+     * usually empty and the raw address ends up on the wall. The name is generally there,
+     * just somewhere else: on the creator, or on the organizer's own attendee entry. Only
+     * when all three come up empty is the address used, shortened to its local part and
+     * tidied up, because "admin@example.com" across a room display reads as a bug.
+     */
+    private function googleOrganizerName(GoogleEvent $googleEvent): ?string
+    {
+        $organizer = $googleEvent->getOrganizer();
+        $email = $organizer?->getEmail();
+
+        $candidates = [
+            $organizer?->getDisplayName(),
+            $googleEvent->getCreator()?->getDisplayName(),
+        ];
+
+        foreach ($googleEvent->getAttendees() ?? [] as $attendee) {
+            if ($attendee->getOrganizer() || ($email && $attendee->getEmail() === $email)) {
+                $candidates[] = $attendee->getDisplayName();
+            }
+        }
+
+        foreach ($candidates as $candidate) {
+            if (filled($candidate)) {
+                return $this->presentableOrganizerName($candidate, $email);
+            }
+        }
+
+        return $this->nameFromEmail($email);
+    }
+
+    /**
+     * A provider's organiser name, or the address made presentable when that is all it is.
+     *
+     * Microsoft fills `name` with the address itself for organisers outside the tenant, and
+     * Google sometimes does the same, so "has a name" is not the same as "is a name".
+     */
+    private function presentableOrganizerName(?string $name, ?string $email = null): ?string
+    {
+        if (filled($name) && ! str_contains($name, '@')) {
+            return trim($name);
+        }
+
+        return $this->nameFromEmail(filled($name) ? $name : $email);
+    }
+
+    /**
+     * Turn an address into something presentable: "jan.de.vries@example.com" -> "Jan de Vries".
+     *
+     * A guess, deliberately a conservative one. Separators become spaces and the parts are
+     * capitalised; anything that is not recognisably a name (no letters, or a local part that
+     * is mostly digits) is left alone rather than dressed up as one.
+     */
+    private function nameFromEmail(?string $email): ?string
+    {
+        if (blank($email) || ! str_contains($email, '@')) {
+            return $email;
+        }
+
+        $local = Str::before($email, '@');
+
+        if (! preg_match('/[a-z]/i', $local) || preg_match('/^\d/', $local)) {
+            return $email;
+        }
+
+        $words = preg_split('/[._\-+]+/', $local, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+
+        if ($words === []) {
+            return $email;
+        }
+
+        // Dutch and German name particles stay lowercase: "Jan de Vries", not "Jan De Vries".
+        $particles = ['de', 'den', 'der', 'van', 'von', 'het', 'ten', 'ter', 'te', 'op'];
+
+        return collect($words)
+            ->map(fn (string $word, int $i) => $i > 0 && in_array(mb_strtolower($word), $particles, true)
+                ? mb_strtolower($word)
+                : Str::ucfirst(mb_strtolower($word)))
+            ->implode(' ');
     }
 
     public function sanitizeCalDAVEvent(array $caldavEvent): array
@@ -598,7 +684,7 @@ class EventService
             'location' => $caldavEvent['location'],
             'description' => $description,
             'join_url' => $joinUrl,
-            'organizer_name' => $caldavEvent['organizer_name'] ?? null,
+            'organizer_name' => $this->presentableOrganizerName($caldavEvent['organizer_name'] ?? null),
             'start' => $caldavEvent['start'],
             'end' => $caldavEvent['end'],
             'timezone' => $caldavEvent['timezone'],

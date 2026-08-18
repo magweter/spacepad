@@ -83,7 +83,7 @@ Route::prefix('auth')->group(function () {
 // session. The controller guards the regular OAuth code path itself.
 Route::get('/outlook-accounts/callback', [OutlookAccountsController::class, 'callback']);
 
-Route::middleware(['auth', 'user.update-last-activity', 'gtm'])->group(function () {
+Route::middleware(['auth', 'user.update-last-activity'])->group(function () {
     Route::get('/', DashboardController::class)->name('dashboard')->middleware('user.active');
     Route::get('/onboarding', [OnboardingController::class, 'index'])->name('onboarding')->middleware('user.onboarding');
     Route::post('/onboarding/usage-type', [OnboardingController::class, 'updateUsageType'])->name('onboarding.usage-type');
@@ -107,6 +107,7 @@ Route::middleware(['auth', 'user.update-last-activity', 'gtm'])->group(function 
     Route::get('/displays/create', [DisplayController::class, 'create'])
         ->name('displays.create');
     Route::post('/displays', [DisplayController::class, 'store'])->name('displays.store');
+    Route::put('/displays/{display}', [DisplayController::class, 'update'])->name('displays.update');
     Route::patch('/displays/{display}/status', [DisplayController::class, 'updateStatus'])
         ->name('displays.updateStatus');
     Route::delete('/displays/{display}', [DisplayController::class, 'delete'])->name('displays.delete');

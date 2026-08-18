@@ -30,34 +30,68 @@
 
         <x-alerts.alert :errors="$errors" />
 
-        {{-- Read-only reference. Sits at the top so you can confirm you are on the right display,
-             and see whether it is actually syncing, before changing anything below. --}}
+        {{-- Sits at the top so you can confirm you are on the right display, and see whether it is
+             actually syncing, before changing anything below. The two names are editable here:
+             they used to be settable only while creating the display, so a renamed or mistyped
+             room meant deleting it and reconnecting the tablet. Calendar, status and last sync
+             stay read-only — those are facts, not settings. Not a section card: these are columns
+             on the display itself, never inherited from a profile. --}}
         <div class="mb-6 border border-gray-200 rounded-lg p-6 bg-gray-50">
             <h3 class="text-base font-semibold text-gray-900 mb-4">Display information</h3>
-            <dl class="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2">
-                <div>
-                    <dt class="text-sm font-medium text-gray-500">Display name</dt>
-                    <dd class="text-sm text-gray-900">{{ $display->display_name }}</dd>
+
+            <form action="{{ route('displays.update', $display) }}" method="POST">
+                @csrf
+                @method('PUT')
+
+                <div class="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2">
+                    <div>
+                        <label for="name" class="flex items-center gap-1.5 text-sm font-medium text-gray-700">Display name
+                            <x-info-tip text="Only used in the dashboard, to tell your displays apart. This is the name the setup wizard on the tablet lists, and the name shown under Used by on a profile." />
+                        </label>
+                        <input type="text" name="name" id="name" maxlength="255" required
+                               value="{{ old('name', $display->name) }}" class="mt-1 bg-white {{ $inputClass }}">
+                        <p class="mt-1 text-xs text-gray-500">Dashboard only. Keep it unique per display.</p>
+                    </div>
+                    <div>
+                        <label for="room_name" class="flex items-center gap-1.5 text-sm font-medium text-gray-700">Room name
+                            <x-info-tip text="Printed in the top right corner of the display. Several displays may share this name on purpose, for instance a building or floor name." />
+                        </label>
+                        <input type="text" name="display_name" id="room_name" maxlength="255" required
+                               value="{{ old('display_name', $display->display_name) }}" class="mt-1 bg-white {{ $inputClass }}">
+                        <p class="mt-1 text-xs text-gray-500">Shown on the tablet, unless "Show the room name" is off below.</p>
+                    </div>
                 </div>
-                <div>
-                    <dt class="text-sm font-medium text-gray-500">Calendar</dt>
-                    <dd class="text-sm text-gray-900">{{ $display->calendar?->name ?? '-' }}</dd>
+
+                {{-- The read-only facts sit inside the form so Save can be the last thing in the
+                     card, the way every section card below ends. They hold no inputs, so being
+                     inside a form costs nothing. --}}
+                <dl class="mt-6 grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2">
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Calendar</dt>
+                        <dd class="text-sm text-gray-900">{{ $display->calendar?->name ?? '-' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Status</dt>
+                        <dd class="text-sm">
+                            @if($display->status === \App\Enums\DisplayStatus::ACTIVE)
+                                <span class="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">Active</span>
+                            @else
+                                <span class="inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10">Inactive</span>
+                            @endif
+                        </dd>
+                    </div>
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Last sync</dt>
+                        <dd class="text-sm text-gray-900">{{ $display->last_sync_at ? $display->last_sync_at->diffForHumans() : 'Never' }}</dd>
+                    </div>
+                </dl>
+
+                <div class="mt-6 flex items-center justify-end border-t border-gray-100 pt-4">
+                    <button type="submit" class="shrink-0 rounded-md bg-oxford px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-oxford-600">
+                        Save
+                    </button>
                 </div>
-                <div>
-                    <dt class="text-sm font-medium text-gray-500">Status</dt>
-                    <dd class="text-sm">
-                        @if($display->status === \App\Enums\DisplayStatus::ACTIVE)
-                            <span class="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">Active</span>
-                        @else
-                            <span class="inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10">Inactive</span>
-                        @endif
-                    </dd>
-                </div>
-                <div>
-                    <dt class="text-sm font-medium text-gray-500">Last sync</dt>
-                    <dd class="text-sm text-gray-900">{{ $display->last_sync_at ? $display->last_sync_at->diffForHumans() : 'Never' }}</dd>
-                </div>
-            </dl>
+            </form>
         </div>
 
         {{-- Profile. Informational: linking and unlinking happen from the Displays tab, where you
@@ -257,6 +291,17 @@
                                 <x-info-tip text="When off, the title is replaced by the Reserved text from the State texts section. Useful when subjects can be confidential, such as '1-on-1' or a client name." />
                             </span>
                             <p class="text-xs text-gray-500">Uncheck to hide titles in privacy-sensitive environments.</p>
+                        </div>
+                    </label>
+
+                    <label class="flex items-start gap-3 cursor-pointer">
+                        <input type="checkbox" name="show_room_name" value="1" class="mt-0.5 {{ $checkClass }}"
+                               {{ $ds::getShowRoomName($display) ? 'checked' : '' }}>
+                        <div>
+                            <span class="flex items-center gap-1.5 text-sm font-medium text-gray-900">Show the room name
+                                <x-info-tip text="The room name in the top right corner of the display. Turn this off when the name is already part of your background image, so it is not printed twice." />
+                            </span>
+                            <p class="text-xs text-gray-500">Uncheck to leave the corner empty. Long-pressing that corner still reveals the admin actions.</p>
                         </div>
                     </label>
 

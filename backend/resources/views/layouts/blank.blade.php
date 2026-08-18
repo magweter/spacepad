@@ -19,7 +19,9 @@
         <meta name="robots" content="noindex, nofollow">
         <title>@yield('title', config('app.name'))</title>
 
-        @includeWhen(config('googletagmanager.enabled') && config('googletagmanager.id'), 'googletagmanager::head')
+        {{-- Acquisition funnel only, see App\Services\FunnelTracking: a board reloads on a
+             wall all day and would otherwise outweigh every real visitor. --}}
+        @includeWhen(\App\Services\FunnelTracking::shouldRenderScripts(), 'googletagmanager::head')
 
         @vite(['resources/css/app.css', 'resources/js/app.js'])
 
@@ -31,7 +33,7 @@
         @include('components.scripts.faro')
     </head>
     <body class="h-full @yield('body-classes')">
-        @includeWhen(config('googletagmanager.enabled') && config('googletagmanager.id'), 'googletagmanager::body')
+        @includeWhen(\App\Services\FunnelTracking::shouldRenderScripts(), 'googletagmanager::body')
         @stack('modals')
         
         @include('components.impersonation-banner')

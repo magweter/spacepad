@@ -19,11 +19,18 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->trustProxies(at: '*');
+
+        // On every web route, not just the authenticated ones. This middleware is what moves
+        // data layer events across a redirect, and the first one of the funnel — sign_up —
+        // is pushed by a guest: on the authenticated group only, it was dropped before it
+        // ever reached the session. Where the scripts actually load is decided in the view,
+        // by App\Services\FunnelTracking.
+        $middleware->web(append: [GoogleTagManagerMiddleware::class]);
+
         $middleware->alias([
             'user.update-last-activity' => UpdateLastActivity::class,
             'user.active' => CheckUserActive::class,
             'user.onboarding' => CheckUserOnboarding::class,
-            'gtm' => GoogleTagManagerMiddleware::class,
         ]);
         $middleware->validateCsrfTokens(except: [
             'lemon-squeezy/*',

@@ -19,6 +19,7 @@ import 'package:spacepad/services/font_service.dart';
 import 'package:spacepad/components/frosted_panel.dart';
 import 'package:spacepad/components/admin_actions.dart';
 import 'package:spacepad/components/day_timeline_widget.dart';
+import 'package:spacepad/components/meeting_meta_row.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -77,6 +78,35 @@ class _DashboardPageState extends State<DashboardPage> {
       verticalBase * portraitMultiplier,
       horizontalBase * portraitMultiplier,
       verticalBase * portraitMultiplier,
+    );
+  }
+
+  /// The room name in the header corner, and the long-press target that reveals the admin
+  /// actions when they are hidden.
+  ///
+  /// With "Show the room name" off the text goes but the target stays. That long press is the
+  /// only way back to the admin actions on a display that hides them, so a room whose name
+  /// lives in its background image would otherwise lock itself out of its own settings.
+  Widget _buildRoomName(BuildContext context, DashboardController controller, bool hideAdminActions) {
+    return GestureDetector(
+      // Opaque rather than deferring to the child: with the name hidden the child is an empty
+      // box, and an empty box does not answer a hit test on its own.
+      behavior: HitTestBehavior.opaque,
+      onLongPressStart: (_) { if (hideAdminActions) controller.startLongPressTimer(); },
+      onLongPressEnd: (_) { if (hideAdminActions) controller.cancelLongPressTimer(); },
+      child: controller.showRoomName
+          ? Text(
+              controller.roomName,
+              style: FontService.instance.getTextStyle(
+                fontFamily: controller.currentFontFamily.value,
+                fontSize: _sp(context, 28),
+                fontWeight: FontWeight.w500,
+                color: TWColors.white,
+              ),
+            )
+          // Keeps the height of the line it replaces so the header does not shift, and stays
+          // wide enough to find with a thumb.
+          : SizedBox(width: _sp(context, 28) * 2.5, height: _sp(context, 28) * 1.2),
     );
   }
 
@@ -197,23 +227,7 @@ class _DashboardPageState extends State<DashboardPage> {
                       ),
                       const SizedBox(width: 15),
                     ],
-                    GestureDetector(
-                      onLongPressStart: (details) {
-                        if (hideAdminActions) controller.startLongPressTimer();
-                      },
-                      onLongPressEnd: (details) {
-                        if (hideAdminActions) controller.cancelLongPressTimer();
-                      },
-                      child: Text(
-                        controller.roomName,
-                        style: FontService.instance.getTextStyle(
-                          fontFamily: controller.currentFontFamily.value,
-                          fontSize: _sp(context, 28),
-                          fontWeight: FontWeight.w500,
-                          color: TWColors.white,
-                        ),
-                      ),
-                    ),
+                    _buildRoomName(context, controller, hideAdminActions),
                   ],
                 );
               }),
@@ -261,73 +275,15 @@ class _DashboardPageState extends State<DashboardPage> {
                         color: Colors.white,
                       ),
                     )),
-                    SpaceRow(
-                      spaceBetween: isPhone ? 10 : 20,
-                      children: [
-                        if (controller.meetingInfoTimes != null) FrostedPanel(
-                          borderRadius: cornerRadius,
-                          blurIntensity: 18,
-                          hasBackgroundImage: controller.globalSettings.value?.backgroundImageUrl != null,
-                          padding: EdgeInsets.fromLTRB(
-                            isPhone ? 10 : 15,
-                            isPhone ? 5 : 8,
-                            isPhone ? 10 : 15,
-                            isPhone ? 5 : 8,
-                          ),
-                          child: Obx(() => Text(
-                            'meeting_info_title'.trParams({
-                              'start': formatTime(context, controller.meetingInfoTimes?['start'] ?? DateTime.now()),
-                              'end': formatTime(context, controller.meetingInfoTimes?['end'] ?? DateTime.now()),
-                            }),
-                            style: FontService.instance.getTextStyle(
-                              fontFamily: controller.currentFontFamily.value,
-                              fontSize: _sp(context, 32),
-                              fontWeight: FontWeight.w400,
-                              color: TWColors.white,
-                            ),
-                          )),
-                        ),
-                        Flexible(
-                          child: Obx(() => Text(
-                            controller.subtitle,
-                            style: FontService.instance.getTextStyle(
-                              fontFamily: controller.currentFontFamily.value,
-                              fontSize: _sp(context, 36),
-                              fontWeight: FontWeight.w400,
-                              color: TWColors.gray_300,
-                            ),
-                            softWrap: true,
-                            overflow: TextOverflow.visible,
-                          )),
-                        ),
-                      ],
+                    MeetingMetaRow(
+                      controller: controller,
+                      isPhone: isPhone,
+                      cornerRadius: cornerRadius,
+                      // mainStack serves both 'none' and 'side_panel'. Only the latter puts a panel
+                      // beside the content, and only while it is open.
+                      stackSubtitle: isPortrait || (timelineMode == 'side_panel' && _timelineOpen),
                     ),
                     if (controller.meetingInfoTimes == null) SizedBox(height: isPhone ? 5 : 10),
-                    Obx(() {
-                      final organizer = controller.currentEvent?.organizerName;
-                      if (!controller.showOrganizer || organizer == null || organizer.isEmpty) {
-                        return const SizedBox.shrink();
-                      }
-                      return Padding(
-                        padding: EdgeInsets.only(top: isPhone ? 4 : 8),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.person_outline, size: _sp(context, 16), color: TWColors.gray_300),
-                            SizedBox(width: isPhone ? 4 : 6),
-                            Text(
-                              organizer,
-                              style: FontService.instance.getTextStyle(
-                                fontFamily: controller.currentFontFamily.value,
-                                fontSize: _sp(context, 20),
-                                fontWeight: FontWeight.w400,
-                                color: TWColors.gray_300,
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }),
                     if (controller.bookingEnabled || controller.checkInEnabled || controller.extendEnabled) ActionPanel(
                       controller: controller,
                       isPhone: isPhone,
@@ -535,67 +491,15 @@ class _DashboardPageState extends State<DashboardPage> {
                       color: Colors.white,
                     ),
                   )),
-                  SpaceRow(
-                    spaceBetween: isPhone ? 10 : 20,
-                    children: [
-                      if (controller.meetingInfoTimes != null) FrostedPanel(
-                        borderRadius: cornerRadius,
-                        blurIntensity: 18,
-                        hasBackgroundImage: controller.globalSettings.value?.backgroundImageUrl != null,
-                        padding: EdgeInsets.fromLTRB(isPhone ? 10 : 15, isPhone ? 5 : 8, isPhone ? 10 : 15, isPhone ? 5 : 8),
-                        child: Obx(() => Text(
-                          'meeting_info_title'.trParams({
-                            'start': formatTime(context, controller.meetingInfoTimes?['start'] ?? DateTime.now()),
-                            'end': formatTime(context, controller.meetingInfoTimes?['end'] ?? DateTime.now()),
-                          }),
-                          style: FontService.instance.getTextStyle(
-                            fontFamily: controller.currentFontFamily.value,
-                            fontSize: _sp(context, 32),
-                            fontWeight: FontWeight.w400,
-                            color: TWColors.white,
-                          ),
-                        )),
-                      ),
-                      Flexible(
-                        child: Obx(() => Text(controller.subtitle,
-                          style: FontService.instance.getTextStyle(
-                            fontFamily: controller.currentFontFamily.value,
-                            fontSize: _sp(context, 36),
-                            fontWeight: FontWeight.w400,
-                            color: TWColors.gray_300,
-                          ),
-                          softWrap: true,
-                          overflow: TextOverflow.visible,
-                        )),
-                      ),
-                    ],
+                  MeetingMetaRow(
+                    controller: controller,
+                    isPhone: isPhone,
+                    cornerRadius: cornerRadius,
+                    // The timeline sits beside the content in landscape and under it in portrait,
+                    // so this row never has the full width of the display.
+                    stackSubtitle: true,
                   ),
                   if (controller.meetingInfoTimes == null) SizedBox(height: isPhone ? 5 : 10),
-                  Obx(() {
-                    final organizer = controller.currentEvent?.organizerName;
-                    if (!controller.showOrganizer || organizer == null || organizer.isEmpty) {
-                      return const SizedBox.shrink();
-                    }
-                    return Padding(
-                      padding: EdgeInsets.only(top: isPhone ? 4 : 8),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.person_outline, size: _sp(context, 16), color: TWColors.gray_300),
-                          SizedBox(width: isPhone ? 4 : 6),
-                          Text(
-                            organizer,
-                            style: FontService.instance.getTextStyle(
-                              fontFamily: controller.currentFontFamily.value,
-                              fontSize: _sp(context, 20),
-                              fontWeight: FontWeight.w400,
-                              color: TWColors.gray_300,
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }),
                   if (controller.bookingEnabled || controller.checkInEnabled || controller.extendEnabled) ActionPanel(
                     controller: controller,
                     isPhone: isPhone,
@@ -640,19 +544,7 @@ class _DashboardPageState extends State<DashboardPage> {
                       children: [
                         if (show) AdminActions(controller: controller),
                         if (show) const SizedBox(width: 15),
-                        GestureDetector(
-                          onLongPressStart: (_) { if (hide) controller.startLongPressTimer(); },
-                          onLongPressEnd: (_) { if (hide) controller.cancelLongPressTimer(); },
-                          child: Text(
-                            controller.roomName,
-                            style: FontService.instance.getTextStyle(
-                              fontFamily: controller.currentFontFamily.value,
-                              fontSize: _sp(context, 28),
-                              fontWeight: FontWeight.w500,
-                              color: TWColors.white,
-                            ),
-                          ),
-                        ),
+                        _buildRoomName(context, controller, hide),
                       ],
                     );
                   }),
@@ -815,19 +707,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   children: [
                     if (show) AdminActions(controller: controller),
                     if (show) const SizedBox(width: 15),
-                    GestureDetector(
-                      onLongPressStart: (_) { if (hide) controller.startLongPressTimer(); },
-                      onLongPressEnd: (_) { if (hide) controller.cancelLongPressTimer(); },
-                      child: Text(
-                        controller.roomName,
-                        style: FontService.instance.getTextStyle(
-                          fontFamily: controller.currentFontFamily.value,
-                          fontSize: _sp(context, 28),
-                          fontWeight: FontWeight.w500,
-                          color: TWColors.white,
-                        ),
-                      ),
-                    ),
+                    _buildRoomName(context, controller, hide),
                   ],
                 );
               }),
@@ -870,67 +750,14 @@ class _DashboardPageState extends State<DashboardPage> {
                       color: Colors.white,
                     ),
                   )),
-                  SpaceRow(
-                    spaceBetween: isPhone ? 10 : 20,
-                    children: [
-                      if (controller.meetingInfoTimes != null) FrostedPanel(
-                        borderRadius: cornerRadius,
-                        blurIntensity: 18,
-                        hasBackgroundImage: hasBackground,
-                        padding: EdgeInsets.fromLTRB(isPhone ? 10 : 15, isPhone ? 5 : 8, isPhone ? 10 : 15, isPhone ? 5 : 8),
-                        child: Obx(() => Text(
-                          'meeting_info_title'.trParams({
-                            'start': formatTime(context, controller.meetingInfoTimes?['start'] ?? DateTime.now()),
-                            'end': formatTime(context, controller.meetingInfoTimes?['end'] ?? DateTime.now()),
-                          }),
-                          style: FontService.instance.getTextStyle(
-                            fontFamily: controller.currentFontFamily.value,
-                            fontSize: _sp(context, 32),
-                            fontWeight: FontWeight.w400,
-                            color: TWColors.white,
-                          ),
-                        )),
-                      ),
-                      Flexible(
-                        child: Obx(() => Text(controller.subtitle,
-                          style: FontService.instance.getTextStyle(
-                            fontFamily: controller.currentFontFamily.value,
-                            fontSize: _sp(context, 36),
-                            fontWeight: FontWeight.w400,
-                            color: TWColors.gray_300,
-                          ),
-                          softWrap: true,
-                          overflow: TextOverflow.visible,
-                        )),
-                      ),
-                    ],
+                  MeetingMetaRow(
+                    controller: controller,
+                    isPhone: isPhone,
+                    cornerRadius: cornerRadius,
+                    // Same as inline: the timeline always takes either the right side or the bottom.
+                    stackSubtitle: true,
                   ),
                   if (controller.meetingInfoTimes == null) SizedBox(height: isPhone ? 5 : 10),
-                  Obx(() {
-                    final organizer = controller.currentEvent?.organizerName;
-                    if (!controller.showOrganizer || organizer == null || organizer.isEmpty) {
-                      return const SizedBox.shrink();
-                    }
-                    return Padding(
-                      padding: EdgeInsets.only(top: isPhone ? 4 : 8),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.person_outline, size: _sp(context, 16), color: TWColors.gray_300),
-                          SizedBox(width: isPhone ? 4 : 6),
-                          Text(
-                            organizer,
-                            style: FontService.instance.getTextStyle(
-                              fontFamily: controller.currentFontFamily.value,
-                              fontSize: _sp(context, 20),
-                              fontWeight: FontWeight.w400,
-                              color: TWColors.gray_300,
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }),
                   if (controller.bookingEnabled || controller.checkInEnabled || controller.extendEnabled) ActionPanel(
                     controller: controller,
                     isPhone: isPhone,

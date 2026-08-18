@@ -36,6 +36,7 @@ class DisplayProfileRequest extends FormRequest
             'extend_enabled' => 'boolean',
             'show_organizer' => 'boolean',
             'show_meeting_title' => 'boolean',
+            'show_room_name' => 'boolean',
             'advertisement_enabled' => 'boolean',
 
             // Numeric

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:spacepad/controllers/dashboard_controller.dart';
 import 'package:spacepad/models/event_model.dart';
 import 'package:spacepad/theme.dart';
 import 'package:get/get.dart';
@@ -18,6 +19,8 @@ class CalendarModal extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final showOrganizer = Get.find<DashboardController>().showOrganizer;
+
     return Dialog(
       backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
@@ -129,20 +132,10 @@ class CalendarModal extends StatelessWidget {
                                               fontWeight: FontWeight.bold,
                                             ),
                                           ),
-                                          if ((event.location ?? '')
-                                              .trim()
-                                              .isNotEmpty) ...[
-                                            const SizedBox(height: 4),
-                                            Text(
-                                              event.location!,
-                                              style: TextStyle(
-                                                color: AppTheme.platinum,
-                                                fontSize: 13,
-                                                fontWeight: FontWeight.w400,
-                                              ),
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          ],
+                                          _EventMetaLine(
+                                            event: event,
+                                            showOrganizer: showOrganizer,
+                                          ),
                                         ],
                                       ),
                                     ),
@@ -157,5 +150,85 @@ class CalendarModal extends StatelessWidget {
             ),
           ),
         );
+  }
+}
+
+/// Where the meeting is and who booked it, on one line under the title.
+///
+/// Location and organiser each used to get a line of their own, which made every card four
+/// lines tall for two short values. Outlook and Google also fall back to the organiser's
+/// name as the subject when a room is booked without one, so the name was printed twice.
+class _EventMetaLine extends StatelessWidget {
+  final EventModel event;
+  final bool showOrganizer;
+
+  const _EventMetaLine({required this.event, required this.showOrganizer});
+
+  @override
+  Widget build(BuildContext context) {
+    final location = (event.location ?? '').trim();
+    final organizer = (event.organizerName ?? '').trim();
+    final isDuplicate =
+        organizer.toLowerCase() == event.summary.trim().toLowerCase();
+    final showsOrganizer = showOrganizer && organizer.isNotEmpty && !isDuplicate;
+
+    if (location.isEmpty && !showsOrganizer) {
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Row(
+        children: [
+          if (location.isNotEmpty) Flexible(
+            child: Text(
+              location,
+              style: TextStyle(
+                color: AppTheme.platinum,
+                fontSize: 13,
+                fontWeight: FontWeight.w400,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          if (location.isNotEmpty && showsOrganizer) const SizedBox(width: 10),
+          // Same pill as on the display, at card scale: it sets the organiser apart without
+          // needing a separator, and keeps the icon lined up with the name.
+          if (showsOrganizer) Flexible(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.person_outline,
+                    size: 13,
+                    color: AppTheme.platinum,
+                  ),
+                  const SizedBox(width: 5),
+                  Flexible(
+                    child: Text(
+                      organizer,
+                      style: TextStyle(
+                        color: AppTheme.platinum,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w400,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

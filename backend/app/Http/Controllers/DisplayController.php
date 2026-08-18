@@ -13,6 +13,7 @@ use App\Models\GoogleAccount;
 use App\Models\OutlookAccount;
 use App\Models\Room;
 use App\Services\CalDAVService;
+use App\Services\FunnelTracking;
 use App\Services\GoogleService;
 use App\Services\OutlookService;
 use Exception;
@@ -118,12 +119,39 @@ class DisplayController extends Controller
 
         if ($display) {
             event(new UserOnboarded($request->user(), $display));
+            FunnelTracking::displayCreated($workspace);
         }
 
         return redirect()->route('dashboard')->with($display ? 'success' : 'error', $display ?
             'Display created! Now enter the connect code in the app on your tablet to connect it to the display.' :
             'Display could not be created. Please try again later.'
         );
+    }
+
+    /**
+     * Rename a display: the dashboard-only device name and the room name on the tablet.
+     *
+     * Both were only settable while creating the display, so a room that was renamed, moved or
+     * mistyped had to be deleted and set up again — including reconnecting the tablet.
+     */
+    public function update(Request $request, Display $display): RedirectResponse
+    {
+        $this->authorize('update', $display);
+
+        $data = $request->validate([
+            'name' => 'required|string|max:255',
+            'display_name' => 'required|string|max:255',
+        ]);
+
+        $display->update($data);
+
+        // Bust the kiosk cache so the tablet picks up a new room name without waiting for its
+        // next settings poll to happen to land after the write.
+        $display->touch();
+
+        return redirect()
+            ->route('displays.configure', $display)
+            ->with('success', 'Display names updated. Changes may take up to 1 minute to appear on your display.');
     }
 
     public function updateStatus(Request $request, Display $display): RedirectResponse

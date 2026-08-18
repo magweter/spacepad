@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\OutlookBookingMethod;
 use App\Enums\PermissionType;
 use App\Models\OutlookAccount;
+use App\Services\FunnelTracking;
 use App\Services\OutlookService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -123,11 +124,15 @@ class OutlookAccountsController extends Controller
         // Clear the session value after retrieving it
         session()->forget('outlook_permission_type');
 
+        $workspace = auth()->user()->getSelectedWorkspace();
+
         $outlookAccount = $this->outlookService->authenticateOutlookAccount(
             $authCode,
             $permissionType,
-            auth()->user()->getSelectedWorkspace(),
+            $workspace,
         );
+
+        FunnelTracking::calendarConnected($workspace, $outlookAccount->wasRecentlyCreated);
 
         return redirect()->route('dashboard')->with('success', 'Microsoft account "'.$outlookAccount->email.'" has been connected successfully.');
     }

@@ -24,6 +24,7 @@ class DisplaySettingsModel {
   String timelineWidgetMode;
   bool extendEnabled;
   bool showOrganizer;
+  bool showRoomName;
 
   DisplaySettingsModel({
     required this.checkInEnabled,
@@ -51,6 +52,7 @@ class DisplaySettingsModel {
     this.timelineWidgetMode = 'none',
     this.extendEnabled = false,
     this.showOrganizer = false,
+    this.showRoomName = true,
   });
 
   factory DisplaySettingsModel.fromJson(Map data) {
@@ -80,6 +82,9 @@ class DisplaySettingsModel {
       timelineWidgetMode: data['timeline_widget_mode'] ?? 'none',
       extendEnabled: data['extend_enabled'] ?? false,
       showOrganizer: data['show_organizer'] ?? false,
+      // Defaults to true: a tablet talking to a backend that predates this setting keeps
+      // printing the room name, which is what it did before.
+      showRoomName: data['show_room_name'] ?? true,
     );
   }
 
@@ -110,6 +115,7 @@ class DisplaySettingsModel {
       'timeline_widget_mode': timelineWidgetMode,
       'extend_enabled': extendEnabled,
       'show_organizer': showOrganizer,
+      'show_room_name': showRoomName,
     };
   }
 } 
