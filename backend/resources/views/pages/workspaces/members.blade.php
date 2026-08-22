@@ -34,16 +34,37 @@
     </x-cards.card>
 
     {{-- Subscription. Lives here rather than on the account page: the subscription belongs to
-         the workspace, and only its owner can act on it. --}}
+         the workspace, and owners and admins are the ones who act on it. --}}
     <x-cards.card class="mb-6">
+        @php
+            // Decided once, then used twice below: for the note and for the button that goes
+            // with it. Two separate condition chains would drift apart, and someone would end
+            // up with a button their workspace has no use for.
+            $isSelfHosted = config('settings.is_self_hosted');
+            $billingState = match (true) {
+                ! auth()->user()->can('manageBilling', $workspace) => $workspace->hasPro() ? 'others' : 'ask',
+                // We invoice a manually billed workspace ourselves and an unlimited one is not
+                // charged at all, so neither has a subscription to open or buy.
+                $workspace->is_manually_billed => 'manual',
+                // Cloud only: on a self-hosted instance Pro comes from an instance licence,
+                // which is a Lemon Squeezy subscription like any other.
+                $workspace->is_unlimited && ! $isSelfHosted => 'unlimited',
+                $workspace->hasPro() => $canOpenBillingPortal ? 'portal' : 'modal',
+                ! $isSelfHosted => 'checkout',
+                default => null,
+            };
+        @endphp
+
         <h2 class="text-base font-semibold text-gray-900 mb-1">Subscription</h2>
         <p class="text-sm text-gray-500 mb-4">
             Usage for this workspace. Displays count once, boards count double. There is no charge
             per team member.
         </p>
 
-        <div class="bg-gray-50 rounded-lg p-4 mb-4">
-            <dl class="grid grid-cols-3 gap-4">
+        {{-- The figures only, without the line-by-line arithmetic that used to repeat them
+             underneath: the sentence above already says how the units are counted. --}}
+        <div class="bg-gray-50 rounded-lg p-4">
+            <dl class="grid grid-cols-2 gap-4 {{ $monthlyCost !== null ? 'sm:grid-cols-4' : 'sm:grid-cols-3' }}">
                 <div>
                     <dt class="text-sm font-medium text-gray-500">Displays</dt>
                     <dd class="mt-1 text-2xl font-semibold text-gray-900">{{ $usageBreakdown['displays'] }}</dd>
@@ -56,28 +77,16 @@
                     <dt class="text-sm font-medium text-gray-500">Total units</dt>
                     <dd class="mt-1 text-2xl font-semibold text-blue-700">{{ $usageBreakdown['total'] }}</dd>
                 </div>
+                @if($monthlyCost !== null)
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Total billed</dt>
+                        <dd class="mt-1 text-2xl font-semibold text-gray-900">
+                            {{ $currencySymbol }}{{ number_format($monthlyCost, 2) }}
+                            <span class="text-sm font-normal whitespace-nowrap text-gray-500">per month</span>
+                        </dd>
+                    </div>
+                @endif
             </dl>
-        </div>
-
-        <div class="space-y-2 mb-5">
-            <div class="flex items-center justify-between text-sm py-2 border-b border-gray-100">
-                <span class="text-gray-700">{{ $usageBreakdown['displays'] }} display(s) &times; 1</span>
-                <span class="font-medium text-gray-900">{{ $usageBreakdown['displays'] }} unit(s)</span>
-            </div>
-            <div class="flex items-center justify-between text-sm py-2 border-b border-gray-100">
-                <span class="text-gray-700">{{ $usageBreakdown['boards'] }} board(s) &times; 2</span>
-                <span class="font-medium text-gray-900">{{ $usageBreakdown['board_usage'] }} unit(s)</span>
-            </div>
-            <div class="flex items-center justify-between text-sm py-2">
-                <span class="font-medium text-blue-900">Total billed to subscription</span>
-                <span class="font-bold text-blue-900">{{ $usageBreakdown['total'] }} unit(s)</span>
-            </div>
-            @if($monthlyCost !== null)
-                <div class="flex items-center justify-between text-sm py-2 border-t border-gray-100">
-                    <span class="text-gray-700">{{ $usageBreakdown['total'] }} unit(s) &times; {{ $currencySymbol }}{{ number_format($unitPrice, 2) }}</span>
-                    <span class="font-medium text-gray-900">{{ $currencySymbol }}{{ number_format($monthlyCost, 2) }} per month</span>
-                </div>
-            @endif
         </div>
 
         {{-- Trial countdown. A trial is an ordinary subscription that Lemon Squeezy converts on
@@ -85,7 +94,7 @@
              checkout would create a second subscription and bill the workspace twice. --}}
         @if($subscription?->onTrial() && $subscription->trial_ends_at)
             @php $trialDaysLeft = (int) ceil(now()->diffInDays($subscription->trial_ends_at, false)) @endphp
-            <div class="mb-5 rounded-lg bg-blue-50 border border-blue-100 p-4">
+            <div class="mt-4 rounded-lg bg-blue-50 border border-blue-100 p-4">
                 <p class="text-sm font-semibold text-blue-900">
                     @if($trialDaysLeft <= 0)
                         Your trial ends today
@@ -99,54 +108,81 @@
                     Your subscription starts automatically on
                     {{ $subscription->trial_ends_at->format('j F Y') }}. Nothing to do, and your
                     displays keep running.
-                    @if($monthlyCost !== null)
-                        At your current usage that is {{ $currencySymbol }}{{ number_format($monthlyCost, 2) }} per month.
-                    @endif
                 </p>
             </div>
         @endif
 
-        @can('manageBilling', $workspace)
-            {{-- A manually billed workspace has no Lemon Squeezy subscription, so the modal
-                 pointing at their order emails would send them looking for something that
-                 does not exist. --}}
-            @if($workspace->is_manually_billed)
-                <p class="text-sm text-gray-500">
-                    We invoice this workspace directly at the agreed price, so there is no
-                    subscription to manage here. For anything about your invoice, email
-                    <a href="mailto:support@spacepad.io" class="text-blue-600 hover:text-blue-700">support@spacepad.io</a>.
+        {{-- One action bar, so there is a single obvious place to look for whatever this
+             workspace can do about its subscription. --}}
+        @if($billingState !== null)
+            <div class="mt-5 pt-4 border-t border-gray-100 sm:flex sm:items-center sm:justify-between sm:gap-4">
+                <p class="text-sm text-gray-500 sm:max-w-xl">
+                    @switch($billingState)
+                        @case('manual')
+                            We invoice this workspace directly at the agreed price, so there is no
+                            subscription to manage here. For anything about your invoice, email
+                            <a href="mailto:support@spacepad.io" class="text-blue-600 hover:text-blue-700">support@spacepad.io</a>.
+                            @break
+                        @case('unlimited')
+                            This workspace has Pro at no charge.
+                            @break
+                        @case('portal')
+                            Change your payment method, download invoices or manage your
+                            subscription in the Lemon Squeezy billing portal.
+                            @break
+                        @case('modal')
+                            Your subscription is managed in Lemon Squeezy.
+                            @break
+                        @case('checkout')
+                            Pro unlocks multiple displays, boards, check-in, personalisation and
+                            inviting colleagues.
+                            @break
+                        @case('others')
+                            This workspace is on Pro. Only owners and admins can change the subscription.
+                            @break
+                        @case('ask')
+                            Ask an owner or admin of this workspace to upgrade to Pro.
+                            @break
+                    @endswitch
                 </p>
-            @elseif($workspace->is_unlimited && !config('settings.is_self_hosted'))
-                {{-- Cloud only: on a self-hosted instance Pro comes from an instance licence,
-                     which is a Lemon Squeezy subscription like any other. --}}
-                <p class="text-sm text-gray-500">
-                    This workspace has Pro at no charge.
-                </p>
-            @elseif($workspace->hasPro())
-                <button type="button"
-                    onclick="window.dispatchEvent(new CustomEvent('open-modal', { detail: 'manage-subscription' }))"
-                    class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
-                    Manage subscription
-                </button>
-            @elseif(!config('settings.is_self_hosted'))
-                {{-- Posted rather than built while rendering: the vendor's Checkout::url() calls
-                     the Lemon Squeezy API, which would run on every page view. --}}
-                <form action="{{ route('billing.checkout') }}" method="POST">
-                    @csrf
-                    <button type="submit" class="rounded-md bg-oxford px-3 py-2 text-sm font-semibold text-white">
-                        Upgrade to Pro
-                    </button>
-                </form>
-            @endif
-        @else
-            <p class="text-sm text-gray-500">
-                @if($workspace->hasPro())
-                    This workspace is on Pro. Only its owner can change the subscription.
-                @else
-                    Ask the owner of this workspace to upgrade to Pro.
+
+                @if($billingState === 'portal')
+                    {{-- Posted rather than linked: the portal url comes from a live Lemon Squeezy
+                         call, so a link here would hit their API on every view of this page. It
+                         opens in its own tab so nobody loses the page they were working on. --}}
+                    <form action="{{ route('billing.portal') }}" method="POST" target="_blank" rel="noopener"
+                        class="mt-3 sm:mt-0 shrink-0">
+                        @csrf
+                        <button type="submit"
+                            class="inline-flex items-center gap-2 rounded-md bg-oxford px-3 py-2 text-sm font-semibold text-white shadow-sm hover:opacity-90">
+                            Open billing portal
+                            <x-icons.external class="h-4 w-4" />
+                        </button>
+                    </form>
+                @elseif($billingState === 'modal')
+                    {{-- No customer record to open a portal for: a self-hosted instance licence, or
+                         a workspace whose customer row stayed on the user. The modal points them at
+                         the link in their Lemon Squeezy emails instead. --}}
+                    <div class="mt-3 sm:mt-0 shrink-0">
+                        <button type="button"
+                            onclick="window.dispatchEvent(new CustomEvent('open-modal', { detail: 'manage-subscription' }))"
+                            class="inline-flex items-center rounded-md bg-oxford px-3 py-2 text-sm font-semibold text-white shadow-sm hover:opacity-90">
+                            Manage subscription
+                        </button>
+                    </div>
+                @elseif($billingState === 'checkout')
+                    {{-- Posted rather than built while rendering: the vendor's Checkout::url() calls
+                         the Lemon Squeezy API, which would run on every page view. --}}
+                    <form action="{{ route('billing.checkout') }}" method="POST" class="mt-3 sm:mt-0 shrink-0">
+                        @csrf
+                        <button type="submit"
+                            class="inline-flex items-center rounded-md bg-oxford px-3 py-2 text-sm font-semibold text-white shadow-sm hover:opacity-90">
+                            Upgrade to Pro
+                        </button>
+                    </form>
                 @endif
-            </p>
-        @endcan
+            </div>
+        @endif
     </x-cards.card>
 
     {{-- Members --}}
@@ -155,7 +191,8 @@
             <div class="sm:flex-auto">
                 <h2 class="text-base font-semibold text-gray-900 mb-1">Members</h2>
                 <p class="text-sm text-gray-500">
-                    Owners manage billing and members. Admins can invite. Everyone can manage displays and boards.
+                    Owners and admins manage billing and invitations. Only owners can change roles or
+                    remove members. Everyone can manage displays and boards.
                 </p>
             </div>
         </div>
@@ -318,7 +355,7 @@
                 @if(auth()->user()->can('manageBilling', $workspace))
                     Upgrade to Pro to invite colleagues into this workspace.
                 @else
-                    Ask the owner of this workspace to upgrade to Pro.
+                    Ask an owner or admin of this workspace to upgrade to Pro.
                 @endif
             </p>
         </x-cards.card>

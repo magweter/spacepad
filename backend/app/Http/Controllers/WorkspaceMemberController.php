@@ -51,6 +51,9 @@ class WorkspaceMemberController extends Controller
             'unitPrice' => $unitPrice,
             'currencySymbol' => $workspace->getQuotedCurrencySymbol(),
             'monthlyCost' => $unitPrice === null ? null : $unitPrice * $usageBreakdown['total'],
+            // Resolved here so the page never asks Lemon Squeezy anything while rendering:
+            // the portal url itself is fetched behind the POST route.
+            'canOpenBillingPortal' => $workspace->hasBillingPortal(),
         ]);
     }
 

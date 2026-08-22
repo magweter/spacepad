@@ -54,10 +54,14 @@ enum WorkspaceRole: string
 
     /**
      * Start a checkout, open the billing portal, change the subscription.
+     *
+     * Admins too: they already run the workspace day to day, and leaving billing to the owner
+     * alone meant nobody could pay an invoice or update a card while that one person was away.
+     * Changing who is a member stays owner-only, so an admin still cannot lock the owner out.
      */
     public function canManageBilling(): bool
     {
-        return $this === self::OWNER;
+        return in_array($this, [self::OWNER, self::ADMIN]);
     }
 
     /**

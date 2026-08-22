@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Spatie\GoogleTagManager\GoogleTagManagerFacade;
+use Throwable;
 
 class BillingController extends Controller
 {
@@ -37,6 +38,34 @@ class BillingController extends Controller
         abort_if($checkout === null, 404);
 
         return redirect()->away($checkout->url());
+    }
+
+    /**
+     * Send the owner to the Lemon Squeezy customer portal, where they can change their
+     * payment method, download invoices and cancel.
+     *
+     * POSTed for the same reason as the checkout: the portal url comes from a live API call,
+     * so a link built while rendering would hit Lemon Squeezy on every view of the page.
+     */
+    public function portal(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+        $workspace = $user->getSelectedWorkspace();
+
+        abort_unless($workspace !== null, 404, 'No workspace found');
+        $this->authorize('manageBilling', $workspace);
+        abort_unless($workspace->hasBillingPortal(), 404);
+
+        try {
+            return redirect()->away($workspace->customerPortalUrl());
+        } catch (Throwable $e) {
+            // Their API being down should leave someone on the page they came from with an
+            // explanation, not on an error screen.
+            report($e);
+
+            return redirect()->route('workspaces.members')
+                ->with('error', 'We could not open the billing portal just now. Please try again, or email support@spacepad.io.');
+        }
     }
 
     public function thanks(): RedirectResponse

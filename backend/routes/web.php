@@ -166,6 +166,7 @@ Route::middleware(['auth', 'user.update-last-activity'])->group(function () {
     Route::delete('/workspaces/{workspace}', [WorkspaceController::class, 'destroy'])->name('workspaces.destroy');
 
     Route::post('/billing/checkout', [BillingController::class, 'checkout'])->name('billing.checkout');
+    Route::post('/billing/portal', [BillingController::class, 'portal'])->name('billing.portal');
     Route::get('/billing/thanks', [BillingController::class, 'thanks'])->name('billing.thanks');
 
     Route::get('/account', [ProfileController::class, 'show'])->name('profile.show');

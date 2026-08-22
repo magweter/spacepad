@@ -593,6 +593,26 @@ class Workspace extends Model
     }
 
     /**
+     * Whether this workspace can be sent to the Lemon Squeezy customer portal.
+     *
+     * The one place the conditions live, so the button on the workspace page and the guard
+     * in BillingController can never disagree about who gets one.
+     */
+    public function hasBillingPortal(): bool
+    {
+        // A self-hosted instance runs without the lemon_squeezy_* tables at all
+        // (LemonSqueezy::ignoreMigrations() in AppServiceProvider), and a manually billed
+        // workspace is not a Lemon Squeezy customer in the first place.
+        if (config('settings.is_self_hosted') || $this->is_manually_billed) {
+            return false;
+        }
+
+        // Not every Pro workspace has a customer row: the repoint migration left the row on
+        // the user where a workspace already had one of its own.
+        return $this->customer?->lemon_squeezy_id !== null;
+    }
+
+    /**
      * The billable units this workspace currently uses.
      *
      * Read from the counter columns, never counted. WorkspaceUsageService is the only

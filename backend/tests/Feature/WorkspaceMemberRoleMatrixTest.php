@@ -101,12 +101,21 @@ test('only owners and admins can rename the workspace and invite', function () {
     }
 });
 
-test('only the owner can manage members and billing', function () {
+test('only the owner can manage members', function () {
     foreach ([[WorkspaceRole::OWNER, true], [WorkspaceRole::ADMIN, false], [WorkspaceRole::MEMBER, false]] as [$role, $allowed]) {
         ['actor' => $actor, 'workspace' => $workspace] = workspaceActingAs($role);
 
         expect(Gate::forUser($actor)->allows('updateMemberRole', $workspace))->toBe($allowed);
         expect(Gate::forUser($actor)->allows('removeMember', $workspace))->toBe($allowed);
+    }
+});
+
+test('owners and admins can manage billing', function () {
+    // An admin runs the workspace day to day, so they can pay for it too. Membership stays
+    // owner-only, which is what stops an admin from locking the owner out.
+    foreach ([[WorkspaceRole::OWNER, true], [WorkspaceRole::ADMIN, true], [WorkspaceRole::MEMBER, false]] as [$role, $allowed]) {
+        ['actor' => $actor, 'workspace' => $workspace] = workspaceActingAs($role);
+
         expect(Gate::forUser($actor)->allows('manageBilling', $workspace))->toBe($allowed);
     }
 });

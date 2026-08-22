@@ -20,7 +20,7 @@ beforeEach(function () {
 });
 
 /**
- * Only the workspace owner pays. A member clicking Upgrade must not be able to put a
+ * Owners and admins pay. An ordinary member clicking Upgrade must not be able to put a
  * subscription on someone else's workspace, and must not be shown a button that 403s.
  */
 
@@ -77,8 +77,12 @@ test('a member cannot start a checkout', function () {
     Http::assertNothingSent();
 });
 
-test('an admin cannot start a checkout', function () {
-    Http::fake();
+test('an admin can start a checkout', function () {
+    Http::fake([
+        '*lemonsqueezy.com/v1/checkouts*' => Http::response([
+            'data' => ['attributes' => ['url' => 'https://teststore.lemonsqueezy.com/checkout/x']],
+        ]),
+    ]);
 
     [$workspace, , $member] = payableWorkspace();
 
@@ -89,8 +93,8 @@ test('an admin cannot start a checkout', function () {
     $this->actingAs($member);
     session()->put('selected_workspace_id', $workspace->id);
 
-    $this->post(route('billing.checkout'))->assertForbidden();
-    Http::assertNothingSent();
+    $this->post(route('billing.checkout'))
+        ->assertRedirect('https://teststore.lemonsqueezy.com/checkout/x');
 });
 
 test('checkout is unavailable on a self-hosted instance', function () {
@@ -119,7 +123,7 @@ test('the dashboard tells a member to ask the owner, and calls no API while rend
 
     $this->get(route('dashboard'))
         ->assertOk()
-        ->assertSee('Ask the owner of this workspace');
+        ->assertSee('Ask an owner or admin of this workspace');
 
     // The old blade built a Checkout during rendering, which POSTed to Lemon Squeezy on
     // every dashboard view for every non-Pro user.

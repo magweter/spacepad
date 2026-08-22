@@ -76,5 +76,5 @@ test('the account page no longer carries workspace billing', function () {
     $response->assertStatus(200);
     $response->assertViewIs('pages.profile');
     $response->assertViewMissing('usageBreakdown');
-    $response->assertDontSee('Total billed to subscription');
+    $response->assertDontSee('Total units');
 });

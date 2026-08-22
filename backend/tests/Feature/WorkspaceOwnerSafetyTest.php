@@ -203,7 +203,7 @@ test('the members page is reachable and lists the team', function () {
         ->assertSee($users['member']->email);
 });
 
-test('only the owner gets subscription controls on the manage workspace page', function () {
+test('owners and admins get subscription controls on the manage workspace page', function () {
     [$workspace, $users] = teamWithRoles(['owner', 'admin', 'member']);
     $workspace->update(['is_unlimited' => true]);
 
@@ -213,21 +213,22 @@ test('only the owner gets subscription controls on the manage workspace page', f
 
         $this->get(route('workspaces.members'))
             ->assertOk()
-            ->assertSee('Total billed to subscription');
+            ->assertSee('Total units');
     }
 
-    // ...but only the owner can act on it. Before billing moved here, the button was on the
-    // personal account page and shown to every member.
-    asOwnerOf($workspace, $users['owner']);
-    $this->get(route('workspaces.members'))->assertSee('Manage subscription');
-
-    foreach (['admin', 'member'] as $role) {
+    // ...but only the people who carry billing can act on it. Before billing moved here, the
+    // button was on the personal account page and shown to every member.
+    foreach (['owner', 'admin'] as $role) {
         asOwnerOf($workspace, $users[$role]);
 
-        $this->get(route('workspaces.members'))
-            ->assertDontSee('Manage subscription')
-            ->assertSee('Only its owner can change the subscription');
+        $this->get(route('workspaces.members'))->assertSee('Manage subscription');
     }
+
+    asOwnerOf($workspace, $users['member']);
+
+    $this->get(route('workspaces.members'))
+        ->assertDontSee('Manage subscription')
+        ->assertSee('Only owners and admins can change the subscription');
 });
 
 test('an outsider cannot see the members page of a workspace they are not in', function () {

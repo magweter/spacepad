@@ -25,7 +25,7 @@
 @section('content')
     @php
         $isSelfHosted = config('settings.is_self_hosted');
-        // Only the owner can pay, and the checkout itself is built by BillingController on
+        // Owners and admins can pay, and the checkout itself is built by BillingController on
         // POST — building it here meant an API call to Lemon Squeezy on every render.
         $canPay = $selectedWorkspace && auth()->user()->can('manageBilling', $selectedWorkspace);
         $showLicenseModal = $isSelfHosted && !auth()->user()->hasProForCurrentWorkspace();
@@ -159,7 +159,7 @@
                         </button>
                     </form>
                 @else
-                    <p class="text-sm text-gray-600">Ask the owner of this workspace to upgrade to Pro.</p>
+                    <p class="text-sm text-gray-600">Ask an owner or admin of this workspace to upgrade to Pro.</p>
                 @endif
             </div>
         </div>
