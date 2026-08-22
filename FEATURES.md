@@ -27,8 +27,7 @@ A privacy-focused room display app that shows real-time room availability, synce
 
 ### Clock & Identity
 - Real-time digital clock
-- Room name displayed prominently, and optionally hidden per display — for rooms whose name is
-  already part of the background image. The corner still responds to a long press, so hidden admin
+- Room name displayed prominently. The corner also responds to a long press, so hidden admin
   actions stay reachable.
 - Custom logo support
 
@@ -63,9 +62,14 @@ Four modes to show today's schedule — one per display:
 
 The schedule view shows all events for today, tomorrow, and yesterday.
 
-The full-day modal lists each meeting with its time, title, room and, when **Show organizer** is
-enabled, the meeting organizer. Both the "Show meeting title" and "Show organizer" settings apply to
-every day shown, not just today.
+The full-day modal gives each meeting a card: the time and, when **Show organizer** is enabled, the
+organizer beside it on the first line, the title underneath. The location comes from the calendar
+event and is off by default, because a display hangs beside the room it names and inside the
+building it names. Google and Microsoft write the booked room and the address the organiser typed
+onto that same location field, so the line covers both and is shown or hidden as a whole.
+
+The "Show meeting title", "Show organizer" and "Show meeting location" settings apply to every
+day shown, not just today.
 
 ### Advertisement Display
 - Show a custom image advertisement on the right half of the screen
@@ -94,7 +98,7 @@ Configure display screen (they used to be settable only while creating the displ
 | Name | Where it is used |
 |---|---|
 | **Display name** | Dashboard only, to tell displays apart. Listed by the tablet's setup wizard and under **Used by** on a profile, so it should be unique per display. |
-| **Room name** | Printed in the top right corner of the tablet, unless "Show room name" is off. Several displays may share it on purpose — a building or floor name, for instance. |
+| **Room name** | Printed in the top right corner of the tablet. Several displays may share it on purpose — a building or floor name, for instance. |
 
 Neither is inherited from a profile: they belong to the display itself.
 
@@ -108,13 +112,13 @@ Neither is inherited from a profile: they belong to the display itself.
 | Cancel permission | Everyone / Tablet bookings only / Nobody |
 | Show organizer | On/off |
 | Show meeting title | On/off |
-| Show room name | On/off (default on) |
+| Show meeting location | On/off (default off) |
 | Hide admin actions | On/off |
 | Border thickness | Small / Medium / Large |
 
 ### Admin Action Lockdown
 - Optionally hide the switch-room and logout buttons from the tablet UI
-- When hidden, admins can still access them by long-pressing the room name — they appear for 30 seconds then auto-hide. This works with "Show room name" off too: the text goes, the long-press target stays.
+- When hidden, admins can still access them by long-pressing the room name, they appear for 30 seconds then auto-hide.
 - Full kiosk lockdown via Android Screen Pinning, Android Lock Task Mode (MDM), or iOS Guided Access
 
 ---
@@ -193,7 +197,7 @@ a separate account with its own invisible set of displays.
 | Rename the workspace | ✓ | ✓ | |
 | Invite colleagues, withdraw invitations | ✓ | ✓ | |
 | Change roles, remove members | ✓ | | |
-| Billing and subscription | ✓ | | |
+| Billing and subscription | ✓ | ✓ | |
 
 ### Invitations
 - Invite by email address as Admin or Member; ownership is never handed out by invitation
@@ -221,12 +225,15 @@ a separate account with its own invisible set of displays.
 - Adding or removing a display or board resizes the subscription straight away instead of waiting
   for the next scheduled sync, and lands on the workspace's billing history
 - **No per-user charge** — inviting colleagues costs nothing
-- Only the owner can start or manage a subscription; other members are pointed at the owner rather
+- Owners and admins can start and manage a subscription; ordinary members are pointed at them rather
   than shown a button that fails
 - A workspace on trial is simply an activated workspace: the trial converts to a paid subscription on
   its own, so nothing on the dashboard asks anyone to buy. The workspace page carries the countdown,
   the date the subscription starts, and what the current usage costs per month
 - A workspace that already has a subscription cannot start a second checkout
+- One button on the workspace page opens the Lemon Squeezy billing portal in a new tab, to change the
+  payment method, download invoices or cancel. A manually billed workspace has no portal and is
+  pointed at support instead
 
 ---
 

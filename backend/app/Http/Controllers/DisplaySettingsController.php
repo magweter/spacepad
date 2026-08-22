@@ -244,7 +244,7 @@ class DisplaySettingsController extends Controller
                 'border_thickness' => 'nullable|in:small,medium,large',
                 'show_organizer' => 'boolean',
                 'show_meeting_title' => 'boolean',
-                'show_room_name' => 'boolean',
+                'show_meeting_location' => 'boolean',
             ],
             DisplaySettingSections::TEXTS => [
                 'text_available' => 'nullable|string|max:64',
@@ -294,7 +294,7 @@ class DisplaySettingsController extends Controller
         $updated = $updated && DisplaySettings::setCalendarEnabled($display, $request->boolean('view_schedule'));
         $updated = $updated && DisplaySettings::setShowOrganizerEnabled($display, $request->boolean('show_organizer'));
         $updated = $updated && DisplaySettings::setShowMeetingTitle($display, $request->boolean('show_meeting_title'));
-        $updated = $updated && DisplaySettings::setShowRoomName($display, $request->boolean('show_room_name'));
+        $updated = $updated && DisplaySettings::setShowMeetingLocation($display, $request->boolean('show_meeting_location'));
         $updated = $updated && DisplaySettings::setBorderThickness($display, $request->input('border_thickness', 'medium'));
 
         return $updated;

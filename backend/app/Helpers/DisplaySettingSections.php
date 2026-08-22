@@ -68,7 +68,7 @@ class DisplaySettingSections
                     'border_thickness' => 'string',
                     'show_organizer' => 'boolean',
                     'show_meeting_title' => 'boolean',
-                    'show_room_name' => 'boolean',
+                    'show_meeting_location' => 'boolean',
                 ],
                 'display_only_keys' => [],
                 // 'view_schedule' used to be 'calendar_enabled'; see DisplaySettings::isCalendarEnabled().

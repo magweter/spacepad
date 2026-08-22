@@ -551,19 +551,18 @@ class DisplaySettings
     }
 
     /**
-     * Whether the room name is printed in the header corner of the display.
+     * Whether the day schedule prints the location line of each meeting.
      *
-     * Defaults to on, because for most rooms that corner is how the display identifies itself.
-     * Turning it off is for the setup where the name already lives in the background image, and
-     * printing it again puts the same words on screen twice.
+     * Off by default. A display hangs beside the room it lists and inside the building it names,
+     * so the line mostly repeats what whoever is reading it is already standing in.
      */
-    public static function getShowRoomName(Display $display): bool
+    public static function getShowMeetingLocation(Display $display): bool
     {
-        return self::getSetting($display, 'show_room_name', true);
+        return self::getSetting($display, 'show_meeting_location', false);
     }
 
-    public static function setShowRoomName(Display $display, bool $show): bool
+    public static function setShowMeetingLocation(Display $display, bool $show): bool
     {
-        return self::setSetting($display, 'show_room_name', $show, 'boolean');
+        return self::setSetting($display, 'show_meeting_location', $show, 'boolean');
     }
 }

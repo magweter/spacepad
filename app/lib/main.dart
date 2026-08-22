@@ -54,6 +54,66 @@ Locale getBestMatchingLocale(Locale? requestedLocale) {
   return const Locale('en');
 }
 
+/// Optional development override for the logical screen size, supplied as
+/// `--dart-define=FORCE_SIZE=1024x600`. When set, the app lays itself out at
+/// exactly those logical pixels and is scaled to fit the real screen, so a
+/// room display panel resolution can be previewed on any simulator or desktop
+/// window. Unset or unparseable means no override.
+const String _forceSizeDefine = String.fromEnvironment('FORCE_SIZE');
+
+Size? _parseForcedSize(String value) {
+  final match = RegExp(r'^(\d+(?:\.\d+)?)[xX](\d+(?:\.\d+)?)$').firstMatch(value.trim());
+  if (match == null) {
+    return null;
+  }
+
+  final width = double.parse(match.group(1)!);
+  final height = double.parse(match.group(2)!);
+  if (width <= 0 || height <= 0) {
+    return null;
+  }
+
+  return Size(width, height);
+}
+
+final Size? forcedSize = _forceSizeDefine.isEmpty ? null : _parseForcedSize(_forceSizeDefine);
+
+/// Lays [child] out in a [forcedSize] canvas and scales it to fit, overriding
+/// MediaQuery so every size-dependent layout decision in the app sees the
+/// forced dimensions instead of the real ones.
+Widget _applyForcedSize(BuildContext context, Widget? child) {
+  final size = forcedSize;
+  if (child == null) {
+    return const SizedBox.shrink();
+  }
+  if (size == null) {
+    return child;
+  }
+
+  return MediaQuery(
+    data: MediaQuery.of(context).copyWith(
+      size: size,
+      padding: EdgeInsets.zero,
+      viewPadding: EdgeInsets.zero,
+      viewInsets: EdgeInsets.zero,
+      systemGestureInsets: EdgeInsets.zero,
+    ),
+    child: ColoredBox(
+      color: const Color(0xFF000000),
+      child: Center(
+        child: FittedBox(
+          fit: BoxFit.contain,
+          child: SizedBox(
+            width: size.width,
+            height: size.height,
+            child: child,
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -76,6 +136,12 @@ Future<void> main() async {
     print('Device locale: ${deviceLocale.languageCode}_${deviceLocale.countryCode}');
     print('Selected locale: ${validLocale.languageCode}');
     print('Is supported: ${isLocaleSupported(deviceLocale)}');
+  }
+
+  if (forcedSize != null) {
+    print('Forced size: ${forcedSize!.width.toInt()}x${forcedSize!.height.toInt()}');
+  } else if (_forceSizeDefine.isNotEmpty) {
+    print('Ignoring unparseable FORCE_SIZE: $_forceSizeDefine');
   }
   
   Get.updateLocale(validLocale);
@@ -106,6 +172,7 @@ class App extends StatelessWidget {
         GlobalCupertinoLocalizations.delegate,
       ],
       debugShowCheckedModeBanner: false,
+      builder: _applyForcedSize,
       getPages: [
         GetPage(name: '/', page: () {
           if (AuthService.instance.getAuthToken() != null) {

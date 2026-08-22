@@ -1,9 +1,6 @@
 <?php
 
 use App\Enums\DisplayStatus;
-use App\Helpers\DisplaySettings;
-use App\Helpers\DisplaySettingSections;
-use App\Helpers\ProfileSettings;
 use App\Models\Device;
 use App\Models\Display;
 use App\Models\DisplayProfile;
@@ -68,42 +65,7 @@ test('a display in another workspace cannot be renamed', function () {
     expect($foreign->fresh()->name)->toBe('Not yours');
 });
 
-test('the room name shows by default and survives a round trip through the display section', function () {
-    expect(DisplaySettings::getShowRoomName($this->display))->toBeTrue();
-
-    // Section saves post every checkbox in the section; an unchecked box simply stays away.
-    $this->actingAs($this->user)
-        ->put(route('displays.section.update', [
-            'display' => $this->display,
-            'section' => DisplaySettingSections::DISPLAY,
-        ]), ['timeline_widget_mode' => 'none'])
-        ->assertRedirect(route('displays.configure', $this->display));
-
-    expect(DisplaySettings::getShowRoomName($this->display->fresh()))->toBeFalse();
-
-    $this->actingAs($this->user)
-        ->put(route('displays.section.update', [
-            'display' => $this->display,
-            'section' => DisplaySettingSections::DISPLAY,
-        ]), ['timeline_widget_mode' => 'none', 'show_room_name' => '1']);
-
-    expect(DisplaySettings::getShowRoomName($this->display->fresh()))->toBeTrue();
-});
-
-test('a profile can turn the room name off for every display that follows it', function () {
-    $profile = DisplayProfile::factory()->create([
-        'workspace_id' => $this->workspace->id,
-        'name' => 'Lobby screens',
-    ]);
-    ProfileSettings::set($profile, 'show_room_name', false, 'boolean');
-
-    $this->display->update(['display_profile_id' => $profile->id]);
-
-    expect(DisplaySettings::getShowRoomName($this->display->fresh()))->toBeFalse();
-});
-
 test('the tablet is handed the display name alongside the room name', function () {
-    DisplaySettings::setShowRoomName($this->display, false);
 
     $device = Device::factory()->create([
         'user_id' => $this->user->id,
@@ -115,8 +77,7 @@ test('the tablet is handed the display name alongside the room name', function (
 
     // 'name' stays the room name: tablets already in the field read the header corner from it.
     expect($data['name'])->toBe('Willemsplein 3')
-        ->and($data['dashboard_name'])->toBe('Boardroom tablet')
-        ->and($data['settings']['show_room_name'])->toBeFalse();
+        ->and($data['dashboard_name'])->toBe('Boardroom tablet');
 });
 
 test('the used-by list on a profile names the display, not the shared room', function () {

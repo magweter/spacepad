@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\DisplayStatus;
 use App\Helpers\DisplaySettings;
+use App\Services\ImageService;
 use App\Traits\HasUlid;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -215,12 +216,12 @@ class Display extends Model
 
     public function getLogoUrl(): ?string
     {
-        return app(\App\Services\ImageService::class)->getLogoUrl($this);
+        return app(ImageService::class)->getLogoUrl($this);
     }
 
     public function getBackgroundImageUrl(): ?string
     {
-        return app(\App\Services\ImageService::class)->getBackgroundImageUrl($this);
+        return app(ImageService::class)->getBackgroundImageUrl($this);
     }
 
     public function getShowMeetingTitle(): bool
@@ -260,7 +261,7 @@ class Display extends Model
 
     public function getAdvertisementImageUrl(): ?string
     {
-        return app(\App\Services\ImageService::class)->getAdvertisementImageUrl($this);
+        return app(ImageService::class)->getAdvertisementImageUrl($this);
     }
 
     public function getAdvertisementInterval(): int
@@ -293,13 +294,13 @@ class Display extends Model
         return DisplaySettings::setShowOrganizerEnabled($this, $enabled);
     }
 
-    public function getShowRoomName(): bool
+    public function getShowMeetingLocation(): bool
     {
-        return DisplaySettings::getShowRoomName($this);
+        return DisplaySettings::getShowMeetingLocation($this);
     }
 
-    public function setShowRoomName(bool $show): bool
+    public function setShowMeetingLocation(bool $show): bool
     {
-        return DisplaySettings::setShowRoomName($this, $show);
+        return DisplaySettings::setShowMeetingLocation($this, $show);
     }
 }

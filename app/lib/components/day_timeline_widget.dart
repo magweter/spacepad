@@ -18,7 +18,6 @@ class DayTimelineWidget extends StatefulWidget {
   final bool isPhone;
   final double cornerRadius;
   final bool frosted;
-  final bool hasBackgroundImage;
 
   const DayTimelineWidget({
     super.key,
@@ -26,7 +25,6 @@ class DayTimelineWidget extends StatefulWidget {
     required this.isPhone,
     required this.cornerRadius,
     this.frosted = false,
-    this.hasBackgroundImage = false,
   });
 
   @override
@@ -240,9 +238,8 @@ class _DayTimelineWidgetState extends State<DayTimelineWidget> {
     return FrostedPanel(
       borderRadius: widget.cornerRadius,
       blurIntensity: widget.frosted ? 18 : 0,
-      backgroundColor: widget.frosted
-          ? (widget.hasBackgroundImage ? const Color(0x33FFFFFF) : const Color(0x14FFFFFF))
-          : const Color(0xFF1C1C1C),
+      // Frosted takes FrostedPanel.defaultLift; unfrosted is opaque.
+      backgroundColor: widget.frosted ? null : const Color(0xFF1C1C1C),
       padding: EdgeInsets.all(widget.isPhone ? 10 : 14),
       child: Column(
         children: [

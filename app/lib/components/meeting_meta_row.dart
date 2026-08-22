@@ -7,35 +7,39 @@ import 'package:tailwind_components/tailwind_components.dart';
 
 /// The line under the meeting title: when it runs, who booked it, and how much of it is left.
 ///
-/// One type size for the whole row. The time and the organiser are the same kind of fact, so
-/// they get identical chips and identical text; the remaining time is the only thing that
-/// steps back, in the weakest grey. Earlier versions used three sizes and three greys here,
-/// which made the row read as three unrelated fragments instead of one line.
+/// The time and the organiser are the same kind of fact, so they get identical chips and
+/// identical text. The subtitle is set a step larger, because it is the one thing here with no
+/// chip behind it: without that panel it reads lighter than the chips at the same size, and the
+/// step buys the weight back. Two sizes and one grey, not the three sizes and three greys an
+/// earlier version had, which made the row read as unrelated fragments instead of one line.
+///
+/// One style carries every state of the subtitle: "xxx min left" while a meeting runs,
+/// "for xxx min" and "till end of day" while the room is free, and the check-in wording.
 class MeetingMetaRow extends StatelessWidget {
   final dynamic controller;
   final bool isPhone;
   final double cornerRadius;
 
-  /// Puts the remaining time on its own line, under the chips.
-  ///
-  /// True whenever something else claims horizontal room: a timeline panel beside the
-  /// content, or a portrait display. On one line the organiser name and the remaining time
-  /// compete for the same space and the name is the first to lose; on its own line the name
-  /// gets the full width and the remaining time is still legible.
-  final bool stackSubtitle;
+  /// Whether a timeline panel sits beside the content, so this row does not have the full
+  /// width of the display.
+  final bool panelBeside;
+
+  /// Whether the display is in portrait, where the row is always the narrow way round.
+  final bool isPortrait;
 
   const MeetingMetaRow({
     super.key,
     required this.controller,
     required this.isPhone,
     required this.cornerRadius,
-    required this.stackSubtitle,
+    required this.panelBeside,
+    required this.isPortrait,
   });
 
   /// Same scale as the rest of the dashboard, see DashboardPage._sp.
   double _sp(BuildContext context, double size) {
     final s = MediaQuery.of(context).size.shortestSide;
-    return (size * (s / 800).clamp(0.5, 1.3)).roundToDouble();
+    return (size * (s / 750).clamp(0.5, 1.3)).roundToDouble();
   }
 
   /// The organiser, unless showing it adds nothing.
@@ -77,10 +81,9 @@ class MeetingMetaRow extends StatelessWidget {
       final times = controller.meetingInfoTimes as Map<String, DateTime>?;
       final subtitle = (controller.subtitle as String).trim();
       final organizer = _organizer();
-      final hasBackgroundImage = controller.globalSettings.value?.backgroundImageUrl != null;
 
       // The single size the whole row is set in.
-      final fontSize = _sp(context, 32);
+      final fontSize = _sp(context, 26);
 
       final chipStyle = FontService.instance.getTextStyle(
         fontFamily: controller.currentFontFamily.value,
@@ -88,6 +91,20 @@ class MeetingMetaRow extends StatelessWidget {
         fontWeight: FontWeight.w400,
         color: TWColors.white,
       );
+
+
+      // Splitting the row exists for one reason: on a single line the organiser name and the
+      // remaining time fight over the same space, and the name is the first to lose. So the
+      // remaining time drops to its own line only when there is an organiser chip to lose that
+      // race to, and only when something is already claiming width, being a panel beside the
+      // content or a portrait display. With the organiser off it stays beside the time at any
+      // size and the row keeps its height.
+      final stackSubtitle = organizer != null && (isPortrait || panelBeside);
+
+      // A step above the chips to compensate for having no panel behind it. Run through the
+      // same scale, so the step is larger on a full-size display, where there is room for it,
+      // than on a small panel where every point counts.
+      final subtitleStyle = chipStyle.copyWith(fontSize: _sp(context, 30));
 
       final chipPadding = EdgeInsets.fromLTRB(
         isPhone ? 10 : 15,
@@ -97,12 +114,11 @@ class MeetingMetaRow extends StatelessWidget {
       );
 
       final chips = SpaceRow(
-        spaceBetween: isPhone ? 10 : 20,
+        spaceBetween: isPhone ? 10 : 16,
         children: [
           if (times != null) FrostedPanel(
             borderRadius: cornerRadius,
             blurIntensity: 18,
-            hasBackgroundImage: hasBackgroundImage,
             padding: chipPadding,
             child: Text(
               'meeting_info_title'.trParams({
@@ -123,7 +139,6 @@ class MeetingMetaRow extends StatelessWidget {
             child: FrostedPanel(
               borderRadius: cornerRadius,
               blurIntensity: 18,
-              hasBackgroundImage: hasBackgroundImage,
               padding: chipPadding,
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -148,7 +163,7 @@ class MeetingMetaRow extends StatelessWidget {
             ),
           ),
           if (!stackSubtitle && subtitle.isNotEmpty) Flexible(
-            child: _subtitle(subtitle, chipStyle),
+            child: _subtitle(subtitle, subtitleStyle),
           ),
         ],
       );
@@ -158,10 +173,10 @@ class MeetingMetaRow extends StatelessWidget {
       }
 
       return SpaceCol(
-        spaceBetween: isPhone ? 6 : 10,
+        spaceBetween: isPhone ? 6 : _sp(context, 10),
         children: [
           chips,
-          _subtitle(subtitle, chipStyle),
+          _subtitle(subtitle, subtitleStyle),
         ],
       );
     });

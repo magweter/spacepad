@@ -51,8 +51,8 @@ class DisplaySettingsResource extends JsonResource
             // Organizer
             'show_organizer' => $this->isShowOrganizerEnabled(),
 
-            // Room name in the header corner
-            'show_room_name' => $this->getShowRoomName(),
+            // The location line of each meeting in the day schedule
+            'show_meeting_location' => $this->getShowMeetingLocation(),
         ];
     }
 }

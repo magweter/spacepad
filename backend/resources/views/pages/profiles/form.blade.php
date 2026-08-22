@@ -198,11 +198,12 @@
                             <x-info-tip text="When off, the title is replaced by the Reserved text below. Useful when subjects can be confidential, such as '1-on-1' or a client name." />
                         </div>
 
+
                         <div class="flex items-start gap-3">
-                            <input type="hidden" name="show_room_name" value="0">
-                            <input id="show_room_name" name="show_room_name" type="checkbox" value="1" class="mt-0.5 {{ $checkClass }}" {{ $bool('show_room_name', true) ? 'checked' : '' }}>
-                            <label for="show_room_name" class="text-sm text-gray-900">Show the room name</label>
-                            <x-info-tip text="The room name in the top right corner of the display. Turn this off when the name is already part of your background image, so it is not printed twice." />
+                            <input type="hidden" name="show_meeting_location" value="0">
+                            <input id="show_meeting_location" name="show_meeting_location" type="checkbox" value="1" class="mt-0.5 {{ $checkClass }}" {{ $bool('show_meeting_location') ? 'checked' : '' }}>
+                            <label for="show_meeting_location" class="text-sm text-gray-900">Show the meeting location</label>
+                            <x-info-tip text="The location line of the calendar event, under each meeting in the day schedule. Google and Microsoft put the booked room and the address on that same line, so it can read as a full street and postcode followed by a room name. Not the same as the room name above, which is this display's own name." />
                         </div>
 
                         <div class="pt-4 border-t border-gray-100">

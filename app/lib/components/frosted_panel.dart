@@ -16,8 +16,15 @@ class FrostedPanel extends StatelessWidget {
     this.blurIntensity = 18,
     Color? backgroundColor,
     this.padding,
-    bool hasBackgroundImage = false,
-  }) : backgroundColor = backgroundColor ?? const Color(0x33FFFFFF);
+  }) : backgroundColor = backgroundColor ?? defaultLift;
+
+  /// The lift every frosted surface takes, whatever sits behind it.
+  ///
+  /// Deliberately one value rather than one per background: a lighter panel over an image and
+  /// a darker one on black meant the bottom bar, the timeline panel and the buttons each
+  /// landed somewhere slightly different. This much white still reads as a surface on plain
+  /// black, which is where the buttons needed it.
+  static const Color defaultLift = Color(0x33FFFFFF);
 
   /// Creates a frosted panel with gray background (for use with background images)
   factory FrostedPanel.gray({

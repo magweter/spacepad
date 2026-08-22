@@ -58,7 +58,7 @@
                         </label>
                         <input type="text" name="display_name" id="room_name" maxlength="255" required
                                value="{{ old('display_name', $display->display_name) }}" class="mt-1 bg-white {{ $inputClass }}">
-                        <p class="mt-1 text-xs text-gray-500">Shown on the tablet, unless "Show the room name" is off below.</p>
+                        <p class="mt-1 text-xs text-gray-500">Shown in the top right corner of the tablet.</p>
                     </div>
                 </div>
 
@@ -294,14 +294,15 @@
                         </div>
                     </label>
 
+
                     <label class="flex items-start gap-3 cursor-pointer">
-                        <input type="checkbox" name="show_room_name" value="1" class="mt-0.5 {{ $checkClass }}"
-                               {{ $ds::getShowRoomName($display) ? 'checked' : '' }}>
+                        <input type="checkbox" name="show_meeting_location" value="1" class="mt-0.5 {{ $checkClass }}"
+                               {{ $ds::getShowMeetingLocation($display) ? 'checked' : '' }}>
                         <div>
-                            <span class="flex items-center gap-1.5 text-sm font-medium text-gray-900">Show the room name
-                                <x-info-tip text="The room name in the top right corner of the display. Turn this off when the name is already part of your background image, so it is not printed twice." />
+                            <span class="flex items-center gap-1.5 text-sm font-medium text-gray-900">Show the meeting location
+                                <x-info-tip text="The location line of the calendar event, under each meeting in the day schedule. Google and Microsoft put the booked room and the address on that same line, so it can read as a full street and postcode followed by a room name. Not the same as the room name above, which is this display's own name." />
                             </span>
-                            <p class="text-xs text-gray-500">Uncheck to leave the corner empty. Long-pressing that corner still reveals the admin actions.</p>
+                            <p class="text-xs text-gray-500">Off by default: the display already hangs beside the room, in the building, that the line names.</p>
                         </div>
                     </label>
 

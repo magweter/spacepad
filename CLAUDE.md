@@ -33,6 +33,11 @@ Spacepad is a privacy-focused room display application that shows real-time room
 
 ## Common Development Commands
 
+**To actually run the project locally, follow `AGENTS.md`.** It records the working
+commands for this machine (Herd `php84`, `fvm flutter`, the Node/pnpm version caveat).
+The generic commands below are reference only and will fail with the default `php`
+and `flutter` on PATH.
+
 ### Flutter App
 ```bash
 # Navigate to app directory
