@@ -6,21 +6,22 @@ use App\Http\Resources\API\EventResource;
 use App\Models\Device;
 use App\Services\DisplayService;
 use App\Services\EventService;
+use App\Support\LocalDay;
 use Exception;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class EventController extends ApiController
 {
     public function __construct(
         protected EventService $eventService,
         protected DisplayService $displayService,
-    ) {
-    }
+    ) {}
 
     /**
      * @throws Exception
      */
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
         /** @var Device $device */
         $device = auth()->user();
@@ -31,9 +32,14 @@ class EventController extends ApiController
         }
 
         try {
-            $events = $this->eventService->getEventsForDisplay($device->display_id);
+            $events = $this->eventService->getEventsForDisplay(
+                $device->display_id,
+                null,
+                LocalDay::tryFromRequest($request)
+            );
+
             return $this->success(data: EventResource::collection($events));
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return $this->error(message: $e->getMessage(), code: 500);
         }
     }

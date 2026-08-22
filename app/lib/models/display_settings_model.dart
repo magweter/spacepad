@@ -24,6 +24,7 @@ class DisplaySettingsModel {
   String timelineWidgetMode;
   bool extendEnabled;
   bool showOrganizer;
+  bool showMeetingLocation;
 
   DisplaySettingsModel({
     required this.checkInEnabled,
@@ -51,6 +52,7 @@ class DisplaySettingsModel {
     this.timelineWidgetMode = 'none',
     this.extendEnabled = false,
     this.showOrganizer = false,
+    this.showMeetingLocation = false,
   });
 
   factory DisplaySettingsModel.fromJson(Map data) {
@@ -80,6 +82,9 @@ class DisplaySettingsModel {
       timelineWidgetMode: data['timeline_widget_mode'] ?? 'none',
       extendEnabled: data['extend_enabled'] ?? false,
       showOrganizer: data['show_organizer'] ?? false,
+      // Defaults to false, the same as the setting itself: a tablet talking to a backend
+      // that predates it leaves the location line out rather than printing it forever.
+      showMeetingLocation: data['show_meeting_location'] ?? false,
     );
   }
 
@@ -110,6 +115,7 @@ class DisplaySettingsModel {
       'timeline_widget_mode': timelineWidgetMode,
       'extend_enabled': extendEnabled,
       'show_organizer': showOrganizer,
+      'show_meeting_location': showMeetingLocation,
     };
   }
 } 

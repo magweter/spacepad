@@ -16,4 +16,5 @@ return [
     'no_displays' => 'No hay pantallas disponibles para este tablero.',
     'transitioning_minutes' => 'Transición (:minutes min)',
     'join_meeting' => 'Unirse a la reunión',
+    'uncategorised' => 'Otro',
 ];

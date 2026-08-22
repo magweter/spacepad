@@ -16,4 +16,5 @@ return [
     'no_displays' => 'Geen displays beschikbaar voor dit bord.',
     'transitioning_minutes' => 'Overgang (:minutes min)',
     'join_meeting' => 'Vergadering starten',
+    'uncategorised' => 'Overig',
 ];

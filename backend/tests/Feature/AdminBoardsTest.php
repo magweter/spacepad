@@ -2,13 +2,10 @@
 
 namespace Tests\Feature;
 
-use App\Enums\DisplayStatus;
 use App\Models\Board;
-use App\Models\Display;
 use App\Models\Instance;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
 
 uses(RefreshDatabase::class);
 
@@ -18,7 +15,6 @@ beforeEach(function () {
 
     $this->admin = User::factory()->create([
         'is_admin' => true,
-        'is_unlimited' => true,
     ]);
 
     // Set selected workspace for admin

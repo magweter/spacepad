@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -12,6 +13,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
   ApiService._();
+
+  /// Cap on how long a single request may take.
+  ///
+  /// Without this the socket falls back to the platform's TCP timeout, which on Android is
+  /// over two minutes. A server that stops accepting connections (a restart, say) would
+  /// then leave requests hanging far longer than the poll interval, and every one of them
+  /// completes the instant the server comes back — the whole fleet at once.
+  static const Duration _requestTimeout = Duration(seconds: 15);
 
   static Future<bool> setBaseUrl(String apiUrl) async {
     var sharedPrefs = await SharedPreferences.getInstance();
@@ -34,7 +43,9 @@ class ApiService {
     if (kDebugMode) print('GET: $baseUrl$endpoint');
 
     try {
-      Response response = await http.get(Uri.parse('$baseUrl$endpoint'), headers: _getHeaders());
+      Response response = await http
+          .get(Uri.parse('$baseUrl$endpoint'), headers: _getHeaders())
+          .timeout(_requestTimeout);
 
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
@@ -62,7 +73,7 @@ class ApiService {
           Uri.parse('$baseUrl$endpoint'),
           headers: _getHeaders(),
           body: jsonEncode(body)
-      );
+      ).timeout(_requestTimeout);
 
       if ([200, 201, 202, 204].contains(response.statusCode)) {
         return jsonDecode(response.body);
@@ -84,7 +95,7 @@ class ApiService {
           Uri.parse('$baseUrl$endpoint'),
           headers: _getHeaders(),
           body: jsonEncode(body)
-      );
+      ).timeout(_requestTimeout);
 
       if ([200, 201, 202, 204].contains(response.statusCode)) {
         return jsonDecode(response.body);
@@ -106,7 +117,7 @@ class ApiService {
           Uri.parse('$baseUrl$endpoint'),
           headers: _getHeaders(),
           body: jsonEncode(body)
-      );
+      ).timeout(_requestTimeout);
 
       if (response.statusCode == 204) {
         return;
@@ -124,10 +135,18 @@ class ApiService {
   }
 
   static Map<String, String>? _getHeaders() {
+    final DateTime now = DateTime.now();
+
     Map<String, String> headers = {
       'Content-Type' : 'application/json',
       'Accept' : 'application/json',
-      'Accept-Language' : GetX.Get.locale?.languageCode ?? 'en'
+      'Accept-Language' : GetX.Get.locale?.languageCode ?? 'en',
+      // Tell the backend which calendar day this tablet is on. The server runs in its own
+      // timezone (usually UTC) and cannot know ours, so without this it has to guess the day
+      // boundary — which either cut off part of our evening or leaked tomorrow's bookings into
+      // the payload. Sent on every request so each endpoint can answer for the right day.
+      'X-Local-Date' : _localDate(now),
+      'X-Utc-Offset' : now.timeZoneOffset.inMinutes.toString(),
     };
 
     if (AuthService.instance.getAuthToken() != null) {
@@ -135,5 +154,13 @@ class ApiService {
     }
 
     return headers;
+  }
+
+  /// The device's calendar date as YYYY-MM-DD, in its own timezone.
+  static String _localDate(DateTime now) {
+    final String month = now.month.toString().padLeft(2, '0');
+    final String day = now.day.toString().padLeft(2, '0');
+
+    return '${now.year}-$month-$day';
   }
 }

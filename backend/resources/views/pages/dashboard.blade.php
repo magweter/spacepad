@@ -4,11 +4,11 @@
 @section('actions')
     <div class="flex items-center gap-3 ml-auto">
         @if(! config('settings.is_self_hosted'))
-            <button type="button" onclick="window.dispatchEvent(new CustomEvent('open-faq', { detail: { tab: 'roadmap' } }))" class="inline-flex items-center gap-1.5 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-600 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 transition-colors">
+            <button type="button" onclick="window.dispatchEvent(new CustomEvent('open-faq', { detail: { tab: 'roadmap' } }))" class="inline-flex items-center gap-1.5 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-600 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 transition-colors">
                 <svg class="h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"/></svg>
                 Make a request
             </button>
-            <button type="button" onclick="window.dispatchEvent(new CustomEvent('open-faq', { detail: { tab: 'help' } }))" class="inline-flex items-center gap-1.5 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-600 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 transition-colors">
+            <button type="button" onclick="window.dispatchEvent(new CustomEvent('open-faq', { detail: { tab: 'help' } }))" class="inline-flex items-center gap-1.5 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-600 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 transition-colors">
                 <svg class="h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z"/></svg>
                 Need help?
             </button>
@@ -25,8 +25,10 @@
 @section('content')
     @php
         $isSelfHosted = config('settings.is_self_hosted');
-        $checkout = auth()->user()->getCheckoutUrl(route('billing.thanks'));
-        $showLicenseModal = $isSelfHosted && !auth()->user()->hasPro();
+        // Owners and admins can pay, and the checkout itself is built by BillingController on
+        // POST — building it here meant an API call to Lemon Squeezy on every render.
+        $canPay = $selectedWorkspace && auth()->user()->can('manageBilling', $selectedWorkspace);
+        $showLicenseModal = $isSelfHosted && !auth()->user()->hasProForCurrentWorkspace();
     @endphp
 
     {{-- Session Status Alert --}}
@@ -126,7 +128,9 @@
     <x-modals.microsoft-admin-consent />
 
     {{-- Commercial Banner --}}
-    @if(! auth()->user()->hasProForCurrentWorkspace() && auth()->user()->hasAnyDisplay())
+    {{-- Any display in the workspace counts, not only ones the viewer created: billing is
+         per workspace, so an invited member should see the same prompt as the owner. --}}
+    @if(! auth()->user()->hasProForCurrentWorkspace() && $selectedWorkspace?->displays()->exists())
         <div class="mb-4 rounded-xl bg-indigo-50 border border-indigo-200 p-4 flex items-start gap-4">
             <div class="flex-shrink-0 mt-1">
                 <span class="inline-flex items-center justify-center h-10 w-10 rounded-full bg-indigo-100">
@@ -147,48 +151,24 @@
                     <button type="button" x-data @click="$dispatch('open-modal', 'license-key')" class="inline-flex items-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-xs hover:bg-indigo-700">
                         Try Pro 14 days for free
                     </button>
+                @elseif($canPay)
+                    <form action="{{ route('billing.checkout') }}" method="POST">
+                        @csrf
+                        <button type="submit" class="inline-flex items-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-xs hover:bg-indigo-700">
+                            Try Pro 14 days for free
+                        </button>
+                    </form>
                 @else
-                    <x-lemon-button :href="$checkout" class="inline-flex items-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-xs hover:bg-indigo-700">
-                        Try Pro 14 days for free
-                    </x-lemon-button>
+                    <p class="text-sm text-gray-600">Ask an owner or admin of this workspace to upgrade to Pro.</p>
                 @endif
             </div>
         </div>
     @endif
 
-    {{-- Trial Countdown Banner --}}
-    @if(!$isSelfHosted && $trialSubscription && $trialSubscription->trial_ends_at)
-        @php $trialDaysLeft = (int) ceil(now()->diffInDays($trialSubscription->trial_ends_at, false)) @endphp
-        @if($trialSubscription->trial_ends_at->isFuture() && $trialDaysLeft <= 14)
-            <div class="mb-4 rounded-xl bg-amber-50 border border-amber-200 p-4 flex items-center gap-4">
-                <div class="flex-shrink-0">
-                    <span class="inline-flex items-center justify-center h-10 w-10 rounded-full bg-amber-100">
-                        <svg class="h-5 w-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
-                        </svg>
-                    </span>
-                </div>
-                <div class="flex-1">
-                    <h3 class="text-sm font-semibold text-amber-900">
-                        @if($trialDaysLeft === 0)
-                            Your trial expires today
-                        @elseif($trialDaysLeft === 1)
-                            Your trial expires tomorrow
-                        @else
-                            Your trial expires in {{ $trialDaysLeft }} days
-                        @endif
-                    </h3>
-                    <p class="text-sm text-amber-800">Subscribe now to keep all your displays running without interruption.</p>
-                </div>
-                <div class="flex-shrink-0">
-                    @php $checkout = auth()->user()->getCheckoutUrl(route('billing.thanks')) @endphp
-                    <x-lemon-button :href="$checkout" class="inline-flex items-center rounded-md bg-amber-600 px-3 py-2 text-sm font-semibold text-white shadow-xs hover:bg-amber-700">
-                        Subscribe now
-                    </x-lemon-button>
-                </div>
-            </div>
-        @endif
-    @endif
+    {{-- No trial banner here on purpose. A trial is an ordinary subscription that converts by
+         itself, so hasPro() is already true and the workspace is simply activated. Urging
+         someone to "subscribe now" would be untrue, and acting on it would buy a second
+         subscription. The countdown and the cost live on the workspace page instead. --}}
 
     {{-- Getting Started Checklist --}}
     @php
@@ -331,7 +311,7 @@
                     </button>
                     @if(auth()->user()->hasProForCurrentWorkspace())
                         <button onclick="switchTab('boards')" id="tab-boards" class="tab-button border-b-2 border-transparent pb-4 px-1 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap">
-                            Boards <span class="ml-1 inline-flex items-center rounded-md bg-green-50 px-1.5 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">New</span>
+                            Boards
                         </button>
                     @else
                         <div class="relative group">
@@ -349,23 +329,61 @@
                             </div>
                         </div>
                     @endif
+                    @if(auth()->user()->hasProForCurrentWorkspace())
+                        <button onclick="switchTab('profiles')" id="tab-profiles" class="tab-button border-b-2 border-transparent pb-4 px-1 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap">
+                            Profiles <span class="ml-1 inline-flex items-center rounded-md bg-green-50 px-1.5 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">New</span>
+                        </button>
+                    @else
+                        {{-- Same teaser as Boards: the tab stays visible but disabled, so the feature
+                             is discoverable instead of simply missing. --}}
+                        <div class="relative group">
+                            <button type="button" disabled id="tab-profiles" class="tab-button border-b-2 border-transparent pb-4 px-1 text-sm font-medium text-gray-400 cursor-not-allowed whitespace-nowrap flex items-center gap-1">
+                                Profiles
+                                <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                                </svg>
+                            </button>
+                            <div class="absolute left-0 top-full mt-2 w-72 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
+                                <div class="font-semibold mb-1">Profiles (Pro Feature)</div>
+                                <div class="mb-2">Profiles are reusable sets of display settings. Link displays to a profile and they all follow it, so you configure many rooms at once instead of one by one.</div>
+                                <div>Find more information on <a href="https://spacepad.io" target="_blank" class="underline font-semibold hover:text-blue-300">spacepad.io</a></div>
+                                <div class="absolute bottom-full left-4 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-gray-900"></div>
+                            </div>
+                        </div>
+                    @endif
                 </nav>
             </div>
 
             {{-- Displays Tab Content --}}
-            <div id="tab-content-displays" class="tab-content">
+            @php
+                // Checkboxes are shown as soon as there is more than one display, even when no profile
+                // exists yet — otherwise nobody discovers that displays can be configured in bulk.
+                $canBulkAssign = auth()->user()->hasProForCurrentWorkspace() && $displays->count() > 1;
+
+                // The how-to below is onboarding, not a permanent fixture: once a profile has actually
+                // been applied to a display, it has done its job and would be noise on every visit.
+                $hasAssignedProfile = $displays->contains(fn ($d) => $d->display_profile_id !== null);
+            @endphp
+            <div id="tab-content-displays" class="tab-content"
+                 x-data="displayBulkActions(@js($displays->map(fn ($d) => [
+                     'id' => $d->id,
+                     'hasOwnSettings' => $d->settings->isNotEmpty(),
+                 ])->values()))">
                 <div class="sm:flex sm:items-center mb-4">
                     <div class="sm:flex-auto">
                         <h2 class="text-lg font-semibold leading-6 text-gray-900">Displays</h2>
                         <p class="mt-1 text-sm text-gray-500">
                             Overview of your displays and their status.
+                            @if($canBulkAssign)
+                                Tick several displays to configure them together with a profile.
+                            @endif
                         </p>
                     </div>
                     <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none flex items-center gap-2">
                         @if(auth()->user()->hasProForCurrentWorkspace() && $displays->isNotEmpty())
                             <button type="button"
                                     onclick="window.dispatchEvent(new CustomEvent('open-diagnostics'))"
-                                    class="inline-flex items-center gap-1.5 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-600 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+                                    class="inline-flex items-center gap-1.5 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-600 ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
                                     title="Troubleshoot calendar sync issues">
                                 <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
@@ -389,15 +407,106 @@
                     </div>
                 </div>
 
+                @if($canBulkAssign)
+                    {{-- Idle hint: makes bulk editing discoverable before anything is ticked. Shown
+                         only until the first profile is actually assigned; after that the how-to is
+                         understood and would be noise on every visit. The bulk bar below always
+                         stays — it is the feature, not the explanation. --}}
+                    @unless($hasAssignedProfile)
+                        <div x-show="selected.length === 0"
+                             class="mt-4 flex items-start gap-2 rounded-xl border border-dashed border-gray-300 bg-gray-50 px-4 py-3">
+                            <svg class="mt-0.5 h-4 w-4 shrink-0 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                            </svg>
+                            <p class="text-sm text-gray-600">
+                                <span class="font-medium text-gray-900">Configure several displays at once.</span>
+                                Select displays with the checkboxes and apply a profile, a reusable set of settings such as
+                                check-in, booking, texts and branding.
+                                @if($profiles->isEmpty())
+                                    <a href="{{ route('profiles.create') }}" class="font-medium text-blue-600 hover:text-blue-500">Create your first profile</a>.
+                                @else
+                                    <a href="{{ route('dashboard', ['tab' => 'profiles']) }}" class="font-medium text-blue-600 hover:text-blue-500">Manage profiles</a>.
+                                @endif
+                            </p>
+                        </div>
+                    @endunless
+
+                    {{-- Bulk bar: replaces the hint once something is selected --}}
+                    <div x-show="selected.length > 0" x-cloak
+                         class="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-4">
+                        @if($profiles->isEmpty())
+                            {{-- Nothing to assign yet: point at the thing that makes bulk editing work --}}
+                            <div class="flex flex-wrap items-center gap-3">
+                                <span class="text-sm font-medium text-gray-900">
+                                    <span x-text="selected.length"></span>
+                                    <span x-text="selected.length === 1 ? 'display' : 'displays'"></span> selected
+                                </span>
+                                <span class="text-sm text-gray-600">
+                                    You need a profile to configure displays together.
+                                </span>
+                                <a href="{{ route('profiles.create') }}"
+                                   class="rounded-md bg-oxford px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-oxford-600">
+                                    Create a profile
+                                </a>
+                                <button type="button" x-on:click="selected = []"
+                                        class="text-sm font-medium text-gray-600 hover:text-gray-900">Clear selection</button>
+                            </div>
+                        @else
+                            <form action="{{ route('displays.profile.bulk') }}" method="POST"
+                                  x-on:submit="return confirmAssign($event)">
+                                @csrf
+                                <template x-for="id in selected" :key="id">
+                                    <input type="hidden" name="display_ids[]" :value="id">
+                                </template>
+                                <div class="flex flex-wrap items-center gap-3">
+                                    <span class="text-sm font-medium text-gray-900">
+                                        <span x-text="selected.length"></span>
+                                        <span x-text="selected.length === 1 ? 'display' : 'displays'"></span> selected
+                                    </span>
+                                    <select name="display_profile_id" x-model="profileId"
+                                            class="block rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500">
+                                        <option value="">Select a profile…</option>
+                                        @foreach($profiles as $profile)
+                                            <option value="{{ $profile->id }}">{{ $profile->name }}</option>
+                                        @endforeach
+                                    </select>
+                                    <button type="submit" x-bind:disabled="profileId === ''"
+                                            class="rounded-md bg-oxford px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-oxford-600 disabled:opacity-40">
+                                        Assign profile
+                                    </button>
+                                    <button type="submit" x-on:click="profileId = ''"
+                                            class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
+                                        Unlink
+                                    </button>
+                                    <button type="button" x-on:click="selected = []"
+                                            class="text-sm font-medium text-gray-600 hover:text-gray-900">Clear selection</button>
+                                </div>
+                                <p x-show="customisedCount() > 0" class="mt-2 text-xs text-amber-700">
+                                    <span x-text="customisedCount()"></span>
+                                    <span x-text="customisedCount() === 1 ? 'of the selected displays has' : 'of the selected displays have'"></span>
+                                    their own settings. Assigning a profile clears those so they follow the profile.
+                                </p>
+                            </form>
+                        @endif
+                    </div>
+                @endif
+
                 <div class="mt-6 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
                     <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-200">
                                 <thead class="bg-gray-50/90">
                                 <tr>
+                                    @if($canBulkAssign)
+                                        <th scope="col" class="py-3.5 pl-4 pr-0">
+                                            <input type="checkbox" x-on:change="toggleAll($event)"
+                                                   x-bind:checked="allSelected()" aria-label="Select all displays"
+                                                   class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600">
+                                        </th>
+                                    @endif
                                     <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Name</th>
                                     <th scope="col" class="px-3 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Calendar account</th>
                                     <th scope="col" class="px-3 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Status</th>
-                                    <th scope="col" class="px-3 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Devices & sync</th>
+                                    <th scope="col" class="px-3 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Devices</th>
                                     <th scope="col" class="relative py-3.5 pr-4 pl-3 text-right">
                                         <span class="sr-only">Actions</span>
                                     </th>
@@ -405,10 +514,10 @@
                                 </thead>
                                 <tbody class="divide-y divide-gray-100 bg-white" id="displays-table">
                                 @forelse($displays as $display)
-                                    <x-displays.table-row :display="$display" />
+                                    <x-displays.table-row :display="$display" :selectable="$canBulkAssign" />
                                 @empty
                                     <tr>
-                                        <td colspan="5" class="px-6 py-16 text-center">
+                                        <td colspan="{{ $canBulkAssign ? 6 : 5 }}" class="px-6 py-16 text-center">
                                             <div class="flex flex-col items-center justify-center">
                                                 <x-icons.display class="mx-auto mb-3 h-10 w-10 text-gray-400" />
                                                 <h3 class="mb-2 text-base font-semibold text-gray-900">
@@ -549,8 +658,93 @@
                     </div>
                 </div>
             @endif
+
+            {{-- Profiles Tab Content --}}
+            @if(auth()->user()->hasProForCurrentWorkspace())
+                <div id="tab-content-profiles" class="tab-content hidden">
+                    <div class="sm:flex sm:items-center mb-4">
+                        <div class="sm:flex-auto">
+                            <h2 class="text-lg font-semibold leading-6 text-gray-900">Profiles</h2>
+                            <p class="mt-1 text-sm text-gray-500">
+                                Reusable sets of display settings. Assign a profile to displays from the Displays tab.
+                            </p>
+                        </div>
+                        <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
+                            <a href="{{ route('profiles.create') }}" class="inline-flex items-center rounded-md bg-oxford px-3 py-2 text-center text-sm font-semibold text-white">
+                                <x-icons.plus class="h-5 w-5 mr-1" />
+                                Create new profile
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="mt-6 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+                        <div class="overflow-x-auto">
+                                <table class="min-w-full divide-y divide-gray-200">
+                                    <thead class="bg-gray-50/90">
+                                    <tr>
+                                        <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Name</th>
+                                        <th scope="col" class="px-3 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Displays</th>
+                                        <th scope="col" class="px-3 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Created by</th>
+                                        <th scope="col" class="relative py-3.5 pr-4 pl-3 text-right">
+                                            <span class="sr-only">Actions</span>
+                                        </th>
+                                    </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-100 bg-white">
+                                    @forelse($profiles as $profile)
+                                        <tr class="transition-colors hover:bg-gray-50/90">
+                                            <td class="whitespace-nowrap py-4 pl-4 pr-3 align-middle sm:pl-4">
+                                                <div class="text-sm font-semibold leading-6 text-gray-900 truncate">{{ $profile->name }}</div>
+                                            </td>
+                                            <td class="whitespace-nowrap px-3 py-4 align-middle text-sm text-gray-500">
+                                                {{ $profile->displays_count }} {{ $profile->displays_count === 1 ? 'display' : 'displays' }}
+                                            </td>
+                                            <td class="whitespace-nowrap px-3 py-4 align-middle text-sm text-gray-500">
+                                                {{ $profile->user?->name ?? '-' }}
+                                            </td>
+                                            <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right align-middle text-sm font-medium sm:pr-4">
+                                                <div class="flex items-center justify-end gap-x-2">
+                                                    @can('update', $profile)
+                                                        <a href="{{ route('profiles.edit', $profile) }}" class="inline-flex items-center rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-blue-600 shadow-sm ring-1 ring-inset ring-blue-300 hover:bg-blue-50" title="Edit profile">
+                                                            <x-icons.settings class="h-4 w-4" />
+                                                        </a>
+                                                    @endcan
+                                                    @can('delete', $profile)
+                                                        <form action="{{ route('profiles.destroy', $profile) }}" method="POST" class="flex"
+                                                              onsubmit="return confirm('Delete this profile? Linked displays keep their current settings as their own.');">
+                                                            @csrf
+                                                            @method('DELETE')
+                                                            <button type="submit" class="inline-flex items-center rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-red-600 shadow-sm ring-1 ring-inset ring-red-300 hover:bg-red-50" title="Delete profile">
+                                                                <x-icons.trash class="h-4 w-4" />
+                                                            </button>
+                                                        </form>
+                                                    @endcan
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="4" class="px-6 py-16 text-center">
+                                                <div class="flex flex-col items-center justify-center">
+                                                    <x-icons.display class="mx-auto mb-3 h-10 w-10 text-gray-400" />
+                                                    <h3 class="mb-2 text-base font-semibold text-gray-900">No profiles yet</h3>
+                                                    <p class="text-sm text-gray-500 max-w-sm">Create a profile to manage the settings of many displays at once.</p>
+                                                    <a href="{{ route('profiles.create') }}" class="mt-4 inline-flex items-center rounded-md bg-oxford px-3 py-2 text-center text-sm font-semibold text-white">
+                                                        <x-icons.plus class="h-5 w-5 mr-1" />
+                                                        Create new profile
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    @endforelse
+                                    </tbody>
+                                </table>
+                        </div>
+                    </div>
+                </div>
+            @endif
         </x-cards.card>
-        
+
         <x-cards.card class="col-span-12 xl:col-span-4">
             {{-- Header + add button --}}
             <div class="flex items-center justify-between mb-5">
@@ -797,6 +991,52 @@
 
 @push('scripts')
     <script>
+        // Bulk profile assignment from the displays overview. The row checkboxes bind to `selected`
+        // and carry data-has-own-settings so we can warn about settings that will be cleared.
+        // `displays` is rendered by the server as [{id, hasOwnSettings}], so selecting never depends on
+        // reading the DOM back — inside a component method `$el` is not the table, which silently made
+        // select-all clear the selection instead of filling it.
+        function displayBulkActions(displays) {
+            return {
+                displays,
+                selected: [],
+                profileId: '',
+
+                allSelected() {
+                    return this.displays.length > 0 && this.selected.length === this.displays.length;
+                },
+
+                toggleAll(event) {
+                    this.selected = event.target.checked
+                        ? this.displays.map(display => display.id)
+                        : [];
+                },
+
+                // How many of the selected displays would lose their own settings.
+                customisedCount() {
+                    return this.displays
+                        .filter(display => display.hasOwnSettings && this.selected.includes(display.id))
+                        .length;
+                },
+
+                confirmAssign(event) {
+                    // Unlinking keeps a display's values, so only assigning needs a confirmation.
+                    if (this.profileId === '' || this.customisedCount() === 0) {
+                        return true;
+                    }
+
+                    const count = this.customisedCount();
+                    const noun = count === 1 ? 'display has' : 'displays have';
+                    if (!confirm(`${count} selected ${noun} their own settings. Assigning this profile clears them so they follow the profile. Continue?`)) {
+                        event.preventDefault();
+                        return false;
+                    }
+
+                    return true;
+                },
+            };
+        }
+
         // Show service account modal if needed
         @if(session('open-service-account-modal'))
             window.addEventListener('DOMContentLoaded', function() {

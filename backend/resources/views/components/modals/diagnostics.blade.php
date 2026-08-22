@@ -213,7 +213,7 @@ window.__diagCsrf      = @json(csrf_token());
                             {{-- Account in error state → offer a reset so a fresh token can be attempted --}}
                             <div x-show="accountErrored" class="rounded-lg border border-red-200 bg-red-50 px-4 py-3">
                                 <p class="text-sm font-semibold text-red-800">Account is in an error state</p>
-                                <p class="mt-0.5 text-xs text-red-700">The linked calendar account is marked as errored, so automatic token refresh is skipped. Reset it to “connected” to attempt a fresh token — if it fails again the account keeps its error state and the exact reason is written to the logs.</p>
+                                <p class="mt-0.5 text-xs text-red-700">The linked calendar account is marked as errored, so automatic token refresh is skipped. Reset it to “connected” to attempt a fresh token. If it fails again the account keeps its error state and the exact reason is written to the logs.</p>
                                 <div class="mt-2 flex items-center gap-3">
                                     <button type="button" @click="resetAccount()" :disabled="resetting || running"
                                             class="inline-flex items-center gap-2 rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-red-700 disabled:opacity-50 transition-colors">

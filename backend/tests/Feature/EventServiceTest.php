@@ -289,3 +289,79 @@ it('deletes custom event from db on cancel', function () {
 
     expect(Event::find($customEvent->id))->toBeNull();
 });
+
+// ---------------------------------------------------------------------------
+// Extend
+// ---------------------------------------------------------------------------
+
+it('returns the extended end time while the provider still reports the old end', function () {
+    $outlookAccount = OutlookAccount::factory()->create([
+        'user_id' => $this->user->id,
+        'permission_type' => PermissionType::WRITE,
+    ]);
+    $this->calendar->update(['outlook_account_id' => $outlookAccount->id]);
+    $this->display->setExtendEnabled(true);
+
+    $extId = 'ext-to-extend';
+    $start = now()->addHour();
+    $end = now()->addHours(2);
+    $newEnd = $end->copy()->addMinutes(30);
+
+    $outlookService = Mockery::mock(OutlookService::class);
+    $outlookService->shouldReceive('patchEventEndTime')->once();
+    // Graph is eventually consistent: the read right after the write still has the old end.
+    $outlookService->shouldReceive('fetchEventsByUser')
+        ->once()
+        ->andReturn([outlookApiEvent($extId, $start, $end)]);
+    $this->app->instance(OutlookService::class, $outlookService);
+
+    app(EventService::class)->extendEvent($extId, $this->display->id, $newEnd);
+
+    $events = app(EventService::class)->getEventsForDisplay($this->display->id);
+
+    expect($events)->toHaveCount(1);
+    expect($events->first()->end->toIso8601String())->toBe($newEnd->utc()->toIso8601String());
+});
+
+it('returns the extended end time for a tablet booking whose external copy is still stale', function () {
+    $outlookAccount = OutlookAccount::factory()->create([
+        'user_id' => $this->user->id,
+        'permission_type' => PermissionType::WRITE,
+    ]);
+    $this->calendar->update(['outlook_account_id' => $outlookAccount->id]);
+    $this->display->setExtendEnabled(true);
+
+    $extId = 'ext-tablet-booking-extend';
+    $start = now()->addHour();
+    $end = now()->addHours(2);
+    $newEnd = $end->copy()->addMinutes(15);
+
+    $tabletBooking = Event::create([
+        'display_id' => $this->display->id,
+        'user_id' => $this->user->id,
+        'calendar_id' => $this->calendar->id,
+        'external_id' => $extId,
+        'source' => EventSource::OUTLOOK,
+        'status' => EventStatus::CONFIRMED,
+        'summary' => 'Booked via tablet',
+        'start' => $start,
+        'end' => $end,
+        'timezone' => 'UTC',
+    ]);
+
+    $outlookService = Mockery::mock(OutlookService::class);
+    $outlookService->shouldReceive('patchEventEndTime')->once();
+    $outlookService->shouldReceive('fetchEventsByUser')
+        ->once()
+        ->andReturn([outlookApiEvent($extId, $start, $end)]);
+    $this->app->instance(OutlookService::class, $outlookService);
+
+    app(EventService::class)->extendEvent($tabletBooking->id, $this->display->id, $newEnd);
+
+    $events = app(EventService::class)->getEventsForDisplay($this->display->id);
+
+    // The merge normally lets the external copy win on times — the extend marker must beat it.
+    expect($events)->toHaveCount(1);
+    expect($events->first()->id)->toBe($tabletBooking->id);
+    expect($events->first()->end->toIso8601String())->toBe($newEnd->utc()->toIso8601String());
+});

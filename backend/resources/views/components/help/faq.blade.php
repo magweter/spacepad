@@ -30,7 +30,7 @@ $faqs = [
         'categoryLabel' => 'Microsoft 365',
         'accentColor' => '#8b5cf6',
         'question' => 'New meetings aren\'t showing up on my display',
-        'answer' => 'First, check that the right room or calendar is connected (open display settings). If it looks correct, try disconnecting and reconnecting your Microsoft account — this refreshes the webhook that notifies Spacepad of changes in real time. Events should appear within a few minutes.',
+        'answer' => 'First, check that the right room or calendar is connected (open display settings). If it looks correct, try disconnecting and reconnecting your Microsoft account. This refreshes the webhook that notifies Spacepad of changes in real time. Events should appear within a few minutes.',
     ],
     [
         'id' => 5,
@@ -38,7 +38,7 @@ $faqs = [
         'categoryLabel' => 'Microsoft 365',
         'accentColor' => '#8b5cf6',
         'question' => 'Our IT admin needs to approve Spacepad\'s Microsoft 365 permissions',
-        'answer' => 'For write (booking) access to M365 room resources, your Azure AD admin needs to grant admin consent for the Spacepad app. A link to the admin consent flow is shown during the Microsoft connection process — you can copy it and forward it to your admin. For read-only access, regular user consent is usually enough.',
+        'answer' => 'For write (booking) access to M365 room resources, your Azure AD admin needs to grant admin consent for the Spacepad app. A link to the admin consent flow is shown during the Microsoft connection process, so you can copy it and forward it to your admin. For read-only access, regular user consent is usually enough.',
     ],
     [
         'id' => 6,
@@ -54,7 +54,7 @@ $faqs = [
         'categoryLabel' => 'Google',
         'accentColor' => '#ef4444',
         'question' => 'When do I need a service account for Google Workspace?',
-        'answer' => 'A service account is the right choice when your Google Workspace admin doesn\'t want to grant a personal account access to room resources, or when you\'re managing many rooms at scale. It uses domain-wide delegation to access calendars on behalf of users. If you\'re unsure, start with a regular user account — you can switch later without losing your display setup.',
+        'answer' => 'A service account is the right choice when your Google Workspace admin doesn\'t want to grant a personal account access to room resources, or when you\'re managing many rooms at scale. It uses domain-wide delegation to access calendars on behalf of users. If you\'re unsure, start with a regular user account, you can switch later without losing your display setup.',
     ],
     [
         'id' => 8,
@@ -70,7 +70,7 @@ $faqs = [
         'categoryLabel' => 'Display',
         'accentColor' => '#10b981',
         'question' => 'Can I book a room directly from the display tablet?',
-        'answer' => 'Yes — on-display booking is a Pro feature and requires a connected account with write permissions. Once both are active, a booking button appears on the display. You can configure the default booking duration and toggle the feature per display in its settings.',
+        'answer' => 'Yes, on-display booking is a Pro feature and requires a connected account with write permissions. Once both are active, a booking button appears on the display. You can configure the default booking duration and toggle the feature per display in its settings.',
     ],
     [
         'id' => 10,
@@ -86,7 +86,7 @@ $faqs = [
         'categoryLabel' => 'Display',
         'accentColor' => '#10b981',
         'question' => 'Meetings booked via the tablet don\'t appear in the calendar',
-        'answer' => 'This is almost always a permissions issue. Spacepad can only write to your calendar if the connected account has write access. Check the following: (1) Read-only connection — if your Microsoft or Google account was connected with read-only permissions, Spacepad can show events but cannot create them. Go to Accounts in the dashboard and reconnect the account, making sure to grant write (read & write) access when prompted. (2) Microsoft 365 room resources — room mailboxes in Exchange Online require admin consent before a third-party app can book on their behalf. Ask your IT admin to approve write permissions for Spacepad via the admin consent link shown during the connection flow. (3) Google Workspace — if you use a service account, verify that domain-wide delegation includes write scope (https://www.googleapis.com/auth/calendar). (4) CalDAV — confirm the connected account has write permissions on the specific calendar, not just read access. After fixing permissions, reconnect the account from the dashboard to apply the new access level.',
+        'answer' => 'This is almost always a permissions issue. Spacepad can only write to your calendar if the connected account has write access. Check the following: (1) Read-only connection: if your Microsoft or Google account was connected with read-only permissions, Spacepad can show events but cannot create them. Go to Accounts in the dashboard and reconnect the account, making sure to grant write (read & write) access when prompted. (2) Microsoft 365 room resources: room mailboxes in Exchange Online require admin consent before a third-party app can book on their behalf. Ask your IT admin to approve write permissions for Spacepad via the admin consent link shown during the connection flow. (3) Google Workspace: if you use a service account, verify that domain-wide delegation includes write scope (https://www.googleapis.com/auth/calendar). (4) CalDAV: confirm the connected account has write permissions on the specific calendar, not just read access. After fixing permissions, reconnect the account from the dashboard to apply the new access level.',
     ],
     [
         'id' => 11,
@@ -94,7 +94,7 @@ $faqs = [
         'categoryLabel' => 'Display',
         'accentColor' => '#10b981',
         'question' => 'How do I prevent users from closing the app or pressing the home button on Android?',
-        'answer' => 'Android has two built-in options. The easiest is Screen Pinning: go to Settings → Security → Screen Pinning (or "Pin windows"), enable it, then open Spacepad, tap the Recents button and tap the pin icon. Users cannot switch apps without a PIN. For a stricter lockdown, use Android\'s Lock Task Mode via a Mobile Device Management (MDM) solution such as Scalefusion, ManageEngine, or Google\'s zero-touch enrollment. This fully disables the home button, recents, and notifications — ideal for permanent room displays. You can also enable "Hide admin actions" in Spacepad\'s display settings to prevent users from logging out or switching rooms from within the app.',
+        'answer' => 'Android has two built-in options. The easiest is Screen Pinning: go to Settings → Security → Screen Pinning (or "Pin windows"), enable it, then open Spacepad, tap the Recents button and tap the pin icon. Users cannot switch apps without a PIN. For a stricter lockdown, use Android\'s Lock Task Mode via a Mobile Device Management (MDM) solution such as Scalefusion, ManageEngine, or Google\'s zero-touch enrollment. This fully disables the home button, recents, and notifications, which is ideal for permanent room displays. You can also enable "Hide admin actions" in Spacepad\'s display settings to prevent users from logging out or switching rooms from within the app.',
     ],
     [
         'id' => 12,
@@ -102,7 +102,7 @@ $faqs = [
         'categoryLabel' => 'Display',
         'accentColor' => '#10b981',
         'question' => 'How do I lock the app on iPad so users can\'t exit Spacepad?',
-        'answer' => 'Use iOS Guided Access: go to Settings → Accessibility → Guided Access and enable it. Then open Spacepad, triple-click the side button (or Home button), and tap "Start". The iPad is now locked to Spacepad — the Home button and screen edges are disabled. Set a passcode so only admins can exit. For managing multiple iPads centrally, use Apple Business Manager combined with an MDM (such as Jamf or Microsoft Intune) to enforce Single App Mode across all devices remotely.',
+        'answer' => 'Use iOS Guided Access: it pins the iPad to Spacepad and asks for a code before anyone can leave. Setup takes about two minutes: (1) On the iPad, open Settings → Accessibility → Guided Access and turn it on. (2) Tap Passcode Settings → Set Guided Access Passcode and enter a 6-digit code twice. Write it down somewhere safe, you need it to get back out. (3) In that same screen, set Display Auto-Lock to Never. (4) Go back to Settings → Accessibility → Accessibility Shortcut (bottom of the list) and make sure only Guided Access is ticked, so the triple-click in the next step goes straight to Guided Access instead of showing a menu. (5) Open the Spacepad app and let it load the room screen. (6) Triple-click the top button (the power/sleep button, and on older iPads with a round Home button, triple-click that instead) and tap Start in the top right. The iPad is now locked to Spacepad: swiping, the app switcher and the home screen are all blocked. To get out, triple-click the same button, enter your code and tap End in the top left. One thing to know: Guided Access switches off when the iPad powers down completely, so after a battery drain you need to repeat steps 5 and 6 once. If you want it to re-lock automatically after every reboot, supervise the iPad with Apple Configurator (free Mac app, requires a one-time reset of the iPad) or manage it centrally with Apple Business Manager plus an MDM such as Jamf or Microsoft Intune, and enable Single App Mode, so Spacepad launches and locks itself on boot. Two extras for a wall-mounted iPad: set Settings → Display & Brightness → Auto-Lock → Never, and keep it on permanent power so it never runs flat. Inside Spacepad you can also enable "Hide admin actions" in the display settings, so nobody can log out or switch rooms from within the app.',
     ],
     [
         'id' => 14,
@@ -110,7 +110,7 @@ $faqs = [
         'categoryLabel' => 'Billing',
         'accentColor' => '#f59e0b',
         'question' => 'What\'s included in the free plan?',
-        'answer' => 'The free plan includes 1 display with real-time calendar sync and basic event viewing — enough to fully test with your first room. Booking, multiple displays, boards, check-in, and display customization all require Pro.',
+        'answer' => 'The free plan includes 1 display with real-time calendar sync and basic event viewing, enough to fully test with your first room. Booking, multiple displays, boards, check-in, and display customization all require Pro.',
     ],
     [
         'id' => 15,
@@ -126,7 +126,7 @@ $faqs = [
         'categoryLabel' => 'Billing',
         'accentColor' => '#f59e0b',
         'question' => 'What happens when my trial ends?',
-        'answer' => 'Your account reverts to the free plan — no data is lost and nothing is deleted. Your first display keeps working. Any additional displays will show a "subscription required" message until you upgrade. You can upgrade any time from this dashboard.',
+        'answer' => 'Your account reverts to the free plan. No data is lost and nothing is deleted. Your first display keeps working. Any additional displays will show a "subscription required" message until you upgrade. You can upgrade any time from this dashboard.',
     ],
 ];
 

@@ -30,7 +30,7 @@ class SupportController extends Controller
                 "Question from {$user->name} ({$user->email}):\n\n{$validated['message']}",
                 fn ($mail) => $mail
                     ->to('support@spacepad.io')
-                    ->subject("Spacepad question — {$user->name}")
+                    ->subject("Spacepad question: {$user->name}")
                     ->replyTo($user->email, $user->name)
             );
         } catch (\Exception $e) {

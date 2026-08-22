@@ -245,20 +245,35 @@ class CheckMarketingTriggers extends Command
     /**
      * Check users on day 3 of their trial
      */
+    /**
+     * Users whose billed workspace has a subscription matching the given filter.
+     *
+     * Subscriptions hang off the workspace now, so these queries reach through
+     * ownedWorkspaces. Manually-billed workspaces are excluded: they have no Lemon Squeezy
+     * subscription and were previously receiving trial-expiry emails they should never get.
+     */
+    private function usersWithSubscriptionWhere(\Closure $filter)
+    {
+        return User::whereNull('deleted_at')
+            ->whereHas('ownedWorkspaces', function ($workspaceQuery) use ($filter) {
+                $workspaceQuery->where('is_unlimited', false)
+                    ->where('is_manually_billed', false)
+                    ->whereHas('subscriptions', $filter);
+            })
+            ->get();
+    }
+
     private function checkTrialDayThree(): void
     {
         if (config('settings.is_self_hosted')) {
             return;
         }
 
-        $users = User::whereNull('deleted_at')
-            ->where('is_unlimited', false)
-            ->whereHas('subscriptions', function ($query) {
-                $query->where('status', Subscription::STATUS_ON_TRIAL)
-                    ->where('created_at', '<=', now()->subDays(3))
-                    ->where('created_at', '>', now()->subDays(4));
-            })
-            ->get();
+        $users = $this->usersWithSubscriptionWhere(function ($query) {
+            $query->where('status', Subscription::STATUS_ON_TRIAL)
+                ->where('created_at', '<=', now()->subDays(3))
+                ->where('created_at', '>', now()->subDays(4));
+        });
 
         foreach ($users as $user) {
             $cacheKey = "marketing:trial_day_three:{$user->id}";
@@ -279,14 +294,11 @@ class CheckMarketingTriggers extends Command
             return;
         }
 
-        $users = User::whereNull('deleted_at')
-            ->where('is_unlimited', false)
-            ->whereHas('subscriptions', function ($query) {
-                $query->where('status', Subscription::STATUS_ON_TRIAL)
-                    ->where('trial_ends_at', '>=', now()->addDays(7))
-                    ->where('trial_ends_at', '<', now()->addDays(8));
-            })
-            ->get();
+        $users = $this->usersWithSubscriptionWhere(function ($query) {
+            $query->where('status', Subscription::STATUS_ON_TRIAL)
+                ->where('trial_ends_at', '>=', now()->addDays(7))
+                ->where('trial_ends_at', '<', now()->addDays(8));
+        });
 
         foreach ($users as $user) {
             $cacheKey = "marketing:trial_ending_soon:{$user->id}";
@@ -307,14 +319,11 @@ class CheckMarketingTriggers extends Command
             return;
         }
 
-        $users = User::whereNull('deleted_at')
-            ->where('is_unlimited', false)
-            ->whereHas('subscriptions', function ($query) {
-                $query->where('status', Subscription::STATUS_ON_TRIAL)
-                    ->where('trial_ends_at', '>=', now()->addDay())
-                    ->where('trial_ends_at', '<', now()->addDays(2));
-            })
-            ->get();
+        $users = $this->usersWithSubscriptionWhere(function ($query) {
+            $query->where('status', Subscription::STATUS_ON_TRIAL)
+                ->where('trial_ends_at', '>=', now()->addDay())
+                ->where('trial_ends_at', '<', now()->addDays(2));
+        });
 
         foreach ($users as $user) {
             $cacheKey = "marketing:trial_ending_tomorrow:{$user->id}";
@@ -335,20 +344,22 @@ class CheckMarketingTriggers extends Command
             return; // Skip for self-hosted instances
         }
 
-        // Get users whose subscriptions ended in the last 24 hours
+        // Owners whose workspace subscription ended in the last 24 hours and who have no
+        // active one left. Both conditions apply to the same workspace, so they are nested
+        // together rather than evaluated across all of the user's workspaces.
         $users = User::whereNull('deleted_at')
-            ->where('is_unlimited', false)
-            ->whereHas('subscriptions', function ($query) {
-                // Subscription ended in the last 24 hours
-                $query->where('ends_at', '<=', now())
-                    ->where('ends_at', '>', now()->subDay());
-            })
-            ->whereDoesntHave('subscriptions', function ($query) {
-                // And they don't have any active subscriptions
-                $query->where(function ($q) {
-                    $q->whereNull('ends_at')
-                        ->orWhere('ends_at', '>', now());
-                });
+            ->whereHas('ownedWorkspaces', function ($workspaceQuery) {
+                $workspaceQuery->where('is_unlimited', false)
+                    ->where('is_manually_billed', false)
+                    ->whereHas('subscriptions', function ($query) {
+                        $query->where('ends_at', '<=', now())
+                            ->where('ends_at', '>', now()->subDay());
+                    })
+                    ->whereDoesntHave('subscriptions', function ($query) {
+                        $query->where(function ($q) {
+                            $q->whereNull('ends_at')->orWhere('ends_at', '>', now());
+                        });
+                    });
             })
             ->get();
 

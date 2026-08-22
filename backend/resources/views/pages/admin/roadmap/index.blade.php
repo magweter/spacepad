@@ -35,18 +35,18 @@
                                     @endif
                                 </td>
                                 <td class="px-3 py-3 text-sm text-gray-500">
-                                    {{ $item->submittedBy?->name ?? '—' }}<br>
+                                    {{ $item->submittedBy?->name ?? '-' }}<br>
                                     <span class="text-xs text-gray-400">{{ $item->submittedBy?->email }}</span>
                                 </td>
                                 <td class="px-3 py-3 text-sm text-gray-500">{{ $item->created_at->format('d M Y') }}</td>
                                 <td class="px-3 py-3 text-right">
-                                    <div class="flex justify-end gap-2">
-                                        <form action="{{ route('admin.roadmap.approve', $item) }}" method="POST">
+                                    <div class="flex items-center justify-end gap-2">
+                                        <form action="{{ route('admin.roadmap.approve', $item) }}" method="POST" class="flex">
                                             @csrf
                                             <button type="submit" class="rounded bg-green-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-green-500">Approve</button>
                                         </form>
                                         <a href="{{ route('admin.roadmap.edit', $item) }}" class="rounded bg-white px-2.5 py-1 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Edit</a>
-                                        <form action="{{ route('admin.roadmap.destroy', $item) }}" method="POST" onsubmit="return confirm('Delete this suggestion?')">
+                                        <form action="{{ route('admin.roadmap.destroy', $item) }}" method="POST" class="flex" onsubmit="return confirm('Delete this suggestion?')">
                                             @csrf @method('DELETE')
                                             <button type="submit" class="rounded bg-white px-2.5 py-1 text-xs font-medium text-red-600 ring-1 ring-inset ring-red-300 hover:bg-red-50">Delete</button>
                                         </form>
@@ -90,15 +90,15 @@
                                 </span>
                             </td>
                             <td class="px-3 py-3 text-sm text-gray-500">
-                                {{ $item->expected_at?->format('M Y') ?? '—' }}
+                                {{ $item->expected_at?->format('M Y') ?? '-' }}
                             </td>
                             <td class="px-3 py-3 text-sm font-semibold text-gray-700">
                                 {{ $item->votes_count }}
                             </td>
                             <td class="px-3 py-3 text-right">
-                                <div class="flex justify-end gap-2">
+                                <div class="flex items-center justify-end gap-2">
                                     <a href="{{ route('admin.roadmap.edit', $item) }}" class="rounded bg-white px-2.5 py-1 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Edit</a>
-                                    <form action="{{ route('admin.roadmap.destroy', $item) }}" method="POST" onsubmit="return confirm('Delete this item?')">
+                                    <form action="{{ route('admin.roadmap.destroy', $item) }}" method="POST" class="flex" onsubmit="return confirm('Delete this item?')">
                                         @csrf @method('DELETE')
                                         <button type="submit" class="rounded bg-white px-2.5 py-1 text-xs font-medium text-red-600 ring-1 ring-inset ring-red-300 hover:bg-red-50">Delete</button>
                                     </form>

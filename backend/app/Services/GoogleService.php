@@ -9,11 +9,14 @@ use App\Models\Calendar;
 use App\Models\Display;
 use App\Models\EventSubscription;
 use App\Models\GoogleAccount;
+use App\Models\Workspace;
 use Exception;
 use Google\Client;
 use Google\Service\Calendar as GoogleCalendar;
 use Google\Service\Calendar\Channel;
 use Google\Service\Calendar\Event as GoogleEvent;
+use Google\Service\Calendar\EventAttendee;
+use Google\Service\Calendar\EventDateTime;
 use Google\Service\Directory;
 use Google\Service\Oauth2;
 use Illuminate\Support\Arr;
@@ -40,7 +43,7 @@ class GoogleService
      *
      * @throws Exception
      */
-    public function authenticateGoogleAccount(string $authCode, PermissionType $permissionType = PermissionType::READ, ?GoogleBookingMethod $bookingMethod = null): GoogleAccount
+    public function authenticateGoogleAccount(string $authCode, PermissionType $permissionType = PermissionType::READ, ?GoogleBookingMethod $bookingMethod = null, ?Workspace $workspace = null): GoogleAccount
     {
         $accessToken = $this->client->fetchAccessTokenWithAuthCode($authCode);
         if (Arr::exists($accessToken, 'error')) {
@@ -53,9 +56,10 @@ class GoogleService
         $googleService = new Oauth2($this->client);
         $googleUserInfo = $googleService->userinfo->get();
 
-        // Get selected workspace (from session or default to primary)
-        $selectedWorkspace = auth()->user()->getSelectedWorkspace();
-        $workspaceId = $selectedWorkspace?->id;
+        // The workspace is passed in by the caller. Falling back to the session here would
+        // silently produce a workspace-less account outside a request (queued job, CLI),
+        // and such rows are invisible to every workspace-scoped query and policy.
+        $workspaceId = ($workspace ?? auth()->user()->getSelectedWorkspace())?->id;
 
         // Save the user's Google account and tokens in the database
         return GoogleAccount::updateOrCreate(
@@ -98,7 +102,7 @@ class GoogleService
 
             // If it's not Gmail and has a hosted domain, it's a business account
             return ! $isGmail && isset($googleUserInfo->hd);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             logger()->error('Error checking Google account type', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
@@ -253,12 +257,12 @@ class GoogleService
             $event->setDescription($description);
         }
 
-        $startDateTime = new \Google\Service\Calendar\EventDateTime;
+        $startDateTime = new EventDateTime;
         $startDateTime->setDateTime($start->toRfc3339String());
         $startDateTime->setTimeZone($start->timezone->getName());
         $event->setStart($startDateTime);
 
-        $endDateTime = new \Google\Service\Calendar\EventDateTime;
+        $endDateTime = new EventDateTime;
         $endDateTime->setDateTime($end->toRfc3339String());
         $endDateTime->setTimeZone($end->timezone->getName());
         $event->setEnd($endDateTime);
@@ -282,12 +286,12 @@ class GoogleService
         // Build attendee list: room resource (if applicable) + user-specified attendees
         $eventAttendees = [];
         if ($calendar->room) {
-            $roomAttendee = new \Google\Service\Calendar\EventAttendee;
+            $roomAttendee = new EventAttendee;
             $roomAttendee->setEmail($calendar->calendar_id);
             $eventAttendees[] = $roomAttendee;
         }
         foreach ($attendees as $email) {
-            $attendee = new \Google\Service\Calendar\EventAttendee;
+            $attendee = new EventAttendee;
             $attendee->setEmail($email);
             $eventAttendees[] = $attendee;
         }
@@ -301,7 +305,7 @@ class GoogleService
             ]);
 
             return $createdEvent;
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             throw new Exception('Failed to create Google event: '.$e->getMessage());
         }
     }
@@ -318,7 +322,7 @@ class GoogleService
         $bookingMethod = $googleAccount->booking_method ?? GoogleBookingMethod::USER_ACCOUNT;
 
         $patch = new GoogleEvent;
-        $endDateTime = new \Google\Service\Calendar\EventDateTime;
+        $endDateTime = new EventDateTime;
         $endDateTime->setDateTime($newEnd->toRfc3339String());
         $endDateTime->setTimeZone($newEnd->timezone->getName());
         $patch->setEnd($endDateTime);
@@ -331,7 +335,7 @@ class GoogleService
             $calendarService = new GoogleCalendar($client);
             try {
                 $calendarService->events->patch($calendar->calendar_id, $eventId, $patch, ['sendUpdates' => 'none']);
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
                 throw new Exception('Failed to update Google event end time: '.$e->getMessage());
             }
 
@@ -346,7 +350,7 @@ class GoogleService
 
         try {
             $calendarService->events->patch($calendarId, $eventId, $patch, ['sendUpdates' => 'none']);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             throw new Exception('Failed to update Google event end time: '.$e->getMessage());
         }
     }
@@ -385,7 +389,7 @@ class GoogleService
                     'sendUpdates' => 'none',
                 ]);
             }
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             throw new Exception('Failed to delete Google event: '.$e->getMessage());
         }
     }
@@ -407,7 +411,7 @@ class GoogleService
             $calendarService->events->delete('primary', $eventId, [
                 'sendUpdates' => 'none',
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // If that fails, try deleting from the room calendar
             // The event might have a different ID on the room calendar
             $calendarService->events->delete($calendar->calendar_id, $eventId, [
@@ -493,34 +497,17 @@ class GoogleService
     }
 
     /**
-     * Delete a webhook subscription for Google Calendar events.
+     * Drop a webhook subscription for Google Calendar events.
      *
-     * @throws Exception
+     * Deliberately local-only: we never call channels.stop(). Google channels carry their own
+     * expiration and lapse on their own, and the API docs treat stop() as an optional way to
+     * end a channel early. Renewals only run once the subscription has already expired, so by
+     * then Google has dropped the channel and stop() can only answer 404 — which is exactly
+     * the noise this used to generate. A channel we outlive is harmless anyway:
+     * GoogleWebhookController ignores notifications whose channel ID it doesn't recognise.
      */
-    public function deleteEventSubscription(
-        GoogleAccount $googleAccount,
-        EventSubscription $eventSubscription,
-        bool $useApi = true
-    ): void {
-        if ($useApi) {
-            $this->ensureAuthenticated($googleAccount);
-
-            try {
-                $calendarService = new GoogleCalendar($this->client);
-                $channel = new Channel;
-                $channel->setId($eventSubscription->subscription_id);
-                $channel->setResourceId($eventSubscription->resource);
-
-                $calendarService->channels->stop($channel);
-            } catch (Exception $e) {
-                report($e);
-                logger()->error('Error stopping Google subscription', [
-                    'error' => $e->getMessage(),
-                    'subscriptionId' => $eventSubscription->subscription_id,
-                ]);
-            }
-        }
-
+    public function deleteEventSubscription(EventSubscription $eventSubscription): void
+    {
         // Delete the subscription record from the database
         $eventSubscription->delete();
 
@@ -595,7 +582,7 @@ class GoogleService
             ]);
 
             return $createdEvent;
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             throw new Exception('Failed to create Google room event with service account: '.$e->getMessage());
         }
     }
@@ -618,7 +605,7 @@ class GoogleService
             $calendarService->events->delete($calendar->calendar_id, $eventId, [
                 'sendUpdates' => 'none',
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             throw new Exception('Failed to delete Google room event with service account: '.$e->getMessage());
         }
     }

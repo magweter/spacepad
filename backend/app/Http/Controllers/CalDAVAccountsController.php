@@ -2,18 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\PermissionType;
 use App\Models\CalDAVAccount;
+use App\Services\CalDAVService;
+use App\Services\FunnelTracking;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
-use App\Services\CalDAVService;
-use App\Enums\PermissionType;
 
 class CalDAVAccountsController extends Controller
 {
-    public function __construct(protected CalDAVService $caldavService)
-    {
-    }
+    public function __construct(protected CalDAVService $caldavService) {}
 
     public function create(): View
     {
@@ -35,15 +34,20 @@ class CalDAVAccountsController extends Controller
             $validated['password']
         );
 
-        if (!$connectionTest['success']) {
+        if (! $connectionTest['success']) {
             return back()->withErrors([
-                'connection' => $connectionTest['message']
+                'connection' => $connectionTest['message'],
             ])->withInput();
         }
 
         // Get selected workspace (from session or default to primary)
         $selectedWorkspace = auth()->user()->getSelectedWorkspace();
-        $workspaceId = $selectedWorkspace?->id;
+
+        if (! $selectedWorkspace) {
+            return back()->withErrors(['connection' => 'No workspace found. Please contact support.'])->withInput();
+        }
+
+        $workspaceId = $selectedWorkspace->id;
 
         // Create the CalDAV account
         $account = CalDAVAccount::create([
@@ -57,6 +61,8 @@ class CalDAVAccountsController extends Controller
             'permission_type' => PermissionType::WRITE,
         ]);
 
+        FunnelTracking::calendarConnected($selectedWorkspace, $account->wasRecentlyCreated);
+
         return redirect()
             ->route('dashboard')
             ->with('status', 'CalDAV account has been connected successfully.');
@@ -64,6 +70,8 @@ class CalDAVAccountsController extends Controller
 
     public function delete(CalDAVAccount $caldavAccount): RedirectResponse
     {
+        $this->authorize('delete', $caldavAccount);
+
         $caldavAccount->delete();
 
         return redirect()

@@ -33,6 +33,11 @@ Spacepad is a privacy-focused room display application that shows real-time room
 
 ## Common Development Commands
 
+**To actually run the project locally, follow `AGENTS.md`.** It records the working
+commands for this machine (Herd `php84`, `fvm flutter`, the Node/pnpm version caveat).
+The generic commands below are reference only and will fail with the default `php`
+and `flutter` on PATH.
+
 ### Flutter App
 ```bash
 # Navigate to app directory
@@ -154,7 +159,45 @@ php artisan test
 
 ## Feature Documentation
 
-`FEATURES.md` in the project root is a structured overview of all user-facing features. Keep it up to date whenever you add, change, or remove a feature. Update the relevant section immediately after implementing the change — don't leave it for later.
+`FEATURES.md` in the project root is a structured overview of all user-facing features. Keep it up to date whenever you add, change, or remove a feature. Update the relevant section immediately after implementing the change, don't leave it for later.
+
+## UI Copy
+
+**Never use an em dash (—) in user-facing text.** This covers Blade templates, Flutter strings and
+translations, email and notification bodies, and any message the API returns to a client. Use a
+comma, a colon, parentheses, or a full stop instead, whichever reads naturally. For a "no value"
+placeholder in a table, use a plain hyphen (-).
+
+This is about copy, not code: comments and documentation are unaffected.
+
+## UI Consistency
+
+**A new screen must look and behave like the screens it sits next to.** Consistency is what makes the
+product feel considered rather than assembled; a page that is merely "correct" but styled its own way
+reads as lower quality even when it works perfectly.
+
+Before writing any markup, open the closest existing screen of the same kind and copy its structure:
+
+- **Find the sibling first.** A new list page copies the users table on the admin dashboard
+  (`resources/views/pages/admin.blade.php`). A new detail page copies the user detail page
+  (`resources/views/pages/admin/user.blade.php`). Match the page chrome, the card, the table classes,
+  the badge style, the empty state, the pagination and the date format exactly. Do not invent a
+  second way to draw a table.
+- **Same level, same chrome.** Anything reachable from a tab renders that tab bar and looks like the
+  other tabs. A drill-down reached from a list gets the narrower container and a link back up, not
+  the tab bar.
+- **Extract, don't duplicate.** When a second screen needs the same chrome, pull it into a shared
+  component (`resources/views/components/admin/tabs.blade.php`, `.../stats.blade.php`) rather than
+  copying the markup. Copies drift.
+- **Form fields carry the full class set.** This is Tailwind v4 **without** `@tailwindcss/forms`, so
+  preflight strips the native control border and `border-gray-300` only sets a colour. Every
+  `<input>`, `<select>` and `<textarea>` needs an explicit `border` plus padding, e.g.
+  `block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500`. A field
+  without `border` renders invisible.
+- **Reuse the existing components** in `resources/views/components/` (`x-cards.card`,
+  `x-alerts.alert`, `x-icons.*`) instead of hand-rolling the same thing.
+
+The same applies in the Flutter app: match the surrounding pages and reuse `app/lib/components/`.
 
 ## Security Considerations
 

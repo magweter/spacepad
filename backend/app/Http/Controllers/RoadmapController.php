@@ -61,7 +61,7 @@ class RoadmapController extends Controller
 
             Mail::raw($body, fn ($mail) => $mail
                 ->to('support@spacepad.io')
-                ->subject("Spacepad request — {$validated['suggestion_title']}")
+                ->subject("Spacepad request: {$validated['suggestion_title']}")
                 ->replyTo($user->email, $user->name)
             );
         } catch (\Exception $e) {

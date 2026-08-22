@@ -21,15 +21,39 @@ return [
 
     'cloud_hosted_pro_plan_id' => env('CLOUD_HOSTED_PRO_PLAN_ID'),
 
-    // Standard monthly list price per billable unit (display = 1 unit, board = 2 units).
-    // Used to compute MRR for users billed manually (outside Lemon Squeezy) via our own
-    // accounting system. If unset, manually-billed users still get Pro but contribute 0 MRR.
-    'manual_billing_unit_price' => env('MANUAL_BILLING_UNIT_PRICE'),
+    // The standard monthly list price per billable unit (display = 1 unit, board = 2 units).
+    //
+    // One number with two readers, deliberately not two settings: they would be the same
+    // price under different names, free to drift, and then the estimate a customer is shown
+    // no longer matches the MRR we book.
+    //
+    //  - Manually billed workspaces (invoiced through our own accounting rather than Lemon
+    //    Squeezy) have their MRR computed from it. A workspace can override it with a
+    //    negotiated price of its own, see workspaces.manual_billing_unit_price.
+    //  - Workspaces on the cloud Pro plan are shown what their usage costs per month. That is
+    //    display only: Lemon Squeezy stays the authority on what is actually charged. Read
+    //    from config rather than their API so a page render never waits on a live call.
+    //
+    // Reads MANUAL_BILLING_UNIT_PRICE as a fallback so environments that set the old name
+    // keep working. Unset, manually billed workspaces contribute 0 MRR and the cost estimate
+    // is left out.
+    'unit_price' => env('UNIT_PRICE', env('MANUAL_BILLING_UNIT_PRICE')),
 
     'version' => env('SPACEPAD_VERSION'),
 
     'disable_email_login' => env('DISABLE_EMAIL_LOGIN', false),
 
     'allowed_logins' => array_filter(array_map('trim', explode(',', env('ALLOWED_LOGINS', '')))), // Comma-separated list of allowed domains or emails
+
+    // Fixed pairing code for the app store review account. Left empty everywhere except the
+    // hosted production environment: a store reviewer needs a code that still works whenever
+    // they get around to testing, and that a second reviewer can use again afterwards. The
+    // rotating 30 minute code guarantees neither, which is a rejection waiting to happen.
+    //
+    // Must be exactly 6 digits, the app's connect screen accepts nothing else. Clear these
+    // once the review is through: the code never expires and is never consumed.
+    'review_connect_code' => env('REVIEW_CONNECT_CODE'),
+    'review_connect_user_id' => env('REVIEW_CONNECT_USER_ID'),
+    'review_connect_workspace_id' => env('REVIEW_CONNECT_WORKSPACE_ID'),
 
 ];

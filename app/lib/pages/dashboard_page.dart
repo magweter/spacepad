@@ -19,6 +19,7 @@ import 'package:spacepad/services/font_service.dart';
 import 'package:spacepad/components/frosted_panel.dart';
 import 'package:spacepad/components/admin_actions.dart';
 import 'package:spacepad/components/day_timeline_widget.dart';
+import 'package:spacepad/components/meeting_meta_row.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -35,12 +36,51 @@ class _DashboardPageState extends State<DashboardPage> {
     return shortestSide < 600;
   }
 
-  /// Proportionally scale [size] (designed for an ~800 px shortest side) to
+  /// Proportionally scale [size] (designed for a ~750 px shortest side) to
   /// the actual screen size so text and icons shrink/grow smoothly when the
   /// window is resized rather than jumping between two fixed breakpoints.
+  ///
+  /// The reference used to be 800, which left a 1024x600 panel at 0.75 and its text a notch
+  /// smaller than it needed to be at reading distance.
   double _sp(BuildContext context, double size) {
     final s = MediaQuery.of(context).size.shortestSide;
-    return (size * (s / 800).clamp(0.5, 1.3)).roundToDouble();
+    return (size * (s / 750).clamp(0.5, 1.3)).roundToDouble();
+  }
+
+  /// A timeline panel's width: the base on a full-size display, 24pt less on a smaller one.
+  ///
+  /// A fixed step rather than a proportional one, because the panel always has to hold a whole
+  /// day: what changes on a smaller display is that the content beside it needs those 24pt more
+  /// than the panel does. The threshold is 90% of the scale reference in [_sp], so a display
+  /// sitting at or near its design size keeps the full width.
+  double _panelWidth(BuildContext context, double base) {
+    final shortestSide = MediaQuery.of(context).size.shortestSide;
+    return shortestSide < 750 * 0.9 ? base - 24 : base;
+  }
+
+  /// Half the shrink of [_sp], for the timeline panel.
+  ///
+  /// The panel holds a whole day whatever the display measures, so it cannot give up width as
+  /// fast as the type it is set in without the hour rows crowding together. On a 1024x600
+  /// panel this takes 10% off where the type scale would take 20%; on a full-size display it
+  /// leaves the panel where it was.
+  double _panelSize(BuildContext context, double size) {
+    final s = MediaQuery.of(context).size.shortestSide;
+    final factor = (s / 750).clamp(0.5, 1.3);
+    return (size * (1 + factor) / 2).roundToDouble();
+  }
+
+  /// The one type size the bottom bar is set in: the upcoming-event line, the empty-state
+  /// text and the View schedule button. They sit on the same row, so they scale together.
+  /// [EventLine] repeats this because it is a widget of its own.
+  double _barFontSize(BuildContext context, bool isPhone) {
+    return isPhone ? 16 : _sp(context, 20);
+  }
+
+  /// The calendar glyph beside "View schedule", kept in step with [_barFontSize] instead of
+  /// staying at a fixed 24 while the label around it shrank.
+  double _barIconSize(BuildContext context, bool isPhone) {
+    return isPhone ? 20 : _sp(context, 24);
   }
 
   bool _isPortrait(BuildContext context) {
@@ -77,6 +117,27 @@ class _DashboardPageState extends State<DashboardPage> {
       verticalBase * portraitMultiplier,
       horizontalBase * portraitMultiplier,
       verticalBase * portraitMultiplier,
+    );
+  }
+
+  /// The room name in the header corner, and the long-press target that reveals the admin
+  /// actions when they are hidden.
+  ///
+  /// That long press is the only way back to the admin actions on a display that hides them.
+  Widget _buildRoomName(BuildContext context, DashboardController controller, bool hideAdminActions) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onLongPressStart: (_) { if (hideAdminActions) controller.startLongPressTimer(); },
+      onLongPressEnd: (_) { if (hideAdminActions) controller.cancelLongPressTimer(); },
+      child: Text(
+        controller.roomName,
+        style: FontService.instance.getTextStyle(
+          fontFamily: controller.currentFontFamily.value,
+          fontSize: _sp(context, 28),
+          fontWeight: FontWeight.w500,
+          color: TWColors.white,
+        ),
+      ),
     );
   }
 
@@ -139,13 +200,13 @@ class _DashboardPageState extends State<DashboardPage> {
           );
         }
 
-        final timelineMode = controller.timelineWidgetMode; // 'none' | 'side_panel' | 'inline'
+        final timelineMode = controller.timelineWidgetMode; // 'none' | 'side_panel' | 'inline' | 'full_panel'
         final timelineEnabled = timelineMode != 'none';
-        final timelineWidth = isPhone ? 220.0 : 300.0;
-        final inlineTimelineWidth = isPhone ? 260.0 : 360.0;
+        final timelineWidth = isPhone ? 220.0 : _panelWidth(context, 300);
+        final inlineTimelineWidth = isPhone ? 260.0 : _panelWidth(context, 324);
         final inlineTimelineMaxHeight = isPhone ? 330.0 : 484.0;
         final gap = isPhone ? 10.0 : 16.0;
-        final portraitTimelineHeight = isPhone ? 200.0 : 260.0;
+        final portraitTimelineHeight = isPhone ? 200.0 : _panelSize(context, 260).clamp(200.0, 260.0);
 
         final mainStack = Stack(
           children: [
@@ -197,23 +258,7 @@ class _DashboardPageState extends State<DashboardPage> {
                       ),
                       const SizedBox(width: 15),
                     ],
-                    GestureDetector(
-                      onLongPressStart: (details) {
-                        if (hideAdminActions) controller.startLongPressTimer();
-                      },
-                      onLongPressEnd: (details) {
-                        if (hideAdminActions) controller.cancelLongPressTimer();
-                      },
-                      child: Text(
-                        controller.roomName,
-                        style: FontService.instance.getTextStyle(
-                          fontFamily: controller.currentFontFamily.value,
-                          fontSize: _sp(context, 28),
-                          fontWeight: FontWeight.w500,
-                          color: TWColors.white,
-                        ),
-                      ),
-                    ),
+                    _buildRoomName(context, controller, hideAdminActions),
                   ],
                 );
               }),
@@ -261,73 +306,16 @@ class _DashboardPageState extends State<DashboardPage> {
                         color: Colors.white,
                       ),
                     )),
-                    SpaceRow(
-                      spaceBetween: isPhone ? 10 : 20,
-                      children: [
-                        if (controller.meetingInfoTimes != null) FrostedPanel(
-                          borderRadius: cornerRadius,
-                          blurIntensity: 18,
-                          hasBackgroundImage: controller.globalSettings.value?.backgroundImageUrl != null,
-                          padding: EdgeInsets.fromLTRB(
-                            isPhone ? 10 : 15,
-                            isPhone ? 5 : 8,
-                            isPhone ? 10 : 15,
-                            isPhone ? 5 : 8,
-                          ),
-                          child: Obx(() => Text(
-                            'meeting_info_title'.trParams({
-                              'start': formatTime(context, controller.meetingInfoTimes?['start'] ?? DateTime.now()),
-                              'end': formatTime(context, controller.meetingInfoTimes?['end'] ?? DateTime.now()),
-                            }),
-                            style: FontService.instance.getTextStyle(
-                              fontFamily: controller.currentFontFamily.value,
-                              fontSize: _sp(context, 32),
-                              fontWeight: FontWeight.w400,
-                              color: TWColors.white,
-                            ),
-                          )),
-                        ),
-                        Flexible(
-                          child: Obx(() => Text(
-                            controller.subtitle,
-                            style: FontService.instance.getTextStyle(
-                              fontFamily: controller.currentFontFamily.value,
-                              fontSize: _sp(context, 36),
-                              fontWeight: FontWeight.w400,
-                              color: TWColors.gray_300,
-                            ),
-                            softWrap: true,
-                            overflow: TextOverflow.visible,
-                          )),
-                        ),
-                      ],
+                    MeetingMetaRow(
+                      controller: controller,
+                      isPhone: isPhone,
+                      cornerRadius: cornerRadius,
+                      // mainStack serves both 'none' and 'side_panel'. Only the latter puts a panel
+                      // beside the content, and only while it is open.
+                      panelBeside: timelineMode == 'side_panel' && _timelineOpen,
+                      isPortrait: isPortrait,
                     ),
                     if (controller.meetingInfoTimes == null) SizedBox(height: isPhone ? 5 : 10),
-                    Obx(() {
-                      final organizer = controller.currentEvent?.organizerName;
-                      if (!controller.showOrganizer || organizer == null || organizer.isEmpty) {
-                        return const SizedBox.shrink();
-                      }
-                      return Padding(
-                        padding: EdgeInsets.only(top: isPhone ? 4 : 8),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.person_outline, size: _sp(context, 16), color: TWColors.gray_300),
-                            SizedBox(width: isPhone ? 4 : 6),
-                            Text(
-                              organizer,
-                              style: FontService.instance.getTextStyle(
-                                fontFamily: controller.currentFontFamily.value,
-                                fontSize: _sp(context, 20),
-                                fontWeight: FontWeight.w400,
-                                color: TWColors.gray_300,
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }),
                     if (controller.bookingEnabled || controller.checkInEnabled || controller.extendEnabled) ActionPanel(
                       controller: controller,
                       isPhone: isPhone,
@@ -344,10 +332,9 @@ class _DashboardPageState extends State<DashboardPage> {
               child: FrostedPanel(
                 borderRadius: cornerRadius,
                 blurIntensity: 18,
-                hasBackgroundImage: controller.globalSettings.value?.backgroundImageUrl != null,
-                padding: EdgeInsets.all(isPhone ? 12 : 20),
+                padding: EdgeInsets.all(isPhone ? 12 : _sp(context, 20)),
                 child: SpaceRow(
-                  spaceBetween: isPhone ? 10 : 20,
+                  spaceBetween: isPhone ? 10 : _sp(context, 20),
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Expanded(
@@ -362,7 +349,7 @@ class _DashboardPageState extends State<DashboardPage> {
                             'no_upcoming_events'.tr,
                             style: TextStyle(
                               color: TWColors.white,
-                              fontSize: _sp(context, 18),
+                              fontSize: _barFontSize(context, isPhone),
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -389,9 +376,9 @@ class _DashboardPageState extends State<DashboardPage> {
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(
+                                Icon(
                                   Icons.calendar_today_outlined,
-                                  size: 24,
+                                  size: _barIconSize(context, isPhone),
                                   color: Colors.white,
                                 ),
                                 const SizedBox(width: 12),
@@ -399,7 +386,7 @@ class _DashboardPageState extends State<DashboardPage> {
                                   'view_schedule'.tr,
                                   style: TextStyle(
                                     color: Colors.white,
-                                    fontSize: _sp(context, 18),
+                                    fontSize: _barFontSize(context, isPhone),
                                     fontWeight: FontWeight.w500,
                                   ),
                                 ),
@@ -535,67 +522,16 @@ class _DashboardPageState extends State<DashboardPage> {
                       color: Colors.white,
                     ),
                   )),
-                  SpaceRow(
-                    spaceBetween: isPhone ? 10 : 20,
-                    children: [
-                      if (controller.meetingInfoTimes != null) FrostedPanel(
-                        borderRadius: cornerRadius,
-                        blurIntensity: 18,
-                        hasBackgroundImage: controller.globalSettings.value?.backgroundImageUrl != null,
-                        padding: EdgeInsets.fromLTRB(isPhone ? 10 : 15, isPhone ? 5 : 8, isPhone ? 10 : 15, isPhone ? 5 : 8),
-                        child: Obx(() => Text(
-                          'meeting_info_title'.trParams({
-                            'start': formatTime(context, controller.meetingInfoTimes?['start'] ?? DateTime.now()),
-                            'end': formatTime(context, controller.meetingInfoTimes?['end'] ?? DateTime.now()),
-                          }),
-                          style: FontService.instance.getTextStyle(
-                            fontFamily: controller.currentFontFamily.value,
-                            fontSize: _sp(context, 32),
-                            fontWeight: FontWeight.w400,
-                            color: TWColors.white,
-                          ),
-                        )),
-                      ),
-                      Flexible(
-                        child: Obx(() => Text(controller.subtitle,
-                          style: FontService.instance.getTextStyle(
-                            fontFamily: controller.currentFontFamily.value,
-                            fontSize: _sp(context, 36),
-                            fontWeight: FontWeight.w400,
-                            color: TWColors.gray_300,
-                          ),
-                          softWrap: true,
-                          overflow: TextOverflow.visible,
-                        )),
-                      ),
-                    ],
+                  MeetingMetaRow(
+                    controller: controller,
+                    isPhone: isPhone,
+                    cornerRadius: cornerRadius,
+                    // The timeline sits beside the content in landscape and under it in portrait,
+                    // so this row never has the full width of the display.
+                    panelBeside: true,
+                    isPortrait: isPortrait,
                   ),
                   if (controller.meetingInfoTimes == null) SizedBox(height: isPhone ? 5 : 10),
-                  Obx(() {
-                    final organizer = controller.currentEvent?.organizerName;
-                    if (!controller.showOrganizer || organizer == null || organizer.isEmpty) {
-                      return const SizedBox.shrink();
-                    }
-                    return Padding(
-                      padding: EdgeInsets.only(top: isPhone ? 4 : 8),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.person_outline, size: _sp(context, 16), color: TWColors.gray_300),
-                          SizedBox(width: isPhone ? 4 : 6),
-                          Text(
-                            organizer,
-                            style: FontService.instance.getTextStyle(
-                              fontFamily: controller.currentFontFamily.value,
-                              fontSize: _sp(context, 20),
-                              fontWeight: FontWeight.w400,
-                              color: TWColors.gray_300,
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }),
                   if (controller.bookingEnabled || controller.checkInEnabled || controller.extendEnabled) ActionPanel(
                     controller: controller,
                     isPhone: isPhone,
@@ -640,19 +576,7 @@ class _DashboardPageState extends State<DashboardPage> {
                       children: [
                         if (show) AdminActions(controller: controller),
                         if (show) const SizedBox(width: 15),
-                        GestureDetector(
-                          onLongPressStart: (_) { if (hide) controller.startLongPressTimer(); },
-                          onLongPressEnd: (_) { if (hide) controller.cancelLongPressTimer(); },
-                          child: Text(
-                            controller.roomName,
-                            style: FontService.instance.getTextStyle(
-                              fontFamily: controller.currentFontFamily.value,
-                              fontSize: _sp(context, 28),
-                              fontWeight: FontWeight.w500,
-                              color: TWColors.white,
-                            ),
-                          ),
-                        ),
+                        _buildRoomName(context, controller, hide),
                       ],
                     );
                   }),
@@ -674,7 +598,6 @@ class _DashboardPageState extends State<DashboardPage> {
                             isPhone: isPhone,
                             cornerRadius: cornerRadius,
                             frosted: true,
-                            hasBackgroundImage: controller.globalSettings.value?.backgroundImageUrl != null,
                           ),
                         ),
                       ],
@@ -695,7 +618,6 @@ class _DashboardPageState extends State<DashboardPage> {
                                 isPhone: isPhone,
                                 cornerRadius: cornerRadius,
                                 frosted: true,
-                                hasBackgroundImage: controller.globalSettings.value?.backgroundImageUrl != null,
                               ),
                             ),
                           ),
@@ -708,10 +630,9 @@ class _DashboardPageState extends State<DashboardPage> {
               FrostedPanel(
                 borderRadius: cornerRadius,
                 blurIntensity: 18,
-                hasBackgroundImage: controller.globalSettings.value?.backgroundImageUrl != null,
-                padding: EdgeInsets.all(isPhone ? 12 : 20),
+                padding: EdgeInsets.all(isPhone ? 12 : _sp(context, 20)),
                 child: SpaceRow(
-                  spaceBetween: isPhone ? 10 : 20,
+                  spaceBetween: isPhone ? 10 : _sp(context, 20),
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Expanded(
@@ -723,7 +644,7 @@ class _DashboardPageState extends State<DashboardPage> {
                             ],
                           )
                         : Text('no_upcoming_events'.tr,
-                            style: TextStyle(color: TWColors.white, fontSize: _sp(context, 18), fontWeight: FontWeight.w500)),
+                            style: TextStyle(color: TWColors.white, fontSize: _barFontSize(context, isPhone), fontWeight: FontWeight.w500)),
                     ),
                     if (controller.calendarEnabled)
                       Material(
@@ -742,10 +663,10 @@ class _DashboardPageState extends State<DashboardPage> {
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(Icons.calendar_today_outlined, size: 24, color: Colors.white),
+                                Icon(Icons.calendar_today_outlined, size: _barIconSize(context, isPhone), color: Colors.white),
                                 const SizedBox(width: 12),
                                 Text('view_schedule'.tr,
-                                  style: TextStyle(color: Colors.white, fontSize: _sp(context, 18), fontWeight: FontWeight.w500)),
+                                  style: TextStyle(color: Colors.white, fontSize: _barFontSize(context, isPhone), fontWeight: FontWeight.w500)),
                               ],
                             ),
                           ),
@@ -783,7 +704,6 @@ class _DashboardPageState extends State<DashboardPage> {
         // Full-height timeline on the right (landscape) or below content (portrait);
         // main content (header + status + bottom bar) in a Column.
         if (timelineMode == 'full_panel') {
-          final hasBackground = controller.globalSettings.value?.backgroundImageUrl != null;
 
           final fullPanelHeaderRow = Row(
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -815,19 +735,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   children: [
                     if (show) AdminActions(controller: controller),
                     if (show) const SizedBox(width: 15),
-                    GestureDetector(
-                      onLongPressStart: (_) { if (hide) controller.startLongPressTimer(); },
-                      onLongPressEnd: (_) { if (hide) controller.cancelLongPressTimer(); },
-                      child: Text(
-                        controller.roomName,
-                        style: FontService.instance.getTextStyle(
-                          fontFamily: controller.currentFontFamily.value,
-                          fontSize: _sp(context, 28),
-                          fontWeight: FontWeight.w500,
-                          color: TWColors.white,
-                        ),
-                      ),
-                    ),
+                    _buildRoomName(context, controller, hide),
                   ],
                 );
               }),
@@ -870,67 +778,15 @@ class _DashboardPageState extends State<DashboardPage> {
                       color: Colors.white,
                     ),
                   )),
-                  SpaceRow(
-                    spaceBetween: isPhone ? 10 : 20,
-                    children: [
-                      if (controller.meetingInfoTimes != null) FrostedPanel(
-                        borderRadius: cornerRadius,
-                        blurIntensity: 18,
-                        hasBackgroundImage: hasBackground,
-                        padding: EdgeInsets.fromLTRB(isPhone ? 10 : 15, isPhone ? 5 : 8, isPhone ? 10 : 15, isPhone ? 5 : 8),
-                        child: Obx(() => Text(
-                          'meeting_info_title'.trParams({
-                            'start': formatTime(context, controller.meetingInfoTimes?['start'] ?? DateTime.now()),
-                            'end': formatTime(context, controller.meetingInfoTimes?['end'] ?? DateTime.now()),
-                          }),
-                          style: FontService.instance.getTextStyle(
-                            fontFamily: controller.currentFontFamily.value,
-                            fontSize: _sp(context, 32),
-                            fontWeight: FontWeight.w400,
-                            color: TWColors.white,
-                          ),
-                        )),
-                      ),
-                      Flexible(
-                        child: Obx(() => Text(controller.subtitle,
-                          style: FontService.instance.getTextStyle(
-                            fontFamily: controller.currentFontFamily.value,
-                            fontSize: _sp(context, 36),
-                            fontWeight: FontWeight.w400,
-                            color: TWColors.gray_300,
-                          ),
-                          softWrap: true,
-                          overflow: TextOverflow.visible,
-                        )),
-                      ),
-                    ],
+                  MeetingMetaRow(
+                    controller: controller,
+                    isPhone: isPhone,
+                    cornerRadius: cornerRadius,
+                    // Same as inline: the timeline always takes either the right side or the bottom.
+                    panelBeside: true,
+                    isPortrait: isPortrait,
                   ),
                   if (controller.meetingInfoTimes == null) SizedBox(height: isPhone ? 5 : 10),
-                  Obx(() {
-                    final organizer = controller.currentEvent?.organizerName;
-                    if (!controller.showOrganizer || organizer == null || organizer.isEmpty) {
-                      return const SizedBox.shrink();
-                    }
-                    return Padding(
-                      padding: EdgeInsets.only(top: isPhone ? 4 : 8),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.person_outline, size: _sp(context, 16), color: TWColors.gray_300),
-                          SizedBox(width: isPhone ? 4 : 6),
-                          Text(
-                            organizer,
-                            style: FontService.instance.getTextStyle(
-                              fontFamily: controller.currentFontFamily.value,
-                              fontSize: _sp(context, 20),
-                              fontWeight: FontWeight.w400,
-                              color: TWColors.gray_300,
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }),
                   if (controller.bookingEnabled || controller.checkInEnabled || controller.extendEnabled) ActionPanel(
                     controller: controller,
                     isPhone: isPhone,
@@ -944,10 +800,9 @@ class _DashboardPageState extends State<DashboardPage> {
           final fullPanelBottomBar = FrostedPanel(
             borderRadius: cornerRadius,
             blurIntensity: 18,
-            hasBackgroundImage: hasBackground,
-            padding: EdgeInsets.all(isPhone ? 12 : 20),
+            padding: EdgeInsets.all(isPhone ? 12 : _sp(context, 20)),
             child: SpaceRow(
-              spaceBetween: isPhone ? 10 : 20,
+              spaceBetween: isPhone ? 10 : _sp(context, 20),
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(
@@ -959,7 +814,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         ],
                       )
                     : Text('no_upcoming_events'.tr,
-                        style: TextStyle(color: TWColors.white, fontSize: _sp(context, 18), fontWeight: FontWeight.w500)),
+                        style: TextStyle(color: TWColors.white, fontSize: _barFontSize(context, isPhone), fontWeight: FontWeight.w500)),
                 ),
                 if (controller.calendarEnabled)
                   Material(
@@ -978,10 +833,10 @@ class _DashboardPageState extends State<DashboardPage> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.calendar_today_outlined, size: 24, color: Colors.white),
+                            Icon(Icons.calendar_today_outlined, size: _barIconSize(context, isPhone), color: Colors.white),
                             const SizedBox(width: 12),
                             Text('view_schedule'.tr,
-                              style: TextStyle(color: Colors.white, fontSize: _sp(context, 18), fontWeight: FontWeight.w500)),
+                              style: TextStyle(color: Colors.white, fontSize: _barFontSize(context, isPhone), fontWeight: FontWeight.w500)),
                           ],
                         ),
                       ),
@@ -996,7 +851,6 @@ class _DashboardPageState extends State<DashboardPage> {
             isPhone: isPhone,
             cornerRadius: cornerRadius,
             frosted: true,
-            hasBackgroundImage: hasBackground,
           );
 
           final Widget fullPanelChild = isPortrait
@@ -1080,6 +934,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         controller: controller,
                         isPhone: isPhone,
                         cornerRadius: cornerRadius,
+                        frosted: true,
                       ),
                     ),
                   ),

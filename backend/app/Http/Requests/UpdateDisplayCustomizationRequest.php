@@ -32,4 +32,4 @@ class UpdateDisplayCustomizationRequest extends FormRequest
             'advertisement_duration' => 'nullable|integer|min:5|max:300',
         ];
     }
-} 
+}

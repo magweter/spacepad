@@ -60,16 +60,16 @@
                 </dl>
             </div>
 
-            @if($user->hasPro() || $subscriptionInfo)
+            @if($billingWorkspace?->hasPro() || $subscriptionInfo)
                 <div class="border border-gray-200 rounded-lg p-6">
                     <h3 class="text-base font-semibold text-gray-900 mb-4">Subscription Information</h3>
                     <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <div>
                             <dt class="text-sm font-medium text-gray-500">Plan</dt>
                             <dd class="mt-1">
-                                @if($user->is_unlimited)
+                                @if($billingWorkspace?->is_unlimited)
                                     <span class="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">Unlimited</span>
-                                @elseif($user->is_manually_billed)
+                                @elseif($billingWorkspace?->is_manually_billed)
                                     <span class="inline-flex items-center rounded-md bg-purple-50 px-2 py-1 text-xs font-medium text-purple-700 ring-1 ring-inset ring-purple-600/20">Manually Billed</span>
                                 @elseif($subscriptionInfo)
                                     <span class="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20">Pro</span>
@@ -162,28 +162,23 @@
             @endif
 
             <div class="border border-gray-200 rounded-lg p-6">
-                <h3 class="text-base font-semibold text-gray-900 mb-4">Manual Billing</h3>
-                <p class="text-sm text-gray-500 mb-4">
-                    Mark this user as billed through our own accounting system instead of Lemon Squeezy.
-                    They get Pro access without a Lemon Squeezy subscription, and their MRR is calculated
-                    automatically from usage (displays + boards&times;2) at the standard unit price.
-                </p>
-                <form action="{{ route('admin.users.billing', $user) }}" method="POST">
-                    @csrf
-                    <div class="space-y-4">
-                        <label class="flex items-center gap-2">
-                            <input type="checkbox" name="is_manually_billed" value="1"
-                                   @checked(old('is_manually_billed', $user->is_manually_billed))
-                                   class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-                            <span class="text-sm text-gray-900">Manually billed (Pro without Lemon Squeezy)</span>
-                        </label>
-                        <div class="flex justify-end">
-                            <button type="submit" class="inline-flex items-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700">
-                                Save billing
-                            </button>
-                        </div>
-                    </div>
-                </form>
+                <h3 class="text-base font-semibold text-gray-900 mb-4">Billing</h3>
+                @if($billingWorkspace)
+                    @php $units = $billingWorkspace->getTotalUsageCount(); @endphp
+                    <p class="text-sm text-gray-500 mb-4">
+                        Billing belongs to a workspace, not a person. This user is billed under
+                        <strong>{{ $billingWorkspace->name }}</strong>, currently
+                        {{ $units }} {{ Str::plural('unit', $units) }}
+                        ({{ $billingWorkspace->displays_count }} display(s) &times; 1,
+                        {{ $billingWorkspace->boards_count }} board(s) &times; 2).
+                    </p>
+                    <a href="{{ route('admin.workspaces.show', $billingWorkspace) }}"
+                       class="inline-flex items-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700">
+                        Manage workspace billing
+                    </a>
+                @else
+                    <p class="text-sm text-gray-500">This user has no workspace, so there is nothing to bill.</p>
+                @endif
             </div>
 
             <div class="border border-gray-200 rounded-lg p-6">

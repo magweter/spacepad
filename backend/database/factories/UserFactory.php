@@ -5,12 +5,13 @@ namespace Database\Factories;
 use App\Enums\UsageType;
 use App\Enums\UserStatus;
 use App\Models\OutlookAccount;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\User>
+ * @extends Factory<User>
  */
 class UserFactory extends Factory
 {
@@ -33,7 +34,6 @@ class UserFactory extends Factory
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
             'status' => UserStatus::ONBOARDING,
-            'is_unlimited' => false,
             'terms_accepted_at' => null,
         ];
     }
@@ -58,7 +58,27 @@ class UserFactory extends Factory
             'usage_type' => UsageType::PERSONAL,
             'terms_accepted_at' => now(),
         ])->afterCreating(function ($user) {
-            OutlookAccount::factory()->create(['user_id' => $user->id]);
+            // Stamp the workspace too. Without it the account is invisible to every
+            // workspace-scoped query and policy, which silently baked the
+            // nullable-workspace_id trap into every fixture.
+            OutlookAccount::factory()->create([
+                'user_id' => $user->id,
+                'workspace_id' => $user->primaryWorkspace()?->id,
+            ]);
+        });
+    }
+
+    /**
+     * Give the user's own workspace Pro, on the house.
+     *
+     * Fixtures used to pass `is_unlimited` to the user, which stopped meaning anything once
+     * billing moved to the workspace: the flag sat on a column nothing read. This puts it
+     * where hasPro() actually looks.
+     */
+    public function unlimited(): static
+    {
+        return $this->afterCreating(function ($user) {
+            $user->primaryWorkspace()?->update(['is_unlimited' => true]);
         });
     }
 }

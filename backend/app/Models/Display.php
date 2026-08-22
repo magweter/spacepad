@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\DisplayStatus;
 use App\Helpers\DisplaySettings;
+use App\Services\ImageService;
 use App\Traits\HasUlid;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -20,12 +21,13 @@ class Display extends Model
     protected $fillable = [
         'user_id',
         'workspace_id',
+        'display_profile_id',
         'name',
         'display_name',
         'calendar_id',
         'status',
         'last_sync_at',
-        'last_event_at'
+        'last_event_at',
     ];
 
     protected $casts = [
@@ -47,6 +49,11 @@ class Display extends Model
     public function workspace(): BelongsTo
     {
         return $this->belongsTo(Workspace::class, 'workspace_id');
+    }
+
+    public function profile(): BelongsTo
+    {
+        return $this->belongsTo(DisplayProfile::class, 'display_profile_id');
     }
 
     public function eventSubscriptions(): HasMany
@@ -209,12 +216,12 @@ class Display extends Model
 
     public function getLogoUrl(): ?string
     {
-        return app(\App\Services\ImageService::class)->getLogoUrl($this);
+        return app(ImageService::class)->getLogoUrl($this);
     }
 
     public function getBackgroundImageUrl(): ?string
     {
-        return app(\App\Services\ImageService::class)->getBackgroundImageUrl($this);
+        return app(ImageService::class)->getBackgroundImageUrl($this);
     }
 
     public function getShowMeetingTitle(): bool
@@ -254,7 +261,7 @@ class Display extends Model
 
     public function getAdvertisementImageUrl(): ?string
     {
-        return app(\App\Services\ImageService::class)->getAdvertisementImageUrl($this);
+        return app(ImageService::class)->getAdvertisementImageUrl($this);
     }
 
     public function getAdvertisementInterval(): int
@@ -285,5 +292,15 @@ class Display extends Model
     public function setShowOrganizerEnabled(bool $enabled): bool
     {
         return DisplaySettings::setShowOrganizerEnabled($this, $enabled);
+    }
+
+    public function getShowMeetingLocation(): bool
+    {
+        return DisplaySettings::getShowMeetingLocation($this);
+    }
+
+    public function setShowMeetingLocation(bool $show): bool
+    {
+        return DisplaySettings::setShowMeetingLocation($this, $show);
     }
 }

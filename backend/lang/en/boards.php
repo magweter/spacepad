@@ -16,4 +16,5 @@ return [
     'no_displays' => 'No displays available for this board.',
     'transitioning_minutes' => 'Transitioning (:minutes min)',
     'join_meeting' => 'Join meeting',
+    'uncategorised' => 'Other',
 ];

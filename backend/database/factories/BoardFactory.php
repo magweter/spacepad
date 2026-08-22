@@ -43,6 +43,7 @@ class BoardFactory extends Factory
             'font_family' => 'Inter',
             'language' => 'en',
             'view_mode' => 'card',
+            'categories' => null,
             'show_meeting_title' => true,
         ];
     }

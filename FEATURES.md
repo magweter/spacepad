@@ -27,7 +27,8 @@ A privacy-focused room display app that shows real-time room availability, synce
 
 ### Clock & Identity
 - Real-time digital clock
-- Room name displayed prominently
+- Room name displayed prominently. The corner also responds to a long press, so hidden admin
+  actions stay reachable.
 - Custom logo support
 
 ### Booking
@@ -61,6 +62,15 @@ Four modes to show today's schedule — one per display:
 
 The schedule view shows all events for today, tomorrow, and yesterday.
 
+The full-day modal gives each meeting a card: the time and, when **Show organizer** is enabled, the
+organizer beside it on the first line, the title underneath. The location comes from the calendar
+event and is off by default, because a display hangs beside the room it names and inside the
+building it names. Google and Microsoft write the booked room and the address the organiser typed
+onto that same location field, so the line covers both and is shown or hidden as a whole.
+
+The "Show meeting title", "Show organizer" and "Show meeting location" settings apply to every
+day shown, not just today.
+
 ### Advertisement Display
 - Show a custom image advertisement on the right half of the screen
 - Configurable interval (how often it appears) and duration (how long it stays)
@@ -69,13 +79,28 @@ The schedule view shows all events for today, tomorrow, and yesterday.
 ### Stale Data & Connectivity Indicators
 - Stale data warning when the display hasn't synced recently
 - Distinction between **no internet** and **server unreachable**
-- Tap the indicator to manually trigger a refresh
+- Tap the indicator to manually trigger a refresh — this also resets the retry schedule
+- While the server stays unreachable the tablet retries with increasing delays (up to 10 minutes) instead of every minute, so a whole building of tablets does not hammer a recovering server
 
 ---
 
 ## Display Settings (Pro)
 
-All settings are per-display and managed from the web portal.
+Managed from the web portal on one **Configure display** screen, grouped into sections (Behavior,
+Display, State texts, Branding, Advertisement). Each section either follows the display's linked
+profile or holds its own values — see [Display Profiles](#display-profiles-pro).
+
+### The two names
+
+Every display carries two names, both editable from the Display information block at the top of the
+Configure display screen (they used to be settable only while creating the display):
+
+| Name | Where it is used |
+|---|---|
+| **Display name** | Dashboard only, to tell displays apart. Listed by the tablet's setup wizard and under **Used by** on a profile, so it should be unique per display. |
+| **Room name** | Printed in the top right corner of the tablet. Several displays may share it on purpose — a building or floor name, for instance. |
+
+Neither is inherited from a profile: they belong to the display itself.
 
 | Setting | Options |
 |---|---|
@@ -87,17 +112,20 @@ All settings are per-display and managed from the web portal.
 | Cancel permission | Everyone / Tablet bookings only / Nobody |
 | Show organizer | On/off |
 | Show meeting title | On/off |
+| Show meeting location | On/off (default off) |
 | Hide admin actions | On/off |
 | Border thickness | Small / Medium / Large |
 
 ### Admin Action Lockdown
 - Optionally hide the switch-room and logout buttons from the tablet UI
-- When hidden, admins can still access them by long-pressing the room name — they appear for 30 seconds then auto-hide
+- When hidden, admins can still access them by long-pressing the room name, they appear for 30 seconds then auto-hide.
 - Full kiosk lockdown via Android Screen Pinning, Android Lock Task Mode (MDM), or iOS Guided Access
 
 ---
 
 ## Display Customization (Pro)
+
+Part of the same **Configure display** screen, in the Branding, State texts and Advertisement sections.
 
 ### Branding
 - Upload a custom **logo** (shown on the display)
@@ -122,14 +150,101 @@ All settings are per-display and managed from the web portal.
 - Multi-room overview screens showing status of multiple rooms at once
 - Configurable room selection per board
 - Designed for lobby or hallway displays
+- Room categories — group the rooms of a board into named sections (e.g. "Downstairs", "Floor 2") by dragging them into categories in the board editor; rooms are shown per category on the board with a labeled section divider, and rooms left ungrouped appear last under "Other"
+- Category order is set per board, so the same rooms can be ordered differently on each board
+- Meeting organizer shown per room (card, grid and table view), using the real organizer from the calendar
+- Today-only scope — the "next up" column and the "available until" text only consider bookings on the current day (in the viewer's timezone). A room whose next booking is on a later day shows "-" and "available until end of day" instead of a date-less time range that looks like it is happening today
+
+---
+
+## Display Profiles (Pro)
+
+Reusable sets of display settings ("themes") so an admin can configure many displays at once
+instead of one by one.
+
+- Create, edit and delete **profiles** per workspace. A profile holds the same **sections** as an
+  individual display: Behavior, Display, State texts, Branding and Advertisement — **including the
+  images** (logo, background, advertisement image), so one upload covers every room that follows the
+  profile. A display can still upload its own, which overrides the profile for that display only.
+- **Assigning** happens from the Displays tab: select displays with checkboxes and assign a profile in
+  bulk, or unlink them. Assigning clears the selected displays' own settings so they genuinely follow
+  the profile; a warning first states how many displays that affects. Unlinking keeps their values.
+- The Displays overview shows each display's linked profile, marked **Customised** when at least one
+  section deviates. The profile's own **Used by** list names each display by its display name, which
+  is the unique one.
+- Linked displays inherit the profile's settings **live** — editing the profile updates every linked
+  display automatically.
+- **Inheritance is per section.** Each section on a display either follows the profile or has its own
+  values, shown with a "Follows profile" / "Own settings" badge. Saving a section is what detaches that
+  one section — the others keep following the profile. Every section has a "Follow profile" action to
+  hand it back, plus "Reset all sections to profile" for the whole display.
+- Deleting a profile **copies its values onto the linked displays** as their own settings, so rooms keep
+  behaving exactly as they did instead of silently reverting to defaults.
+
+---
+
+## Team & Workspaces (Pro)
+
+A workspace is the shared container for displays, boards, calendar accounts and settings — and the
+unit that billing is based on. Colleagues work together inside one workspace instead of each keeping
+a separate account with its own invisible set of displays.
+
+### Roles
+
+| | Owner | Admin | Member |
+|---|---|---|---|
+| Manage displays, boards, profiles, calendar accounts | ✓ | ✓ | ✓ |
+| Rename the workspace | ✓ | ✓ | |
+| Invite colleagues, withdraw invitations | ✓ | ✓ | |
+| Change roles, remove members | ✓ | | |
+| Billing and subscription | ✓ | ✓ | |
+
+### Invitations
+- Invite by email address as Admin or Member; ownership is never handed out by invitation
+- One click from the email joins the workspace — no separate sign-up step and no second login email
+- Valid for 7 days; can be re-sent (which invalidates the previous link) or withdrawn
+- Someone signed in under a different address is told so, instead of silently joining the wrong account
+- Removing a member takes away their access only — everything they created stays in the workspace
+
+### Bringing existing data along
+- While accepting an invitation, an invitee can move their own displays, boards, devices and calendar
+  accounts into the workspace they are joining
+- Their old workspace is left behind empty, and can then be deleted from the Team page
+
+### Switching and managing workspaces
+- Workspace switcher in the top bar, always visible, showing the current workspace and your role
+- Rename a workspace, or create an additional one (for a second site, for example)
+- Delete a leftover **empty** workspace yourself, provided you own it, you are its only member, it is
+  not being billed, and you still administer another workspace
+
+### Billing
+- Billing is per workspace: displays count once, boards count double
+- The unit total is held on the workspace and updated the moment a display or board is added or
+  removed, so the figure on the Team page, the subscription quantity and the invoice are always the
+  same number
+- Adding or removing a display or board resizes the subscription straight away instead of waiting
+  for the next scheduled sync, and lands on the workspace's billing history
+- **No per-user charge** — inviting colleagues costs nothing
+- Owners and admins can start and manage a subscription; ordinary members are pointed at them rather
+  than shown a button that fails
+- A workspace on trial is simply an activated workspace: the trial converts to a paid subscription on
+  its own, so nothing on the dashboard asks anyone to buy. The workspace page carries the countdown,
+  the date the subscription starts, and what the current usage costs per month
+- A workspace that already has a subscription cannot start a second checkout
+- One button on the workspace page opens the Lemon Squeezy billing portal in a new tab, to change the
+  payment method, download invoices or cancel. A manually billed workspace has no portal and is
+  pointed at support instead
 
 ---
 
 ## Web Portal
 
 - **Dashboard** — overview of all connected displays and their current status
-- **Display settings** — per-display behavior configuration
-- **Display customization** — branding and visual configuration
+- **Team** — invite colleagues, manage roles, and switch between workspaces
+- **Display configuration** — one screen per display with Behavior, Display, State texts, Branding and
+  Advertisement sections, each following its profile or holding its own values. Every option carries an
+  info tooltip explaining what happens when it is switched on
+- **Profiles** — reusable settings sets, assigned to displays in bulk from the Displays tab
 - **Display diagnostics** — connection health, last sync, troubleshooting info, and a one-click reset of an errored calendar account's status so a fresh token is attempted
 - **Calendar accounts** — connect and manage Google, Microsoft, and CalDAV accounts
 - **Boards** — create and manage multi-room overview boards
@@ -163,10 +278,14 @@ The tablet app is fully localized in:
 
 ## Plans
 
+Plans apply per workspace. Usage is measured in units: a display counts as 1, a board as 2. There is
+no charge per team member.
+
 ### Free
 - 1 display
 - Real-time calendar sync
 - Basic event viewing
+- Single user — inviting colleagues requires Pro
 
 ### Pro
 - Unlimited displays
@@ -174,4 +293,5 @@ The tablet app is fully localized in:
 - Full customization (logo, background, fonts, state text, advertisement)
 - Future bookings
 - Meeting boards
+- Team collaboration — shared workspaces with Owner / Admin / Member roles, at no cost per user
 - Priority support

@@ -6,11 +6,14 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * Historic record of a user's license-count / MRR change.
+ * Historic record of a workspace's licence-count / MRR change.
  *
- * Rows are written by the app:refresh-analytics command whenever a user's billable
- * usage (displays + boards×2) moves between snapshots. Inserts use DB::table() in
- * that command; this model is for reading (admin panel, tests).
+ * Rows are written by RecordBillingChange the instant a workspace's billable usage
+ * (displays + boards×2) moves, and the MRR side is filled in afterwards by
+ * app:refresh-analytics --mrr for subscriptions whose price only Lemon Squeezy knows.
+ *
+ * The user columns are the billing contact at the moment of the change, denormalised so
+ * the trail still reads properly after they leave.
  */
 class BillingChange extends Model
 {
@@ -18,6 +21,8 @@ class BillingChange extends Model
         'user_id',
         'email',
         'name',
+        'workspace_id',
+        'workspace_name',
         'previous_displays_count',
         'new_displays_count',
         'previous_boards_count',
@@ -50,5 +55,10 @@ class BillingChange extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function workspace(): BelongsTo
+    {
+        return $this->belongsTo(Workspace::class);
     }
 }

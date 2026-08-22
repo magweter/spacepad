@@ -4,11 +4,13 @@ namespace App\Services;
 
 use App\Enums\EventSource;
 use App\Enums\EventStatus;
+use App\Enums\OutlookBookingMethod;
 use App\Enums\PermissionType;
 use App\Helpers\DisplaySettings;
 use App\Models\Calendar;
 use App\Models\Display;
 use App\Models\Event;
+use App\Support\LocalDay;
 use Exception;
 use Google\Service\Calendar\Event as GoogleEvent;
 use Illuminate\Support\Arr;
@@ -16,6 +18,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class EventService
 {
@@ -32,7 +35,7 @@ class EventService
      *
      * @throws Exception
      */
-    public function getEventsForDisplay($display, ?Carbon $forDate = null): Collection
+    public function getEventsForDisplay($display, ?Carbon $forDate = null, ?LocalDay $day = null): Collection
     {
         $display = Display::query()
             ->withCount(['eventSubscriptions' => function ($query) {
@@ -42,15 +45,27 @@ class EventService
             ->findOrFail($display);
 
         // When fetching for a specific date, skip caching and side-effects.
-        // Widen the range by ±1 day so the requested LOCAL day is fully covered regardless of
-        // the display's timezone (a UTC-day window can miss the local morning/evening for
-        // far-offset zones). The app clamps events back to the selected local day.
         if ($forDate !== null) {
-            $start = $forDate->copy()->subDay()->startOfDay();
-            $end = $forDate->copy()->addDay()->endOfDay();
+            if ($day === null) {
+                // The caller did not state its timezone (an older app build). Keep the previous
+                // contract: hand back a day either side and let the client clamp, so nothing near
+                // its local midnight goes missing.
+                return $this->getAllEvents(
+                    $display,
+                    $forDate->copy()->subDay()->startOfDay(),
+                    $forDate->copy()->addDay()->endOfDay()
+                );
+            }
 
-            return $this->getAllEvents($display, $start, $end);
+            [$fetchStart, $fetchEnd] = $day->fetchRange();
+
+            return $this->clampToDay($this->getAllEvents($display, $fetchStart, $fetchEnd), $day);
         }
+
+        // For the status screen the day always matters: a client that does not state one gets the
+        // server's day rather than a wide range, because anything beyond today reads on the tablet
+        // as if it were happening now.
+        $day ??= LocalDay::serverDay(Carbon::now());
 
         // Update last sync timestamp
         $display->updateLastSyncAt();
@@ -68,7 +83,7 @@ class EventService
         if ($cacheEnabled && $display->event_subscriptions_count > 0) {
             $events = cache()->remember(
                 key: $display->getEventsCacheKey(),
-                ttl: now()->addMinutes(15),
+                ttl: $this->jitteredCacheTtl(15),
                 callback: function () use ($display) {
                     logger()->info('Fetching events from API (cache miss)', [
                         'display_id' => $display->id,
@@ -81,7 +96,7 @@ class EventService
         } elseif ($cacheEnabled) {
             $events = cache()->remember(
                 key: $display->getEventsCacheKey().':fallback',
-                ttl: now()->addMinutes(2),
+                ttl: $this->jitteredCacheTtl(2),
                 callback: function () use ($display) {
                     logger()->info('Fetching events from API (no event subscription)', [
                         'display_id' => $display->id,
@@ -100,7 +115,41 @@ class EventService
             $events = $this->getAllEvents($display);
         }
 
-        return $events;
+        // The cached collection deliberately spans more than a day so tablets in different
+        // timezones can share it; narrowing to the caller's day happens here, per request.
+        return $this->clampToDay($events, $day);
+    }
+
+    /**
+     * A cache TTL with up to 20% of extra spread added on top.
+     *
+     * The TTL is anchored to the moment of the cache miss, so displays that miss together stay
+     * phase-locked: the whole fleet re-expires inside the same window, misses together again, and
+     * sets the same TTL once more. One event that empties every entry at once — a cache flush, or a
+     * restart on a non-persistent store — is enough to enter that state, and nothing pulls it apart
+     * again, so every cycle from then on lands as a burst of external calendar calls.
+     *
+     * The extra seconds are per entry, which is what breaks the lock: each cycle spreads the fleet
+     * a little further apart until the misses are distributed across the whole interval.
+     */
+    private function jitteredCacheTtl(int $minutes): Carbon
+    {
+        $spread = (int) ceil($minutes * 60 * 0.2);
+
+        return now()->addMinutes($minutes)->addSeconds(random_int(0, $spread));
+    }
+
+    /**
+     * Keep only the events that touch the given day.
+     *
+     * Overlap rather than containment: a meeting running across midnight belongs to both days, and
+     * dropping it would make a room look free while it is in use.
+     */
+    private function clampToDay(Collection $events, LocalDay $day): Collection
+    {
+        return $events
+            ->filter(fn (Event $event) => $day->overlaps($event->start, $event->end))
+            ->values();
     }
 
     /**
@@ -242,7 +291,7 @@ class EventService
                     }
 
                     return $event;
-                } catch (\Exception $e) {
+                } catch (Exception $e) {
                     logger()->error('Failed to create external event or track it in database', [
                         'error' => $e->getMessage(),
                         'display_id' => $displayId,
@@ -397,7 +446,7 @@ class EventService
                     } elseif ($calendar->google_account_id) {
                         $this->googleService->patchEventEndTime($calendar->googleAccount, $calendar, $event->external_id, $newEnd);
                     }
-                } catch (\Exception $e) {
+                } catch (Exception $e) {
                     logger()->warning('Failed to update DB event end time via API', [
                         'error' => $e->getMessage(),
                         'event_id' => $event->id,
@@ -407,6 +456,7 @@ class EventService
         }
 
         $event->update(['end' => $newEnd]);
+        $this->markEventExtended($display->id, [$event->id, $event->external_id], $newEnd);
         $this->clearEventsCache($display);
     }
 
@@ -427,7 +477,7 @@ class EventService
         }
 
         if (! $hasWritePermissions) {
-            throw new Exception('Cannot extend this event — write permission is required', 403);
+            throw new Exception('Cannot extend this event: write permission is required', 403);
         }
 
         if ($calendar->outlook_account_id) {
@@ -436,6 +486,7 @@ class EventService
             $this->googleService->patchEventEndTime($calendar->googleAccount, $calendar, $externalId, $newEnd);
         }
 
+        $this->markEventExtended($display->id, [$externalId], $newEnd);
         $this->clearEventsCache($display);
     }
 
@@ -501,7 +552,10 @@ class EventService
             'location' => $location,
             'description' => $description,
             'join_url' => $joinUrl,
-            'organizer_name' => $outlookEvent['organizer']['emailAddress']['name'] ?? null,
+            'organizer_name' => $this->presentableOrganizerName(
+                $outlookEvent['organizer']['emailAddress']['name'] ?? null,
+                $outlookEvent['organizer']['emailAddress']['address'] ?? null,
+            ),
             'start' => $startDateStr,
             'end' => $endDateStr,
             'timezone' => 'UTC',
@@ -520,20 +574,102 @@ class EventService
         $description = $googleEvent->getDescription();
         $joinUrl = $googleEvent->getHangoutLink() ?? $this->extractMeetingUrl($description);
 
-        $organizer = $googleEvent->getOrganizer();
-
         return [
             'id' => $googleEvent->getId(),
             'summary' => $this->cleanSubject($googleEvent->getSummary()),
             'location' => $googleEvent->getLocation(),
             'description' => $description,
             'join_url' => $joinUrl,
-            'organizer_name' => $organizer?->getDisplayName() ?? $organizer?->getEmail() ?? null,
+            'organizer_name' => $this->googleOrganizerName($googleEvent),
             'start' => $isAllDay ? $start->getDate() : $start->getDateTime(),
             'end' => $isAllDay ? $end->getDate() : $end->getDateTime(),
             'timezone' => $start->getTimeZone() ?? $end->getTimeZone() ?? 'UTC',
             'isAllDay' => $isAllDay,
         ];
+    }
+
+    /**
+     * The name to show for whoever booked a Google event.
+     *
+     * Google only fills `organizer.displayName` for named calendars, so for a person it is
+     * usually empty and the raw address ends up on the wall. The name is generally there,
+     * just somewhere else: on the creator, or on the organizer's own attendee entry. Only
+     * when all three come up empty is the address used, shortened to its local part and
+     * tidied up, because "admin@example.com" across a room display reads as a bug.
+     */
+    private function googleOrganizerName(GoogleEvent $googleEvent): ?string
+    {
+        $organizer = $googleEvent->getOrganizer();
+        $email = $organizer?->getEmail();
+
+        $candidates = [
+            $organizer?->getDisplayName(),
+            $googleEvent->getCreator()?->getDisplayName(),
+        ];
+
+        foreach ($googleEvent->getAttendees() ?? [] as $attendee) {
+            if ($attendee->getOrganizer() || ($email && $attendee->getEmail() === $email)) {
+                $candidates[] = $attendee->getDisplayName();
+            }
+        }
+
+        foreach ($candidates as $candidate) {
+            if (filled($candidate)) {
+                return $this->presentableOrganizerName($candidate, $email);
+            }
+        }
+
+        return $this->nameFromEmail($email);
+    }
+
+    /**
+     * A provider's organiser name, or the address made presentable when that is all it is.
+     *
+     * Microsoft fills `name` with the address itself for organisers outside the tenant, and
+     * Google sometimes does the same, so "has a name" is not the same as "is a name".
+     */
+    private function presentableOrganizerName(?string $name, ?string $email = null): ?string
+    {
+        if (filled($name) && ! str_contains($name, '@')) {
+            return trim($name);
+        }
+
+        return $this->nameFromEmail(filled($name) ? $name : $email);
+    }
+
+    /**
+     * Turn an address into something presentable: "jan.de.vries@example.com" -> "Jan de Vries".
+     *
+     * A guess, deliberately a conservative one. Separators become spaces and the parts are
+     * capitalised; anything that is not recognisably a name (no letters, or a local part that
+     * is mostly digits) is left alone rather than dressed up as one.
+     */
+    private function nameFromEmail(?string $email): ?string
+    {
+        if (blank($email) || ! str_contains($email, '@')) {
+            return $email;
+        }
+
+        $local = Str::before($email, '@');
+
+        if (! preg_match('/[a-z]/i', $local) || preg_match('/^\d/', $local)) {
+            return $email;
+        }
+
+        $words = preg_split('/[._\-+]+/', $local, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+
+        if ($words === []) {
+            return $email;
+        }
+
+        // Dutch and German name particles stay lowercase: "Jan de Vries", not "Jan De Vries".
+        $particles = ['de', 'den', 'der', 'van', 'von', 'het', 'ten', 'ter', 'te', 'op'];
+
+        return collect($words)
+            ->map(fn (string $word, int $i) => $i > 0 && in_array(mb_strtolower($word), $particles, true)
+                ? mb_strtolower($word)
+                : Str::ucfirst(mb_strtolower($word)))
+            ->implode(' ');
     }
 
     public function sanitizeCalDAVEvent(array $caldavEvent): array
@@ -548,7 +684,7 @@ class EventService
             'location' => $caldavEvent['location'],
             'description' => $description,
             'join_url' => $joinUrl,
-            'organizer_name' => $caldavEvent['organizer_name'] ?? null,
+            'organizer_name' => $this->presentableOrganizerName($caldavEvent['organizer_name'] ?? null),
             'start' => $caldavEvent['start'],
             'end' => $caldavEvent['end'],
             'timezone' => $caldavEvent['timezone'],
@@ -565,13 +701,17 @@ class EventService
      */
     private function getAllEvents(Display $display, ?Carbon $start = null, ?Carbon $end = null): Collection
     {
-        // Default to a timezone-tolerant window (yesterday .. tomorrow, in UTC) rather than
-        // just the UTC day. A display can be in any timezone, and UTC day boundaries can be
-        // up to ~14h off from the display's local day — for far-offset zones (e.g. New
-        // Zealand, UTC+12) part of the local day fell outside a UTC-day window, which made
-        // rooms intermittently show "no bookings / available all day" while Google/Outlook
-        // had events. The app filters these events back down to the local day / current time,
-        // so returning a slightly wider range is safe.
+        // This is the range asked of the calendar providers, not what a client gets back: callers
+        // narrow the result to their own day (see getEventsForDisplay). Staying a day either side
+        // keeps bookings near a far-offset display's local midnight inside the request, and lets
+        // one cached collection serve tablets in different timezones.
+        //
+        // Widening this window is only safe because of that narrowing. When it was widened without
+        // it (v1.8.1) the tablet's status screen picked the first event after "now", so tomorrow's
+        // first booking showed up as "Next" with just a time and read as if it were today — the
+        // reason it was reverted on dev. Every status response now goes through clampToDay(), and a
+        // client that does not state its timezone is clamped to the server's day, so that cannot
+        // happen again.
         $start = $start ?? now()->subDay()->startOfDay();
         $end = $end ?? now()->addDay()->endOfDay();
 
@@ -663,6 +803,14 @@ class EventService
                     $matchedTabletIds[$tabletBooking->id] = true;
                 }
 
+                // An event extended moments ago can still come back from the provider with its
+                // old end time. Prefer the end we know we wrote, so the tablet shows the new
+                // time on its very next refresh instead of after the provider catches up.
+                $extendedEnd = $this->getExtendedEnd($display->id, $ext['id'], $tabletBooking?->id);
+                if ($extendedEnd && $extendedEnd->gt($eventEnd)) {
+                    $eventEnd = $extendedEnd;
+                }
+
                 // Grace-period check only applies to pure external events; tablet bookings
                 // are handled by processExpiredCheckIns() before we get here.
                 if (! $tabletBooking) {
@@ -749,7 +897,7 @@ class EventService
                     $event->update(['status' => EventStatus::CANCELLED]);
 
                     return;
-                } catch (\Exception $e) {
+                } catch (Exception $e) {
                     logger()->warning('Failed to delete event via API, marking as cancelled', [
                         'error' => $e->getMessage(),
                         'event_id' => $event->id,
@@ -800,7 +948,7 @@ class EventService
                     $this->clearEventsCache($display);
 
                     return;
-                } catch (\Exception $e) {
+                } catch (Exception $e) {
                     logger()->warning('Failed to delete external event via API', [
                         'error' => $e->getMessage(),
                         'external_id' => $externalId,
@@ -841,7 +989,7 @@ class EventService
 
         try {
             if ($calendar->room) {
-                $useAppOnlyToken = $outlookAccount->booking_method === \App\Enums\OutlookBookingMethod::ADMIN_CONSENT;
+                $useAppOnlyToken = $outlookAccount->booking_method === OutlookBookingMethod::ADMIN_CONSENT;
 
                 $events = $this->outlookService->fetchEventsByUser(
                     outlookAccount: $calendar->outlookAccount,
@@ -859,7 +1007,7 @@ class EventService
                     endDateTime: $end,
                 );
             }
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             logger()->warning('Failed to fetch Outlook events, returning empty', [
                 'outlook_account_id' => $outlookAccount?->id,
                 'calendar_id' => $calendar->calendar_id,
@@ -881,7 +1029,7 @@ class EventService
     }
 
     /**
-     * @throws \Exception
+     * @throws Exception
      */
     private function fetchGoogleEvents(Calendar $calendar, Display $display, ?Carbon $start = null, ?Carbon $end = null): Collection
     {
@@ -892,7 +1040,7 @@ class EventService
                 startDateTime: $start ?? $display->getStartTime(),
                 endDateTime: $end ?? $display->getEndTime(),
             );
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             logger()->warning('Failed to fetch Google events, returning empty', [
                 'google_account_id' => $calendar->googleAccount->id,
                 'display_id' => $display->id,
@@ -1047,6 +1195,38 @@ class EventService
     }
 
     /**
+     * Remember the end time we just wrote for an extended event.
+     *
+     * Clearing the events cache alone is not enough: Microsoft Graph and Google Calendar are
+     * eventually consistent, so the re-fetch that happens milliseconds later can still return
+     * the old end time — and that stale value would then be cached again for the full TTL.
+     * Keyed by every identifier the event can surface under (DB row id and external id),
+     * because tablet bookings are matched back to their external copy by either.
+     */
+    private function markEventExtended(string $displayId, array $eventKeys, Carbon $newEnd): void
+    {
+        foreach (array_filter($eventKeys) as $key) {
+            Cache::put("extended:{$displayId}:{$key}", $newEnd->toIso8601String(), now()->addMinutes(2));
+        }
+    }
+
+    /**
+     * Get the end time of a just-extended event, if it was extended within the last 2 minutes.
+     */
+    private function getExtendedEnd(string $displayId, ?string ...$eventKeys): ?Carbon
+    {
+        foreach (array_filter($eventKeys) as $key) {
+            $value = Cache::get("extended:{$displayId}:{$key}");
+
+            if ($value) {
+                return Carbon::parse($value);
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Wait for an event to appear or disappear in Google Calendar API.
      * Retries with exponential backoff to handle Google's eventual consistency.
      */
@@ -1094,7 +1274,7 @@ class EventService
                 $delay = $baseDelay * pow(2, $attempt - 1);
                 usleep((int) ($delay * 1000000));
 
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
                 logger()->warning('Error checking event in Google API during wait', [
                     'error' => $e->getMessage(),
                     'external_event_id' => $externalEventId,

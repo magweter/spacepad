@@ -103,7 +103,9 @@ class InstanceService
     {
         $instanceKey = self::getInstanceKey();
 
-        $users = User::all()->map(function ($user) {
+        // ownedWorkspaces is eager-loaded because is_unlimited is derived from it; without
+        // this the heartbeat would run a query per user.
+        $users = User::with('ownedWorkspaces')->get()->map(function ($user) {
             return new UserData(
                 email: $user->email,
                 usageType: $user->usage_type?->value,

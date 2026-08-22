@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\ChecksAdminAccess;
+use App\Models\BillingChange;
 use App\Models\RoadmapItem;
 use App\Models\User;
 use App\Models\Workspace;
-use App\Models\WorkspaceMember;
+use App\Services\WorkspaceService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -13,54 +15,28 @@ use Illuminate\Support\Facades\DB;
 
 class AdminController extends Controller
 {
-    /**
-     * Check if the current request is authorized for admin access
-     */
-    private function checkAdminAccess(): void
-    {
-        $user = Auth::user();
+    use ChecksAdminAccess;
 
-        // Prevent access if impersonating
-        if (session()->get('impersonating')) {
-            abort(403, 'Cannot access admin panel while impersonating. Please stop impersonating first.');
-        }
-
-        // Check if current user is admin
-        if (! $user || ! $user->isAdmin() || config('settings.is_self_hosted')) {
-            abort(403);
-        }
-    }
+    public function __construct(protected WorkspaceService $workspaces) {}
 
     public function index()
     {
         $this->checkAdminAccess();
 
-        // Stats from the pre-computed analytics snapshot — gracefully returns zeros if not yet populated
-        try {
-            $userStats = DB::table('analytics_users')
-                ->selectRaw('COUNT(CASE WHEN last_device_activity_at >= ? THEN 1 END) as active_users_count', [now()->subDays(7)])
-                ->first();
-        } catch (\Exception $e) {
-            $userStats = null;
-        }
-
-        try {
-            $instanceStats = DB::table('analytics_instances')
-                ->selectRaw('COUNT(*) as total_instances, COUNT(CASE WHEN last_heartbeat_at >= ? THEN 1 END) as active_instances_count', [now()->subDays(7)])
-                ->first();
-        } catch (\Exception $e) {
-            $instanceStats = null;
-        }
-
+        // The tiles above the tabs are filled by AdminStatsService through a view composer,
+        // so they read the same here as on every other admin screen.
         $search = request()->get('search');
+        // Pro is a property of the workspace now, so the Pro column reads the user's owned
+        // workspaces rather than a subscription hanging off the user.
         $allUsersQuery = User::query()
             ->withCount('displays')
             ->withCount('boards')
-            ->with(['subscriptions' => function ($query) {
-                $query->where(function ($q) {
-                    $q->whereNull('ends_at')
-                        ->orWhere('ends_at', '>', now());
-                });
+            ->with(['ownedWorkspaces' => function ($query) {
+                $query->with(['subscriptions' => function ($subQuery) {
+                    $subQuery->where(function ($q) {
+                        $q->whereNull('ends_at')->orWhere('ends_at', '>', now());
+                    });
+                }]);
             }]);
 
         if ($search) {
@@ -83,9 +59,6 @@ class AdminController extends Controller
 
         return view('pages.admin', [
             'allUsers' => $allUsers,
-            'activeUsersCount' => $userStats->active_users_count ?? 0,
-            'totalInstances' => $instanceStats->total_instances ?? 0,
-            'activeInstancesCount' => $instanceStats->active_instances_count ?? 0,
             'roadmapItems' => $roadmapItems,
         ]);
     }
@@ -102,6 +75,7 @@ class AdminController extends Controller
             'googleAccounts',
             'caldavAccounts',
             'displays',
+            'boards',
             'devices',
             'workspaces',
             'subscriptions' => function ($query) {
@@ -112,9 +86,19 @@ class AdminController extends Controller
             },
         ]);
 
-        // RefreshAnalytics writes a row for every user with a default status of "none",
-        // so only surface subscription info when the user actually has a subscription.
-        $analyticsRow = DB::table('analytics_users')->where('user_id', $user->id)->first();
+        // The snapshot is keyed on the workspace, because that is what holds a subscription.
+        // A user is shown the state of the workspace they carry the billing for; a colleague
+        // on someone else's plan has nothing of their own to surface.
+        $billingWorkspace = AdminWorkspaceController::billingWorkspaceFor($user);
+
+        try {
+            $analyticsRow = $billingWorkspace
+                ? DB::table('analytics_workspaces')->where('workspace_id', $billingWorkspace->id)->first()
+                : null;
+        } catch (\Exception $e) {
+            $analyticsRow = null;
+        }
+
         $subscriptionInfo = ($analyticsRow && $analyticsRow->subscription_status !== 'none') ? [
             'status' => $analyticsRow->subscription_status,
             'price' => $analyticsRow->mrr_current,
@@ -122,12 +106,15 @@ class AdminController extends Controller
             'ends_at' => $analyticsRow->subscription_ends_at,
         ] : null;
 
-        // Recent license-count / MRR changes (empty if the table isn't present, e.g. self-hosted)
+        // Recent licence-count / MRR changes for the workspace they are billed under (empty
+        // if the table isn't present, e.g. self-hosted).
         try {
-            $billingChanges = \App\Models\BillingChange::where('user_id', $user->id)
-                ->orderByDesc('detected_at')
-                ->limit(20)
-                ->get();
+            $billingChanges = $billingWorkspace
+                ? BillingChange::where('workspace_id', $billingWorkspace->id)
+                    ->orderByDesc('detected_at')
+                    ->limit(20)
+                    ->get()
+                : collect();
         } catch (\Exception $e) {
             $billingChanges = collect();
         }
@@ -136,31 +123,9 @@ class AdminController extends Controller
             'user' => $user,
             'subscriptionInfo' => $subscriptionInfo,
             'billingChanges' => $billingChanges,
+            // Billing lives on the workspace; the form on this page edits that.
+            'billingWorkspace' => $billingWorkspace,
         ]);
-    }
-
-    /**
-     * Update a user's manual billing setting.
-     *
-     * Manually-billed users are invoiced through our own accounting system instead of
-     * Lemon Squeezy. They receive Pro access without an LS subscription, and their MRR is
-     * computed locally from usage (see RefreshAnalytics) rather than fetched from LS.
-     */
-    public function updateBilling(Request $request, User $user): RedirectResponse
-    {
-        $this->checkAdminAccess();
-
-        $user->update([
-            'is_manually_billed' => $request->boolean('is_manually_billed'),
-        ]);
-
-        logger()->info('Admin updated manual billing', [
-            'user_id' => $user->id,
-            'admin_id' => Auth::id(),
-            'is_manually_billed' => $user->is_manually_billed,
-        ]);
-
-        return back()->with('success', 'Billing settings updated.');
     }
 
     /**
@@ -191,110 +156,12 @@ class AdminController extends Controller
             // Delete all user's personal access tokens
             $user->tokens()->delete();
 
-            // Delete displays and their related data first (before calendars/accounts)
-            if ($user->displays) {
-                foreach ($user->displays as $display) {
-                    // Delete event subscriptions
-                    $display->eventSubscriptions()->delete();
-                    // Delete display settings
-                    $display->settings()->delete();
-                    // Delete events associated with this display
-                    $display->events()->delete();
-                    // Delete devices associated with this display
-                    $display->devices()->delete();
-                    $display->delete();
-                }
-            }
-
-            // Delete devices (standalone devices not linked to displays)
-            $user->devices()->delete();
-
-            // Delete rooms
-            $user->rooms()->delete();
-
-            // Delete Outlook accounts and their calendars/events
-            if ($user->outlookAccounts) {
-                foreach ($user->outlookAccounts as $account) {
-                    if ($account->calendars) {
-                        foreach ($account->calendars as $calendar) {
-                            $calendar->events()->delete();
-                            $calendar->delete();
-                        }
-                    }
-                    $account->delete();
-                }
-            }
-
-            // Delete Google accounts and their calendars/events
-            if ($user->googleAccounts) {
-                foreach ($user->googleAccounts as $account) {
-                    if ($account->calendars) {
-                        foreach ($account->calendars as $calendar) {
-                            $calendar->events()->delete();
-                            $calendar->delete();
-                        }
-                    }
-                    $account->delete();
-                }
-            }
-
-            // Delete CalDAV accounts and their calendars/events
-            if ($user->caldavAccounts) {
-                foreach ($user->caldavAccounts as $account) {
-                    if ($account->calendars) {
-                        foreach ($account->calendars as $calendar) {
-                            $calendar->events()->delete();
-                            $calendar->delete();
-                        }
-                    }
-                    $account->delete();
-                }
-            }
-
-            // Delete any remaining calendars directly linked to user (shouldn't happen, but safety check)
-            // Note: Calendars are linked through accounts, not directly to users, so this is unlikely
-            // Events are deleted through calendars above
-
-            // Handle workspaces
-            $ownedWorkspaces = $user->ownedWorkspaces()->get();
-            foreach ($ownedWorkspaces as $workspace) {
-                // Get other members (excluding the user being deleted)
-                $otherMembers = $workspace->members()->where('user_id', '!=', $user->id)->get();
-
-                if ($otherMembers->isNotEmpty()) {
-                    // Find first admin or first member to transfer ownership
-                    $newOwner = $otherMembers->first(function ($member) {
-                        return $member->pivot->role === \App\Enums\WorkspaceRole::ADMIN->value;
-                    }) ?? $otherMembers->first();
-
-                    if ($newOwner) {
-                        // Transfer ownership
-                        WorkspaceMember::where('workspace_id', $workspace->id)
-                            ->where('user_id', $newOwner->id)
-                            ->update(['role' => \App\Enums\WorkspaceRole::OWNER]);
-                    }
-                } else {
-                    // No other members, delete the workspace and all its data
-                    foreach ($workspace->displays as $display) {
-                        $display->eventSubscriptions()->delete();
-                        $display->settings()->delete();
-                        $display->events()->delete();
-                        $display->devices()->delete();
-                        $display->delete();
-                    }
-                    $workspace->devices()->delete();
-                    foreach ($workspace->calendars as $calendar) {
-                        $calendar->events()->delete();
-                        $calendar->delete();
-                    }
-                    $workspace->rooms()->delete();
-                    WorkspaceMember::where('workspace_id', $workspace->id)->delete();
-                    $workspace->delete();
-                }
-            }
-
-            // Delete workspace memberships (user's membership in workspaces they don't own)
-            WorkspaceMember::where('user_id', $user->id)->delete();
+            // Deliberately workspace-first: data lives in a workspace, and user_id only
+            // records who created it. Deleting by $user->displays would take a shared
+            // workspace's displays down with a single departing colleague. Workspaces with
+            // other members survive (ownership transferred, provenance released); those
+            // without are purged, along with any data that belongs to no workspace.
+            $this->workspaces->detachUserFromAllWorkspaces($user);
 
             // Note: Instances are system-wide (for self-hosted tracking), not user-specific
             // No need to delete instances when deleting a user
@@ -306,9 +173,15 @@ class AdminController extends Controller
                 $user->subscriptions()->delete();
             }
 
-            // Remove the user's billing-change history — those rows keep a denormalized
-            // copy of the user's email and name, so they must not outlive the account.
-            \App\Models\BillingChange::where('user_id', $user->id)->delete();
+            // Scrub the user from the billing-change history rather than deleting the rows.
+            // Those rows record what a *workspace* was charged for; the name and email are
+            // only the contact at the time. Deleting them would tear holes in a shared
+            // workspace's history because one colleague closed their account.
+            BillingChange::where('user_id', $user->id)->update([
+                'user_id' => null,
+                'email' => null,
+                'name' => null,
+            ]);
 
             // Finally, delete the user
             $user->delete();

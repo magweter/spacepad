@@ -222,16 +222,9 @@ class RenewEventSubscriptions extends Command
      */
     private function renewGoogleEventSubscription(GoogleAccount $googleAccount, Display $display, EventSubscription $eventSubscription, GoogleService $googleService): void
     {
-        try {
-            $googleService->deleteEventSubscription($googleAccount, $eventSubscription, true);
-        } catch (\Exception $e) {
-            logger()->warning('Failed to delete expired Google subscription from Google, continuing with renewal', [
-                'display_id' => $display->id,
-                'subscription_id' => $eventSubscription->id,
-                'error' => $e->getMessage(),
-            ]);
-            $eventSubscription->delete();
-        }
+        // Drops the local record only — the expired Google channel is already gone on their
+        // side and needs no API call. See GoogleService::deleteEventSubscription.
+        $googleService->deleteEventSubscription($eventSubscription);
 
         $this->createGoogleEventSubscription($googleAccount, $display, $googleService);
     }

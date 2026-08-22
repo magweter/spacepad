@@ -50,6 +50,9 @@ class DisplaySettingsResource extends JsonResource
 
             // Organizer
             'show_organizer' => $this->isShowOrganizerEnabled(),
+
+            // The location line of each meeting in the day schedule
+            'show_meeting_location' => $this->getShowMeetingLocation(),
         ];
     }
 }

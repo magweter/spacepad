@@ -45,5 +45,9 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
-# FVM Version Cache
-.fvm/
+# FVM Version Cache — the SDK symlink is machine-local, but the version pin is not.
+# Keeping fvm_config.json out of git is how a release ended up built against the global
+# Flutter (targetSdk 35) instead of the pinned one (36): nothing in the repo said which
+# SDK to use, so `flutter build` and `fvm flutter build` produced different artifacts.
+.fvm/*
+!.fvm/fvm_config.json
