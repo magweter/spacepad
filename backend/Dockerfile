@@ -19,7 +19,7 @@ FROM node:22-alpine AS node_builder
 WORKDIR /app
 
 # Install pnpm
-RUN corepack enable && corepack prepare pnpm@10.11.0 --activate
+RUN corepack enable && corepack prepare pnpm@10.34.5 --activate
 
 COPY package.json pnpm-lock.yaml ./
 COPY vite.config.js ./
@@ -31,6 +31,11 @@ RUN pnpm install --frozen-lockfile && pnpm run build
 FROM serversideup/php:8.4-fpm-nginx AS base
 
 USER root
+# Pull in Debian security fixes released since the upstream image was last built, so the
+# weekly Trivy image scan does not depend on serversideup's rebuild schedule.
+RUN apt-get update \
+    && apt-get upgrade -y --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/*
 RUN install-php-extensions opentelemetry protobuf
 
 FROM base AS production
