@@ -1,4 +1,6 @@
 import 'package:get/get.dart';
+import 'package:spacepad/build_flags.dart';
+import 'package:spacepad/translations/led_test_translations.dart';
 
 class AppTranslations extends Translations {
   @override
@@ -90,6 +92,7 @@ class AppTranslations extends Translations {
       'end_time_adjusted': 'End time was adjusted because it was not after the start time',
       'end_time_must_be_after_start': 'End time must be after the start time',
       'organizer': 'Organizer',
+      if (ledTestEnabled) ...ledTestTranslations['en_US']!,
     },
     'nl_NL': {
       'introduction_title': 'Welkom bij Spacepad!',
@@ -178,6 +181,7 @@ class AppTranslations extends Translations {
       'end_time_adjusted': 'Eindtijd is aangepast omdat deze niet na de starttijd lag',
       'end_time_must_be_after_start': 'Eindtijd moet na de starttijd liggen',
       'organizer': 'Organisator',
+      if (ledTestEnabled) ...ledTestTranslations['nl_NL']!,
     },
     'es_ES': {
       'introduction_title': '¡Bienvenido a Spacepad!',
@@ -266,6 +270,7 @@ class AppTranslations extends Translations {
       'end_time_adjusted': 'La hora de fin fue ajustada porque no era posterior a la hora de inicio',
       'end_time_must_be_after_start': 'La hora de fin debe ser posterior a la hora de inicio',
       'organizer': 'Organizador',
+      if (ledTestEnabled) ...ledTestTranslations['es_ES']!,
     },
     'fr_FR': {
       'introduction_title': 'Bienvenue sur Spacepad !',
@@ -354,6 +359,7 @@ class AppTranslations extends Translations {
       'end_time_adjusted': 'L\'heure de fin a été ajustée car elle n\'était pas postérieure à l\'heure de début',
       'end_time_must_be_after_start': 'L\'heure de fin doit être postérieure à l\'heure de début',
       'organizer': 'Organisateur',
+      if (ledTestEnabled) ...ledTestTranslations['fr_FR']!,
     },
     'de_DE': {
       'introduction_title': 'Willkommen bei Spacepad!',
@@ -442,6 +448,7 @@ class AppTranslations extends Translations {
       'end_time_adjusted': 'Endzeit wurde angepasst, da sie nicht nach der Startzeit lag',
       'end_time_must_be_after_start': 'Endzeit muss nach der Startzeit liegen',
       'organizer': 'Organisator',
+      if (ledTestEnabled) ...ledTestTranslations['de_DE']!,
     },
     'sv_SE': {
       'introduction_title': 'Välkommen till Spacepad!',
@@ -530,6 +537,7 @@ class AppTranslations extends Translations {
       'end_time_adjusted': 'Sluttiden justerades eftersom den inte var efter starttiden',
       'end_time_must_be_after_start': 'Sluttiden måste vara efter starttiden',
       'organizer': 'Organisatör',
+      if (ledTestEnabled) ...ledTestTranslations['sv_SE']!,
     },
   };
 }
