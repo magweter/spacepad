@@ -123,19 +123,45 @@
             <div class="border border-gray-200 rounded-lg p-6">
                 <h3 class="text-base font-semibold text-gray-900 mb-1">Billing</h3>
                 <p class="text-sm text-gray-500 mb-4">
-                    A manually billed workspace is invoiced through our own accounting instead of Lemon Squeezy.
-                    It gets Pro without a subscription, and its MRR is computed here from usage.
+                    How this workspace pays for Pro. Manually billed and unlimited both give Pro without a
+                    Lemon Squeezy subscription.
                 </p>
 
                 <form action="{{ route('admin.workspaces.billing', $workspace) }}" method="POST" class="space-y-4">
                     @csrf
 
-                    <label class="flex items-center gap-2">
-                        <input type="checkbox" name="is_manually_billed" value="1"
-                               @checked(old('is_manually_billed', $workspace->is_manually_billed))
-                               class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-                        <span class="text-sm text-gray-900">Manually billed (Pro without Lemon Squeezy)</span>
-                    </label>
+                    @php
+                        $billingMode = old('billing_mode', $workspace->is_manually_billed ? 'manual' : ($workspace->is_unlimited ? 'unlimited' : 'lemon_squeezy'));
+                        $billingModes = [
+                            'lemon_squeezy' => ['Lemon Squeezy', 'Pro through a subscription, or Free without one.'],
+                            'manual' => ['Manually billed', 'Invoiced through our own accounting. MRR is computed from usage at the unit price below.'],
+                            'unlimited' => ['Unlimited', 'Pro for free, never charged and no price shown. For non-profit deals and test accounts.'],
+                        ];
+                    @endphp
+                    <fieldset class="space-y-2">
+                        <legend class="block text-sm font-medium text-gray-700 mb-1">Billing</legend>
+                        @foreach($billingModes as $value => [$label, $hint])
+                            <label class="flex items-start gap-2">
+                                <input type="radio" name="billing_mode" value="{{ $value }}"
+                                       @checked($billingMode === $value)
+                                       class="mt-0.5 h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-500">
+                                <span class="text-sm">
+                                    <span class="text-gray-900">{{ $label }}</span>
+                                    <span class="block text-xs text-gray-500">{{ $hint }}</span>
+                                </span>
+                            </label>
+                        @endforeach
+                        @error('billing_mode')
+                            <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                        @enderror
+                    </fieldset>
+
+                    @if($workspace->liveSubscription() && $billingMode !== 'lemon_squeezy')
+                        <div class="rounded-lg bg-amber-50 border border-amber-200 p-4 text-sm text-amber-800">
+                            This workspace still has a running Lemon Squeezy subscription. Changing the billing here
+                            does not stop it: cancel it in Lemon Squeezy too.
+                        </div>
+                    @endif
 
                     <div>
                         <label for="manual_billing_unit_price" class="block text-sm font-medium text-gray-700 mb-1">
@@ -152,7 +178,7 @@
                                    class="block w-full rounded-md border border-gray-300 pl-7 pr-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
                         </div>
                         <p class="mt-1 text-xs text-gray-500">
-                            Leave empty to use the global default (${{ number_format((float) ($globalUnitPrice ?? 0), 2) }}
+                            Only used when manually billed. Leave empty to use the global default (${{ number_format((float) ($globalUnitPrice ?? 0), 2) }}
                             from <code>UNIT_PRICE</code>).
                             Effective MRR: ${{ number_format($unitPrice, 2) }} &times;
                             {{ $billableUnits }} {{ Str::plural('unit', $billableUnits) }} =
