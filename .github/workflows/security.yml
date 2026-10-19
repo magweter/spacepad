@@ -170,12 +170,21 @@ jobs:
           skip-setup-trivy: 'true'
 
   image:
-    name: Container image (Trivy)
+    name: Container image (Trivy, ${{ matrix.tag }})
     # Base-image CVEs move on the upstream's schedule, not on ours, and building the image
     # again per PR would double the cost of the release pipeline for information the
-    # dependency job already covers. Weekly against the published image instead.
+    # dependency job already covers. Weekly against the published images instead.
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
+    # Two images, two different signals:
+    #   latest — what self-hosters run. Only rebuilt on a release, so a failure here means a
+    #            fix exists that users do not have yet: cut a release.
+    #   dev    — rebuilt weekly by docker-build.yml with fresh Debian packages, so a failure
+    #            here means apt-get upgrade cannot fix it: bump the base image or a package.
+    strategy:
+      fail-fast: false
+      matrix:
+        tag: [latest, dev]
     permissions:
       contents: read
       packages: read
@@ -197,7 +206,7 @@ jobs:
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           scan-type: image
-          image-ref: ghcr.io/${{ github.repository }}:dev
+          image-ref: ghcr.io/${{ github.repository }}:${{ matrix.tag }}
           format: sarif
           output: trivy-image.sarif
 
@@ -206,13 +215,14 @@ jobs:
         uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
         with:
           sarif_file: trivy-image.sarif
-          category: trivy-image
+          # dev keeps the original category so its existing alerts carry over
+          category: ${{ matrix.tag == 'dev' && 'trivy-image' || format('trivy-image-{0}', matrix.tag) }}
 
       - name: Block on fixable CRITICAL/HIGH
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           scan-type: image
-          image-ref: ghcr.io/${{ github.repository }}:dev
+          image-ref: ghcr.io/${{ github.repository }}:${{ matrix.tag }}
           severity: CRITICAL,HIGH
           ignore-unfixed: true
           exit-code: '1'
