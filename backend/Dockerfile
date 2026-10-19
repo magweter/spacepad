@@ -33,7 +33,11 @@ FROM serversideup/php:8.4-fpm-nginx AS base
 USER root
 # Pull in Debian security fixes released since the upstream image was last built, so the
 # weekly Trivy image scan does not depend on serversideup's rebuild schedule.
-RUN apt-get update \
+# APT_REFRESH is a cache key: CI sets it to the current date, so this layer is rebuilt
+# daily instead of being replayed from the layer cache indefinitely.
+ARG APT_REFRESH
+RUN echo "apt refresh: ${APT_REFRESH}" \
+    && apt-get update \
     && apt-get upgrade -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 RUN install-php-extensions opentelemetry protobuf
