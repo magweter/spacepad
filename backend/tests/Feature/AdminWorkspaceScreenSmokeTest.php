@@ -52,6 +52,6 @@ test('a non-admin cannot reach the workspace screens', function () {
     $this->actingAs($user)->get(route('admin.workspaces.index'))->assertForbidden();
     $this->actingAs($user)->get(route('admin.workspaces.show', $user->primaryWorkspace()))->assertForbidden();
     $this->actingAs($user)
-        ->post(route('admin.workspaces.billing', $user->primaryWorkspace()), ['is_manually_billed' => '1'])
+        ->post(route('admin.workspaces.billing', $user->primaryWorkspace()), ['billing_mode' => 'manual'])
         ->assertForbidden();
 });

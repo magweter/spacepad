@@ -22,3 +22,9 @@
 # Renovate applies the same 3-day delay independently — see minimumReleaseAge in
 # renovate.json at the repository root.
 minimumReleaseAge: 1440
+
+# Packages allowed to run install scripts. Everything else is blocked by default since
+# pnpm v10. These used to live in the "pnpm" field of package.json, which pnpm no longer reads.
+onlyBuiltDependencies:
+  - '@tailwindcss/oxide'
+  - esbuild

@@ -15,7 +15,7 @@
   "rebaseWhen": "conflicted",
   "ignorePaths": ["**/node_modules/**", "**/vendor/**", "app/build/**"],
   "constraints": {
-    "pnpm": "10.11.0"
+    "pnpm": "10.34.5"
   },
   "minimumReleaseAge": "3 days",
   "osvVulnerabilityAlerts": true,
