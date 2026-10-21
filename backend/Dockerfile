@@ -42,6 +42,19 @@ RUN echo "apt refresh: ${APT_REFRESH}" \
     && rm -rf /var/lib/apt/lists/*
 RUN install-php-extensions opentelemetry protobuf
 
+# CVE-2026-109618 / CVE-2026-109619 (php2shell) are fixed in PHP 8.4.27. The tag above floats,
+# so fail the build rather than ship an older PHP from a stale registry mirror or layer cache.
+RUN php -r 'exit(version_compare(PHP_VERSION, "8.4.27", "<") ? 1 : 0);' \
+    || (echo "PHP $(php -r 'echo PHP_VERSION;') is older than 8.4.27" >&2 && exit 1)
+
+# Hardening recommended in the php2shell advisory. Spacepad does not use upload progress
+# tracking, and the largest upload it accepts is 4 MB (advertisement image), so the
+# serversideup default of 100M is far more than any request needs. Self-hosters can still
+# override the size limits with PHP_POST_MAX_SIZE / PHP_UPLOAD_MAX_FILE_SIZE.
+RUN echo "session.upload_progress.enabled = Off" > /usr/local/etc/php/conf.d/spacepad-security.ini
+ENV PHP_POST_MAX_SIZE=32M \
+    PHP_UPLOAD_MAX_FILE_SIZE=8M
+
 FROM base AS production
 
 ARG GIT_TAG

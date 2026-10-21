@@ -58,6 +58,12 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(20)->by($request->ip());
         });
 
+        // Requesting a magic link is public, sends mail and creates a user row for an unknown
+        // address, so bound it per client. Five a minute is plenty for a typo or two.
+        RateLimiter::for('login', function (Request $request) {
+            return Limit::perMinute(5)->by($request->ip());
+        });
+
         // Every admin screen shows the same tiles, so they are filled here rather than by
         // each admin controller remembering to pass them.
         View::composer('components.admin.stats', function ($view) {
