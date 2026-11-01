@@ -565,4 +565,21 @@ class DisplaySettings
     {
         return self::setSetting($display, 'show_meeting_location', $show, 'boolean');
     }
+
+    /**
+     * Whether the LED strips on the display housing follow the room state.
+     *
+     * Only Philips signage displays with SICP (10BDL4151T and the like) have such strips; on any
+     * other device the tablet quietly finds nothing listening and leaves it at that. Off by default
+     * so a tablet never pokes at a port nobody asked it to.
+     */
+    public static function isLedEnabled(Display $display): bool
+    {
+        return self::getSetting($display, 'led_enabled', false);
+    }
+
+    public static function setLedEnabled(Display $display, bool $enabled): bool
+    {
+        return self::setSetting($display, 'led_enabled', $enabled, 'boolean');
+    }
 }

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:spacepad/components/spinner.dart';
 import 'package:spacepad/controllers/led_test_controller.dart';
+import 'package:spacepad/models/led_color.dart';
 import 'package:spacepad/theme.dart';
 import 'package:tailwind_components/tailwind_components.dart';
 

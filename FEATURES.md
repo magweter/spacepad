@@ -24,6 +24,7 @@ A privacy-focused room display app that shows real-time room availability, synce
 - Time remaining in current meeting
 - Time until next meeting
 - Next upcoming event preview
+- LED strips on Philips signage displays (10BDL4151T and similar, Network SICP) follow the same colours: green, orange and red, white on the room picker. Optional per display, off by default
 
 ### Clock & Identity
 - Real-time digital clock
@@ -113,6 +114,7 @@ Neither is inherited from a profile: they belong to the display itself.
 | Show organizer | On/off |
 | Show meeting title | On/off |
 | Show meeting location | On/off (default off) |
+| LED strips follow the room state | On/off (default off), Philips SICP displays only |
 | Hide admin actions | On/off |
 | Border thickness | Small / Medium / Large |
 

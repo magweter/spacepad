@@ -254,7 +254,7 @@ class ProfilesController extends Controller
         $booleans = [
             'check_in_enabled', 'booking_enabled', 'hide_admin_actions', 'view_schedule',
             'allow_future_bookings', 'extend_enabled', 'show_organizer',
-            'show_meeting_title', 'show_meeting_location',
+            'show_meeting_title', 'show_meeting_location', 'led_enabled',
             'advertisement_enabled',
         ];
         foreach ($booleans as $key) {

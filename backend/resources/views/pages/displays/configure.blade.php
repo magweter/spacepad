@@ -306,6 +306,17 @@
                         </div>
                     </label>
 
+                    <label class="flex items-start gap-3 cursor-pointer">
+                        <input type="checkbox" name="led_enabled" value="1" class="mt-0.5 {{ $checkClass }}"
+                               {{ $ds::isLedEnabled($display) ? 'checked' : '' }}>
+                        <div>
+                            <span class="flex items-center gap-1.5 text-sm font-medium text-gray-900">LED strips follow the room state
+                                <x-info-tip text="For Philips signage displays with LED strips on the housing (10BDL4151T and similar). The strips turn green when the room is free, orange when a meeting is about to start or end, and red while it is reserved. Network SICP must be enabled on the display. Has no effect on other devices." />
+                            </span>
+                            <p class="text-xs text-gray-500">Philips SICP displays only. Off by default.</p>
+                        </div>
+                    </label>
+
                     <div class="pt-4 border-t border-gray-100">
                         <p class="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-2">Border thickness
                             <x-info-tip text="Thickness of the coloured status border around the screen. Large reads clearly from a corridor; small suits a tablet you stand right in front of." />
