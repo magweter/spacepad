@@ -54,6 +54,10 @@ class WorkspaceMemberController extends Controller
             // Resolved here so the page never asks Lemon Squeezy anything while rendering:
             // the portal url itself is fetched behind the POST route.
             'canOpenBillingPortal' => $workspace->hasBillingPortal(),
+            // Monthly and yearly can be swapped from this page. Both are local checks; the
+            // checkout url is only fetched behind the POST route.
+            'canSwitchToYearly' => $workspace->canSwitchToYearly(),
+            'canSwitchToMonthly' => $workspace->canSwitchToMonthly(),
         ]);
     }
 

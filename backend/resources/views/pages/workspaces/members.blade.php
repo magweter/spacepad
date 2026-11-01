@@ -183,6 +183,52 @@
                 @endif
             </div>
         @endif
+
+        {{-- Monthly or yearly. Moving to yearly is a fresh checkout, paid there and then; going
+             back to monthly is only recorded here and happens when the paid year ends. --}}
+        @can('manageBilling', $workspace)
+            @if($canSwitchToYearly || $canSwitchToMonthly)
+                <div class="mt-4 pt-4 border-t border-gray-100 sm:flex sm:items-center sm:justify-between sm:gap-4">
+                    @if($canSwitchToYearly)
+                        <p class="text-sm text-gray-500 sm:max-w-xl">
+                            Pay a year in advance for your current {{ $usageBreakdown['total'] }} units. Your monthly subscription stops immediately and switches to a yearly subscription.
+                        </p>
+                        <form action="{{ route('billing.switch-yearly') }}" method="POST" class="mt-3 sm:mt-0 shrink-0">
+                            @csrf
+                            <button type="submit"
+                                class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
+                                Switch to yearly
+                            </button>
+                        </form>
+                    @elseif($workspace->switch_to_monthly_requested_at)
+                        <p class="text-sm text-gray-500 sm:max-w-xl">
+                            Your subscription switches to monthly on {{ $subscription?->renews_at?->format('j F Y') ?? 'the date your current year ends' }}.
+                            Until then your yearly subscription carries on as it is.
+                        </p>
+                        <form action="{{ route('billing.switch-monthly.cancel') }}" method="POST" class="mt-3 sm:mt-0 shrink-0">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit"
+                                class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
+                                Keep yearly
+                            </button>
+                        </form>
+                    @else
+                        <p class="text-sm text-gray-500 sm:max-w-xl">
+                            Your yearly subscription runs until {{ $subscription?->renews_at?->format('j F Y') ?? 'the end of the paid year' }}.
+                            Switch to monthly and you pay per month from then on.
+                        </p>
+                        <form action="{{ route('billing.switch-monthly') }}" method="POST" class="mt-3 sm:mt-0 shrink-0">
+                            @csrf
+                            <button type="submit"
+                                class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
+                                Switch to monthly
+                            </button>
+                        </form>
+                    @endif
+                </div>
+            @endif
+        @endcan
     </x-cards.card>
 
     {{-- Members --}}
