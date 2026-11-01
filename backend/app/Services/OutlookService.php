@@ -57,15 +57,15 @@ class OutlookService
      *
      * @param  PermissionType  $permissionType  'read' or 'write', or PermissionType enum
      */
-    public function getAdminConsentUrl(?string $outlookAccountId = null): string
+    public function getAdminConsentUrl(?string $state = null): string
     {
         $params = [
             'client_id' => $this->clientId,
             'redirect_uri' => $this->redirectUri,
         ];
 
-        if ($outlookAccountId) {
-            $params['state'] = 'account:'.$outlookAccountId;
+        if ($state) {
+            $params['state'] = $state;
         }
 
         return 'https://login.microsoftonline.com/common/adminconsent?'.http_build_query($params);
