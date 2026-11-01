@@ -5,9 +5,12 @@ import 'package:spacepad/date_format_helper.dart';
 import 'package:tailwind_components/tailwind_components.dart';
 
 class EventLine extends StatelessWidget {
-  const EventLine({super.key, required this.event});
+  const EventLine({super.key, required this.event, this.scale = 1.0});
 
   final EventModel event;
+
+  /// The text size step chosen for the next meeting, see DashboardController.upcomingScale.
+  final double scale;
 
   bool _isPhone(BuildContext context) {
     final shortestSide = MediaQuery.of(context).size.shortestSide;
@@ -18,11 +21,11 @@ class EventLine extends StatelessWidget {
   /// drift apart on a narrower display. Mirrors DashboardPage._barFontSize.
   double _fontSize(BuildContext context, bool isPhone) {
     if (isPhone) {
-      return 16;
+      return (16 * scale).roundToDouble();
     }
 
     final s = MediaQuery.of(context).size.shortestSide;
-    return (20 * (s / 750).clamp(0.5, 1.3)).roundToDouble();
+    return (20 * (s / 750).clamp(0.5, 1.3) * scale).roundToDouble();
   }
 
   @override

@@ -565,4 +565,46 @@ class DisplaySettings
     {
         return self::setSetting($display, 'show_meeting_location', $show, 'boolean');
     }
+
+    /**
+     * The texts on the display whose size can be set, each stored as `font_size_<element>`.
+     *
+     * A size is a step, not a number: the tablet maps it to a factor on the size it already
+     * computes for its screen, so a setting can never break the layout of a smaller panel.
+     */
+    public const FONT_SIZE_ELEMENTS = [
+        'room_name' => 'Room name',
+        'status' => 'Status and meeting title',
+        'upcoming' => 'Next meeting',
+        'schedule' => 'Day schedule',
+    ];
+
+    public const FONT_SIZES = [
+        'small' => 'Small',
+        'normal' => 'Normal (default)',
+        'large' => 'Large',
+        'xlarge' => 'Extra large',
+    ];
+
+    public static function getFontSize(Display $display, string $element): string
+    {
+        return self::getSetting($display, "font_size_{$element}", 'normal');
+    }
+
+    public static function setFontSize(Display $display, string $element, string $size): bool
+    {
+        if (! array_key_exists($element, self::FONT_SIZE_ELEMENTS) || ! array_key_exists($size, self::FONT_SIZES)) {
+            return false;
+        }
+
+        return self::setSetting($display, "font_size_{$element}", $size, 'string');
+    }
+
+    /**
+     * The validation rule for one font size field.
+     */
+    public static function fontSizeRule(): string
+    {
+        return 'nullable|in:'.implode(',', array_keys(self::FONT_SIZES));
+    }
 }

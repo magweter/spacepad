@@ -20,6 +20,7 @@ import 'package:spacepad/components/frosted_panel.dart';
 import 'package:spacepad/components/admin_actions.dart';
 import 'package:spacepad/components/day_timeline_widget.dart';
 import 'package:spacepad/components/meeting_meta_row.dart';
+import 'package:spacepad/components/status_title.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -71,16 +72,23 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   /// The one type size the bottom bar is set in: the upcoming-event line, the empty-state
-  /// text and the View schedule button. They sit on the same row, so they scale together.
+  /// text and the View schedule button. They sit on the same row, so they scale together, also
+  /// with the text size chosen for the next meeting.
   /// [EventLine] repeats this because it is a widget of its own.
-  double _barFontSize(BuildContext context, bool isPhone) {
-    return isPhone ? 16 : _sp(context, 20);
+  double _barFontSize(BuildContext context, bool isPhone, double scale) {
+    return ((isPhone ? 16 : _sp(context, 20)) * scale).roundToDouble();
   }
 
   /// The calendar glyph beside "View schedule", kept in step with [_barFontSize] instead of
   /// staying at a fixed 24 while the label around it shrank.
-  double _barIconSize(BuildContext context, bool isPhone) {
-    return isPhone ? 20 : _sp(context, 24);
+  double _barIconSize(BuildContext context, bool isPhone, double scale) {
+    return ((isPhone ? 20 : _sp(context, 24)) * scale).roundToDouble();
+  }
+
+  /// The space kept free between the header and the content, and between the content and the
+  /// bottom bar. The title gives up lines before it eats into this (see [StatusTitle]).
+  double _safeMargin(BuildContext context, bool isPhone) {
+    return isPhone ? 12 : _sp(context, 24);
   }
 
   bool _isPortrait(BuildContext context) {
@@ -131,9 +139,11 @@ class _DashboardPageState extends State<DashboardPage> {
       onLongPressEnd: (_) { if (hideAdminActions) controller.cancelLongPressTimer(); },
       child: Text(
         controller.roomName,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
         style: FontService.instance.getTextStyle(
           fontFamily: controller.currentFontFamily.value,
-          fontSize: _sp(context, 28),
+          fontSize: _sp(context, 28) * controller.roomNameScale,
           fontWeight: FontWeight.w500,
           color: TWColors.white,
         ),
@@ -180,6 +190,206 @@ class _DashboardPageState extends State<DashboardPage> {
     });
   }
 
+  /// The top row: clock, stale-data warning, admin actions and the room name.
+  ///
+  /// [timelineToggle] adds the icon that opens and closes the side panel, which only the
+  /// side-panel layout has.
+  Widget _buildHeader(BuildContext context, DashboardController controller, bool isPhone, {bool timelineToggle = false}) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Obx(() => Text(
+          formatTime(context, controller.time.value),
+          style: FontService.instance.getTextStyle(
+            fontFamily: controller.currentFontFamily.value,
+            fontSize: _sp(context, 28),
+            fontWeight: FontWeight.w500,
+            color: TWColors.white,
+          ),
+        )),
+        const Spacer(),
+        Obx(() => controller.isDataStale.value
+            ? Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: _buildStaleIndicator(context, isPhone, controller),
+              )
+            : const SizedBox.shrink()),
+        const Spacer(),
+        // Flexible with a large flex, so the room name gets nearly all the width the clock
+        // leaves, and only shortens itself when even that is not enough: a long name at a large
+        // text size beside a side panel.
+        Flexible(
+          flex: 20,
+          child: Obx(() {
+          final hide = controller.globalSettings.value?.hideAdminActions ?? false;
+          final showTemp = controller.showAdminActionsTemporarily.value;
+          final show = !hide || showTemp;
+          return Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              if (show) AdminActions(controller: controller),
+              if (show) const SizedBox(width: 15),
+              if (timelineToggle && show) ...[
+                Opacity(
+                  opacity: 0.6,
+                  child: GestureDetector(
+                    onTap: () => setState(() => _timelineOpen = !_timelineOpen),
+                    child: Icon(
+                      _timelineOpen ? Icons.calendar_today : Icons.calendar_today_outlined,
+                      color: Colors.white,
+                      size: _sp(context, 24),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 15),
+              ],
+              Flexible(child: _buildRoomName(context, controller, hide)),
+            ],
+          );
+        }),
+        ),
+      ],
+    );
+  }
+
+  /// Logo, title, meeting details and the action buttons, centred in the height between the
+  /// header and the bottom bar.
+  ///
+  /// The title is the one flexible child: everything else is laid out first and the title gets
+  /// what is left, up to three lines. So a long meeting subject shortens itself instead of
+  /// pushing the logo and the buttons into the header and the bottom bar.
+  Widget _buildMainContent(
+    BuildContext context,
+    DashboardController controller,
+    bool isPhone,
+    double cornerRadius,
+    bool isPortrait, {
+    required bool panelBeside,
+  }) {
+    final space = controller.meetingInfoTimes != null ? (isPhone ? 5.0 : 10.0) : 0.0;
+
+    return Column(
+      mainAxisSize: MainAxisSize.max,
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Obx(() {
+          final logoUrl = controller.globalSettings.value?.logoUrl;
+          if (logoUrl == null) {
+            return const SizedBox.shrink();
+          }
+          return Container(
+            margin: EdgeInsets.only(bottom: isPhone ? 20 : 10),
+            child: AuthenticatedImage(
+              imageUrl: logoUrl,
+              height: isPhone ? 24 : 36,
+              fit: BoxFit.contain,
+              placeholder: SizedBox(
+                height: isPhone ? 24 : 36,
+                child: Center(
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(TWColors.gray_300),
+                  ),
+                ),
+              ),
+              errorWidget: const SizedBox.shrink(),
+            ),
+          );
+        }),
+        SizedBox(height: space),
+        Flexible(
+          child: Obx(() => StatusTitle(
+            text: controller.title,
+            style: FontService.instance.getTextStyle(
+              fontFamily: controller.currentFontFamily.value,
+              fontSize: _sp(context, 50) * controller.statusScale,
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
+            ),
+          )),
+        ),
+        SizedBox(height: space),
+        MeetingMetaRow(
+          controller: controller,
+          isPhone: isPhone,
+          cornerRadius: cornerRadius,
+          panelBeside: panelBeside,
+          isPortrait: isPortrait,
+        ),
+        if (controller.meetingInfoTimes == null) SizedBox(height: isPhone ? 5 : 10),
+        if (controller.bookingEnabled || controller.checkInEnabled || controller.extendEnabled) ...[
+          SizedBox(height: space),
+          ActionPanel(
+            controller: controller,
+            isPhone: isPhone,
+            cornerRadius: cornerRadius,
+          ),
+        ],
+      ],
+    );
+  }
+
+  /// The frosted bar along the bottom: the next meeting and the View schedule button.
+  Widget _buildBottomBar(BuildContext context, DashboardController controller, bool isPhone, double cornerRadius) {
+    final scale = controller.upcomingScale;
+    final fontSize = _barFontSize(context, isPhone, scale);
+
+    return FrostedPanel(
+      borderRadius: cornerRadius,
+      blurIntensity: 18,
+      padding: EdgeInsets.all(isPhone ? 12 : _sp(context, 20)),
+      child: SpaceRow(
+        spaceBetween: isPhone ? 10 : _sp(context, 20),
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: controller.upcomingEvents.isNotEmpty
+              ? SpaceCol(
+                  spaceBetween: isPhone ? 8 : 12,
+                  children: [
+                    for (EventModel event in controller.upcomingEvents.take(1)) EventLine(event: event, scale: scale),
+                  ],
+                )
+              : Text(
+                  'no_upcoming_events'.tr,
+                  style: TextStyle(color: TWColors.white, fontSize: fontSize, fontWeight: FontWeight.w500),
+                ),
+          ),
+          if (controller.calendarEnabled)
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                hoverColor: Colors.transparent,
+                splashColor: Colors.transparent,
+                highlightColor: Colors.transparent,
+                borderRadius: BorderRadius.circular(8),
+                onTap: () => showDialog(
+                  context: context,
+                  builder: (context) => CalendarModal(events: controller.events, selectedDate: DateTime.now()),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.calendar_today_outlined, size: _barIconSize(context, isPhone, scale), color: Colors.white),
+                      const SizedBox(width: 12),
+                      Text(
+                        'view_schedule'.tr,
+                        style: TextStyle(color: Colors.white, fontSize: fontSize, fontWeight: FontWeight.w500),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     DashboardController controller = Get.put(DashboardController());
@@ -208,196 +418,26 @@ class _DashboardPageState extends State<DashboardPage> {
         final gap = isPhone ? 10.0 : 16.0;
         final portraitTimelineHeight = isPhone ? 200.0 : _panelSize(context, 260).clamp(200.0, 260.0);
 
+        final safeMargin = _safeMargin(context, isPhone);
+
         final mainStack = Stack(
           children: [
-            Align(
-              alignment: Alignment.topLeft,
-              child: Obx(() => Text(
-                formatTime(context, controller.time.value),
-                style: FontService.instance.getTextStyle(
-                  fontFamily: controller.currentFontFamily.value,
-                  fontSize: _sp(context, 28),
-                  fontWeight: FontWeight.w500,
-                  color: TWColors.white,
-                ),
-              )),
-            ),
-            Align(
-              alignment: Alignment.topCenter,
-              child: Obx(() => controller.isDataStale.value
-                  ? _buildStaleIndicator(context, isPhone, controller)
-                  : const SizedBox.shrink()),
-            ),
-            Align(
-              alignment: Alignment.topRight,
-              child: Obx(() {
-                final hideAdminActions = controller.globalSettings.value?.hideAdminActions ?? false;
-                final showTemporarily = controller.showAdminActionsTemporarily.value;
-                final shouldShowAdminActions = !hideAdminActions || showTemporarily;
-                return Row(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    if (shouldShowAdminActions) AdminActions(
-                      controller: controller,
-                    ),
-                    if (shouldShowAdminActions) const SizedBox(width: 15),
-                    if (timelineEnabled && shouldShowAdminActions) ...[
-                      Opacity(
-                        opacity: 0.6,
-                        child: GestureDetector(
-                          onTap: () => setState(() => _timelineOpen = !_timelineOpen),
-                          child: Icon(
-                            _timelineOpen
-                                ? Icons.calendar_today
-                                : Icons.calendar_today_outlined,
-                            color: Colors.white,
-                            size: _sp(context, 24),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 15),
-                    ],
-                    _buildRoomName(context, controller, hideAdminActions),
-                  ],
-                );
-              }),
-            ),
-
-            SpaceCol(
-              spaceBetween: _getContainerPadding(context, controller) * 1.75,
-              mainAxisSize: MainAxisSize.max,
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                SpaceCol(
-                  spaceBetween: controller.meetingInfoTimes != null ? (isPhone ? 5 : 10) : 0,
-                  children: [
-                    Obx(() {
-                      final logoUrl = controller.globalSettings.value?.logoUrl;
-                      if (logoUrl != null) {
-                        return Container(
-                          margin: EdgeInsets.only(bottom: isPhone ? 20 : 10),
-                          child: AuthenticatedImage(
-                            imageUrl: logoUrl,
-                            height: isPhone ? 24 : 36,
-                            fit: BoxFit.contain,
-                            placeholder: Container(
-                              height: isPhone ? 24 : 36,
-                              child: Center(
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(TWColors.gray_300),
-                                ),
-                              ),
-                            ),
-                            errorWidget: SizedBox.shrink(),
-                          ),
-                        );
-                      }
-                      return SizedBox.shrink();
-                    }),
-                    Obx(() => Text(
-                      controller.title,
-                      style: FontService.instance.getTextStyle(
-                        fontFamily: controller.currentFontFamily.value,
-                        fontSize: _sp(context, 50),
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                      ),
-                    )),
-                    MeetingMetaRow(
-                      controller: controller,
-                      isPhone: isPhone,
-                      cornerRadius: cornerRadius,
-                      // mainStack serves both 'none' and 'side_panel'. Only the latter puts a panel
-                      // beside the content, and only while it is open.
-                      panelBeside: timelineMode == 'side_panel' && _timelineOpen,
-                      isPortrait: isPortrait,
-                    ),
-                    if (controller.meetingInfoTimes == null) SizedBox(height: isPhone ? 5 : 10),
-                    if (controller.bookingEnabled || controller.checkInEnabled || controller.extendEnabled) ActionPanel(
-                      controller: controller,
-                      isPhone: isPhone,
-                      cornerRadius: cornerRadius,
-                    ),
-                  ],
+                _buildHeader(context, controller, isPhone, timelineToggle: timelineEnabled),
+                SizedBox(height: safeMargin),
+                Expanded(
+                  child: _buildMainContent(
+                    context, controller, isPhone, cornerRadius, isPortrait,
+                    // mainStack serves both 'none' and 'side_panel'. Only the latter puts a panel
+                    // beside the content, and only while it is open.
+                    panelBeside: timelineMode == 'side_panel' && _timelineOpen,
+                  ),
                 ),
+                SizedBox(height: safeMargin),
+                _buildBottomBar(context, controller, isPhone, cornerRadius),
               ],
-            ),
-
-            // Fixed Action Bar at Bottom
-            Align(
-              alignment: Alignment.bottomCenter,
-              child: FrostedPanel(
-                borderRadius: cornerRadius,
-                blurIntensity: 18,
-                padding: EdgeInsets.all(isPhone ? 12 : _sp(context, 20)),
-                child: SpaceRow(
-                  spaceBetween: isPhone ? 10 : _sp(context, 20),
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: controller.upcomingEvents.isNotEmpty
-                        ? SpaceCol(
-                            spaceBetween: isPhone ? 8 : 12,
-                            children: [
-                              for (EventModel event in controller.upcomingEvents.take(1)) EventLine(event: event),
-                            ],
-                          )
-                        : Text(
-                            'no_upcoming_events'.tr,
-                            style: TextStyle(
-                              color: TWColors.white,
-                              fontSize: _barFontSize(context, isPhone),
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                    ),
-                    if (controller.calendarEnabled)
-                      Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          hoverColor: Colors.transparent,
-                          splashColor: Colors.transparent,
-                          highlightColor: Colors.transparent,
-                          borderRadius: BorderRadius.circular(8),
-                          onTap: () {
-                            showDialog(
-                              context: context,
-                              builder: (context) => CalendarModal(
-                                events: controller.events,
-                                selectedDate: DateTime.now(),
-                              ),
-                            );
-                          },
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.calendar_today_outlined,
-                                  size: _barIconSize(context, isPhone),
-                                  color: Colors.white,
-                                ),
-                                const SizedBox(width: 12),
-                                Text(
-                                  'view_schedule'.tr,
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: _barFontSize(context, isPhone),
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
             ),
 
             // Advertisement overlay — hidden while timeline is open
@@ -486,103 +526,18 @@ class _DashboardPageState extends State<DashboardPage> {
         // Timeline lives inside the main panel: header row at the top,
         // content + timeline side by side, action bar at the bottom.
         if (timelineMode == 'inline') {
-          final inlineContentWidget = SpaceCol(
-            spaceBetween: _getContainerPadding(context, controller) * 1.75,
-            mainAxisSize: MainAxisSize.max,
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SpaceCol(
-                spaceBetween: controller.meetingInfoTimes != null ? (isPhone ? 5 : 10) : 0,
-                children: [
-                  Obx(() {
-                    final logoUrl = controller.globalSettings.value?.logoUrl;
-                    if (logoUrl != null) {
-                      return Container(
-                        margin: EdgeInsets.only(bottom: isPhone ? 20 : 10),
-                        child: AuthenticatedImage(
-                          imageUrl: logoUrl,
-                          height: isPhone ? 24 : 36,
-                          fit: BoxFit.contain,
-                          placeholder: Container(
-                            height: isPhone ? 24 : 36,
-                            child: Center(child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(TWColors.gray_300))),
-                          ),
-                          errorWidget: SizedBox.shrink(),
-                        ),
-                      );
-                    }
-                    return SizedBox.shrink();
-                  }),
-                  Obx(() => Text(controller.title,
-                    style: FontService.instance.getTextStyle(
-                      fontFamily: controller.currentFontFamily.value,
-                      fontSize: _sp(context, 50),
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                    ),
-                  )),
-                  MeetingMetaRow(
-                    controller: controller,
-                    isPhone: isPhone,
-                    cornerRadius: cornerRadius,
-                    // The timeline sits beside the content in landscape and under it in portrait,
-                    // so this row never has the full width of the display.
-                    panelBeside: true,
-                    isPortrait: isPortrait,
-                  ),
-                  if (controller.meetingInfoTimes == null) SizedBox(height: isPhone ? 5 : 10),
-                  if (controller.bookingEnabled || controller.checkInEnabled || controller.extendEnabled) ActionPanel(
-                    controller: controller,
-                    isPhone: isPhone,
-                    cornerRadius: cornerRadius,
-                  ),
-                ],
-              ),
-            ],
+          final inlineContentWidget = _buildMainContent(
+            context, controller, isPhone, cornerRadius, isPortrait,
+            // The timeline sits beside the content in landscape and under it in portrait,
+            // so this row never has the full width of the display.
+            panelBeside: true,
           );
 
           final inlineChild = Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Header: clock left, stale indicator center, admin actions + room name right
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Obx(() => Text(
-                    formatTime(context, controller.time.value),
-                    style: FontService.instance.getTextStyle(
-                      fontFamily: controller.currentFontFamily.value,
-                      fontSize: _sp(context, 28),
-                      fontWeight: FontWeight.w500,
-                      color: TWColors.white,
-                    ),
-                  )),
-                  const Spacer(),
-                  Obx(() => controller.isDataStale.value
-                      ? Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                          child: _buildStaleIndicator(context, isPhone, controller),
-                        )
-                      : const SizedBox.shrink()),
-                  const Spacer(),
-                  Obx(() {
-                    final hide = controller.globalSettings.value?.hideAdminActions ?? false;
-                    final showTemp = controller.showAdminActionsTemporarily.value;
-                    final show = !hide || showTemp;
-                    return Row(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        if (show) AdminActions(controller: controller),
-                        if (show) const SizedBox(width: 15),
-                        _buildRoomName(context, controller, hide),
-                      ],
-                    );
-                  }),
-                ],
-              ),
-              SizedBox(height: gap),
+              _buildHeader(context, controller, isPhone),
+              SizedBox(height: safeMargin),
               // Middle: portrait → content above, timeline below; landscape → side by side
               Expanded(
                 child: isPortrait
@@ -625,56 +580,8 @@ class _DashboardPageState extends State<DashboardPage> {
                       ],
                     ),
               ),
-              SizedBox(height: gap),
-              // Bottom bar (not in Align — Column handles vertical layout)
-              FrostedPanel(
-                borderRadius: cornerRadius,
-                blurIntensity: 18,
-                padding: EdgeInsets.all(isPhone ? 12 : _sp(context, 20)),
-                child: SpaceRow(
-                  spaceBetween: isPhone ? 10 : _sp(context, 20),
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: controller.upcomingEvents.isNotEmpty
-                        ? SpaceCol(
-                            spaceBetween: isPhone ? 8 : 12,
-                            children: [
-                              for (EventModel event in controller.upcomingEvents.take(1)) EventLine(event: event),
-                            ],
-                          )
-                        : Text('no_upcoming_events'.tr,
-                            style: TextStyle(color: TWColors.white, fontSize: _barFontSize(context, isPhone), fontWeight: FontWeight.w500)),
-                    ),
-                    if (controller.calendarEnabled)
-                      Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          hoverColor: Colors.transparent,
-                          splashColor: Colors.transparent,
-                          highlightColor: Colors.transparent,
-                          borderRadius: BorderRadius.circular(8),
-                          onTap: () => showDialog(
-                            context: context,
-                            builder: (context) => CalendarModal(events: controller.events, selectedDate: DateTime.now()),
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.calendar_today_outlined, size: _barIconSize(context, isPhone), color: Colors.white),
-                                const SizedBox(width: 12),
-                                Text('view_schedule'.tr,
-                                  style: TextStyle(color: Colors.white, fontSize: _barFontSize(context, isPhone), fontWeight: FontWeight.w500)),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
+              SizedBox(height: safeMargin),
+              _buildBottomBar(context, controller, isPhone, cornerRadius),
             ],
           );
 
@@ -705,146 +612,15 @@ class _DashboardPageState extends State<DashboardPage> {
         // main content (header + status + bottom bar) in a Column.
         if (timelineMode == 'full_panel') {
 
-          final fullPanelHeaderRow = Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Obx(() => Text(
-                formatTime(context, controller.time.value),
-                style: FontService.instance.getTextStyle(
-                  fontFamily: controller.currentFontFamily.value,
-                  fontSize: _sp(context, 28),
-                  fontWeight: FontWeight.w500,
-                  color: TWColors.white,
-                ),
-              )),
-              const Spacer(),
-              Obx(() => controller.isDataStale.value
-                  ? Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      child: _buildStaleIndicator(context, isPhone, controller),
-                    )
-                  : const SizedBox.shrink()),
-              const Spacer(),
-              Obx(() {
-                final hide = controller.globalSettings.value?.hideAdminActions ?? false;
-                final showTemp = controller.showAdminActionsTemporarily.value;
-                final show = !hide || showTemp;
-                return Row(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    if (show) AdminActions(controller: controller),
-                    if (show) const SizedBox(width: 15),
-                    _buildRoomName(context, controller, hide),
-                  ],
-                );
-              }),
-            ],
+          final fullPanelHeaderRow = _buildHeader(context, controller, isPhone);
+
+          final fullPanelContentWidget = _buildMainContent(
+            context, controller, isPhone, cornerRadius, isPortrait,
+            // Same as inline: the timeline always takes either the right side or the bottom.
+            panelBeside: true,
           );
 
-          final fullPanelContentWidget = SpaceCol(
-            spaceBetween: _getContainerPadding(context, controller) * 1.75,
-            mainAxisSize: MainAxisSize.max,
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SpaceCol(
-                spaceBetween: controller.meetingInfoTimes != null ? (isPhone ? 5 : 10) : 0,
-                children: [
-                  Obx(() {
-                    final logoUrl = controller.globalSettings.value?.logoUrl;
-                    if (logoUrl != null) {
-                      return Container(
-                        margin: EdgeInsets.only(bottom: isPhone ? 20 : 10),
-                        child: AuthenticatedImage(
-                          imageUrl: logoUrl,
-                          height: isPhone ? 24 : 36,
-                          fit: BoxFit.contain,
-                          placeholder: Container(
-                            height: isPhone ? 24 : 36,
-                            child: Center(child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(TWColors.gray_300))),
-                          ),
-                          errorWidget: const SizedBox.shrink(),
-                        ),
-                      );
-                    }
-                    return const SizedBox.shrink();
-                  }),
-                  Obx(() => Text(controller.title,
-                    style: FontService.instance.getTextStyle(
-                      fontFamily: controller.currentFontFamily.value,
-                      fontSize: _sp(context, 50),
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                    ),
-                  )),
-                  MeetingMetaRow(
-                    controller: controller,
-                    isPhone: isPhone,
-                    cornerRadius: cornerRadius,
-                    // Same as inline: the timeline always takes either the right side or the bottom.
-                    panelBeside: true,
-                    isPortrait: isPortrait,
-                  ),
-                  if (controller.meetingInfoTimes == null) SizedBox(height: isPhone ? 5 : 10),
-                  if (controller.bookingEnabled || controller.checkInEnabled || controller.extendEnabled) ActionPanel(
-                    controller: controller,
-                    isPhone: isPhone,
-                    cornerRadius: cornerRadius,
-                  ),
-                ],
-              ),
-            ],
-          );
-
-          final fullPanelBottomBar = FrostedPanel(
-            borderRadius: cornerRadius,
-            blurIntensity: 18,
-            padding: EdgeInsets.all(isPhone ? 12 : _sp(context, 20)),
-            child: SpaceRow(
-              spaceBetween: isPhone ? 10 : _sp(context, 20),
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: controller.upcomingEvents.isNotEmpty
-                    ? SpaceCol(
-                        spaceBetween: isPhone ? 8 : 12,
-                        children: [
-                          for (EventModel event in controller.upcomingEvents.take(1)) EventLine(event: event),
-                        ],
-                      )
-                    : Text('no_upcoming_events'.tr,
-                        style: TextStyle(color: TWColors.white, fontSize: _barFontSize(context, isPhone), fontWeight: FontWeight.w500)),
-                ),
-                if (controller.calendarEnabled)
-                  Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      hoverColor: Colors.transparent,
-                      splashColor: Colors.transparent,
-                      highlightColor: Colors.transparent,
-                      borderRadius: BorderRadius.circular(8),
-                      onTap: () => showDialog(
-                        context: context,
-                        builder: (context) => CalendarModal(events: controller.events, selectedDate: DateTime.now()),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.calendar_today_outlined, size: _barIconSize(context, isPhone), color: Colors.white),
-                            const SizedBox(width: 12),
-                            Text('view_schedule'.tr,
-                              style: TextStyle(color: Colors.white, fontSize: _barFontSize(context, isPhone), fontWeight: FontWeight.w500)),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          );
+          final fullPanelBottomBar = _buildBottomBar(context, controller, isPhone, cornerRadius);
 
           final fullPanelTimeline = DayTimelineWidget(
             controller: controller,
@@ -858,9 +634,9 @@ class _DashboardPageState extends State<DashboardPage> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   fullPanelHeaderRow,
-                  SizedBox(height: gap),
+                  SizedBox(height: safeMargin),
                   Expanded(child: fullPanelContentWidget),
-                  SizedBox(height: gap),
+                  SizedBox(height: safeMargin),
                   SizedBox(height: portraitTimelineHeight, child: fullPanelTimeline),
                   SizedBox(height: gap),
                   fullPanelBottomBar,
@@ -874,9 +650,9 @@ class _DashboardPageState extends State<DashboardPage> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         fullPanelHeaderRow,
-                        SizedBox(height: gap),
+                        SizedBox(height: safeMargin),
                         Expanded(child: fullPanelContentWidget),
-                        SizedBox(height: gap),
+                        SizedBox(height: safeMargin),
                         fullPanelBottomBar,
                       ],
                     ),

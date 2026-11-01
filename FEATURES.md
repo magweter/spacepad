@@ -131,6 +131,14 @@ Part of the same **Configure display** screen, in the Branding, State texts and 
 - Upload a custom **logo** (shown on the display)
 - Upload a custom **background image** or choose from built-in backgrounds
 - Choose a **font family**: Inter, Roboto, Open Sans, Lato, Poppins, Montserrat
+- Choose a **text size** (Small / Normal / Large / Extra large) separately for the room name, the
+  status and meeting title (with the meeting details under it), the next meeting in the bottom bar,
+  and the day schedule. A size multiplies the scale the display already uses for its screen, so a
+  step means the same on a phone as on a large panel. Also settable on a profile.
+
+The meeting title takes at most three lines, and fewer when the space between the header and the
+buttons cannot hold three: it shortens with an ellipsis instead of pushing the logo and the
+buttons against the header and the bottom bar, which always keep a margin to the content.
 
 ### State Text
 - Customize the label shown in each room state:

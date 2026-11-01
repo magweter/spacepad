@@ -364,6 +364,25 @@
                         </select>
                     </div>
 
+                    {{-- Text sizes --}}
+                    <div class="pt-4 border-t border-gray-100">
+                        <p class="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-2">Text sizes
+                            <x-info-tip text="Make a text larger to read it from further away. A larger size uses more room, so a long meeting title is shortened sooner." />
+                        </p>
+                        <div class="grid grid-cols-2 gap-4">
+                            @foreach($ds::FONT_SIZE_ELEMENTS as $element => $elementLabel)
+                                <div>
+                                    <label for="font_size_{{ $element }}" class="block text-xs text-gray-500 mb-1">{{ $elementLabel }}</label>
+                                    <select name="font_size_{{ $element }}" id="font_size_{{ $element }}" class="{{ $selectClass }}">
+                                        @foreach($ds::FONT_SIZES as $size => $sizeLabel)
+                                            <option value="{{ $size }}" {{ old("font_size_{$element}", $ds::getFontSize($display, $element)) === $size ? 'selected' : '' }}>{{ $sizeLabel }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+
                     {{-- Logo --}}
                     <div class="pt-4 border-t border-gray-100">
                         <label class="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-2">

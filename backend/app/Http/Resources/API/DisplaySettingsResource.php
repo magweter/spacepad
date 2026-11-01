@@ -29,6 +29,10 @@ class DisplaySettingsResource extends JsonResource
             'logo_url' => $this->getLogoUrl(),
             'background_image_url' => $this->getBackgroundImageUrl(),
             'font_family' => $this->getFontFamily(),
+            'font_size_room_name' => $this->getFontSize('room_name'),
+            'font_size_status' => $this->getFontSize('status'),
+            'font_size_upcoming' => $this->getFontSize('upcoming'),
+            'font_size_schedule' => $this->getFontSize('schedule'),
             'cancel_permission' => $this->getCancelPermission(),
             'border_thickness' => $this->getBorderThickness(),
 

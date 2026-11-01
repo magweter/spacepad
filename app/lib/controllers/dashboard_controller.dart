@@ -561,6 +561,30 @@ class DashboardController extends GetxController {
     }
   }
 
+  /// The factor for a text size step chosen in the dashboard. It multiplies the size the screen
+  /// already scales to, so a step means the same thing on a phone as on a large panel.
+  static double _fontScale(String? size) {
+    switch (size) {
+      case 'small':
+        return 0.85;
+      case 'large':
+        return 1.25;
+      case 'xlarge':
+        return 1.5;
+      case 'normal':
+      default:
+        return 1.0;
+    }
+  }
+
+  double get roomNameScale => _fontScale(globalSettings.value?.fontSizeRoomName);
+
+  double get statusScale => _fontScale(globalSettings.value?.fontSizeStatus);
+
+  double get upcomingScale => _fontScale(globalSettings.value?.fontSizeUpcoming);
+
+  double get scheduleScale => _fontScale(globalSettings.value?.fontSizeSchedule);
+
   bool get extendEnabled {
     return globalSettings.value?.extendEnabled ?? false;
   }

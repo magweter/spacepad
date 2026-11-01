@@ -25,6 +25,10 @@ class DisplaySettingsModel {
   bool extendEnabled;
   bool showOrganizer;
   bool showMeetingLocation;
+  String fontSizeRoomName;
+  String fontSizeStatus;
+  String fontSizeUpcoming;
+  String fontSizeSchedule;
 
   DisplaySettingsModel({
     required this.checkInEnabled,
@@ -53,6 +57,10 @@ class DisplaySettingsModel {
     this.extendEnabled = false,
     this.showOrganizer = false,
     this.showMeetingLocation = false,
+    this.fontSizeRoomName = 'normal',
+    this.fontSizeStatus = 'normal',
+    this.fontSizeUpcoming = 'normal',
+    this.fontSizeSchedule = 'normal',
   });
 
   factory DisplaySettingsModel.fromJson(Map data) {
@@ -85,6 +93,10 @@ class DisplaySettingsModel {
       // Defaults to false, the same as the setting itself: a tablet talking to a backend
       // that predates it leaves the location line out rather than printing it forever.
       showMeetingLocation: data['show_meeting_location'] ?? false,
+      fontSizeRoomName: data['font_size_room_name'] ?? 'normal',
+      fontSizeStatus: data['font_size_status'] ?? 'normal',
+      fontSizeUpcoming: data['font_size_upcoming'] ?? 'normal',
+      fontSizeSchedule: data['font_size_schedule'] ?? 'normal',
     );
   }
 
@@ -116,6 +128,10 @@ class DisplaySettingsModel {
       'extend_enabled': extendEnabled,
       'show_organizer': showOrganizer,
       'show_meeting_location': showMeetingLocation,
+      'font_size_room_name': fontSizeRoomName,
+      'font_size_status': fontSizeStatus,
+      'font_size_upcoming': fontSizeUpcoming,
+      'font_size_schedule': fontSizeSchedule,
     };
   }
 } 

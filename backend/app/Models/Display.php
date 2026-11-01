@@ -234,6 +234,11 @@ class Display extends Model
         return DisplaySettings::getFontFamily($this);
     }
 
+    public function getFontSize(string $element): string
+    {
+        return DisplaySettings::getFontSize($this, $element);
+    }
+
     public function isAdminActionsHidden(): bool
     {
         return DisplaySettings::isAdminActionsHidden($this);
