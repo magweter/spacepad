@@ -34,6 +34,7 @@ class Workspace extends Model
         'is_unlimited' => 'boolean',
         'is_manually_billed' => 'boolean',
         'manual_billing_unit_price' => 'decimal:2',
+        'switch_to_monthly_requested_at' => 'datetime',
     ];
 
     /**
@@ -612,6 +613,26 @@ class Workspace extends Model
             && $subscription->ends_at === null
             && in_array($subscription->status, [Subscription::STATUS_ACTIVE, Subscription::STATUS_ON_TRIAL], true)
             && ! BillingPlans::isYearly($subscription);
+    }
+
+    /**
+     * Whether the owner can ask to go from yearly back to monthly.
+     *
+     * The switch itself happens the day before the paid year ends; until then the request is
+     * only a flag, which is also what makes it possible to take it back.
+     */
+    public function canSwitchToMonthly(): bool
+    {
+        if (! $this->canSwitchInterval()) {
+            return false;
+        }
+
+        $subscription = $this->liveSubscription();
+
+        return $subscription !== null
+            && $subscription->ends_at === null
+            && in_array($subscription->status, [Subscription::STATUS_ACTIVE, Subscription::STATUS_PAST_DUE], true)
+            && BillingPlans::isYearly($subscription);
     }
 
     /**

@@ -99,6 +99,43 @@ class BillingController extends Controller
         }
     }
 
+    /**
+     * Ask for a yearly workspace to go back to monthly when the paid year ends.
+     *
+     * Only recorded here. app:process-yearly-subscriptions swaps the variant the day before
+     * renewal, so the year that is paid for runs out and the renewal bills a month.
+     */
+    public function switchToMonthly(Request $request): RedirectResponse
+    {
+        $workspace = $request->user()->getSelectedWorkspace();
+
+        abort_unless($workspace !== null, 404, 'No workspace found');
+        $this->authorize('manageBilling', $workspace);
+
+        if (! $workspace->canSwitchToMonthly()) {
+            return redirect()->route('workspaces.members')
+                ->with('error', 'This workspace cannot switch to a monthly subscription right now. Email support@spacepad.io if you think it should.');
+        }
+
+        $workspace->forceFill(['switch_to_monthly_requested_at' => now()])->save();
+
+        return redirect()->route('workspaces.members')
+            ->with('success', 'Your subscription switches to monthly when your current year ends.');
+    }
+
+    public function cancelSwitchToMonthly(Request $request): RedirectResponse
+    {
+        $workspace = $request->user()->getSelectedWorkspace();
+
+        abort_unless($workspace !== null, 404, 'No workspace found');
+        $this->authorize('manageBilling', $workspace);
+
+        $workspace->forceFill(['switch_to_monthly_requested_at' => null])->save();
+
+        return redirect()->route('workspaces.members')
+            ->with('success', 'Your subscription stays yearly.');
+    }
+
     public function thanks(): RedirectResponse
     {
         GoogleTagManagerFacade::flashPush([
