@@ -238,6 +238,14 @@ a separate account with its own invisible set of displays.
   **manually billed** (invoiced by us, at a per-workspace unit price) or **unlimited** (Pro for free,
   for a non-profit deal or a test account: never charged and no price shown). A workspace is on
   exactly one of the three
+- **Cancel from the workspace page**: owners and admins cancel the subscription right there, after one
+  short question about why. Pro stays active until the end of the paid period, and the page shows that
+  date. A subscription cancelled through the billing portal or a Lemon Squeezy email gets the same
+  question on the dashboard, once; taking the cancellation back removes it
+- **Back to the free plan**: when a subscription has definitively ended, the oldest display stays active
+  and the others show "Requires Pro" until the workspace upgrades again, at which point they come back
+  on their own. A failed payment that is still being retried changes nothing. On the dashboard you can
+  pick which display is the active one
 
 ---
 
@@ -255,6 +263,9 @@ a separate account with its own invisible set of displays.
 - **Usage / analytics** — display activity statistics
 - **Roadmap** — public feature roadmap with community voting and status tracking
 - **Help / FAQ** — searchable help center covering setup, integrations, troubleshooting, and billing
+- **Workspace profile** — after the first display, owners and admins of a business workspace see two
+  optional one-click questions on the dashboard: how many rooms they want to show, and what they used
+  before. Every answer is saved on its own, and the card goes away once answered or closed
 
 ---
 
@@ -286,7 +297,7 @@ Plans apply per workspace. Usage is measured in units: a display counts as 1, a 
 no charge per team member.
 
 ### Free
-- 1 display
+- 1 active display (more displays need Pro; see Billing for what happens after a subscription ends)
 - Real-time calendar sync
 - Basic event viewing
 - Single user — inviting colleagues requires Pro
