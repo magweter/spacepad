@@ -5,6 +5,8 @@ WORKDIR /app
 # Copy dependency manifests first — composer install is cached until lock file changes
 COPY composer.json composer.lock ./
 RUN composer install --no-cache --no-dev --no-scripts --no-autoloader --ansi --no-interaction --ignore-platform-reqs
+# --no-scripts skips pre-autoload-dump, so strip the unused Google API services explicitly
+RUN composer run-script pre-autoload-dump --ansi --no-interaction
 
 # Only the PSR-4 autoload paths are needed to generate the optimised classmap
 # (composer.json defines: App\ => app/, Database\Factories\ => database/factories/, Database\Seeders\ => database/seeders/)
