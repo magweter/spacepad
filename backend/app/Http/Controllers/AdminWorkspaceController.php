@@ -11,6 +11,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 /**
  * Managing workspaces from the admin panel.
@@ -111,16 +112,21 @@ class AdminWorkspaceController extends Controller
     /**
      * Set how this workspace is billed.
      *
-     * A manually billed workspace is invoiced through our own accounting rather than Lemon
-     * Squeezy: it gets Pro without a subscription, and its MRR is computed locally from
-     * usage at the unit price set here.
+     * Three modes, exactly one at a time. Lemon Squeezy is the default. A manually billed
+     * workspace is invoiced through our own accounting: it gets Pro without a subscription,
+     * and its MRR is computed locally from usage at the unit price set here. An unlimited
+     * workspace gets Pro for free (a non-profit deal, a test account) and is never charged.
+     *
+     * The two flags used to be set independently, and manual billing wins when both are on
+     * (see Workspace::billingStatus()), so a free workspace marked manual quietly showed a
+     * price and counted towards MRR. One choice keeps them apart.
      */
     public function updateBilling(Request $request, Workspace $workspace): RedirectResponse
     {
         $this->checkAdminAccess();
 
         $validated = $request->validate([
-            'is_manually_billed' => ['nullable', 'boolean'],
+            'billing_mode' => ['required', Rule::in(['lemon_squeezy', 'manual', 'unlimited'])],
             'manual_billing_unit_price' => ['nullable', 'numeric', 'min:0', 'max:99999.99'],
             'billing_owner_user_id' => ['nullable', 'string', 'exists:users,id'],
         ]);
@@ -134,8 +140,11 @@ class AdminWorkspaceController extends Controller
             return back()->with('error', 'That user is not a member of this workspace.');
         }
 
+        $mode = $validated['billing_mode'];
+
         $workspace->update([
-            'is_manually_billed' => $request->boolean('is_manually_billed'),
+            'is_manually_billed' => $mode === 'manual',
+            'is_unlimited' => $mode === 'unlimited',
             'manual_billing_unit_price' => $price === '' ? null : $price,
             'billing_owner_user_id' => $owner ?? $workspace->billing_owner_user_id,
         ]);
@@ -143,12 +152,12 @@ class AdminWorkspaceController extends Controller
         logger()->info('Admin updated workspace billing', [
             'workspace_id' => $workspace->id,
             'admin_id' => Auth::id(),
-            'is_manually_billed' => $workspace->is_manually_billed,
+            'billing_mode' => $mode,
             'manual_billing_unit_price' => $workspace->manual_billing_unit_price,
             'billing_owner_user_id' => $workspace->billing_owner_user_id,
         ]);
 
-        $this->refreshManualMrr($workspace);
+        $this->refreshAnalyticsBilling($workspace);
 
         return back()->with('success', 'Billing settings updated.');
     }
@@ -166,26 +175,26 @@ class AdminWorkspaceController extends Controller
     }
 
     /**
-     * Recompute the stored MRR right away, so the screen reflects a new unit price instead
-     * of the value from the last analytics refresh.
+     * Rewrite the stored analytics row right away, so the screen reflects the new billing
+     * mode or unit price instead of the value from the last analytics refresh.
      *
-     * Only while manually billed: once the flag is off, Lemon Squeezy is the only source
-     * for MRR, so the row is left for the scheduled refresh to re-derive.
+     * A Lemon Squeezy workspace is left alone: the API is the only source for its MRR, so
+     * the scheduled refresh re-derives the row.
      */
-    private function refreshManualMrr(Workspace $workspace): void
+    private function refreshAnalyticsBilling(Workspace $workspace): void
     {
-        if (! $workspace->is_manually_billed) {
+        if (! $workspace->is_manually_billed && ! $workspace->is_unlimited) {
             return;
         }
 
-        try {
-            $mrr = $workspace->calculateManualMrr();
+        $mrr = $workspace->is_manually_billed ? $workspace->calculateManualMrr() : 0;
 
+        try {
             DB::table('analytics_workspaces')
                 ->where('workspace_id', $workspace->id)
                 ->update([
-                    'subscription_status' => 'manual',
-                    'billing_interval' => 'monthly',
+                    'subscription_status' => $workspace->billingStatus(),
+                    'billing_interval' => $workspace->is_manually_billed ? 'monthly' : null,
                     'mrr_current' => $mrr,
                     'mrr_expected' => $mrr,
                     'updated_at' => now(),

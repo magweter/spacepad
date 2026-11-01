@@ -136,7 +136,7 @@ test('an admin can set the per-account unit price and MRR updates immediately', 
 
     $this->actingAs($admin)
         ->post(route('admin.workspaces.billing', $user->primaryWorkspace()), [
-            'is_manually_billed' => '1',
+            'billing_mode' => 'manual',
             'manual_billing_unit_price' => '12.50',
         ])
         ->assertSessionHasNoErrors();
@@ -157,7 +157,7 @@ test('clearing the per-account unit price falls back to the global default', fun
 
     $this->actingAs($admin)
         ->post(route('admin.workspaces.billing', $user->primaryWorkspace()), [
-            'is_manually_billed' => '1',
+            'billing_mode' => 'manual',
             'manual_billing_unit_price' => '',
         ])
         ->assertSessionHasNoErrors();
@@ -200,7 +200,7 @@ test('the billing owner must be a member of the workspace', function () {
 
     $this->actingAs($admin)
         ->post(route('admin.workspaces.billing', $user->primaryWorkspace()), [
-            'is_manually_billed' => '1',
+            'billing_mode' => 'manual',
             'billing_owner_user_id' => $outsider->id,
         ])
         ->assertSessionHas('error');
@@ -225,10 +225,73 @@ test('a negative unit price is rejected', function () {
 
     $this->actingAs($admin)
         ->post(route('admin.workspaces.billing', $user->primaryWorkspace()), [
-            'is_manually_billed' => '1',
+            'billing_mode' => 'manual',
             'manual_billing_unit_price' => '-1',
         ])
         ->assertSessionHasErrors('manual_billing_unit_price');
 
     expect((float) $user->primaryWorkspace()->fresh()->manual_billing_unit_price)->toBe(12.50);
+});
+
+test('an admin can make a manually billed workspace unlimited, which ends the manual billing', function () {
+    config(['settings.unit_price' => 5]);
+
+    $admin = User::factory()->active()->create(['is_admin' => true]);
+    $user = manuallyBilledUserWithUsage(null);
+
+    // The mistake this replaces: a free workspace marked manual counts 4 units x $5.
+    Artisan::call('app:refresh-analytics');
+    expect(analyticsMrrFor($user))->toBe(20.0);
+
+    $this->actingAs($admin)
+        ->post(route('admin.workspaces.billing', $user->primaryWorkspace()), ['billing_mode' => 'unlimited'])
+        ->assertSessionHasNoErrors();
+
+    $workspace = $user->primaryWorkspace()->fresh();
+
+    expect($workspace->is_unlimited)->toBeTrue()
+        ->and($workspace->is_manually_billed)->toBeFalse()
+        ->and($workspace->billingStatus())->toBe('unlimited')
+        ->and($workspace->getQuotedUnitPrice())->toBeNull()
+        ->and(analyticsMrrFor($user))->toBe(0.0)
+        ->and(DB::table('analytics_workspaces')->where('workspace_id', $workspace->id)->value('subscription_status'))->toBe('unlimited');
+});
+
+test('switching back to Lemon Squeezy clears both manual billing and unlimited', function () {
+    $admin = User::factory()->active()->create(['is_admin' => true]);
+    $user = manuallyBilledUserWithUsage(12.50);
+    $user->primaryWorkspace()->update(['is_unlimited' => true]);
+
+    $this->actingAs($admin)
+        ->post(route('admin.workspaces.billing', $user->primaryWorkspace()), ['billing_mode' => 'lemon_squeezy'])
+        ->assertSessionHasNoErrors();
+
+    $workspace = $user->primaryWorkspace()->fresh();
+
+    expect($workspace->is_unlimited)->toBeFalse()
+        ->and($workspace->is_manually_billed)->toBeFalse();
+});
+
+test('the billing mode must be one of the three', function (?string $mode) {
+    $admin = User::factory()->active()->create(['is_admin' => true]);
+    $user = manuallyBilledUserWithUsage(12.50);
+
+    $this->actingAs($admin)
+        ->post(route('admin.workspaces.billing', $user->primaryWorkspace()), array_filter(['billing_mode' => $mode]))
+        ->assertSessionHasErrors('billing_mode');
+
+    expect($user->primaryWorkspace()->fresh()->is_manually_billed)->toBeTrue();
+})->with([null, 'free']);
+
+test('the admin workspace page preselects the current billing mode', function () {
+    $admin = User::factory()->active()->create(['is_admin' => true]);
+    $user = manuallyBilledUserWithUsage(12.50);
+    $user->primaryWorkspace()->update(['is_manually_billed' => false, 'is_unlimited' => true]);
+
+    $this->actingAs($admin)
+        ->get(route('admin.workspaces.show', $user->primaryWorkspace()))
+        ->assertOk()
+        ->assertSee('value="unlimited"', false)
+        ->assertSeeInOrder(['value="unlimited"', 'checked'], false)
+        ->assertDontSee('running Lemon Squeezy subscription');
 });

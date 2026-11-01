@@ -234,6 +234,10 @@ a separate account with its own invisible set of displays.
 - One button on the workspace page opens the Lemon Squeezy billing portal in a new tab, to change the
   payment method, download invoices or cancel. A manually billed workspace has no portal and is
   pointed at support instead
+- Besides a Lemon Squeezy subscription, Spacepad can put a workspace on one of two arrangements:
+  **manually billed** (invoiced by us, at a per-workspace unit price) or **unlimited** (Pro for free,
+  for a non-profit deal or a test account: never charged and no price shown). A workspace is on
+  exactly one of the three
 
 ---
 
