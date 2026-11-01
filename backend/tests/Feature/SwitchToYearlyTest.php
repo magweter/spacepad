@@ -222,3 +222,51 @@ test('the listener is registered for the webhook event', function () {
 
     Event::assertListening(SubscriptionCreated::class, CancelSupersededSubscription::class);
 });
+
+test('the switch checkout expires, hides the discount field and is not counted as a new conversion', function () {
+    fakeSwitchCheckout();
+    [$workspace, $owner] = switchingWorkspace();
+
+    $this->actingAs($owner);
+    session()->put('selected_workspace_id', $workspace->id);
+
+    $this->post(route('billing.switch-yearly'));
+
+    Http::assertSent(function ($request) {
+        if (! str_ends_with($request->url(), '/checkouts')) {
+            return false;
+        }
+
+        $attributes = $request['data']['attributes'];
+
+        // An old checkout link paid later would create a second yearly subscription, and
+        // the listener would then cancel the year already paid for.
+        return isset($attributes['expires_at'])
+            && now()->addHours(2)->greaterThan($attributes['expires_at'])
+            && $attributes['checkout_options']['discount'] === false
+            && $attributes['product_options']['redirect_url'] === route('billing.thanks', ['switched' => 1]);
+    });
+});
+
+test('the thank-you page does not count a switch as a purchase', function () {
+    [$workspace, $owner] = switchingWorkspace();
+    config(['services.google_conversion.send_to' => 'AW-1/x']);
+
+    $this->actingAs($owner);
+    session()->put('selected_workspace_id', $workspace->id);
+
+    $this->get(route('billing.thanks', ['switched' => 1]))->assertRedirect(route('dashboard'));
+
+    expect(json_encode(session()->all()))->not->toContain('purchase');
+});
+
+test('a new yearly subscription clears an old request to go monthly', function () {
+    Http::fake(['*' => Http::response(cancelledAttributes('1'))]);
+    [$workspace] = switchingWorkspace();
+    $workspace->forceFill(['switch_to_monthly_requested_at' => now()->subYear()])->save();
+    $yearly = addSubscription($workspace, 'sub_yearly', '12');
+
+    app(CancelSupersededSubscription::class)->handle(new SubscriptionCreated($workspace, $yearly, []));
+
+    expect($workspace->fresh()->switch_to_monthly_requested_at)->toBeNull();
+});

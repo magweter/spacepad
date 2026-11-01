@@ -2,6 +2,7 @@
 
 namespace App\Listeners;
 
+use App\Models\Workspace;
 use App\Services\BillingPlans;
 use LemonSqueezy\Laravel\Events\SubscriptionCreated;
 use LemonSqueezy\Laravel\Subscription;
@@ -26,19 +27,25 @@ class CancelSupersededSubscription
             return;
         }
 
-        $superseded = $event->billable->subscriptions()
-            ->whereKeyNot($event->subscription->getKey())
-            ->whereNotIn('status', [Subscription::STATUS_CANCELLED, Subscription::STATUS_EXPIRED])
-            ->whereNull('ends_at')
-            ->get();
+        $workspace = $event->billable;
+
+        if (! $workspace instanceof Workspace) {
+            return;
+        }
+
+        // A request to go monthly belongs to the yearly subscription it was made on; a new
+        // one starts without it.
+        $workspace->forceFill(['switch_to_monthly_requested_at' => null])->save();
+
+        $superseded = $workspace->subscriptionsSupersededBy($event->subscription);
 
         foreach ($superseded as $subscription) {
             try {
                 $subscription->cancel();
             } catch (Throwable $e) {
-                // The webhook must still succeed, or Lemon Squeezy retries it and the
-                // subscription row is created twice. The monthly one is then cancelled by
-                // hand; the report says which.
+                // The webhook must still succeed: Lemon Squeezy would retry it and the
+                // subscription row cannot be created twice. app:process-yearly-subscriptions
+                // retries the cancellation every day until it goes through.
                 report($e);
             }
         }

@@ -216,3 +216,37 @@ test('a dry run calls nothing that changes billing', function () {
     Http::assertNotSent(fn (Request $r) => $r->method() !== 'GET');
     expect(Artisan::output())->toContain('invoice');
 });
+
+test('a switch that failed the day before is retried while the renewal is still ahead', function () {
+    // Yesterday the swap was refused, or the scheduler did not run. One chance would mean a
+    // full year billed to someone who asked for monthly.
+    $this->travelTo(Carbon::parse('2027-10-19 04:10'));
+    fakeYearlyApi(paidQuantity: 6);
+    $workspace = yearlyBillingWorkspace('2027-10-21 10:00', displays: 2);
+    $workspace->forceFill(['switch_to_monthly_requested_at' => now()->subMonth()])->save();
+
+    Artisan::call('app:process-yearly-subscriptions');
+
+    expect($workspace->fresh()->switch_to_monthly_requested_at)->toBeNull();
+});
+
+test('a monthly subscription that was not cancelled after the switch is cancelled now', function () {
+    $this->travelTo(Carbon::parse('2026-12-20 04:10'));
+    fakeYearlyApi(paidQuantity: 3);
+    $workspace = yearlyBillingWorkspace('2027-10-21 10:00', displays: 3);
+    DB::table('lemon_squeezy_subscriptions')->insert([
+        'billable_id' => $workspace->id,
+        'billable_type' => $workspace->getMorphClass(),
+        'type' => 'default',
+        'lemon_squeezy_id' => 'sub_m',
+        'status' => 'active',
+        'product_id' => '1',
+        'variant_id' => '1',
+        'created_at' => now()->subYear(),
+        'updated_at' => now(),
+    ]);
+
+    Artisan::call('app:process-yearly-subscriptions');
+
+    Http::assertSent(fn (Request $r) => $r->method() === 'DELETE' && str_ends_with($r->url(), 'subscriptions/sub_m'));
+});

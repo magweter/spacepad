@@ -107,3 +107,12 @@ test('a member sees no switch', function () {
         ->assertDontSee('Switch to yearly')
         ->assertDontSee('Switch to monthly');
 });
+
+test('the unit count in the copy matches what the checkout charges', function () {
+    [$workspace, $owner] = intervalUiWorkspace('11');
+    DB::table('displays')->where('workspace_id', $workspace->id)->delete();
+    $workspace->forceFill(['displays_count' => 0, 'boards_count' => 0])->save();
+
+    viewWorkspacePage($owner, $workspace)
+        ->assertSee('Pay a year in advance for your current 1 unit.');
+});

@@ -191,7 +191,8 @@
                 <div class="mt-4 pt-4 border-t border-gray-100 sm:flex sm:items-center sm:justify-between sm:gap-4">
                     @if($canSwitchToYearly)
                         <p class="text-sm text-gray-500 sm:max-w-xl">
-                            Pay a year in advance for your current {{ $usageBreakdown['total'] }} units. Your monthly subscription stops immediately and switches to a yearly subscription.
+                            @php $yearlyUnits = max(1, $usageBreakdown['total']) @endphp
+                            Pay a year in advance for your current {{ $yearlyUnits }} {{ Str::plural('unit', $yearlyUnits) }}. Your monthly subscription stops immediately and switches to a yearly subscription.
                         </p>
                         <form action="{{ route('billing.switch-yearly') }}" method="POST" class="mt-3 sm:mt-0 shrink-0">
                             @csrf

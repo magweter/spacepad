@@ -7,6 +7,7 @@ use App\Enums\WorkspaceRole;
 use App\Services\BillingPlans;
 use App\Services\InstanceService;
 use App\Traits\HasUlid;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -661,9 +662,16 @@ class Workspace extends Model
                             'subscription_type' => Subscription::DEFAULT_TYPE,
                         ],
                     ], fn ($value) => $value !== ''),
+                    // No discount field: a switch is always at the current list price.
+                    'checkout_options' => ['discount' => false],
                     'product_options' => [
-                        'redirect_url' => route('billing.thanks'),
+                        // Marked, so the thank-you page does not count an existing customer
+                        // as a new conversion.
+                        'redirect_url' => route('billing.thanks', ['switched' => 1]),
                     ],
+                    // A link paid much later would add a second yearly subscription, and the
+                    // year paid first would then be cancelled as superseded.
+                    'expires_at' => now()->addHour()->toIso8601String(),
                 ],
                 'relationships' => [
                     'store' => ['data' => ['type' => 'stores', 'id' => (string) config('lemon-squeezy.store')]],
@@ -673,6 +681,20 @@ class Workspace extends Model
         ]);
 
         return $response['data']['attributes']['url'];
+    }
+
+    /**
+     * Subscriptions still running next to the given (yearly) one, which it replaces.
+     *
+     * @return Collection<int, Subscription>
+     */
+    public function subscriptionsSupersededBy(Subscription $current)
+    {
+        return $this->subscriptions()
+            ->whereKeyNot($current->getKey())
+            ->whereNotIn('status', [Subscription::STATUS_CANCELLED, Subscription::STATUS_EXPIRED])
+            ->whereNull('ends_at')
+            ->get();
     }
 
     /**

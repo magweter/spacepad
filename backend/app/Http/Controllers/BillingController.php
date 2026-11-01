@@ -136,8 +136,13 @@ class BillingController extends Controller
             ->with('success', 'Your subscription stays yearly.');
     }
 
-    public function thanks(): RedirectResponse
+    public function thanks(Request $request): RedirectResponse
     {
+        // An existing customer switching to yearly is not a new purchase for ad reporting.
+        if ($request->boolean('switched')) {
+            return redirect()->route('dashboard');
+        }
+
         GoogleTagManagerFacade::flashPush([
             'event' => 'purchase',
         ]);

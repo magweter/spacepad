@@ -21,15 +21,23 @@ use Throwable;
  *    paid quantity is invoiced straight away, prorated for the rest of the year. Lemon
  *    Squeezy only bills on a quantity change, which is why the push must not raise it first.
  *    Lower usage is never credited.
- *  - The day before renewal, the quantity is set to current usage without proration, so the
- *    renewal bills the new year for what is used then. A requested switch to monthly is
- *    made at the same moment, so the renewal bills a month instead of a year.
+ *  - In the days before renewal, the quantity is set to current usage without proration, so
+ *    the renewal bills the new year for what is used then. A requested switch to monthly is
+ *    made in that window too, so the renewal bills a month instead of a year.
+ *  - A monthly subscription the yearly one replaced but that is still running is cancelled.
  */
 class ProcessYearlySubscriptions extends Command
 {
     protected $signature = 'app:process-yearly-subscriptions {--dry-run : Show what would happen without changing billing}';
 
     protected $description = 'Invoice extra usage on yearly subscriptions and prepare their renewal';
+
+    /**
+     * Days before renewal in which the renewal is prepared, every day. One day would leave a
+     * single chance: a refused swap or a day the scheduler did not run, and someone who asked
+     * for monthly is billed a full year. Setting the quantity again is harmless.
+     */
+    private const RENEWAL_WINDOW_DAYS = 3;
 
     public function __construct(private readonly LemonSqueezyUsageService $usage)
     {
@@ -59,7 +67,9 @@ class ProcessYearlySubscriptions extends Command
                 $renewal = $subscription->renews_at->copy()->startOfDay();
 
                 try {
-                    if ($today->equalTo($renewal->copy()->subDay())) {
+                    $this->cancelSuperseded($workspace, $subscription);
+
+                    if ($today->gte($renewal->copy()->subDays(self::RENEWAL_WINDOW_DAYS)) && $today->lt($renewal)) {
                         $this->prepareRenewal($workspace, $subscription);
                         $handled++;
                     } elseif ($this->isAnniversary($today, $renewal)) {
@@ -77,6 +87,21 @@ class ProcessYearlySubscriptions extends Command
         $this->info("Completed: {$handled} yearly subscriptions handled, {$errors} errors");
 
         return $errors === 0 ? self::SUCCESS : self::FAILURE;
+    }
+
+    /**
+     * Retry what CancelSupersededSubscription could not do when the yearly subscription
+     * arrived, so a monthly subscription never keeps renewing on top of a paid year.
+     */
+    private function cancelSuperseded(Workspace $workspace, Subscription $yearly): void
+    {
+        foreach ($workspace->subscriptionsSupersededBy($yearly) as $superseded) {
+            $this->line("Workspace {$workspace->id}: cancel superseded subscription {$superseded->lemon_squeezy_id}");
+
+            if (! $this->option('dry-run')) {
+                $superseded->cancel();
+            }
+        }
     }
 
     private function isProcessable(?Subscription $subscription): bool
