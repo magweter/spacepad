@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\CheckUserActive;
 use App\Http\Middleware\CheckUserOnboarding;
+use App\Http\Middleware\RequireWebhookSigningSecret;
 use App\Http\Middleware\UpdateLastActivity;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -26,6 +27,10 @@ return Application::configure(basePath: dirname(__DIR__))
         // ever reached the session. Where the scripts actually load is decided in the view,
         // by App\Services\FunnelTracking.
         $middleware->web(append: [GoogleTagManagerMiddleware::class]);
+
+        // The billing webhook route is registered by the package without a middleware group,
+        // so the guard goes on the global stack.
+        $middleware->append(RequireWebhookSigningSecret::class);
 
         $middleware->alias([
             'user.update-last-activity' => UpdateLastActivity::class,
