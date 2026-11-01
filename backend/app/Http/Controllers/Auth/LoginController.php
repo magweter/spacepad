@@ -2,19 +2,16 @@
 
 namespace App\Http\Controllers\Auth;
 
-use App\Events\UserRegistered;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Models\User;
 use App\Notifications\MagicLoginNotification;
+use App\Support\MagicLoginLink;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
-use MagicLink\Actions\LoginAction;
-use MagicLink\MagicLink;
 
 class LoginController extends Controller
 {
@@ -45,14 +42,14 @@ class LoginController extends Controller
         }
 
         $user = User::where('email', $data['email'])->first();
-        if (!$user) {
+        if (! $user) {
             $user = User::factory()->unverified()->create([
                 'name' => Str::before($data['email'], '@'),
-                'email' => $data['email']
+                'email' => $data['email'],
             ]);
         }
 
-        $loginUrl = MagicLink::create(new LoginAction($user), 60 * 24)->url;
+        $loginUrl = MagicLoginLink::create($user);
         $user->notify(new MagicLoginNotification($loginUrl));
 
         return redirect()
