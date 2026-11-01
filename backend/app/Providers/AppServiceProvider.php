@@ -64,6 +64,13 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(5)->by($request->ip());
         });
 
+        // Device pairing takes a six digit code that lives for thirty minutes. Ten tries a
+        // minute is generous for a person typing on a tablet and hopeless for a script
+        // walking the code space.
+        RateLimiter::for('device_pairing', function (Request $request) {
+            return Limit::perMinute(10)->by($request->ip());
+        });
+
         // Every admin screen shows the same tiles, so they are filled here rather than by
         // each admin controller remembering to pass them.
         View::composer('components.admin.stats', function ($view) {
