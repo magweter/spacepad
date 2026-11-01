@@ -196,7 +196,7 @@ class DisplayController extends Controller
 
         return redirect()
             ->route('dashboard')
-            ->with('status', 'This display is now the active one.');
+            ->with('success', 'This display is now the active one.');
     }
 
     public function delete(Display $display): RedirectResponse

@@ -113,7 +113,8 @@ test('another display can be made the active one', function () {
 
     $this->actingAs($owner)
         ->post(route('displays.makeActive', $waiting))
-        ->assertRedirect(route('dashboard'));
+        ->assertRedirect(route('dashboard'))
+        ->assertSessionHas('success');
 
     expect($waiting->fresh()->status)->toBe(DisplayStatus::READY)
         ->and($current->fresh()->status)->toBe(DisplayStatus::REQUIRES_PRO);
