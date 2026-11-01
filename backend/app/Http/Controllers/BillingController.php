@@ -68,6 +68,37 @@ class BillingController extends Controller
         }
     }
 
+    /**
+     * Move a monthly workspace to yearly through a fresh checkout.
+     *
+     * A checkout rather than a swap on the existing subscription: the customer is present to
+     * pay the year and to pass 3D Secure, so a card that refuses the amount is found out here
+     * instead of a month later on an off-session charge. The monthly subscription is
+     * cancelled by CancelSupersededSubscription once the yearly one exists, so an abandoned
+     * checkout changes nothing.
+     */
+    public function switchToYearly(Request $request): RedirectResponse
+    {
+        $workspace = $request->user()->getSelectedWorkspace();
+
+        abort_unless($workspace !== null, 404, 'No workspace found');
+        $this->authorize('manageBilling', $workspace);
+
+        if (! $workspace->canSwitchToYearly()) {
+            return redirect()->route('workspaces.members')
+                ->with('error', 'This workspace cannot switch to a yearly subscription right now. Email support@spacepad.io if you think it should.');
+        }
+
+        try {
+            return redirect()->away($workspace->getYearlySwitchCheckoutUrl());
+        } catch (Throwable $e) {
+            report($e);
+
+            return redirect()->route('workspaces.members')
+                ->with('error', 'We could not open the checkout just now. Please try again, or email support@spacepad.io.');
+        }
+    }
+
     public function thanks(): RedirectResponse
     {
         GoogleTagManagerFacade::flashPush([

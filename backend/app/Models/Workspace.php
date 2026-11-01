@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\UsageType;
 use App\Enums\WorkspaceRole;
+use App\Services\BillingPlans;
 use App\Services\InstanceService;
 use App\Traits\HasUlid;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -14,6 +15,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\DB;
 use LemonSqueezy\Laravel\Billable;
 use LemonSqueezy\Laravel\Checkout;
+use LemonSqueezy\Laravel\LemonSqueezy;
+use LemonSqueezy\Laravel\Subscription;
 
 class Workspace extends Model
 {
@@ -590,6 +593,76 @@ class Workspace extends Model
 
         return $this->subscribe(config('settings.cloud_hosted_pro_plan_id'))
             ->redirectTo($redirectUrl ?? route('dashboard'));
+    }
+
+    /**
+     * Whether the owner can move this workspace from a monthly to a yearly subscription.
+     *
+     * A trial counts: the yearly checkout is paid straight away and the trial is cancelled.
+     */
+    public function canSwitchToYearly(): bool
+    {
+        if (! $this->canSwitchInterval()) {
+            return false;
+        }
+
+        $subscription = $this->liveSubscription();
+
+        return $subscription !== null
+            && $subscription->ends_at === null
+            && in_array($subscription->status, [Subscription::STATUS_ACTIVE, Subscription::STATUS_ON_TRIAL], true)
+            && ! BillingPlans::isYearly($subscription);
+    }
+
+    /**
+     * A Lemon Squeezy checkout for a year of the current usage, at the current list price.
+     *
+     * Built by hand because the vendor's Checkout has no way to set a quantity. The payload
+     * otherwise mirrors it, including the custom data the webhook uses to find this workspace.
+     */
+    public function getYearlySwitchCheckoutUrl(): string
+    {
+        $variant = BillingPlans::switchYearlyVariantId();
+
+        $response = LemonSqueezy::api('POST', 'checkouts', [
+            'data' => [
+                'type' => 'checkouts',
+                'attributes' => [
+                    'checkout_data' => array_filter([
+                        'name' => (string) $this->lemonSqueezyName(),
+                        'email' => (string) $this->lemonSqueezyEmail(),
+                        'variant_quantities' => [
+                            ['variant_id' => (int) $variant, 'quantity' => max(1, $this->getTotalUsageCount())],
+                        ],
+                        'custom' => [
+                            'billable_id' => (string) $this->getKey(),
+                            'billable_type' => $this->getMorphClass(),
+                            'subscription_type' => Subscription::DEFAULT_TYPE,
+                        ],
+                    ], fn ($value) => $value !== ''),
+                    'product_options' => [
+                        'redirect_url' => route('billing.thanks'),
+                    ],
+                ],
+                'relationships' => [
+                    'store' => ['data' => ['type' => 'stores', 'id' => (string) config('lemon-squeezy.store')]],
+                    'variant' => ['data' => ['type' => 'variants', 'id' => $variant]],
+                ],
+            ],
+        ]);
+
+        return $response['data']['attributes']['url'];
+    }
+
+    /**
+     * The conditions both switch directions share.
+     */
+    private function canSwitchInterval(): bool
+    {
+        return ! config('settings.is_self_hosted')
+            && ! $this->is_manually_billed
+            && ! $this->is_unlimited
+            && BillingPlans::canSwitch();
     }
 
     /**

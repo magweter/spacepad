@@ -167,6 +167,7 @@ Route::middleware(['auth', 'user.update-last-activity'])->group(function () {
 
     Route::post('/billing/checkout', [BillingController::class, 'checkout'])->name('billing.checkout');
     Route::post('/billing/portal', [BillingController::class, 'portal'])->name('billing.portal');
+    Route::post('/billing/switch-yearly', [BillingController::class, 'switchToYearly'])->name('billing.switch-yearly');
     Route::get('/billing/thanks', [BillingController::class, 'thanks'])->name('billing.thanks');
 
     Route::get('/account', [ProfileController::class, 'show'])->name('profile.show');
