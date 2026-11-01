@@ -204,3 +204,18 @@ test('a workspace without a subscription is skipped', function () {
 
     Http::assertNothingSent();
 });
+
+test('a yearly subscription is skipped by the reconciliation pass', function () {
+    fakeLemonSqueezy();
+    config(['settings.pro_yearly_variant_ids' => ['1']]);
+
+    $owner = User::factory()->active()->create();
+    $workspace = subscribedWorkspace($owner);
+    Display::factory()->count(3)->create(['workspace_id' => $workspace->id]);
+
+    $exitCode = Artisan::call('app:update-lemonsqueezy-subscriptions');
+
+    Http::assertNothingSent();
+    expect($exitCode)->toBe(0)
+        ->and(Artisan::output())->toContain('Skipping yearly subscription');
+});

@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\Workspace;
+use App\Services\BillingPlans;
 use App\Services\LemonSqueezyUsageService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
@@ -73,6 +74,14 @@ class UpdateLemonSqueezySubscriptions extends Command
                     $subscription = $workspace->liveSubscription();
 
                     if (! $subscription) {
+                        $skippedCount++;
+
+                        continue;
+                    }
+
+                    // Billed a year ahead and trued up by app:process-yearly-subscriptions.
+                    if (BillingPlans::isYearly($subscription)) {
+                        $this->line("Skipping yearly subscription of workspace {$workspace->id} ({$units} units)");
                         $skippedCount++;
 
                         continue;
