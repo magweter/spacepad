@@ -19,7 +19,16 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/health',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        $middleware->trustProxies(at: '*');
+        // Which proxies may tell us the client's address through X-Forwarded-*. Every IP based
+        // limiter (login, pairing, invitations) keys on that address, so trusting every source
+        // lets a client that reaches the app directly pick its own address and sidestep them.
+        // Behind Traefik from docker-compose.prod.yml the proxy is on the Docker network, so
+        // TRUSTED_PROXIES=10.0.0.0/8,172.16.0.0/12,192.168.0.0/16 covers it. The default stays
+        // '*' for installs that put the app behind a proxy on another host.
+        $trustedProxies = trim((string) env('TRUSTED_PROXIES', '*'));
+        $middleware->trustProxies(
+            at: $trustedProxies === '*' ? '*' : array_values(array_filter(array_map('trim', explode(',', $trustedProxies))))
+        );
 
         // On every web route, not just the authenticated ones. This middleware is what moves
         // data layer events across a redirect, and the first one of the funnel — sign_up —
