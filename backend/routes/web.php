@@ -29,6 +29,7 @@ use App\Http\Controllers\SupportController;
 use App\Http\Controllers\WorkspaceController;
 use App\Http\Controllers\WorkspaceInvitationController;
 use App\Http\Controllers\WorkspaceMemberController;
+use App\Http\Controllers\WorkspaceProfileController;
 use Illuminate\Support\Facades\Route;
 
 // Public board routes (no authentication required)
@@ -110,6 +111,11 @@ Route::middleware(['auth', 'user.update-last-activity'])->group(function () {
     Route::put('/displays/{display}', [DisplayController::class, 'update'])->name('displays.update');
     Route::patch('/displays/{display}/status', [DisplayController::class, 'updateStatus'])
         ->name('displays.updateStatus');
+    Route::post('/displays/{display}/make-active', [DisplayController::class, 'makeActive'])
+        ->name('displays.makeActive');
+
+    Route::post('/workspace/profile', [WorkspaceProfileController::class, 'update'])->name('workspace.profile.update');
+    Route::post('/workspace/profile/dismiss', [WorkspaceProfileController::class, 'dismiss'])->name('workspace.profile.dismiss');
     Route::delete('/displays/{display}', [DisplayController::class, 'delete'])->name('displays.delete');
 
     // Display configuration: one screen, saved per section
@@ -168,6 +174,9 @@ Route::middleware(['auth', 'user.update-last-activity'])->group(function () {
     Route::post('/billing/checkout', [BillingController::class, 'checkout'])->name('billing.checkout');
     Route::post('/billing/portal', [BillingController::class, 'portal'])->name('billing.portal');
     Route::get('/billing/thanks', [BillingController::class, 'thanks'])->name('billing.thanks');
+    Route::post('/billing/cancel', [BillingController::class, 'cancel'])->name('billing.cancel');
+    Route::post('/billing/cancellations/{cancellation}/feedback', [BillingController::class, 'feedback'])->name('billing.cancellations.feedback');
+    Route::post('/billing/cancellations/{cancellation}/dismiss', [BillingController::class, 'dismissFeedback'])->name('billing.cancellations.dismiss');
 
     Route::get('/account', [ProfileController::class, 'show'])->name('profile.show');
     Route::delete('/account', [ProfileController::class, 'destroy'])->name('profile.destroy');

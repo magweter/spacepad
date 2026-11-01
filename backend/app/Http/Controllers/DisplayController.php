@@ -12,6 +12,7 @@ use App\Models\GoogleAccount;
 use App\Models\OutlookAccount;
 use App\Models\Room;
 use App\Services\CalDAVService;
+use App\Services\FreePlanDisplayLimit;
 use App\Services\FunnelTracking;
 use App\Services\GoogleService;
 use App\Services\OutlookService;
@@ -26,7 +27,8 @@ class DisplayController extends Controller
     public function __construct(
         protected OutlookService $outlookService,
         protected GoogleService $googleService,
-        protected CalDAVService $caldavService
+        protected CalDAVService $caldavService,
+        protected FreePlanDisplayLimit $freePlan
     ) {}
 
     public function create(): View
@@ -170,11 +172,31 @@ class DisplayController extends Controller
             'status' => 'required|in:active,deactivated',
         ]);
 
+        if ($data['status'] === DisplayStatus::ACTIVE->value && $this->freePlan->hasOtherLiveDisplay($display)) {
+            return redirect()
+                ->route('dashboard')
+                ->with('error', 'The free plan has one active display. Upgrade to Pro to use more.');
+        }
+
         $display->update(['status' => $data['status']]);
 
         return redirect()
             ->route('dashboard')
             ->with('status', 'Display status has been changed.');
+    }
+
+    /**
+     * On the free plan, pick which display is the active one. The current one waits for Pro.
+     */
+    public function makeActive(Display $display): RedirectResponse
+    {
+        $this->authorize('update', $display);
+
+        $this->freePlan->makeActive($display);
+
+        return redirect()
+            ->route('dashboard')
+            ->with('status', 'This display is now the active one.');
     }
 
     public function delete(Display $display): RedirectResponse

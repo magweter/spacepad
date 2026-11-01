@@ -13,6 +13,7 @@ use App\Models\OutlookAccount;
 use App\Models\Workspace;
 use App\Models\WorkspaceInvitation;
 use App\Models\WorkspaceMember;
+use App\Services\FreePlanDisplayLimit;
 use App\Services\WorkspaceTransferService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -34,7 +35,10 @@ class AdminMergeController extends Controller
 {
     use ChecksAdminAccess;
 
-    public function __construct(protected WorkspaceTransferService $transfers) {}
+    public function __construct(
+        protected WorkspaceTransferService $transfers,
+        protected FreePlanDisplayLimit $freePlan,
+    ) {}
 
     public function index(Request $request): View
     {
@@ -124,6 +128,9 @@ class AdminMergeController extends Controller
                 'source_deleted' => $deletedSource,
             ]);
         });
+
+        // Two free workspaces combined are still one free workspace: one active display.
+        $this->freePlan->apply($target->fresh());
 
         return redirect()->route('admin.merge.index')
             ->with('success', "Merged \"{$sourceName}\" into \"{$target->name}\".");

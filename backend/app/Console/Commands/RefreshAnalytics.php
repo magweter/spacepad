@@ -77,6 +77,7 @@ class RefreshAnalytics extends Command
             ->with([
                 'members' => fn ($q) => $q->whereNull('users.deleted_at')->orderByPivot('created_at'),
                 'billingOwnerUser',
+                'latestCancellation',
                 'subscriptions' => fn ($q) => $q
                     ->where(fn ($sub) => $sub->whereNull('ends_at')->orWhere('ends_at', '>', $now))
                     ->orderByDesc('created_at'),
@@ -220,6 +221,7 @@ class RefreshAnalytics extends Command
     private function workspaceRow(Workspace $workspace, array $billing, Carbon $now): array
     {
         $contact = $this->resolveBillingUser($workspace);
+        $cancellation = $workspace->latestCancellation;
 
         return [
             'workspace_id' => $workspace->id,
@@ -243,6 +245,12 @@ class RefreshAnalytics extends Command
             'lemon_squeezy_id' => $billing['lemon_squeezy_id'],
             'mrr_current' => $billing['mrr_current'],
             'mrr_expected' => $billing['mrr_expected'],
+            'rooms_estimate' => $workspace->rooms_estimate?->value,
+            'previous_solution' => $workspace->previous_solution?->value,
+            'previous_solution_other' => $workspace->previous_solution_other,
+            'last_cancellation_reason' => $cancellation?->reason?->value,
+            'last_cancellation_details' => $cancellation?->details,
+            'last_cancelled_at' => $cancellation?->created_at,
             'workspace_created_at' => $workspace->created_at,
             'last_member_activity_at' => $workspace->members_max_last_activity_at,
             'last_device_activity_at' => $workspace->devices_max_last_activity_at,
@@ -265,7 +273,8 @@ class RefreshAnalytics extends Command
                     'displays_count', 'boards_count', 'rooms_count', 'units', 'is_unlimited', 'is_manually_billed',
                     'manual_billing_unit_price', 'subscription_status', 'billing_interval', 'trial_ends_at',
                     'subscription_ends_at', 'subscription_renews_at', 'lemon_squeezy_id', 'mrr_current',
-                    'mrr_expected', 'workspace_created_at', 'last_member_activity_at', 'last_device_activity_at',
+                    'mrr_expected', 'rooms_estimate', 'previous_solution', 'previous_solution_other', 'last_cancellation_reason',
+                    'last_cancellation_details', 'last_cancelled_at', 'workspace_created_at', 'last_member_activity_at', 'last_device_activity_at',
                     'refreshed_at', 'updated_at']
             );
         }

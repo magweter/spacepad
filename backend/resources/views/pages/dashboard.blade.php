@@ -121,6 +121,16 @@
         @endif
     @endforeach
 
+    {{-- A cancellation made outside the app still gets its one question --}}
+    @if($pendingCancellation)
+        <x-dashboard.cancellation-feedback-card :cancellation="$pendingCancellation" />
+    @endif
+
+    {{-- Two optional questions about the workspace, only after its first display --}}
+    @if($askProfile)
+        <x-dashboard.workspace-profile-card :workspace="$selectedWorkspace" />
+    @endif
+
     {{-- License Key Modal --}}
     <x-modals.license-key />
 
@@ -138,10 +148,17 @@
                 </span>
             </div>
             <div class="flex-1">
-                <h3 class="text-md font-semibold text-indigo-900 mb-1">Unlock all features</h3>
-                <p class="text-sm text-indigo-800 mb-1">
-                    Upgrade to Pro to unlock all features, including multiple displays, creating boards, book on-display, personalize displays, enable check-in and more!
-                </p>
+                @if($selectedWorkspace->displays()->where('status', \App\Enums\DisplayStatus::REQUIRES_PRO)->exists())
+                    <h3 class="text-md font-semibold text-indigo-900 mb-1">Some displays need Pro</h3>
+                    <p class="text-sm text-indigo-800 mb-1">
+                        The free plan has one active display. Upgrade to Pro to activate the others, or pick which display stays active.
+                    </p>
+                @else
+                    <h3 class="text-md font-semibold text-indigo-900 mb-1">Unlock all features</h3>
+                    <p class="text-sm text-indigo-800 mb-1">
+                        Upgrade to Pro to unlock all features, including multiple displays, creating boards, book on-display, personalize displays, enable check-in and more!
+                    </p>
+                @endif
                 <p class="text-sm text-indigo-700 mb-0">
                     <a href="https://spacepad.io/#features" target="_blank" class="underline hover:text-indigo-900 inline-block">See all Pro features</a> or <a href="https://spacepad.io/pricing" target="_blank" class="underline hover:text-indigo-900 inline-block">see pricing</a>.
                 </p>

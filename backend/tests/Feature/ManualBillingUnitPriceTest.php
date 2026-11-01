@@ -25,6 +25,7 @@ beforeEach(function () {
         '2026_08_04_000002_add_workspace_to_billing_changes.php',
         '2026_08_05_000002_make_billing_change_mrr_nullable.php',
         '2026_08_05_000003_create_analytics_workspaces_table.php',
+        '2026_11_01_000003_add_profile_and_cancellation_to_analytics_workspaces.php',
     ] as $file) {
         $migration = require database_path("migrations/{$file}");
         $migration->up();

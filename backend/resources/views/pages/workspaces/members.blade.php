@@ -183,6 +183,25 @@
                 @endif
             </div>
         @endif
+
+        {{-- Cancelling lives here, next to the rest of the subscription, and asks why first.
+             A subscription with a failed payment is left to the billing portal. --}}
+        @can('manageBilling', $workspace)
+            @if($cancellable = $workspace->cancellableSubscription())
+                <div class="mt-4 text-right">
+                    <button type="button"
+                        onclick="window.dispatchEvent(new CustomEvent('open-modal', { detail: 'cancel-subscription' }))"
+                        class="text-sm font-medium text-gray-500 hover:text-red-600">
+                        Cancel subscription
+                    </button>
+                </div>
+                <x-modals.cancel-subscription :ends-at="$cancellable->renews_at" />
+            @elseif($subscription?->onGracePeriod() && $subscription->ends_at)
+                <p class="mt-4 text-sm text-gray-500">
+                    Your subscription is cancelled and ends on {{ $subscription->ends_at->format('j F Y') }}.
+                </p>
+            @endif
+        @endcan
     </x-cards.card>
 
     {{-- Members --}}

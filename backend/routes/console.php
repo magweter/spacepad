@@ -2,6 +2,7 @@
 
 use App\Console\Commands\CheckMarketingTriggers;
 use App\Console\Commands\CleanupExpiredEvents;
+use App\Console\Commands\FreePlanDisplays;
 use App\Console\Commands\ReconcileWorkspaceUsage;
 use App\Console\Commands\RefreshAnalytics;
 use App\Console\Commands\RenewEventSubscriptions;
@@ -51,6 +52,13 @@ Schedule::command(CheckMarketingTriggers::class)
 // backstop that catches whatever those cannot see: a manual SQL fix, a restored backup.
 Schedule::command(ReconcileWorkspaceUsage::class, ['--fix'])
     ->dailyAt('03:20')
+    ->withoutOverlapping(30);
+
+// Catches plan changes whose webhook never arrived: displays come back after an upgrade, and
+// a subscription that definitively ended puts its workspace on the free plan.
+Schedule::command(FreePlanDisplays::class, ['--sync'])
+    ->when(fn () => ! config('settings.is_self_hosted'))
+    ->hourly()
     ->withoutOverlapping(30);
 
 Schedule::command(RefreshAnalytics::class)

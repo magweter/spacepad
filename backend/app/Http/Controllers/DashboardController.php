@@ -100,6 +100,17 @@ class DashboardController extends Controller
             FunnelTracking::devicePaired($selectedWorkspace);
         }
 
+        // Stamped the first time the card is shown, so how often it gets answered can be
+        // measured against how often it was seen.
+        $askProfile = $selectedWorkspace?->shouldAskProfile($user) ?? false;
+        if ($askProfile && $selectedWorkspace->profile_prompted_at === null) {
+            $selectedWorkspace->update(['profile_prompted_at' => now()]);
+        }
+
+        $pendingCancellation = $selectedWorkspace && $user->can('manageBilling', $selectedWorkspace)
+            ? $selectedWorkspace->pendingCancellationFeedback()
+            : null;
+
         return view('pages.dashboard', [
             'outlookAccounts' => $outlookAccounts,
             'googleAccounts' => $googleAccounts,
@@ -117,6 +128,8 @@ class DashboardController extends Controller
             'isSelfHosted' => $isSelfHosted,
             'hasDisplay' => $hasDisplay,
             'hasDevice' => $hasDevice,
+            'askProfile' => $askProfile,
+            'pendingCancellation' => $pendingCancellation,
         ]);
     }
 }

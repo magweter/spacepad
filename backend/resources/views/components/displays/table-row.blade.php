@@ -6,6 +6,7 @@
         \App\Enums\DisplayStatus::ACTIVE => 'bg-emerald-50 text-emerald-800 ring-emerald-600/15',
         \App\Enums\DisplayStatus::DEACTIVATED => 'bg-gray-100 text-gray-700 ring-gray-600/10',
         \App\Enums\DisplayStatus::ERROR => 'bg-red-50 text-red-800 ring-red-600/15',
+        \App\Enums\DisplayStatus::REQUIRES_PRO => 'bg-amber-50 text-amber-800 ring-amber-600/15',
     };
 
     $deviates = \App\Helpers\DisplaySettings::deviatesFromProfile($display);
@@ -137,6 +138,16 @@
     </td>
     <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right align-middle text-sm font-medium sm:pr-4">
         <div class="flex items-center justify-end gap-x-2">
+            @if($display->requiresPro())
+                {{-- The free plan has one active display. Pausing or resuming means nothing
+                     for a display that waits for Pro, so it gets the one thing that does. --}}
+                <form action="{{ route('displays.makeActive', $display) }}" method="POST" class="inline">
+                    @csrf
+                    <button type="submit" class="inline-flex items-center rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50" title="Use this display instead of the current active one">
+                        Make active
+                    </button>
+                </form>
+            @else
             <form action="{{ route('displays.updateStatus', $display) }}" method="POST" class="inline">
                 @csrf
                 @method('PATCH')
@@ -149,6 +160,7 @@
                     @endif
                 </button>
             </form>
+            @endif
             @if(auth()->user()->hasProForCurrentWorkspace())
                 {{-- Settings and customization were merged into one configuration screen --}}
                 {{-- The linked profile rides along on this button rather than as a separate label in

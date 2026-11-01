@@ -33,6 +33,7 @@ beforeEach(function () {
         '2026_05_30_000001_create_analytics_tables.php',
         '2026_05_30_000003_add_subscription_columns_to_analytics_instances.php',
         '2026_08_05_000003_create_analytics_workspaces_table.php',
+        '2026_11_01_000003_add_profile_and_cancellation_to_analytics_workspaces.php',
     ] as $file) {
         $migration = require database_path("migrations/{$file}");
         $migration->up();

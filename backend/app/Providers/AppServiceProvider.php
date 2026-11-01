@@ -6,9 +6,11 @@ use App\Models\Board;
 use App\Models\Display;
 use App\Models\Event as EventModel;
 use App\Models\PersonalAccessToken;
+use App\Models\Workspace;
 use App\Observers\BoardObserver;
 use App\Observers\DisplayObserver;
 use App\Observers\EventObserver;
+use App\Observers\WorkspaceObserver;
 use App\Services\AdminStatsService;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Foundation\Events\DiagnosingHealth;
@@ -75,6 +77,7 @@ class AppServiceProvider extends ServiceProvider
         // Billable usage is a column on the workspace, not a count. These two keep it true.
         Display::observe(DisplayObserver::class);
         Board::observe(BoardObserver::class);
+        Workspace::observe(WorkspaceObserver::class);
 
         Event::listen(DiagnosingHealth::class, function () {
             DB::connection()->getPdo();

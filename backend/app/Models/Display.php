@@ -108,6 +108,14 @@ class Display extends Model
         return $this->status === DisplayStatus::DEACTIVATED;
     }
 
+    /**
+     * Whether this display waits for the workspace to get Pro (free plan: one active display).
+     */
+    public function requiresPro(): bool
+    {
+        return $this->status === DisplayStatus::REQUIRES_PRO;
+    }
+
     public function updateLastEventAt(?Carbon $date = null): void
     {
         $this->update(['last_event_at' => $date ?? now()]);

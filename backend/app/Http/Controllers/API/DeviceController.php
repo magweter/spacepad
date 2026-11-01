@@ -72,7 +72,10 @@ class DeviceController extends ApiController
         }
 
         $device->update(['display_id' => $display->id]);
-        $display->update(['status' => DisplayStatus::ACTIVE]);
+        // A display waiting for Pro stays waiting: pairing a tablet is not an upgrade.
+        if (! $display->requiresPro()) {
+            $display->update(['status' => DisplayStatus::ACTIVE]);
+        }
 
         return $this->success(
             message: 'Successfully changed display.'
