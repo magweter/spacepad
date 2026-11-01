@@ -4,18 +4,22 @@ namespace App\Http\Controllers;
 
 use App\Enums\OutlookBookingMethod;
 use App\Enums\PermissionType;
+use App\Http\Controllers\Concerns\VerifiesOAuthState;
 use App\Models\OutlookAccount;
 use App\Services\FunnelTracking;
 use App\Services\OutlookService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Enum;
 use Illuminate\Validation\Rules\In;
 
 class OutlookAccountsController extends Controller
 {
+    use VerifiesOAuthState;
+
     protected OutlookService $outlookService;
 
     public function __construct(OutlookService $outlookService)
@@ -34,7 +38,12 @@ class OutlookAccountsController extends Controller
 
         $permissionType = PermissionType::from($request->permission_type);
 
-        return redirect($this->outlookService->getAuthUrl($permissionType));
+        // Bind the flow to this session. The callback only exchanges a code that comes back
+        // with the same state, so a code captured by someone else cannot be planted here.
+        $state = Str::random(40);
+        session(['outlook_oauth_state' => $state]);
+
+        return redirect($this->outlookService->getAuthUrl($permissionType, $state));
     }
 
     /**
@@ -116,6 +125,12 @@ class OutlookAccountsController extends Controller
             }
 
             return redirect()->route('dashboard')->with('error', 'Failed to connect to Microsoft account. Please try again.');
+        }
+
+        if (! $this->stateMatchesSession('outlook_oauth_state')) {
+            session()->forget('outlook_permission_type');
+
+            return redirect()->route('dashboard')->with('error', 'The Microsoft sign-in could not be verified. Please try connecting again.');
         }
 
         $authCode = request('code');
