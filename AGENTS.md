@@ -84,7 +84,7 @@ The live integration lives in `app/lib/services/led_service.dart` and is switche
 "LED strips follow the room state" setting (`led_enabled`, Display section). It uses the same SICP service
 and the same colours (`app/lib/models/led_color.dart`) as the test page below.
 
-A temporary test page for the LED strips on Philips 10BDL4151T displays (spec:
+A temporary test page for the LED strips on Philips displays (spec:
 `.claude/specs/led-test-spec.md`). It only exists when built with `--dart-define=LED_TEST=true`;
 all references sit behind the `const` flag in `app/lib/build_flags.dart`, so a normal build
 tree-shakes it out. The entry is a "LED test" button on the display picker (`DisplayPage`).

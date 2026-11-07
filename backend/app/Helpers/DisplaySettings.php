@@ -569,7 +569,7 @@ class DisplaySettings
     /**
      * Whether the LED strips on the display housing follow the room state.
      *
-     * Only Philips signage displays with SICP (10BDL4151T and the like) have such strips; on any
+     * Only Philips signage displays with SICP have such strips; on any
      * other device the tablet quietly finds nothing listening and leaves it at that. Off by default
      * so a tablet never pokes at a port nobody asked it to.
      */

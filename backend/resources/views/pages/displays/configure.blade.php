@@ -311,7 +311,7 @@
                                {{ $ds::isLedEnabled($display) ? 'checked' : '' }}>
                         <div>
                             <span class="flex items-center gap-1.5 text-sm font-medium text-gray-900">LED strips follow the room state
-                                <x-info-tip text="For Philips signage displays with LED strips on the housing (10BDL4151T and similar). The strips turn green when the room is free, orange when a meeting is about to start or end, and red while it is reserved. Network SICP must be enabled on the display. Has no effect on other devices." />
+                                <x-info-tip text="For Philips signage displays with LED strips on the housing. The strips turn green when the room is free, orange when a meeting is about to start or end, and red while it is reserved. Network SICP must be enabled on the display. Has no effect on other devices." />
                             </span>
                             <p class="text-xs text-gray-500">Philips SICP displays only. Off by default.</p>
                         </div>
