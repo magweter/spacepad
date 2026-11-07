@@ -2,10 +2,11 @@
 
 namespace App\Models;
 
-use App\Enums\PreviousSolution;
-use App\Enums\RoomsEstimate;
+use App\Enums\FunnelStep;
+use App\Enums\OnboardingQuestion;
 use App\Enums\UsageType;
 use App\Enums\WorkspaceRole;
+use App\Services\Funnel;
 use App\Services\InstanceService;
 use App\Traits\HasUlid;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -28,23 +29,12 @@ class Workspace extends Model
         'is_manually_billed',
         'manual_billing_unit_price',
         'billing_owner_user_id',
-        'rooms_estimate',
-        'previous_solution',
-        'previous_solution_other',
-        'profile_prompted_at',
-        'profile_answered_at',
-        'profile_dismissed_at',
     ];
 
     protected $casts = [
         'is_unlimited' => 'boolean',
         'is_manually_billed' => 'boolean',
         'manual_billing_unit_price' => 'decimal:2',
-        'rooms_estimate' => RoomsEstimate::class,
-        'previous_solution' => PreviousSolution::class,
-        'profile_prompted_at' => 'datetime',
-        'profile_answered_at' => 'datetime',
-        'profile_dismissed_at' => 'datetime',
     ];
 
     /**
@@ -110,21 +100,38 @@ class Workspace extends Model
         return $subscription->active() || $subscription->onTrial() ? $subscription : null;
     }
 
+    public function onboardingAnswers(): HasMany
+    {
+        return $this->hasMany(OnboardingAnswer::class);
+    }
+
+    /**
+     * The most recent answer this workspace gave to a question, skipped or not.
+     */
+    public function latestAnswer(OnboardingQuestion $question): ?OnboardingAnswer
+    {
+        return $this->onboardingAnswers()
+            ->where('question', $question->value)
+            ->latest('answered_at')
+            ->orderByDesc('id')
+            ->first();
+    }
+
     /**
      * Whether to ask this person the two workspace questions on the dashboard.
      *
      * Only after the first display, so nothing stands between signing up and getting a
      * display running. Owners and admins of a business workspace, once: answering the last
-     * question or dismissing the card ends it.
+     * question or closing the card ends it.
      */
     public function shouldAskProfile(User $user): bool
     {
         return ! config('settings.is_self_hosted')
-            && $this->previous_solution === null
-            && $this->profile_dismissed_at === null
             && ! $user->isPersonalUser()
             && $user->can('update', $this)
-            && $this->displays()->exists();
+            && $this->displays()->exists()
+            && $this->latestAnswer(OnboardingQuestion::PREVIOUS_SOLUTION) === null
+            && ! Funnel::reached(FunnelStep::PROFILE_CARD_DISMISSED, $this);
     }
 
     /**

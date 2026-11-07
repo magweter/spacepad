@@ -5,7 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * The workspace profile answers and the latest cancellation reason, in the reporting snapshot.
+ * The latest onboarding answers and cancellation reason, in the reporting snapshot.
  */
 return new class extends Migration
 {
@@ -18,6 +18,9 @@ return new class extends Migration
 
         Schema::table('analytics_workspaces', function (Blueprint $table) {
             $table->string('rooms_estimate', 8)->nullable();
+            $table->unsignedInteger('rooms_min')->nullable();
+            // Null for an open-ended range such as 50+.
+            $table->unsignedInteger('rooms_max')->nullable();
             $table->string('previous_solution', 32)->nullable();
             $table->string('previous_solution_other')->nullable();
             $table->string('last_cancellation_reason', 32)->nullable();
@@ -34,7 +37,7 @@ return new class extends Migration
 
         Schema::table('analytics_workspaces', function (Blueprint $table) {
             $table->dropColumn([
-                'rooms_estimate', 'previous_solution', 'previous_solution_other',
+                'rooms_estimate', 'rooms_min', 'rooms_max', 'previous_solution', 'previous_solution_other',
                 'last_cancellation_reason', 'last_cancellation_details', 'last_cancelled_at',
             ]);
         });

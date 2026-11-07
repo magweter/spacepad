@@ -2,50 +2,63 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\PreviousSolution;
-use App\Enums\RoomsEstimate;
+use App\Enums\FunnelStep;
+use App\Enums\OnboardingQuestion;
+use App\Models\OnboardingAnswer;
 use App\Models\Workspace;
+use App\Services\Funnel;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Validation\Rule;
 
 /**
- * The two optional workspace questions on the dashboard.
+ * The optional workspace questions on the dashboard.
  *
  * Every click is saved on its own, so someone who answers only the first question still
  * leaves that answer behind.
  */
 class WorkspaceProfileController extends Controller
 {
+    /**
+     * Where these answers come from, as stored in onboarding_answers.source.
+     */
+    private const SOURCE = 'dashboard_card';
+
     public function update(Request $request): Response|RedirectResponse
     {
         $workspace = $this->workspace($request);
 
+        $question = OnboardingQuestion::tryFrom((string) $request->input('question'));
+        abort_unless($question !== null, 422, 'Unknown question.');
+
+        $options = array_column($question->options()::cases(), 'value');
+        $withText = $question->optionWithText();
+
         $data = $request->validate([
-            'rooms_estimate' => ['nullable', Rule::enum(RoomsEstimate::class)],
-            'previous_solution' => ['nullable', Rule::enum(PreviousSolution::class)],
-            'previous_solution_other' => ['nullable', 'required_if:previous_solution,other', 'string', 'max:255'],
+            'value' => ['required', 'string', Rule::in([...$options, OnboardingAnswer::SKIPPED])],
+            'text' => [$withText ? Rule::requiredIf($request->input('value') === $withText) : 'nullable', 'nullable', 'string', 'max:255'],
+        ], [
+            'text.required' => 'Enter a name first.',
         ]);
 
-        $changes = array_filter($data, fn ($value) => $value !== null);
-
-        if (isset($changes['previous_solution'])) {
-            $changes['profile_answered_at'] = now();
-
-            if ($changes['previous_solution'] !== PreviousSolution::OTHER->value) {
-                $changes['previous_solution_other'] = null;
-            }
-        }
-
-        $workspace->update($changes);
+        $workspace->onboardingAnswers()->create([
+            'user_id' => $request->user()->id,
+            'question' => $question->value,
+            'value' => $data['value'],
+            'text' => $data['value'] === $withText ? $data['text'] : null,
+            'source' => self::SOURCE,
+            'answered_at' => now(),
+        ]);
 
         return $this->done($request);
     }
 
     public function dismiss(Request $request): Response|RedirectResponse
     {
-        $this->workspace($request)->update(['profile_dismissed_at' => now()]);
+        $workspace = $this->workspace($request);
+
+        Funnel::recordOnce(FunnelStep::PROFILE_CARD_DISMISSED, $workspace, $request->user());
 
         return $this->done($request);
     }

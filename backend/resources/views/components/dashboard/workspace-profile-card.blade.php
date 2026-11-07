@@ -11,7 +11,7 @@
      question is answered or someone closes it. --}}
 <div
     x-data="{
-        rooms: @js($workspace->rooms_estimate?->value),
+        rooms: @js($workspace->latestAnswer(\App\Enums\OnboardingQuestion::ROOMS)?->value),
         solution: null,
         other: '',
         otherError: '',
@@ -33,7 +33,7 @@
         },
         pickRooms(value) {
             this.rooms = value;
-            this.save({ rooms_estimate: value });
+            this.save({ question: 'rooms', value: value });
         },
         pickSolution(value) {
             this.solution = value;
@@ -42,7 +42,7 @@
                 this.$nextTick(() => this.$refs.other.focus());
                 return;
             }
-            this.save({ previous_solution: value });
+            this.save({ question: 'previous_solution', value: value });
             this.finish();
         },
         saveOther() {
@@ -50,7 +50,7 @@
                 this.otherError = 'Enter a name first';
                 return;
             }
-            this.save({ previous_solution: 'other', previous_solution_other: this.other.trim() });
+            this.save({ question: 'previous_solution', value: 'other', text: this.other.trim() });
             this.finish();
         },
         finish() {

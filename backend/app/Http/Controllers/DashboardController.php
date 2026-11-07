@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\FunnelStep;
 use App\Models\Board;
 use App\Models\CalDAVAccount;
 use App\Models\Device;
@@ -9,6 +10,7 @@ use App\Models\Display;
 use App\Models\DisplayProfile;
 use App\Models\GoogleAccount;
 use App\Models\OutlookAccount;
+use App\Services\Funnel;
 use App\Services\FunnelTracking;
 use App\Services\OutlookService;
 use Illuminate\Contracts\Foundation\Application;
@@ -100,11 +102,11 @@ class DashboardController extends Controller
             FunnelTracking::devicePaired($selectedWorkspace);
         }
 
-        // Stamped the first time the card is shown, so how often it gets answered can be
+        // Recorded the first time the card is shown, so how often it gets answered can be
         // measured against how often it was seen.
         $askProfile = $selectedWorkspace?->shouldAskProfile($user) ?? false;
-        if ($askProfile && $selectedWorkspace->profile_prompted_at === null) {
-            $selectedWorkspace->update(['profile_prompted_at' => now()]);
+        if ($askProfile) {
+            Funnel::recordOnce(FunnelStep::PROFILE_CARD_SHOWN, $selectedWorkspace, $user);
         }
 
         $pendingCancellation = $selectedWorkspace && $user->can('manageBilling', $selectedWorkspace)
