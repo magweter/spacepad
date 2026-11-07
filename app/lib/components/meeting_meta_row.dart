@@ -121,10 +121,12 @@ class MeetingMetaRow extends StatelessWidget {
             blurIntensity: 18,
             padding: chipPadding,
             child: Text(
-              'meeting_info_title'.trParams({
-                'start': formatTime(context, times['start'] ?? DateTime.now()),
-                'end': formatTime(context, times['end'] ?? DateTime.now()),
-              }),
+              (controller.currentEvent?.isAllDay ?? false)
+                  ? 'all_day'.tr
+                  : 'meeting_info_title'.trParams({
+                      'start': formatTime(context, times['start'] ?? DateTime.now()),
+                      'end': formatTime(context, times['end'] ?? DateTime.now()),
+                    }),
               style: chipStyle,
             ),
           ),

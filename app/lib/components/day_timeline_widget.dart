@@ -556,7 +556,7 @@ class _EventBlock extends StatelessWidget {
             if (durationMinutes >= 30) ...[
               const SizedBox(height: 1),
               Text(
-                '$startStr – $endStr',
+                event.isAllDay ? 'all_day'.tr : '$startStr – $endStr',
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.75),
                   fontSize: fontSize - 3,

@@ -9,6 +9,7 @@ return [
     'available' => 'Disponible',
     'available_until' => 'Disponible jusqu\'à :time',
     'available_until_end_of_day' => 'Disponible jusqu\'à la fin de la journée',
+    'all_day' => 'Toute la journée',
     'next' => 'Suivant',
     'room' => 'Salle',
     'status' => 'Statut',

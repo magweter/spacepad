@@ -228,6 +228,7 @@ function renderData(data) {
                         <p class="text-gray-500 mt-0.5">${escHtml(ev.start ?? '')} → ${escHtml(ev.end ?? '')}</p>
                     </div>
                     ${isAllDay ? '<span class="flex-shrink-0 rounded bg-amber-100 text-amber-700 px-1.5 py-0.5 text-[10px] font-medium">all-day</span>' : ''}
+                    ${ev.free === 'Yes' ? '<span class="flex-shrink-0 rounded bg-gray-200 text-gray-600 px-1.5 py-0.5 text-[10px] font-medium">free</span>' : ''}
                 </div>`;
             }
             html += '</div>';

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:get/get.dart';
+import 'package:intl/intl.dart' show DateFormat;
 import 'package:spacepad/components/toast.dart';
 import 'package:spacepad/exceptions/api_exception.dart';
 import 'package:spacepad/models/event_model.dart';
@@ -254,6 +255,17 @@ class DashboardController extends GetxController {
   }
 
   String get subtitle {
+    if (isReserved && !isCheckInActive && currentEvent!.isAllDay) {
+      final now = DateTime.now();
+      final endOfToday = DateTime(now.year, now.month, now.day).add(const Duration(days: 1));
+
+      // "23 hours 40 minutes left" is true but says nothing; what matters is that the room is
+      // gone for the day, or for longer when the event spans several days.
+      return currentEvent!.end.isAfter(endOfToday)
+          ? 'until_date'.trParams({'date': DateFormat('E d MMM', Get.locale?.toString()).format(currentEvent!.end.subtract(const Duration(days: 1)))})
+          : 'till_end_of_day'.tr;
+    }
+
     if (isReserved && !isCheckInActive) {
       final currentEventEnd = currentEvent!.end;
       final totalMinutesLeft = currentEventEnd.difference(DateTime.now()).inMinutes;
@@ -598,6 +610,11 @@ class DashboardController extends GetxController {
 
   bool get extendEnabled {
     return globalSettings.value?.extendEnabled ?? false;
+  }
+
+  /// An all-day event already runs to midnight, so there is nothing to extend it by.
+  bool get canExtendCurrentEvent {
+    return extendEnabled && !(currentEvent?.isAllDay ?? false);
   }
 
 

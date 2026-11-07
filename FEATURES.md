@@ -10,6 +10,8 @@ A privacy-focused room display app that shows real-time room availability, synce
 - **Google Workspace** — connect via OAuth or service account with domain-wide delegation; read-only or read/write
 - **CalDAV** — generic CalDAV support for self-hosted and third-party calendar servers
 - Real-time sync with webhook-based push updates
+- The calendar's own free/busy flag decides what blocks the room: events marked "free" (Outlook "Show as: Free", Google "Show as available", CalDAV `TRANSP:TRANSPARENT`) never do
+- All-day events block the room for the whole day, from midnight to midnight on the tablet's own clock, including multi-day events. Can be turned off per display
 - Manual refresh available from the tablet at any time
 
 ---
@@ -21,7 +23,7 @@ A privacy-focused room display app that shows real-time room availability, synce
 - Fully customizable state labels per display (e.g. "All yours!", "Keep it short!", "In a meeting")
 - Current meeting title (can be hidden for privacy)
 - Meeting organizer name (optional, per display)
-- Time remaining in current meeting
+- Time remaining in current meeting ("Till end of day" for an all-day event, "Until <date>" when it runs for several days)
 - Time until next meeting
 - Next upcoming event preview
 - LED strips on Philips signage displays (Network SICP) follow the same colours: green, orange and red, white on the room picker. Optional per display, off by default
@@ -41,6 +43,7 @@ A privacy-focused room display app that shows real-time room availability, synce
 
 ### Extend Meeting
 - Extend an active meeting by +15, +30, or +60 minutes directly from the tablet
+- Not offered for all-day events, which already run to the end of the day
 - Syncs the change back to the external calendar
 
 ### End Meeting
@@ -52,6 +55,7 @@ A privacy-focused room display app that shows real-time room availability, synce
 - Configurable check-in window (1–60 minutes before start)
 - Configurable grace period (1–30 minutes after start) before the room is released
 - Tablet-booked meetings are exempt from check-in automatically
+- All-day events never require a check-in and are never released
 
 ### Schedule Display
 Four modes to show today's schedule — one per display:
@@ -114,6 +118,7 @@ Neither is inherited from a profile: they belong to the display itself.
 | Show organizer | On/off |
 | Show meeting title | On/off |
 | Show meeting location | On/off (default off) |
+| All-day events block the room | On/off (default on) |
 | LED strips follow the room state | On/off (default off), Philips SICP displays only |
 | Hide admin actions | On/off |
 | Border thickness | Small / Medium / Large |

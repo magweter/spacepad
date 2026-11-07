@@ -450,3 +450,42 @@ test('table view renders all category groups in one table so the columns line up
     // Each group still repeats the header row.
     expect(substr_count($html, '>'.__('boards.room', [], 'en').'</th>'))->toBe(3);
 });
+
+test('board shows an all-day event as all day instead of a time range', function () {
+    $display = Display::factory()->create([
+        'user_id' => $this->user->id,
+        'workspace_id' => $this->workspace->id,
+        'status' => DisplayStatus::ACTIVE,
+    ]);
+
+    $event = new Event;
+    $event->id = 'evt-all-day';
+    $event->display_id = $display->id;
+    $event->user_id = $display->user_id;
+    $event->external_id = 'external-all-day';
+    $event->status = EventStatus::CONFIRMED;
+    $event->summary = 'Training day';
+    $event->start = now()->startOfDay();
+    $event->end = now()->addDay()->startOfDay();
+    $event->is_all_day = true;
+
+    $eventService = \Mockery::mock(EventService::class);
+    $eventService->shouldReceive('getEventsForDisplay')->andReturn(collect([$event]));
+    app()->instance(EventService::class, $eventService);
+
+    foreach (['grid', 'card', 'table'] as $viewMode) {
+        $board = Board::factory()->create([
+            'workspace_id' => $this->workspace->id,
+            'user_id' => $this->user->id,
+            'show_all_displays' => true,
+            'view_mode' => $viewMode,
+            'language' => 'en',
+        ]);
+
+        $this->actingAs($this->user)->get(route('boards.show', $board))
+            ->assertOk()
+            ->assertSee('Training day')
+            ->assertSee('All day')
+            ->assertDontSee('data-end="'.$event->end->toIso8601String().'"', false);
+    }
+});

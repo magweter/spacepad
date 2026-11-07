@@ -573,6 +573,21 @@ class DisplaySettings
      * other device the tablet quietly finds nothing listening and leaves it at that. Off by default
      * so a tablet never pokes at a port nobody asked it to.
      */
+    /**
+     * Whether an all-day event marks the room as in use. On by default: on a room's calendar an
+     * all-day event almost always means the room is taken for the day. Events marked "free" in the
+     * calendar never block, whatever this says.
+     */
+    public static function isAllDayEventsBlocking(Display $display): bool
+    {
+        return (bool) self::getSetting($display, 'all_day_events_block', true);
+    }
+
+    public static function setAllDayEventsBlocking(Display $display, bool $blocking): bool
+    {
+        return self::setSetting($display, 'all_day_events_block', $blocking, 'boolean');
+    }
+
     public static function isLedEnabled(Display $display): bool
     {
         return self::getSetting($display, 'led_enabled', false);
