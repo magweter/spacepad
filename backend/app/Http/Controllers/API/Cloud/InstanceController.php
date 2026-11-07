@@ -23,14 +23,12 @@ class InstanceController extends ApiController
      * Pseudonymize an IP address using HMAC-SHA256 with APP_KEY.
      * This allows consistent pseudonymization for audit purposes while protecting PII.
      * Returns first 16 characters of the hash for readability.
-     *
-     * @param string $ip
-     * @return string
      */
     private function pseudonymizeIp(string $ip): string
     {
         $key = config('app.key');
         $hash = hash_hmac('sha256', $ip, $key);
+
         return substr($hash, 0, 16);
     }
 
@@ -38,30 +36,16 @@ class InstanceController extends ApiController
     {
         // Security: Log instance heartbeat for audit trail
         logger()->info('Instance heartbeat received', [
-            'instance_key' => substr($request['instance_key'], 0, 8) . '...', // Log partial key only
+            'instance_key' => substr($request['instance_key'], 0, 8).'...', // Log partial key only
             'ip_hash' => $this->pseudonymizeIp(request()->ip()),
             'version' => $request['version'],
         ]);
 
-        // First, try to find an existing instance with the same instance_key
+        // The key is the only identity a heartbeat has. There used to be a fallback that
+        // matched on the users list and then overwrote the matched row, key included; that
+        // let anyone who could reproduce another instance's users payload take it over.
         $existingInstance = Instance::query()
             ->where('instance_key', $request['instance_key'])
-            ->latest()
-            ->first();
-        
-        // Second, try to find an existing instance with the same user data by comparing JSON strings directly
-        // Direct JSON comparison works for both SQLite (TEXT) and MySQL (JSON type)
-        // Always convert users to JSON string for comparison, regardless of input type
-        $usersValue = $request['users'];
-        $usersJson = is_string($usersValue) 
-            ? $usersValue 
-            : json_encode($usersValue, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-        
-        // Ensure it's always a string (not array) for database comparison
-        $usersJson = (string) $usersJson;
-        
-        $existingInstance = $existingInstance ?? Instance::query()
-            ->whereRaw('users = ?', [$usersJson])
             ->latest()
             ->first();
 
@@ -96,7 +80,7 @@ class InstanceController extends ApiController
     {
         // Security: Log instance validation for audit trail
         logger()->info('Instance validation received', [
-            'instance_key' => substr($request['instance_key'], 0, 8) . '...', // Log partial key only
+            'instance_key' => substr($request['instance_key'], 0, 8).'...', // Log partial key only
             'ip_hash' => $this->pseudonymizeIp(request()->ip()),
         ]);
 
@@ -120,9 +104,9 @@ class InstanceController extends ApiController
     {
         // Security: Log instance activation for audit trail
         logger()->info('Instance activation attempt', [
-            'instance_key' => substr($request['instance_key'], 0, 8) . '...', // Log partial key only
+            'instance_key' => substr($request['instance_key'], 0, 8).'...', // Log partial key only
             'ip_hash' => $this->pseudonymizeIp(request()->ip()),
-            'has_license_key' => !empty($request['license_key']),
+            'has_license_key' => ! empty($request['license_key']),
         ]);
 
         $instance = Instance::updateOrCreate(
@@ -156,6 +140,7 @@ class InstanceController extends ApiController
             );
         } catch (\Exception $e) {
             report($e);
+
             return $this->error(
                 message: 'Instance could not be activated',
                 code: 500

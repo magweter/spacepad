@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\PermissionType;
 use App\Models\CalDAVAccount;
+use App\Rules\SafeCalDavUrl;
 use App\Services\CalDAVService;
 use App\Services\FunnelTracking;
 use Illuminate\Http\RedirectResponse;
@@ -22,7 +23,7 @@ class CalDAVAccountsController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'url' => 'required|url',
+            'url' => ['required', 'url', new SafeCalDavUrl],
             'username' => 'required|string',
             'password' => 'required|string',
         ]);

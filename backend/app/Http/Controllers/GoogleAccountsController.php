@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\GoogleBookingMethod;
 use App\Enums\PermissionType;
+use App\Http\Controllers\Concerns\VerifiesOAuthState;
 use App\Models\GoogleAccount;
 use App\Services\FunnelTracking;
 use App\Services\GoogleService;
@@ -11,11 +12,14 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Enum;
 
 class GoogleAccountsController extends Controller
 {
+    use VerifiesOAuthState;
+
     protected GoogleService $googleService;
 
     public function __construct(GoogleService $googleService)
@@ -59,8 +63,13 @@ class GoogleAccountsController extends Controller
         // Store permission type in session
         session(['google_permission_type' => $request->permission_type]);
 
+        // Bind the flow to this session. The callback only exchanges a code that comes back
+        // with the same state, so a code captured by someone else cannot be planted here.
+        $state = Str::random(40);
+        session(['google_oauth_state' => $state]);
+
         // Proceed to OAuth - booking method will be set after connection
-        return redirect($this->googleService->getAuthUrl($permissionType));
+        return redirect($this->googleService->getAuthUrl($permissionType, $state));
     }
 
     /**
@@ -139,6 +148,13 @@ class GoogleAccountsController extends Controller
     {
         if (request()->has('error')) {
             return redirect()->route('dashboard')->with('error', 'Failed to connect to Google. Please try again.');
+        }
+
+        if (! $this->stateMatchesSession('google_oauth_state')) {
+            session()->forget('google_permission_type');
+            session()->forget('google_booking_method');
+
+            return redirect()->route('dashboard')->with('error', 'The Google sign-in could not be verified. Please try connecting again.');
         }
 
         $authCode = request('code');

@@ -361,7 +361,31 @@ class EventService
             throw new Exception('Only events booked via this tablet can be cancelled');
         }
 
+        $this->assertExternalEventOnDisplay($display, $eventId);
         $this->cancelExternalEvent($eventId, $display);
+    }
+
+    /**
+     * An id that is not in our events table goes to the provider as is, and the linked account
+     * can usually reach far more than this room. Only act on ids the display itself shows.
+     *
+     * @throws Exception
+     */
+    private function assertExternalEventOnDisplay(Display $display, string $externalId): void
+    {
+        // Whatever the tablet was just shown is in one of the two caches getEventsForDisplay
+        // fills; only on a cold cache does this cost a provider read.
+        $events = Cache::get($display->getEventsCacheKey())
+            ?? Cache::get($display->getEventsCacheKey().':fallback')
+            ?? $this->getAllEvents($display);
+
+        $known = $events->contains(
+            fn ($event) => $event->id === $externalId || $event->external_id === $externalId
+        );
+
+        if (! $known) {
+            throw new Exception('Event not found on this display', 404);
+        }
     }
 
     /**
@@ -423,6 +447,7 @@ class EventService
         }
 
         // External event (not in DB) — requires write permission
+        $this->assertExternalEventOnDisplay($display, $eventId);
         $this->extendExternalEvent($eventId, $display, $newEnd);
     }
 
