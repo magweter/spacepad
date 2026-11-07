@@ -39,6 +39,12 @@ function roomApiEvent(string $id, Carbon $start, Carbon $end): array
  * own event set first.
  */
 beforeEach(function () {
+    // Events in these tests start at now()->addHour(). The event service clamps results to
+    // the server's day, so in the last hour before UTC midnight that start is tomorrow and
+    // the event disappears. Pin the clock to mid-morning so the result does not depend on
+    // the time of day the suite happens to run.
+    Carbon::setTestNow(Carbon::parse('2026-11-05 10:00:00', 'UTC'));
+
     Cache::flush();
 
     $this->user = User::factory()->create();

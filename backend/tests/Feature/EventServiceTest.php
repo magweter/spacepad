@@ -36,6 +36,12 @@ function outlookApiEvent(string $id, Carbon $start, Carbon $end, string $subject
 }
 
 beforeEach(function () {
+    // Events in these tests start at now()->addHour(). The event service clamps results to
+    // the server's day, so in the last hour before UTC midnight that start is tomorrow and
+    // the event disappears. Pin the clock to mid-morning so the result does not depend on
+    // the time of day the suite happens to run.
+    Carbon::setTestNow(Carbon::parse('2026-11-05 10:00:00', 'UTC'));
+
     $this->user = User::factory()->create();
     $this->workspace = $this->user->primaryWorkspace();
 
