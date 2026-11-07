@@ -57,15 +57,15 @@ class OutlookService
      *
      * @param  PermissionType  $permissionType  'read' or 'write', or PermissionType enum
      */
-    public function getAdminConsentUrl(?string $outlookAccountId = null): string
+    public function getAdminConsentUrl(?string $state = null): string
     {
         $params = [
             'client_id' => $this->clientId,
             'redirect_uri' => $this->redirectUri,
         ];
 
-        if ($outlookAccountId) {
-            $params['state'] = 'account:'.$outlookAccountId;
+        if ($state) {
+            $params['state'] = $state;
         }
 
         return 'https://login.microsoftonline.com/common/adminconsent?'.http_build_query($params);
@@ -96,7 +96,7 @@ class OutlookService
         return $data['access_token'];
     }
 
-    public function getAuthUrl(PermissionType $permissionType = PermissionType::READ): string
+    public function getAuthUrl(PermissionType $permissionType = PermissionType::READ, ?string $state = null): string
     {
         $oauthEndpoint = "https://login.microsoftonline.com/{$this->tenantId}/oauth2/v2.0/authorize";
 
@@ -108,7 +108,7 @@ class OutlookService
             'redirect_uri' => $this->redirectUri,
             'response_mode' => 'query',
             'scope' => $scopes,
-            'state' => csrf_token(),
+            'state' => $state ?? csrf_token(),
         ];
 
         return $oauthEndpoint.'?'.http_build_query($params);

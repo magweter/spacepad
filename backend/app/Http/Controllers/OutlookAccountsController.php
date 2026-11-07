@@ -4,18 +4,22 @@ namespace App\Http\Controllers;
 
 use App\Enums\OutlookBookingMethod;
 use App\Enums\PermissionType;
+use App\Http\Controllers\Concerns\VerifiesOAuthState;
 use App\Models\OutlookAccount;
 use App\Services\FunnelTracking;
 use App\Services\OutlookService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Enum;
 use Illuminate\Validation\Rules\In;
 
 class OutlookAccountsController extends Controller
 {
+    use VerifiesOAuthState;
+
     protected OutlookService $outlookService;
 
     public function __construct(OutlookService $outlookService)
@@ -34,7 +38,12 @@ class OutlookAccountsController extends Controller
 
         $permissionType = PermissionType::from($request->permission_type);
 
-        return redirect($this->outlookService->getAuthUrl($permissionType));
+        // Bind the flow to this session. The callback only exchanges a code that comes back
+        // with the same state, so a code captured by someone else cannot be planted here.
+        $state = Str::random(40);
+        session(['outlook_oauth_state' => $state]);
+
+        return redirect($this->outlookService->getAuthUrl($permissionType, $state));
     }
 
     /**
@@ -49,7 +58,7 @@ class OutlookAccountsController extends Controller
         logger()->info('Outlook callback received', [
             'param_keys' => array_keys(request()->query()),
             'admin_consent' => request('admin_consent'),
-            'state' => request('state'),
+            'has_state' => request()->filled('state'),
             'tenant' => request('tenant'),
             'has_code' => request()->has('code'),
             'error' => request('error'),
@@ -68,23 +77,7 @@ class OutlookAccountsController extends Controller
             && in_array(strtolower((string) $adminConsent), ['true', '1'], true);
 
         if ($isAdminConsent) {
-            $state = request('state', '');
-            if (str_starts_with($state, 'account:')) {
-                $accountId = substr($state, strlen('account:'));
-                $updated = OutlookAccount::where('id', $accountId)
-                    ->update(['booking_method' => OutlookBookingMethod::ADMIN_CONSENT]);
-
-                logger()->info('Admin consent granted and saved', [
-                    'account_id' => $accountId,
-                    'rows_updated' => $updated,
-                ]);
-            } else {
-                logger()->warning('Admin consent callback without a valid account state', [
-                    'state' => $state,
-                ]);
-            }
-
-            return response()->view('outlook.admin-consent-granted');
+            return $this->handleAdminConsent();
         }
 
         // Everything below is only reached by the Spacepad user doing their own
@@ -116,6 +109,12 @@ class OutlookAccountsController extends Controller
             }
 
             return redirect()->route('dashboard')->with('error', 'Failed to connect to Microsoft account. Please try again.');
+        }
+
+        if (! $this->stateMatchesSession('outlook_oauth_state')) {
+            session()->forget('outlook_permission_type');
+
+            return redirect()->route('dashboard')->with('error', 'The Microsoft sign-in could not be verified. Please try connecting again.');
         }
 
         $authCode = request('code');
@@ -153,9 +152,13 @@ class OutlookAccountsController extends Controller
 
         if ($request->booking_method === OutlookBookingMethod::ADMIN_CONSENT->value) {
             // Don't save admin_consent yet — only confirm it after the consent callback
-            // returns admin_consent=True. Pass the account ID in state so the callback
-            // knows which account to update.
-            $consentUrl = $this->outlookService->getAdminConsentUrl($outlookAccount->id);
+            // returns admin_consent=True. The callback runs without a Spacepad session (the
+            // M365 admin is usually someone else), so it can only trust a nonce we minted
+            // here: single use, short lived, and resolved to the account server side.
+            $nonce = Str::random(40);
+            cache()->put(self::adminConsentCacheKey($nonce), $outlookAccount->id, now()->addHour());
+
+            $consentUrl = $this->outlookService->getAdminConsentUrl($nonce);
 
             return redirect()->route('dashboard')
                 ->with('needs_admin_consent', true)
@@ -168,6 +171,59 @@ class OutlookAccountsController extends Controller
         ]);
 
         return redirect()->route('dashboard')->with('success', 'Booking method has been set successfully.');
+    }
+
+    /**
+     * Microsoft redirects here after a tenant admin approves the app. There is no Spacepad
+     * session to lean on, so the request is trusted only when it carries the nonce that
+     * setBookingMethod minted for this account, and the tenant that granted consent is the
+     * tenant the account belongs to.
+     */
+    private function handleAdminConsent(): Response
+    {
+        $nonce = request('state');
+        $accountId = is_string($nonce) && $nonce !== ''
+            ? cache()->pull(self::adminConsentCacheKey($nonce))
+            : null;
+        $account = $accountId ? OutlookAccount::find($accountId) : null;
+        $tenant = request('tenant');
+
+        if (! $account || ! is_string($tenant) || $tenant === '') {
+            logger()->warning('Admin consent callback refused: unknown or reused nonce', [
+                'has_state' => is_string($nonce) && $nonce !== '',
+                'has_tenant' => is_string($tenant) && $tenant !== '',
+                'ip' => request()->ip(),
+            ]);
+
+            return response()->view('outlook.admin-consent-invalid', [], 403);
+        }
+
+        if ($account->tenant_id && ! hash_equals($account->tenant_id, $tenant)) {
+            logger()->warning('Admin consent callback refused: tenant does not match the account', [
+                'account_id' => $account->id,
+                'ip' => request()->ip(),
+            ]);
+
+            return response()->view('outlook.admin-consent-invalid', [], 403);
+        }
+
+        $account->update([
+            'booking_method' => OutlookBookingMethod::ADMIN_CONSENT,
+            // Older rows were connected before the tenant was recorded; the consent
+            // callback is the first place we learn it for sure.
+            'tenant_id' => $account->tenant_id ?: $tenant,
+        ]);
+
+        logger()->info('Admin consent granted and saved', [
+            'account_id' => $account->id,
+        ]);
+
+        return response()->view('outlook.admin-consent-granted');
+    }
+
+    private static function adminConsentCacheKey(string $nonce): string
+    {
+        return 'outlook_admin_consent:'.$nonce;
     }
 
     public function delete(OutlookAccount $outlookAccount): RedirectResponse

@@ -1,24 +1,33 @@
 <?php
 
+use App\Models\Calendar;
 use App\Models\Device;
 use App\Models\Display;
 use App\Models\EventSubscription;
-use App\Models\User;
-use App\Services\OutlookService;
-use App\Services\GoogleService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use App\Models\Calendar;
 use App\Models\GoogleAccount;
 use App\Models\OutlookAccount;
 use App\Models\Room;
+use App\Models\User;
+use App\Services\GoogleService;
+use App\Services\OutlookService;
+use Google\Service\Calendar\Event;
+use Google\Service\Calendar\EventDateTime;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
+    // Events in these tests start at now()->addHour(). The event service clamps results to
+    // the server's day, so in the last hour before UTC midnight that start is tomorrow and
+    // the event disappears. Pin the clock to mid-morning so the result does not depend on
+    // the time of day the suite happens to run.
+    Carbon::setTestNow(Carbon::parse('2026-11-05 10:00:00', 'UTC'));
+
     $this->user = User::factory()->create();
     // User boot method automatically creates a workspace, get the primary workspace
     $this->workspace = $this->user->primaryWorkspace();
-    
+
     $this->device = Device::factory()->create([
         'user_id' => $this->user->id,
         'workspace_id' => $this->workspace->id,
@@ -29,7 +38,7 @@ beforeEach(function () {
         'user_id' => $this->user->id,
         'workspace_id' => $this->workspace->id,
         'calendar_id' => 'test@example.com',
-        'name' => 'Test Calendar'
+        'name' => 'Test Calendar',
     ]);
 
     // Then create display with calendar
@@ -37,7 +46,7 @@ beforeEach(function () {
         'user_id' => $this->user->id,
         'workspace_id' => $this->workspace->id,
         'calendar_id' => $this->calendar->id,
-        'status' => 'active'
+        'status' => 'active',
     ]);
 
     $this->device->update(['display_id' => $this->display->id]);
@@ -68,11 +77,11 @@ it('returns outlook events in the correct format', function () {
         'user_id' => $this->user->id,
         'workspace_id' => $this->workspace->id,
         'calendar_id' => $this->calendar->id,
-        'email_address' => 'test@example.com'
+        'email_address' => 'test@example.com',
     ]);
 
     $this->calendar->update([
-        'outlook_account_id' => $outlookAccount->id
+        'outlook_account_id' => $outlookAccount->id,
     ]);
 
     // Mock Outlook service response
@@ -86,13 +95,13 @@ it('returns outlook events in the correct format', function () {
             'location' => ['displayName' => 'Test Location'],
             'start' => [
                 'dateTime' => now()->addHour()->toIso8601String(),
-                'timeZone' => 'UTC'
+                'timeZone' => 'UTC',
             ],
             'end' => [
                 'dateTime' => now()->addHours(2)->toIso8601String(),
-                'timeZone' => 'UTC'
-            ]
-        ]
+                'timeZone' => 'UTC',
+            ],
+        ],
     ];
 
     // Mock the service
@@ -116,8 +125,8 @@ it('returns outlook events in the correct format', function () {
                     'start',
                     'end',
                     'timezone',
-                ]
-            ]
+                ],
+            ],
         ]);
 
     $events = $response->json('data');
@@ -139,26 +148,26 @@ it('returns google events in the correct format', function () {
         'user_id' => $this->user->id,
         'workspace_id' => $this->workspace->id,
         'calendar_id' => $this->calendar->id,
-        'email_address' => 'test@example.com'
+        'email_address' => 'test@example.com',
     ]);
 
     $this->calendar->update([
-        'google_account_id' => $googleAccount->id
+        'google_account_id' => $googleAccount->id,
     ]);
 
     // Mock Google service response
-    $googleEvent = new \Google\Service\Calendar\Event();
+    $googleEvent = new Event;
     $googleEvent->setId('google-1');
     $googleEvent->setSummary('Test Google Event');
     $googleEvent->setDescription('Test Description');
     $googleEvent->setLocation('Test Location');
-    $googleEvent->setStart(new \Google\Service\Calendar\EventDateTime([
+    $googleEvent->setStart(new EventDateTime([
         'dateTime' => now()->addHour()->toIso8601String(),
-        'timeZone' => 'UTC'
+        'timeZone' => 'UTC',
     ]));
-    $googleEvent->setEnd(new \Google\Service\Calendar\EventDateTime([
+    $googleEvent->setEnd(new EventDateTime([
         'dateTime' => now()->addHours(2)->toIso8601String(),
-        'timeZone' => 'UTC'
+        'timeZone' => 'UTC',
     ]));
 
     // Mock the service
@@ -187,9 +196,9 @@ it('returns google events in the correct format', function () {
                     'description',
                     'start',
                     'end',
-                    'timezone'
-                ]
-            ]
+                    'timezone',
+                ],
+            ],
         ]);
 
     $events = $response->json('data');
@@ -210,11 +219,11 @@ it('uses short-lived fallback cache when no event subscription exists', function
     $room = Room::factory()->create([
         'user_id' => $this->user->id,
         'calendar_id' => $this->calendar->id,
-        'email_address' => 'test@example.com'
+        'email_address' => 'test@example.com',
     ]);
 
     $this->calendar->update([
-        'outlook_account_id' => $outlookAccount->id
+        'outlook_account_id' => $outlookAccount->id,
     ]);
 
     // Mock Outlook service response
@@ -228,13 +237,13 @@ it('uses short-lived fallback cache when no event subscription exists', function
             'location' => ['displayName' => 'Test Location'],
             'start' => [
                 'dateTime' => now()->addHour()->toIso8601String(),
-                'timeZone' => 'UTC'
+                'timeZone' => 'UTC',
             ],
             'end' => [
                 'dateTime' => now()->addHours(2)->toIso8601String(),
-                'timeZone' => 'UTC'
-            ]
-        ]
+                'timeZone' => 'UTC',
+            ],
+        ],
     ];
 
     // Mock the service — should only be called once; the second request hits the 2-min fallback cache
@@ -257,7 +266,7 @@ it('uses short-lived fallback cache when no event subscription exists', function
 
     // The webhook cache key is absent (no subscription), but the fallback key exists
     expect(cache()->has($this->display->getEventsCacheKey()))->toBeFalse();
-    expect(cache()->has($this->display->getEventsCacheKey() . ':fallback'))->toBeTrue();
+    expect(cache()->has($this->display->getEventsCacheKey().':fallback'))->toBeTrue();
 });
 
 it('caches events when event subscription exists', function () {
@@ -267,18 +276,18 @@ it('caches events when event subscription exists', function () {
         'user_id' => $this->user->id,
         'workspace_id' => $this->workspace->id,
         'calendar_id' => $this->calendar->id,
-        'email_address' => 'test@example.com'
+        'email_address' => 'test@example.com',
     ]);
 
     $this->calendar->update([
-        'outlook_account_id' => $outlookAccount->id
+        'outlook_account_id' => $outlookAccount->id,
     ]);
 
     // Create event subscription for the Outlook account
     $test = EventSubscription::factory()
         ->outlook($outlookAccount)
         ->create([
-            'display_id' => $this->display->id
+            'display_id' => $this->display->id,
         ]);
 
     // Mock Outlook service response
@@ -292,13 +301,13 @@ it('caches events when event subscription exists', function () {
             'location' => ['displayName' => 'Test Location'],
             'start' => [
                 'dateTime' => now()->addHour()->toIso8601String(),
-                'timeZone' => 'UTC'
+                'timeZone' => 'UTC',
             ],
             'end' => [
                 'dateTime' => now()->addHours(2)->toIso8601String(),
-                'timeZone' => 'UTC'
-            ]
-        ]
+                'timeZone' => 'UTC',
+            ],
+        ],
     ];
 
     // Mock the service
@@ -329,18 +338,18 @@ it('handles errors gracefully', function () {
     $room = Room::factory()->create([
         'user_id' => $this->user->id,
         'calendar_id' => $this->calendar->id,
-        'email_address' => 'test@example.com'
+        'email_address' => 'test@example.com',
     ]);
 
     $this->calendar->update([
-        'outlook_account_id' => $outlookAccount->id
+        'outlook_account_id' => $outlookAccount->id,
     ]);
 
     // Mock the service to throw an exception
     $outlookService = Mockery::mock(OutlookService::class);
     $outlookService->shouldReceive('fetchEventsByUser')
         ->once()
-        ->andThrow(new \Exception('Service error'));
+        ->andThrow(new Exception('Service error'));
 
     $this->app->instance(OutlookService::class, $outlookService);
 

@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Enums\DisplayStatus;
-use App\Enums\Provider;
 use App\Events\UserOnboarded;
 use App\Http\Requests\CreateDisplayRequest;
 use App\Models\CalDAVAccount;
@@ -72,13 +71,16 @@ class DisplayController extends Controller
             return redirect()->back()->with('error', 'You require an active Pro license to create multiple displays.');
         }
 
-        // Validate the existence of the appropriate account based on provider
-        match ($provider) {
+        // Resolve the account and make sure the caller may use it. Existence alone is not
+        // enough: the ULID of another tenant's account would otherwise let a user attach a
+        // display to that tenant's calendar and read its events through the stored token.
+        $account = match ($provider) {
             'outlook' => OutlookAccount::findOrFail($accountId),
             'google' => GoogleAccount::findOrFail($accountId),
             'caldav' => CalDAVAccount::findOrFail($accountId),
             default => throw new \InvalidArgumentException('Invalid provider')
         };
+        $this->authorize('view', $account);
 
         $user = auth()->user();
 
@@ -101,6 +103,12 @@ class DisplayController extends Controller
         // (members, billing) is restricted to owners and admins.
         if (! $workspace->hasMember($user)) {
             return redirect()->back()->with('error', 'You do not have permission to create displays in this workspace.');
+        }
+
+        // The account must live in the workspace the display is created in, so a member of
+        // two workspaces cannot pull one workspace's calendar into the other.
+        if ($account->workspace_id !== null && $account->workspace_id !== $workspace->id) {
+            abort(403, 'This calendar account does not belong to the selected workspace.');
         }
 
         $display = DB::transaction(function () use ($validatedData, $workspace) {

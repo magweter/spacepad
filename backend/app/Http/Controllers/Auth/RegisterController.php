@@ -6,13 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\RegisterRequest;
 use App\Models\User;
 use App\Notifications\MagicLoginNotification;
+use App\Support\MagicLoginLink;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
-use MagicLink\Actions\LoginAction;
-use MagicLink\MagicLink;
 use Spatie\GoogleTagManager\GoogleTagManagerFacade as GoogleTagManager;
 
 class RegisterController extends Controller
@@ -57,7 +56,7 @@ class RegisterController extends Controller
             ]);
         }
 
-        $loginUrl = MagicLink::create(new LoginAction($user), 60 * 24)->url;
+        $loginUrl = MagicLoginLink::create($user);
         $user->notify(new MagicLoginNotification($loginUrl));
 
         return redirect()
@@ -95,7 +94,7 @@ class RegisterController extends Controller
 
         $user = User::where('email', $email)->first();
         if ($user) {
-            $loginUrl = MagicLink::create(new LoginAction($user), 60 * 24)->url;
+            $loginUrl = MagicLoginLink::create($user);
             $user->notify(new MagicLoginNotification($loginUrl));
         }
 
