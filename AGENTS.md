@@ -77,3 +77,19 @@ Notes:
 - Hot reload (`r` / `R`) needs an interactive TTY. If you start `flutter run` as a
   background process, you cannot hot reload it; tell the user to run it in their own
   terminal when they want that.
+
+## LED test build (Philips SICP)
+
+The live integration lives in `app/lib/services/led_service.dart` and is switched on per display with the
+"LED strips follow the room state" setting (`led_enabled`, Display section). It uses the same SICP service
+and the same colours (`app/lib/models/led_color.dart`) as the test page below.
+
+A temporary test page for the LED strips on Philips displays (spec:
+`.claude/specs/led-test-spec.md`). It only exists when built with `--dart-define=LED_TEST=true`;
+all references sit behind the `const` flag in `app/lib/build_flags.dart`, so a normal build
+tree-shakes it out. The entry is a "LED test" button on the display picker (`DisplayPage`).
+
+- Build the APK for the customer: `tools/build_led_test.sh` (also passes `APP_VERSION`).
+- Test without hardware: `python3 tools/fake_sicp_server.py` (port 5000, `--mode nack|nav|silent`
+  for failure cases), then on an Android emulator `adb reverse tcp:5000 tcp:5000` and
+  `fvm flutter run -d <emulator> --dart-define=LED_TEST=true`.

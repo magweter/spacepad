@@ -206,6 +206,13 @@
                             <x-info-tip text="The location line of the calendar event, under each meeting in the day schedule. Google and Microsoft put the booked room and the address on that same line, so it can read as a full street and postcode followed by a room name. Not the same as the room name above, which is this display's own name." />
                         </div>
 
+                        <div class="flex items-start gap-3">
+                            <input type="hidden" name="led_enabled" value="0">
+                            <input id="led_enabled" name="led_enabled" type="checkbox" value="1" class="mt-0.5 {{ $checkClass }}" {{ $bool('led_enabled') ? 'checked' : '' }}>
+                            <label for="led_enabled" class="text-sm text-gray-900">LED strips follow the room state</label>
+                            <x-info-tip text="For Philips signage displays with LED strips on the housing. The strips turn green when the room is free, orange when a meeting is about to start or end, and red while it is reserved. Network SICP must be enabled on the display. Has no effect on other devices." />
+                        </div>
+
                         <div class="pt-4 border-t border-gray-100">
                             <p class="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-2">
                                 Border thickness

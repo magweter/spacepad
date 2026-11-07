@@ -25,6 +25,7 @@ class DisplaySettingsModel {
   bool extendEnabled;
   bool showOrganizer;
   bool showMeetingLocation;
+  bool ledEnabled;
 
   DisplaySettingsModel({
     required this.checkInEnabled,
@@ -53,6 +54,7 @@ class DisplaySettingsModel {
     this.extendEnabled = false,
     this.showOrganizer = false,
     this.showMeetingLocation = false,
+    this.ledEnabled = false,
   });
 
   factory DisplaySettingsModel.fromJson(Map data) {
@@ -85,6 +87,8 @@ class DisplaySettingsModel {
       // Defaults to false, the same as the setting itself: a tablet talking to a backend
       // that predates it leaves the location line out rather than printing it forever.
       showMeetingLocation: data['show_meeting_location'] ?? false,
+      // Off unless the portal says so: a tablet must never probe a port nobody asked it to.
+      ledEnabled: data['led_enabled'] ?? false,
     );
   }
 
@@ -116,6 +120,7 @@ class DisplaySettingsModel {
       'extend_enabled': extendEnabled,
       'show_organizer': showOrganizer,
       'show_meeting_location': showMeetingLocation,
+      'led_enabled': ledEnabled,
     };
   }
 } 
