@@ -29,6 +29,7 @@ class DisplaySettingsModel {
   String fontSizeStatus;
   String fontSizeUpcoming;
   String fontSizeSchedule;
+  bool ledEnabled;
 
   DisplaySettingsModel({
     required this.checkInEnabled,
@@ -61,6 +62,7 @@ class DisplaySettingsModel {
     this.fontSizeStatus = 'normal',
     this.fontSizeUpcoming = 'normal',
     this.fontSizeSchedule = 'normal',
+    this.ledEnabled = false,
   });
 
   factory DisplaySettingsModel.fromJson(Map data) {
@@ -97,6 +99,8 @@ class DisplaySettingsModel {
       fontSizeStatus: data['font_size_status'] ?? 'normal',
       fontSizeUpcoming: data['font_size_upcoming'] ?? 'normal',
       fontSizeSchedule: data['font_size_schedule'] ?? 'normal',
+      // Off unless the portal says so: a tablet must never probe a port nobody asked it to.
+      ledEnabled: data['led_enabled'] ?? false,
     );
   }
 
@@ -132,6 +136,7 @@ class DisplaySettingsModel {
       'font_size_status': fontSizeStatus,
       'font_size_upcoming': fontSizeUpcoming,
       'font_size_schedule': fontSizeSchedule,
+      'led_enabled': ledEnabled,
     };
   }
 } 

@@ -57,6 +57,9 @@ class DisplaySettingsResource extends JsonResource
 
             // The location line of each meeting in the day schedule
             'show_meeting_location' => $this->getShowMeetingLocation(),
+
+            // LED strips on the display's housing (Philips SICP) follow the room state
+            'led_enabled' => $this->isLedEnabled(),
         ];
     }
 }

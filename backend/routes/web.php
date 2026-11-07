@@ -52,7 +52,7 @@ Route::get('/login', [LoginController::class, 'create'])
     ->name('login');
 
 Route::post('/login', [LoginController::class, 'store'])
-    ->middleware('guest')
+    ->middleware(['guest', 'throttle:login'])
     ->name('login.store');
 
 Route::get('/register', [RegisterController::class, 'create'])

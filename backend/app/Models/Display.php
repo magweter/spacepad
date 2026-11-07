@@ -308,4 +308,14 @@ class Display extends Model
     {
         return DisplaySettings::setShowMeetingLocation($this, $show);
     }
+
+    public function isLedEnabled(): bool
+    {
+        return DisplaySettings::isLedEnabled($this);
+    }
+
+    public function setLedEnabled(bool $enabled): bool
+    {
+        return DisplaySettings::setLedEnabled($this, $enabled);
+    }
 }

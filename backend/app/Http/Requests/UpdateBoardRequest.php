@@ -27,7 +27,7 @@ class UpdateBoardRequest extends FormRequest
             'workspace_id' => 'required|string|exists:workspaces,id',
             'show_all_displays' => 'required|boolean',
             'theme' => 'nullable|string|in:dark,light,system',
-            'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+            'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'remove_logo' => 'nullable|boolean',
             'show_title' => 'nullable|boolean',
             'show_booker' => 'nullable|boolean',

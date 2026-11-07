@@ -53,6 +53,7 @@
         }
     },
     "scripts": {
+        "pre-autoload-dump": "Google\\Task\\Composer::cleanup",
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
             "@php artisan package:discover --ansi"
@@ -74,12 +75,16 @@
         ]
     },
     "extra": {
+        "google/apiclient-services": [
+            "Calendar",
+            "Directory",
+            "Oauth2"
+        ],
         "laravel": {
             "dont-discover": []
         }
     },
     "config": {
-        "optimize-autoloader": true,
         "preferred-install": "dist",
         "sort-packages": true,
         "platform": {

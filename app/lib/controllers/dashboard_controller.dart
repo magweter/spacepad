@@ -9,6 +9,8 @@ import 'package:spacepad/models/event_model.dart';
 import 'package:spacepad/models/display_data_model.dart';
 import 'package:spacepad/models/event_status.dart';
 import 'package:spacepad/services/display_service.dart';
+import 'package:spacepad/services/led_service.dart';
+import 'package:spacepad/models/led_color.dart';
 import 'package:spacepad/services/auth_service.dart';
 import 'package:spacepad/pages/display_page.dart';
 import 'package:spacepad/models/device_model.dart';
@@ -194,6 +196,33 @@ class DashboardController extends GetxController {
 
   void updateTime() {
     time.value = DateTime.now();
+    syncLed();
+  }
+
+  // Whether the strips were driven since the last sync, so switching the setting off turns them
+  // off once instead of leaving the last colour burning.
+  bool _ledDriven = false;
+
+  /// Keeps the LED strips (Philips SICP displays) in step with the room state.
+  ///
+  /// Runs on every clock tick; LedService only talks to the display when the colour changes.
+  void syncLed() {
+    final enabled = globalSettings.value?.ledEnabled ?? false;
+
+    if (!enabled) {
+      if (_ledDriven) {
+        _ledDriven = false;
+        LedService.instance.apply(LedColor.off);
+      }
+      return;
+    }
+
+    _ledDriven = true;
+    LedService.instance.apply(LedService.colorFor(
+      reserved: isReserved,
+      transitioning: isTransitioning,
+      checkInActive: isCheckInActive,
+    ));
   }
 
   String get roomName {
@@ -388,6 +417,12 @@ class DashboardController extends GetxController {
     _pollingStopped = true;
     _clock?.cancel();
     _dataTimer?.cancel();
+
+    // Neutral on the room picker: the strips no longer say anything about a room.
+    if (_ledDriven) {
+      _ledDriven = false;
+      LedService.instance.apply(LedColor.white);
+    }
 
     Get.offAll(() => const DisplayPage());
   }

@@ -5,6 +5,8 @@ WORKDIR /app
 # Copy dependency manifests first — composer install is cached until lock file changes
 COPY composer.json composer.lock ./
 RUN composer install --no-cache --no-dev --no-scripts --no-autoloader --ansi --no-interaction --ignore-platform-reqs
+# --no-scripts skips pre-autoload-dump, so strip the unused Google API services explicitly
+RUN composer run-script pre-autoload-dump --ansi --no-interaction
 
 # Only the PSR-4 autoload paths are needed to generate the optimised classmap
 # (composer.json defines: App\ => app/, Database\Factories\ => database/factories/, Database\Seeders\ => database/seeders/)
@@ -33,10 +35,27 @@ FROM serversideup/php:8.4-fpm-nginx AS base
 USER root
 # Pull in Debian security fixes released since the upstream image was last built, so the
 # weekly Trivy image scan does not depend on serversideup's rebuild schedule.
-RUN apt-get update \
+# APT_REFRESH is a cache key: CI sets it to the current date, so this layer is rebuilt
+# daily instead of being replayed from the layer cache indefinitely.
+ARG APT_REFRESH
+RUN echo "apt refresh: ${APT_REFRESH}" \
+    && apt-get update \
     && apt-get upgrade -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 RUN install-php-extensions opentelemetry protobuf
+
+# CVE-2026-109618 / CVE-2026-109619 (php2shell) are fixed in PHP 8.4.27. The tag above floats,
+# so fail the build rather than ship an older PHP from a stale registry mirror or layer cache.
+RUN php -r 'exit(version_compare(PHP_VERSION, "8.4.27", "<") ? 1 : 0);' \
+    || (echo "PHP $(php -r 'echo PHP_VERSION;') is older than 8.4.27" >&2 && exit 1)
+
+# Hardening recommended in the php2shell advisory. Spacepad does not use upload progress
+# tracking, and the largest upload it accepts is 4 MB (advertisement image), so the
+# serversideup default of 100M is far more than any request needs. Self-hosters can still
+# override the size limits with PHP_POST_MAX_SIZE / PHP_UPLOAD_MAX_FILE_SIZE.
+RUN echo "session.upload_progress.enabled = Off" > /usr/local/etc/php/conf.d/spacepad-security.ini
+ENV PHP_POST_MAX_SIZE=32M \
+    PHP_UPLOAD_MAX_FILE_SIZE=8M
 
 FROM base AS production
 
