@@ -255,10 +255,7 @@ class DisplaySettingsController extends Controller
             ],
             DisplaySettingSections::BRANDING => [
                 'font_family' => 'nullable|string|in:Inter,Roboto,Open Sans,Lato,Poppins,Montserrat',
-                'font_size_room_name' => DisplaySettings::fontSizeRule(),
-                'font_size_status' => DisplaySettings::fontSizeRule(),
-                'font_size_upcoming' => DisplaySettings::fontSizeRule(),
-                'font_size_schedule' => DisplaySettings::fontSizeRule(),
+                ...DisplaySettings::fontSizeRules(),
                 'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
                 'remove_logo' => 'boolean',
                 'background_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',

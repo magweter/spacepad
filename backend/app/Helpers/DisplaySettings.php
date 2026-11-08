@@ -574,9 +574,11 @@ class DisplaySettings
      */
     public const FONT_SIZE_ELEMENTS = [
         'room_name' => 'Room name',
-        'status' => 'Status and meeting title',
-        'upcoming' => 'Next meeting',
-        'schedule' => 'Day schedule',
+        'clock' => 'Clock',
+        'title' => 'Meeting title or status',
+        'details' => 'Meeting details',
+        'toolbar' => 'Bottom toolbar',
+        'calendar' => 'Calendar widget',
     ];
 
     public const FONT_SIZES = [
@@ -601,11 +603,17 @@ class DisplaySettings
     }
 
     /**
-     * The validation rule for one font size field.
+     * The validation rules for every font size field, as `font_size_<element>` => rule.
+     *
+     * @return array<string, string>
      */
-    public static function fontSizeRule(): string
+    public static function fontSizeRules(): array
     {
-        return 'nullable|in:'.implode(',', array_keys(self::FONT_SIZES));
+        $rule = 'nullable|in:'.implode(',', array_keys(self::FONT_SIZES));
+
+        return collect(self::FONT_SIZE_ELEMENTS)
+            ->mapWithKeys(fn ($label, $element) => ["font_size_{$element}" => $rule])
+            ->all();
     }
 
     /**

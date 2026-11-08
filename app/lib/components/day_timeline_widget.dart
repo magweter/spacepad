@@ -53,7 +53,7 @@ class _DayTimelineWidgetState extends State<DayTimelineWidget> {
 
   /// The text size step chosen for the day schedule. The hour rows and the label column grow
   /// with it, so a half-hour meeting still has the height for its title at a larger size.
-  double get _scale => widget.controller.scheduleScale;
+  double get _scale => widget.controller.calendarScale;
 
   double get _hourHeight => _baseHourHeight * _scale;
   static const double _timelinePadding = 28.0; // extra space above 00:00 and below final 00:00

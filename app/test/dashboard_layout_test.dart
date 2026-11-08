@@ -51,9 +51,11 @@ DisplaySettingsModel _settings({String timelineMode = 'none', String size = 'nor
     timelineWidgetEnabled: timelineMode != 'none',
     timelineWidgetMode: timelineMode,
     fontSizeRoomName: size,
-    fontSizeStatus: size,
-    fontSizeUpcoming: size,
-    fontSizeSchedule: size,
+    fontSizeClock: size,
+    fontSizeTitle: size,
+    fontSizeDetails: size,
+    fontSizeToolbar: size,
+    fontSizeCalendar: size,
   );
 }
 

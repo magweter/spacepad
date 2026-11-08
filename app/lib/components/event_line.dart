@@ -9,7 +9,7 @@ class EventLine extends StatelessWidget {
 
   final EventModel event;
 
-  /// The text size step chosen for the next meeting, see DashboardController.upcomingScale.
+  /// The text size step chosen for the bottom toolbar, see DashboardController.toolbarScale.
   final double scale;
 
   bool _isPhone(BuildContext context) {

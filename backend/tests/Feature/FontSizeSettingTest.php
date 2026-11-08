@@ -38,18 +38,22 @@ test('the sizes survive a round trip through the branding section', function () 
         ]), [
             'font_family' => 'Inter',
             'font_size_room_name' => 'xlarge',
-            'font_size_status' => 'large',
-            'font_size_upcoming' => 'small',
-            'font_size_schedule' => 'normal',
+            'font_size_clock' => 'large',
+            'font_size_title' => 'large',
+            'font_size_details' => 'small',
+            'font_size_toolbar' => 'small',
+            'font_size_calendar' => 'normal',
         ])
         ->assertRedirect(route('displays.configure', $this->display));
 
     $display = $this->display->fresh();
 
     expect(DisplaySettings::getFontSize($display, 'room_name'))->toBe('xlarge')
-        ->and(DisplaySettings::getFontSize($display, 'status'))->toBe('large')
-        ->and(DisplaySettings::getFontSize($display, 'upcoming'))->toBe('small')
-        ->and(DisplaySettings::getFontSize($display, 'schedule'))->toBe('normal');
+        ->and(DisplaySettings::getFontSize($display, 'clock'))->toBe('large')
+        ->and(DisplaySettings::getFontSize($display, 'title'))->toBe('large')
+        ->and(DisplaySettings::getFontSize($display, 'details'))->toBe('small')
+        ->and(DisplaySettings::getFontSize($display, 'toolbar'))->toBe('small')
+        ->and(DisplaySettings::getFontSize($display, 'calendar'))->toBe('normal');
 });
 
 test('an unknown size is rejected', function () {
@@ -68,18 +72,18 @@ test('a profile sets the sizes for every display that follows it', function () {
         ->post(route('profiles.store'), [
             'name' => 'Reception screens',
             'font_size_room_name' => 'xlarge',
-            'font_size_status' => 'large',
+            'font_size_title' => 'large',
         ])
         ->assertSessionHasNoErrors();
 
     $profile = DisplayProfile::where('name', 'Reception screens')->firstOrFail();
     expect(ProfileSettings::get($profile, 'font_size_room_name'))->toBe('xlarge')
-        ->and(ProfileSettings::get($profile, 'font_size_schedule'))->toBe('normal');
+        ->and(ProfileSettings::get($profile, 'font_size_calendar'))->toBe('normal');
 
     $this->display->update(['display_profile_id' => $profile->id]);
 
     expect(DisplaySettings::getFontSize($this->display->fresh(), 'room_name'))->toBe('xlarge')
-        ->and(DisplaySettings::getFontSize($this->display->fresh(), 'status'))->toBe('large');
+        ->and(DisplaySettings::getFontSize($this->display->fresh(), 'title'))->toBe('large');
 });
 
 test('the sizes reach the tablet', function () {
@@ -93,8 +97,9 @@ test('the sizes reach the tablet', function () {
 
     $settings = $this->actingAs($device)->getJson('/api/displays')->assertOk()->json('data.0.settings');
 
-    expect($settings['font_size_room_name'])->toBe('xlarge')
-        ->and($settings['font_size_status'])->toBe('normal')
-        ->and($settings['font_size_upcoming'])->toBe('normal')
-        ->and($settings['font_size_schedule'])->toBe('normal');
+    expect($settings['font_size_room_name'])->toBe('xlarge');
+
+    foreach (['clock', 'title', 'details', 'toolbar', 'calendar'] as $element) {
+        expect($settings["font_size_{$element}"])->toBe('normal');
+    }
 });

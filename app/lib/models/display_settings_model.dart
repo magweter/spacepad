@@ -26,9 +26,11 @@ class DisplaySettingsModel {
   bool showOrganizer;
   bool showMeetingLocation;
   String fontSizeRoomName;
-  String fontSizeStatus;
-  String fontSizeUpcoming;
-  String fontSizeSchedule;
+  String fontSizeClock;
+  String fontSizeTitle;
+  String fontSizeDetails;
+  String fontSizeToolbar;
+  String fontSizeCalendar;
   bool ledEnabled;
 
   DisplaySettingsModel({
@@ -59,9 +61,11 @@ class DisplaySettingsModel {
     this.showOrganizer = false,
     this.showMeetingLocation = false,
     this.fontSizeRoomName = 'normal',
-    this.fontSizeStatus = 'normal',
-    this.fontSizeUpcoming = 'normal',
-    this.fontSizeSchedule = 'normal',
+    this.fontSizeClock = 'normal',
+    this.fontSizeTitle = 'normal',
+    this.fontSizeDetails = 'normal',
+    this.fontSizeToolbar = 'normal',
+    this.fontSizeCalendar = 'normal',
     this.ledEnabled = false,
   });
 
@@ -96,9 +100,11 @@ class DisplaySettingsModel {
       // that predates it leaves the location line out rather than printing it forever.
       showMeetingLocation: data['show_meeting_location'] ?? false,
       fontSizeRoomName: data['font_size_room_name'] ?? 'normal',
-      fontSizeStatus: data['font_size_status'] ?? 'normal',
-      fontSizeUpcoming: data['font_size_upcoming'] ?? 'normal',
-      fontSizeSchedule: data['font_size_schedule'] ?? 'normal',
+      fontSizeClock: data['font_size_clock'] ?? 'normal',
+      fontSizeTitle: data['font_size_title'] ?? 'normal',
+      fontSizeDetails: data['font_size_details'] ?? 'normal',
+      fontSizeToolbar: data['font_size_toolbar'] ?? 'normal',
+      fontSizeCalendar: data['font_size_calendar'] ?? 'normal',
       // Off unless the portal says so: a tablet must never probe a port nobody asked it to.
       ledEnabled: data['led_enabled'] ?? false,
     );
@@ -133,9 +139,11 @@ class DisplaySettingsModel {
       'show_organizer': showOrganizer,
       'show_meeting_location': showMeetingLocation,
       'font_size_room_name': fontSizeRoomName,
-      'font_size_status': fontSizeStatus,
-      'font_size_upcoming': fontSizeUpcoming,
-      'font_size_schedule': fontSizeSchedule,
+      'font_size_clock': fontSizeClock,
+      'font_size_title': fontSizeTitle,
+      'font_size_details': fontSizeDetails,
+      'font_size_toolbar': fontSizeToolbar,
+      'font_size_calendar': fontSizeCalendar,
       'led_enabled': ledEnabled,
     };
   }

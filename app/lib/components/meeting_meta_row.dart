@@ -37,10 +37,10 @@ class MeetingMetaRow extends StatelessWidget {
   });
 
   /// Same scale as the rest of the dashboard, see DashboardPage._sp, times the text size step
-  /// chosen for the status: these details belong to the title above them and grow with it.
+  /// chosen for the meeting details.
   double _sp(BuildContext context, double size) {
     final s = MediaQuery.of(context).size.shortestSide;
-    final double step = controller.statusScale;
+    final double step = controller.detailsScale;
     return (size * (s / 750).clamp(0.5, 1.3) * step).roundToDouble();
   }
 

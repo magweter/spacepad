@@ -92,10 +92,7 @@ class DisplaySettingSections
                 'description' => 'Font, text sizes, logo and background.',
                 'profile_keys' => [
                     'font_family' => 'string',
-                    'font_size_room_name' => 'string',
-                    'font_size_status' => 'string',
-                    'font_size_upcoming' => 'string',
-                    'font_size_schedule' => 'string',
+                    ...array_map(fn () => 'string', DisplaySettings::fontSizeRules()),
                     'logo' => 'string',
                     'background_image' => 'string',
                 ],

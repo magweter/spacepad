@@ -73,7 +73,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
   /// The one type size the bottom bar is set in: the upcoming-event line, the empty-state
   /// text and the View schedule button. They sit on the same row, so they scale together, also
-  /// with the text size chosen for the next meeting.
+  /// with the text size chosen for the bottom toolbar.
   /// [EventLine] repeats this because it is a widget of its own.
   double _barFontSize(BuildContext context, bool isPhone, double scale) {
     return ((isPhone ? 16 : _sp(context, 20)) * scale).roundToDouble();
@@ -207,7 +207,7 @@ class _DashboardPageState extends State<DashboardPage> {
               formatTime(context, controller.time.value),
               style: FontService.instance.getTextStyle(
                 fontFamily: controller.currentFontFamily.value,
-                fontSize: _sp(context, 28),
+                fontSize: _sp(context, 28) * controller.clockScale,
                 fontWeight: FontWeight.w500,
                 color: TWColors.white,
               ),
@@ -309,7 +309,7 @@ class _DashboardPageState extends State<DashboardPage> {
             text: controller.title,
             style: FontService.instance.getTextStyle(
               fontFamily: controller.currentFontFamily.value,
-              fontSize: _sp(context, 50) * controller.statusScale,
+              fontSize: _sp(context, 50) * controller.titleScale,
               fontWeight: FontWeight.w700,
               color: Colors.white,
             ),
@@ -338,7 +338,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
   /// The frosted bar along the bottom: the next meeting and the View schedule button.
   Widget _buildBottomBar(BuildContext context, DashboardController controller, bool isPhone, double cornerRadius) {
-    final scale = controller.upcomingScale;
+    final scale = controller.toolbarScale;
     final fontSize = _barFontSize(context, isPhone, scale);
 
     return FrostedPanel(

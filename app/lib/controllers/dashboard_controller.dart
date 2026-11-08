@@ -614,11 +614,19 @@ class DashboardController extends GetxController {
 
   double get roomNameScale => _fontScale(globalSettings.value?.fontSizeRoomName);
 
-  double get statusScale => _fontScale(globalSettings.value?.fontSizeStatus);
+  double get clockScale => _fontScale(globalSettings.value?.fontSizeClock);
 
-  double get upcomingScale => _fontScale(globalSettings.value?.fontSizeUpcoming);
+  /// The meeting title, or the state text when the room is free.
+  double get titleScale => _fontScale(globalSettings.value?.fontSizeTitle);
 
-  double get scheduleScale => _fontScale(globalSettings.value?.fontSizeSchedule);
+  /// The time, organizer and time left under the title.
+  double get detailsScale => _fontScale(globalSettings.value?.fontSizeDetails);
+
+  /// The bottom toolbar: the next meeting and the View schedule button.
+  double get toolbarScale => _fontScale(globalSettings.value?.fontSizeToolbar);
+
+  /// The calendar widget beside or in the main panel.
+  double get calendarScale => _fontScale(globalSettings.value?.fontSizeCalendar);
 
   bool get extendEnabled {
     return globalSettings.value?.extendEnabled ?? false;

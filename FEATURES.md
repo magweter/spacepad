@@ -134,8 +134,8 @@ Part of the same **Configure display** screen, in the Branding, State texts and 
 - Upload a custom **background image** or choose from built-in backgrounds
 - Choose a **font family**: Inter, Roboto, Open Sans, Lato, Poppins, Montserrat
 - Choose a **text size** (Small / Normal / Large / Extra large) separately for the room name, the
-  status and meeting title (with the meeting details under it), the next meeting in the bottom bar,
-  and the day schedule. A size multiplies the scale the display already uses for its screen, so a
+  clock, the meeting title or status, the meeting details under it (time, organizer, time left), the
+  bottom toolbar (next meeting and View schedule) and the calendar widget. A size multiplies the scale the display already uses for its screen, so a
   step means the same on a phone as on a large panel. Also settable on a profile.
 
 The meeting title takes at most three lines, and fewer when the space between the header and the
