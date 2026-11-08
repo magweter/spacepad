@@ -105,9 +105,21 @@ class SeedDemo extends Command
         $this->line('  '.MagicLoginLink::create($user));
         $this->newLine();
         $this->line('Tablet, from app/:');
-        $this->line('  fvm flutter run --dart-define=DEMO_API_URL='.$url.' --dart-define=DEMO_TOKEN='.$token.' --dart-define=DEMO_DISPLAY_ID='.$display->id);
+        $this->line('  '.self::flutterCommand($url, $token, $display->id));
 
         return self::SUCCESS;
+    }
+
+    /**
+     * The `flutter run` line, quoted for a shell: a Sanctum token reads `id|secret`, and an
+     * unquoted `|` turns the rest of the line into a pipe.
+     */
+    public static function flutterCommand(string $url, string $token, string $displayId): string
+    {
+        return 'fvm flutter run'
+            .' --dart-define='.escapeshellarg('DEMO_API_URL='.$url)
+            .' --dart-define='.escapeshellarg('DEMO_TOKEN='.$token)
+            .' --dart-define='.escapeshellarg('DEMO_DISPLAY_ID='.$displayId);
     }
 
     /**

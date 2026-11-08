@@ -1,5 +1,6 @@
 <?php
 
+use App\Console\Commands\SeedDemo;
 use App\Enums\DisplayStatus;
 use App\Models\Device;
 use App\Models\Display;
@@ -57,4 +58,13 @@ test('it refuses to run in production', function () {
     $this->artisan('spacepad:demo')->assertFailed();
 
     expect(User::where('email', 'demo@spacepad.test')->exists())->toBeFalse();
+});
+
+test('the printed command survives the shell', function () {
+    $command = SeedDemo::flutterCommand('http://localhost:8000', '12|secret', 'display-1');
+
+    // Let a shell parse the line and echo back the arguments it would hand to flutter.
+    $parsed = shell_exec('printf "%s\\n" '.substr($command, strlen('fvm flutter run ')));
+
+    expect($parsed)->toBe("--dart-define=DEMO_API_URL=http://localhost:8000\n--dart-define=DEMO_TOKEN=12|secret\n--dart-define=DEMO_DISPLAY_ID=display-1\n");
 });
