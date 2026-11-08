@@ -11,6 +11,7 @@ import 'package:spacepad/models/display_settings_model.dart';
 import 'package:spacepad/models/event_model.dart';
 import 'package:spacepad/models/event_status.dart';
 import 'package:spacepad/pages/dashboard_page.dart';
+import 'package:spacepad/translations/translations.dart';
 
 const _roomName = 'Boardroom Lighthouse';
 
@@ -80,8 +81,11 @@ List<EventModel> _events() {
   ];
 }
 
-Future<void> _pumpDashboard(WidgetTester tester, DisplaySettingsModel settings) async {
-  tester.view.physicalSize = const Size(1024, 600);
+/// A 1024x600 room panel, the tightest common screen, and an iPad in landscape.
+const _screens = [Size(1024, 600), Size(1180, 820)];
+
+Future<void> _pumpDashboard(WidgetTester tester, DisplaySettingsModel settings, {Size screen = const Size(1024, 600)}) async {
+  tester.view.physicalSize = screen;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
   addTearDown(Get.reset);
@@ -91,24 +95,30 @@ Future<void> _pumpDashboard(WidgetTester tester, DisplaySettingsModel settings) 
   await tester.pumpWidget(const SizedBox());
   Get.reset();
   Get.put<DashboardController>(_FakeDashboardController(settings, _events()));
-  await tester.pumpWidget(const GetMaterialApp(home: DashboardPage()));
+  // Dutch, because its labels run longer than the English ones.
+  await tester.pumpWidget(GetMaterialApp(
+    translations: AppTranslations(),
+    locale: const Locale('nl'),
+    home: const DashboardPage(),
+  ));
   await tester.pump();
 }
 
 void main() {
   setUpAll(() => GoogleFonts.config.allowRuntimeFetching = false);
 
+  for (final screen in _screens) {
   for (final mode in ['none', 'side_panel', 'inline', 'full_panel']) {
     for (final size in ['normal', 'xlarge']) {
-      testWidgets('a long title keeps clear of the header and the bottom bar ($mode, $size)', (tester) async {
-        await _pumpDashboard(tester, _settings(timelineMode: mode, size: size));
+      testWidgets('a long title keeps clear of the header and the bottom bar (${screen.width.toInt()}x${screen.height.toInt()}, $mode, $size)', (tester) async {
+        await _pumpDashboard(tester, _settings(timelineMode: mode, size: size), screen: screen);
 
         expect(tester.takeException(), isNull, reason: 'the layout overflowed');
 
         final header = tester.getRect(find.text(_roomName));
         final title = tester.getRect(find.byType(StatusTitle));
         final buttons = tester.getRect(find.byType(ActionPanel));
-        final bottomBar = tester.getRect(find.ancestor(of: find.text('view_schedule'), matching: find.byType(FrostedPanel)).first);
+        final bottomBar = tester.getRect(find.byKey(const ValueKey('bottom-toolbar')));
 
         expect(title.top - header.bottom, greaterThanOrEqualTo(12), reason: 'title pressed against the header');
         // The room name sits in the top right corner, in line with the right edge of the bottom bar.
@@ -119,6 +129,7 @@ void main() {
         expect(lines, inInclusiveRange(1, 3));
       });
     }
+  }
   }
 
   testWidgets('a larger size makes the text larger', (tester) async {

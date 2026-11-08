@@ -6,7 +6,6 @@ import 'package:spacepad/components/event_line.dart';
 import 'package:spacepad/components/spinner.dart';
 import 'package:spacepad/controllers/dashboard_controller.dart';
 import 'package:spacepad/date_format_helper.dart';
-import 'package:spacepad/models/event_model.dart';
 import 'package:get/get.dart';
 import 'package:spacepad/theme.dart';
 import 'package:tailwind_components/tailwind_components.dart';
@@ -341,57 +340,70 @@ class _DashboardPageState extends State<DashboardPage> {
     final scale = controller.toolbarScale;
     final fontSize = _barFontSize(context, isPhone, scale);
 
+    final iconSize = _barIconSize(context, isPhone, scale);
+    final labelStyle = TextStyle(color: Colors.white, fontSize: fontSize, fontWeight: FontWeight.w500);
+    final gap = isPhone ? 10.0 : _sp(context, 20);
+
     return FrostedPanel(
+      key: const ValueKey('bottom-toolbar'),
       borderRadius: cornerRadius,
       blurIntensity: 18,
       padding: EdgeInsets.all(isPhone ? 12 : _sp(context, 20)),
-      child: SpaceRow(
-        spaceBetween: isPhone ? 10 : _sp(context, 20),
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(
-            child: controller.upcomingEvents.isNotEmpty
-              ? SpaceCol(
-                  spaceBetween: isPhone ? 8 : 12,
-                  children: [
-                    for (EventModel event in controller.upcomingEvents.take(1)) EventLine(event: event, scale: scale),
-                  ],
-                )
-              : Text(
-                  'no_upcoming_events'.tr,
-                  style: TextStyle(color: TWColors.white, fontSize: fontSize, fontWeight: FontWeight.w500),
-                ),
-          ),
-          if (controller.calendarEnabled)
-            Material(
-              color: Colors.transparent,
-              child: InkWell(
-                hoverColor: Colors.transparent,
-                splashColor: Colors.transparent,
-                highlightColor: Colors.transparent,
-                borderRadius: BorderRadius.circular(8),
-                onTap: () => showDialog(
-                  context: context,
-                  builder: (context) => CalendarModal(events: controller.events, selectedDate: DateTime.now()),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.calendar_today_outlined, size: _barIconSize(context, isPhone, scale), color: Colors.white),
-                      const SizedBox(width: 12),
-                      Text(
-                        'view_schedule'.tr,
-                        style: TextStyle(color: Colors.white, fontSize: fontSize, fontWeight: FontWeight.w500),
-                      ),
-                    ],
+      child: LayoutBuilder(builder: (context, constraints) {
+        // The View schedule button keeps its label only while that leaves the next meeting
+        // most of the bar. At a large text size in a narrow toolbar it becomes just its icon.
+        final labelWidth = (TextPainter(
+          text: TextSpan(text: 'view_schedule'.tr, style: labelStyle),
+          textDirection: Directionality.of(context),
+          textScaler: MediaQuery.textScalerOf(context),
+          maxLines: 1,
+        )..layout()).width;
+        final showLabel = iconSize + 12 + labelWidth + 8 <= constraints.maxWidth * 0.4;
+
+        return Row(
+          children: [
+            Expanded(
+              child: controller.upcomingEvents.isNotEmpty
+                ? EventLine(event: controller.upcomingEvents.first, scale: scale)
+                : Text(
+                    'no_upcoming_events'.tr,
+                    style: TextStyle(color: TWColors.white, fontSize: fontSize, fontWeight: FontWeight.w500),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+            ),
+            if (controller.calendarEnabled) ...[
+              SizedBox(width: gap),
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  hoverColor: Colors.transparent,
+                  splashColor: Colors.transparent,
+                  highlightColor: Colors.transparent,
+                  borderRadius: BorderRadius.circular(8),
+                  onTap: () => showDialog(
+                    context: context,
+                    builder: (context) => CalendarModal(events: controller.events, selectedDate: DateTime.now()),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.calendar_today_outlined, size: iconSize, color: Colors.white),
+                        if (showLabel) ...[
+                          const SizedBox(width: 12),
+                          Text('view_schedule'.tr, style: labelStyle),
+                        ],
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-        ],
-      ),
+            ],
+          ],
+        );
+      }),
     );
   }
 
