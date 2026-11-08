@@ -87,6 +87,14 @@ Route::get('/outlook-accounts/callback', [OutlookAccountsController::class, 'cal
 Route::middleware(['auth', 'user.update-last-activity'])->group(function () {
     Route::get('/', DashboardController::class)->name('dashboard')->middleware('user.active');
     Route::get('/onboarding', [OnboardingController::class, 'index'])->name('onboarding')->middleware('user.onboarding');
+    Route::post('/onboarding/workspace', [OnboardingController::class, 'workspace'])->name('onboarding.workspace');
+    Route::post('/onboarding/about', [OnboardingController::class, 'about'])->name('onboarding.about');
+    Route::post('/onboarding/products', [OnboardingController::class, 'products'])->name('onboarding.products');
+    Route::post('/onboarding/events', [OnboardingController::class, 'events'])->name('onboarding.events');
+    Route::get('/onboarding/resources', [OnboardingController::class, 'resources'])->name('onboarding.resources');
+    Route::get('/onboarding/device-status', [OnboardingController::class, 'deviceStatus'])->name('onboarding.device-status');
+    Route::post('/onboarding/complete', [OnboardingController::class, 'complete'])->name('onboarding.complete');
+    Route::get('/onboarding/done', [OnboardingController::class, 'done'])->name('onboarding.done');
     Route::post('/onboarding/usage-type', [OnboardingController::class, 'updateUsageType'])->name('onboarding.usage-type');
     Route::post('/onboarding/terms', [OnboardingController::class, 'acceptTerms'])->name('onboarding.terms');
     Route::post('/onboarding/skip', [OnboardingController::class, 'skip'])->name('onboarding.skip');

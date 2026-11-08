@@ -82,6 +82,7 @@ class User extends Authenticatable
         'dpa_accepted_at',
         'is_admin',
         'skipped_onboarding_at',
+        'onboarding_completed_at',
     ];
 
     /**
@@ -107,6 +108,7 @@ class User extends Authenticatable
         'terms_accepted_at' => 'datetime',
         'dpa_accepted_at' => 'datetime',
         'skipped_onboarding_at' => 'datetime',
+        'onboarding_completed_at' => 'datetime',
         'is_admin' => 'boolean',
     ];
 
@@ -253,6 +255,14 @@ class User extends Authenticatable
         }
 
         return $workspace->getConnectCode($this);
+    }
+
+    /**
+     * Whether the onboarding wizard is behind this person, finished or skipped.
+     */
+    public function hasFinishedOnboarding(): bool
+    {
+        return $this->onboarding_completed_at !== null || $this->skipped_onboarding_at !== null;
     }
 
     /**

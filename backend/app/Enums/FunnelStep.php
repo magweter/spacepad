@@ -16,4 +16,9 @@ enum FunnelStep: string
     case SUBSCRIBED = 'subscribed';
     case PROFILE_CARD_SHOWN = 'profile_card_shown';
     case PROFILE_CARD_DISMISSED = 'profile_card_dismissed';
+    case ONBOARDING_STEP_VIEWED = 'onboarding_step_viewed';
+    case ONBOARDING_STEP_COMPLETED = 'onboarding_step_completed';
+    case ONBOARDING_STEP_SKIPPED = 'onboarding_step_skipped';
+    case ONBOARDING_COMPLETED = 'onboarding_completed';
+    case ONBOARDING_SKIPPED = 'onboarding_skipped';
 }

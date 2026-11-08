@@ -9,8 +9,10 @@
         "php": "^8.4",
         "cesargb/laravel-magiclink": "^2.22",
         "doctrine/dbal": "^4.2",
+        "fakerphp/faker": "^1.23",
         "google/apiclient": "^2.18",
         "guzzlehttp/guzzle": "^7.9",
+        "inertiajs/inertia-laravel": "^2.0",
         "josiasmontag/laravel-recaptchav3": "^1.0",
         "laravel/framework": "^12.0",
         "laravel/sanctum": "^4.0",
@@ -28,8 +30,7 @@
         "sentry/sentry-laravel": "^4.13",
         "socialiteproviders/microsoft": "^4.6",
         "spatie/laravel-data": "^4.15",
-        "spatie/laravel-googletagmanager": "*",
-        "fakerphp/faker": "^1.23"
+        "spatie/laravel-googletagmanager": "*"
     },
     "require-dev": {
         "laravel/pail": "^1.1",

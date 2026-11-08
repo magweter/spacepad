@@ -7,6 +7,7 @@ use App\Enums\PermissionType;
 use App\Models\OutlookAccount;
 use App\Services\FunnelTracking;
 use App\Services\OutlookService;
+use App\Support\OnboardingReturn;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -31,6 +32,7 @@ class OutlookAccountsController extends Controller
 
         // Store permission type in session before redirecting to OAuth
         session(['outlook_permission_type' => $request->permission_type]);
+        OnboardingReturn::remember($request);
 
         $permissionType = PermissionType::from($request->permission_type);
 
@@ -109,13 +111,13 @@ class OutlookAccountsController extends Controller
                 || ($error === 'access_denied' && str_contains(strtolower($errorDescription), 'admin'));
 
             if ($needsAdminConsent) {
-                return redirect()->route('dashboard')->with([
+                return OnboardingReturn::redirect('calendar')->with([
                     'needs_admin_consent' => true,
                     'admin_consent_url' => $this->outlookService->getAdminConsentUrl(),
                 ]);
             }
 
-            return redirect()->route('dashboard')->with('error', 'Failed to connect to Microsoft account. Please try again.');
+            return OnboardingReturn::redirect('calendar')->with('error', 'Failed to connect to Microsoft account. Please try again.');
         }
 
         $authCode = request('code');
@@ -134,7 +136,7 @@ class OutlookAccountsController extends Controller
 
         FunnelTracking::calendarConnected($workspace, $outlookAccount->wasRecentlyCreated);
 
-        return redirect()->route('dashboard')->with('success', 'Microsoft account "'.$outlookAccount->email.'" has been connected successfully.');
+        return OnboardingReturn::redirect('room')->with('success', 'Microsoft account "'.$outlookAccount->email.'" has been connected successfully.');
     }
 
     public function setBookingMethod(Request $request): RedirectResponse

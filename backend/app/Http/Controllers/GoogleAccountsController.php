@@ -7,6 +7,7 @@ use App\Enums\PermissionType;
 use App\Models\GoogleAccount;
 use App\Services\FunnelTracking;
 use App\Services\GoogleService;
+use App\Support\OnboardingReturn;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
@@ -58,6 +59,7 @@ class GoogleAccountsController extends Controller
 
         // Store permission type in session
         session(['google_permission_type' => $request->permission_type]);
+        OnboardingReturn::remember($request);
 
         // Proceed to OAuth - booking method will be set after connection
         return redirect($this->googleService->getAuthUrl($permissionType));
@@ -138,7 +140,7 @@ class GoogleAccountsController extends Controller
     public function callback(): RedirectResponse
     {
         if (request()->has('error')) {
-            return redirect()->route('dashboard')->with('error', 'Failed to connect to Google. Please try again.');
+            return OnboardingReturn::redirect('calendar')->with('error', 'Failed to connect to Google. Please try again.');
         }
 
         $authCode = request('code');
@@ -171,7 +173,7 @@ class GoogleAccountsController extends Controller
                     'booking_method' => GoogleBookingMethod::USER_ACCOUNT,
                 ]);
 
-                return redirect()->route('dashboard')
+                return OnboardingReturn::redirect('room')
                     ->with('success', 'Google account "'.$googleAccount->email.'" has been connected successfully.');
             }
 
@@ -181,7 +183,7 @@ class GoogleAccountsController extends Controller
                 ->with('open-google-booking-method-modal', $googleAccount->id);
         }
 
-        return redirect()->route('dashboard')->with('success', 'Google account "'.$googleAccount->email.'" has been connected successfully.');
+        return OnboardingReturn::redirect('room')->with('success', 'Google account "'.$googleAccount->email.'" has been connected successfully.');
     }
 
     public function delete(GoogleAccount $googleAccount): RedirectResponse

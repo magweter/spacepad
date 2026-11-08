@@ -251,6 +251,12 @@ a separate account with its own invisible set of displays.
 
 ## Web Portal
 
+- **Sign in and create an account** on one page: Microsoft, Google or a magic link by email. Creating an
+  account asks only for the email address
+- **Onboarding wizard** — workspace, about you, products, calendar, room, tablet, ready. Every step can
+  be skipped and the wizard resumes where it was left. Connecting a calendar returns to the wizard,
+  the first display is created from a room picker, and the tablet step updates the moment a tablet
+  pairs. It ends on a "first display live" screen with the next steps
 - **Dashboard** — overview of all connected displays and their current status
 - **Team** — invite colleagues, manage roles, and switch between workspaces
 - **Display configuration** — one screen per display with Behavior, Display, State texts, Branding and

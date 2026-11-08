@@ -1,0 +1,48 @@
+/* The new portal design (sign-in and onboarding for now). Tokens from the Spacepad Design System. */
+@import 'tailwindcss';
+@import '@fontsource-variable/inter';
+@source "../js";
+
+@theme {
+    --font-sans: 'Inter Variable', Inter, system-ui, -apple-system, sans-serif;
+
+    --color-navy: #14213D;
+    --color-navy-950: #0B1328;
+    --color-navy-800: #1C2D52;
+    --color-navy-700: #2A3D66;
+    --color-navy-600: #3B4F7A;
+    --color-on-navy-2: #C7D0E0;
+    --color-on-navy-muted: #93A1BD;
+
+    --color-amber: #FDA312;
+    --color-amber-text: #B45309;
+    --color-amber-100: #FEF3C7;
+
+    --color-ground: #F5F7FA;
+    --color-surface-raised: #F8FAFC;
+    --color-line: #E2E8F0;
+    --color-line-soft: #F1F5F9;
+
+    --color-ink: #0F172A;
+    --color-ink-2: #334155;
+    --color-ink-3: #475569;
+    --color-muted: #64748B;
+
+    --color-available: #16A34A;
+    --color-available-bg: #DCFCE7;
+    --color-available-text: #166534;
+    --color-checkin: #D97706;
+    --color-checkin-text: #92400E;
+    --color-info: #1D4ED8;
+    --color-info-bg: #EFF6FF;
+}
+
+html, body {
+    background: #FFFFFF;
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+}
+
+.grecaptcha-badge {
+    visibility: hidden;
+}

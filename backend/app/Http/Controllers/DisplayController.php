@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\DisplayStatus;
+use App\Enums\FunnelStep;
 use App\Events\UserOnboarded;
 use App\Http\Requests\CreateDisplayRequest;
 use App\Models\CalDAVAccount;
@@ -13,6 +14,7 @@ use App\Models\OutlookAccount;
 use App\Models\Room;
 use App\Services\CalDAVService;
 use App\Services\FreePlanDisplayLimit;
+use App\Services\Funnel;
 use App\Services\FunnelTracking;
 use App\Services\GoogleService;
 use App\Services\OutlookService;
@@ -130,6 +132,13 @@ class DisplayController extends Controller
         if ($display) {
             event(new UserOnboarded($request->user(), $display));
             FunnelTracking::displayCreated($workspace);
+        }
+
+        // Created from the onboarding wizard: carry on with pairing the tablet.
+        if ($display && $request->boolean('from_onboarding')) {
+            Funnel::record(FunnelStep::ONBOARDING_STEP_COMPLETED, $workspace, $request->user(), ['step' => 'room']);
+
+            return redirect()->route('onboarding', ['step' => 'tablet']);
         }
 
         return redirect()->route('dashboard')->with($display ? 'success' : 'error', $display ?

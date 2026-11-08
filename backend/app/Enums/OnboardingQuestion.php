@@ -14,6 +14,9 @@ enum OnboardingQuestion: string
 {
     case ROOMS = 'rooms';
     case PREVIOUS_SOLUTION = 'previous_solution';
+    case ROLE = 'role';
+    case CALENDAR_LOCATION = 'calendar_provider';
+    case PRODUCTS = 'products';
 
     /**
      * The enum that holds this question's options.
@@ -25,7 +28,18 @@ enum OnboardingQuestion: string
         return match ($this) {
             self::ROOMS => RoomsEstimate::class,
             self::PREVIOUS_SOLUTION => PreviousSolution::class,
+            self::ROLE => Role::class,
+            self::CALENDAR_LOCATION => CalendarLocation::class,
+            self::PRODUCTS => Product::class,
         };
+    }
+
+    /**
+     * Whether more than one option can be picked. Each picked option is its own row.
+     */
+    public function isMultiple(): bool
+    {
+        return $this === self::PRODUCTS;
     }
 
     /**

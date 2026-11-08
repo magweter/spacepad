@@ -2,17 +2,17 @@
 
 namespace App\Http\Controllers\Auth;
 
-use App\Events\UserRegistered;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Models\User;
 use App\Notifications\MagicLoginNotification;
+use App\Support\AuthPageUrls;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
-use Illuminate\View\View;
+use Inertia\Inertia;
+use Inertia\Response;
 use MagicLink\Actions\LoginAction;
 use MagicLink\MagicLink;
 
@@ -21,9 +21,13 @@ class LoginController extends Controller
     /**
      * Display the login view.
      */
-    public function create(): View
+    public function create(): Response
     {
-        return view('auth.login');
+        return Inertia::render('Auth/Login', [
+            'mode' => 'signin',
+            'sentTo' => session('sent_to'),
+            'urls' => AuthPageUrls::all(),
+        ]);
     }
 
     /**
@@ -45,10 +49,10 @@ class LoginController extends Controller
         }
 
         $user = User::where('email', $data['email'])->first();
-        if (!$user) {
+        if (! $user) {
             $user = User::factory()->unverified()->create([
                 'name' => Str::before($data['email'], '@'),
-                'email' => $data['email']
+                'email' => $data['email'],
             ]);
         }
 
@@ -57,6 +61,7 @@ class LoginController extends Controller
 
         return redirect()
             ->back()
+            ->with('sent_to', $data['email'])
             ->with('success', 'Check your e-mail. You should receive an e-mail with a login link shortly.');
     }
 

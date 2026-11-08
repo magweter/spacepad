@@ -6,6 +6,7 @@ use App\Enums\PermissionType;
 use App\Models\CalDAVAccount;
 use App\Services\CalDAVService;
 use App\Services\FunnelTracking;
+use App\Support\OnboardingReturn;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -14,8 +15,10 @@ class CalDAVAccountsController extends Controller
 {
     public function __construct(protected CalDAVService $caldavService) {}
 
-    public function create(): View
+    public function create(Request $request): View
     {
+        OnboardingReturn::remember($request);
+
         return view('pages.caldav-accounts.create');
     }
 
@@ -63,9 +66,9 @@ class CalDAVAccountsController extends Controller
 
         FunnelTracking::calendarConnected($selectedWorkspace, $account->wasRecentlyCreated);
 
-        return redirect()
-            ->route('dashboard')
-            ->with('status', 'CalDAV account has been connected successfully.');
+        return OnboardingReturn::redirect('room')
+            ->with('status', 'CalDAV account has been connected successfully.')
+            ->with('success', 'CalDAV account has been connected successfully.');
     }
 
     public function delete(CalDAVAccount $caldavAccount): RedirectResponse
