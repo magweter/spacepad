@@ -2,6 +2,7 @@
 
 use App\Console\Commands\SeedDemo;
 use App\Enums\DisplayStatus;
+use App\Helpers\DisplaySettings;
 use App\Models\Device;
 use App\Models\Display;
 use App\Models\Event;
@@ -22,7 +23,18 @@ test('it sets up an account, a display and a paired tablet', function () {
         ->and($display->status)->toBe(DisplayStatus::ACTIVE)
         ->and($display->workspace_id)->toBe($workspace->id)
         ->and($device->display_id)->toBe($display->id)
-        ->and($device->workspace_id)->toBe($workspace->id);
+        ->and($device->workspace_id)->toBe($workspace->id)
+        ->and(DisplaySettings::isBookingEnabled($display))->toBeTrue()
+        ->and(DisplaySettings::getTimelineWidgetMode($display))->toBe('side_panel');
+});
+
+test('a second run keeps the settings changed in the portal', function () {
+    $this->artisan('spacepad:demo')->assertSuccessful();
+    DisplaySettings::setBookingEnabled(Display::firstOrFail(), false);
+
+    $this->artisan('spacepad:demo')->assertSuccessful();
+
+    expect(DisplaySettings::isBookingEnabled(Display::firstOrFail()))->toBeFalse();
 });
 
 test('the tablet can fetch its display with the printed token, and sees a meeting running now', function () {

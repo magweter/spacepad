@@ -7,6 +7,7 @@ use App\Enums\EventSource;
 use App\Enums\EventStatus;
 use App\Enums\UsageType;
 use App\Enums\UserStatus;
+use App\Helpers\DisplaySettings;
 use App\Models\Calendar;
 use App\Models\Device;
 use App\Models\Display;
@@ -80,6 +81,16 @@ class SeedDemo extends Command
                 'display_name' => 'Boardroom Lighthouse',
                 'status' => DisplayStatus::ACTIVE,
             ]);
+
+            // The buttons and the schedule are what a long title pushes against, so the demo
+            // starts with them on. Only when the display is new: a later run keeps whatever was
+            // changed in the portal since.
+            if ($display->wasRecentlyCreated) {
+                DisplaySettings::setBookingEnabled($display, true);
+                DisplaySettings::setExtendEnabled($display, true);
+                DisplaySettings::setCalendarEnabled($display, true);
+                DisplaySettings::setTimelineWidgetMode($display, 'side_panel');
+            }
 
             $device = Device::updateOrCreate(['user_id' => $user->id, 'uid' => self::DEVICE_UID], [
                 'workspace_id' => $workspace->id,
