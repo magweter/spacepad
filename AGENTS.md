@@ -63,6 +63,11 @@ Notes:
   `GET: http://localhost:8000/api/devices/me`.
 - The iOS build warns that all plugins are Swift Packages while `ios/` still has CocoaPods
   integration. Harmless, only a build-time cost. Do not deintegrate without asking.
+- **CocoaPods 1.16 or newer.** The old 1.11.2 in `/usr/local/bin` cannot read the current Xcode
+  project ("Searching for inspections failed"). Homebrew's (`brew install cocoapods`) lives in
+  `/opt/homebrew/bin`, which comes first in PATH. Export `LANG=en_US.UTF-8` before it runs.
+- The minimum iOS version is 15.0, set in both `ios/Podfile` and the Runner project. Current
+  Xcode refuses to build for anything older.
 - **Previewing a panel resolution.** Room display panels are often 1024x600, which is not an iOS
   device size. Pass `--dart-define=FORCE_SIZE=1024x600` and the app lays itself out at exactly
   those logical pixels inside a letterboxed canvas, on any device:
