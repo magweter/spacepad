@@ -195,60 +195,65 @@ class _DashboardPageState extends State<DashboardPage> {
   /// [timelineToggle] adds the icon that opens and closes the side panel, which only the
   /// side-panel layout has.
   Widget _buildHeader(BuildContext context, DashboardController controller, bool isPhone, {bool timelineToggle = false}) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
+    // The stale-data warning floats centred over the row instead of taking a slot in it, so it
+    // never decides where the room name goes.
+    return Stack(
+      alignment: Alignment.center,
       children: [
-        Obx(() => Text(
-          formatTime(context, controller.time.value),
-          style: FontService.instance.getTextStyle(
-            fontFamily: controller.currentFontFamily.value,
-            fontSize: _sp(context, 28),
-            fontWeight: FontWeight.w500,
-            color: TWColors.white,
-          ),
-        )),
-        const Spacer(),
-        Obx(() => controller.isDataStale.value
-            ? Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: _buildStaleIndicator(context, isPhone, controller),
-              )
-            : const SizedBox.shrink()),
-        const Spacer(),
-        // Flexible with a large flex, so the room name gets nearly all the width the clock
-        // leaves, and only shortens itself when even that is not enough: a long name at a large
-        // text size beside a side panel.
-        Flexible(
-          flex: 20,
-          child: Obx(() {
-          final hide = controller.globalSettings.value?.hideAdminActions ?? false;
-          final showTemp = controller.showAdminActionsTemporarily.value;
-          final show = !hide || showTemp;
-          return Row(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              if (show) AdminActions(controller: controller),
-              if (show) const SizedBox(width: 15),
-              if (timelineToggle && show) ...[
-                Opacity(
-                  opacity: 0.6,
-                  child: GestureDetector(
-                    onTap: () => setState(() => _timelineOpen = !_timelineOpen),
-                    child: Icon(
-                      _timelineOpen ? Icons.calendar_today : Icons.calendar_today_outlined,
-                      color: Colors.white,
-                      size: _sp(context, 24),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 15),
-              ],
-              Flexible(child: _buildRoomName(context, controller, hide)),
-            ],
-          );
-        }),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Obx(() => Text(
+              formatTime(context, controller.time.value),
+              style: FontService.instance.getTextStyle(
+                fontFamily: controller.currentFontFamily.value,
+                fontSize: _sp(context, 28),
+                fontWeight: FontWeight.w500,
+                color: TWColors.white,
+              ),
+            )),
+            const SizedBox(width: 16),
+            // All the width the clock leaves, with the room name pinned to its right edge. The
+            // name shortens itself only when even that is not enough: a long name at a large
+            // text size beside a side panel.
+            Expanded(
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: Obx(() {
+                  final hide = controller.globalSettings.value?.hideAdminActions ?? false;
+                  final showTemp = controller.showAdminActionsTemporarily.value;
+                  final show = !hide || showTemp;
+                  return Row(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      if (show) AdminActions(controller: controller),
+                      if (show) const SizedBox(width: 15),
+                      if (timelineToggle && show) ...[
+                        Opacity(
+                          opacity: 0.6,
+                          child: GestureDetector(
+                            onTap: () => setState(() => _timelineOpen = !_timelineOpen),
+                            child: Icon(
+                              _timelineOpen ? Icons.calendar_today : Icons.calendar_today_outlined,
+                              color: Colors.white,
+                              size: _sp(context, 24),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 15),
+                      ],
+                      Flexible(child: _buildRoomName(context, controller, hide)),
+                    ],
+                  );
+                }),
+              ),
+            ),
+          ],
         ),
+        Obx(() => controller.isDataStale.value
+            ? _buildStaleIndicator(context, isPhone, controller)
+            : const SizedBox.shrink()),
       ],
     );
   }

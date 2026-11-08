@@ -109,6 +109,8 @@ void main() {
         final bottomBar = tester.getRect(find.ancestor(of: find.text('view_schedule'), matching: find.byType(FrostedPanel)).first);
 
         expect(title.top - header.bottom, greaterThanOrEqualTo(12), reason: 'title pressed against the header');
+        // The room name sits in the top right corner, in line with the right edge of the bottom bar.
+        expect(header.right, closeTo(bottomBar.right, 2), reason: 'room name not in the corner');
         expect(bottomBar.top - buttons.bottom, greaterThanOrEqualTo(12), reason: 'buttons pressed against the bottom bar');
 
         final lines = tester.widget<Text>(find.descendant(of: find.byType(StatusTitle), matching: find.byType(Text))).maxLines!;
