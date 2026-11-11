@@ -85,6 +85,7 @@ test('the owner of a yearly workspace is offered monthly', function () {
     viewWorkspacePage($owner, $workspace)
         ->assertOk()
         ->assertSee('Switch to monthly')
+        ->assertSee('Monthly billing starts on 20 October 2027, the last day of your paid year.')
         ->assertDontSee('Switch to yearly');
 });
 
@@ -94,7 +95,7 @@ test('a requested switch shows its date and can be taken back', function () {
 
     viewWorkspacePage($owner, $workspace)
         ->assertOk()
-        ->assertSee('Your subscription switches to monthly on 21 October 2027.')
+        ->assertSee('Your subscription switches to monthly on 20 October 2027, the last day of your paid year.')
         ->assertSee('Keep yearly')
         ->assertDontSee('Switch to monthly');
 });

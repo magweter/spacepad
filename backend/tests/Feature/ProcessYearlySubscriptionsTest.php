@@ -164,7 +164,7 @@ test('the renewal day itself is not an anniversary', function () {
     Http::assertNothingSent();
 });
 
-test('a requested switch to monthly is made the day before renewal', function () {
+test('a requested switch to monthly is made the day before renewal, with the quantity set first', function () {
     $this->travelTo(Carbon::parse('2027-10-20 04:10'));
     fakeYearlyApi(paidQuantity: 6);
     $workspace = yearlyBillingWorkspace('2027-10-21 10:00', displays: 2);
@@ -172,6 +172,14 @@ test('a requested switch to monthly is made the day before renewal', function ()
 
     Artisan::call('app:process-yearly-subscriptions');
 
+    // Lemon Squeezy invoices the first month the moment the variant changes, for the
+    // quantity it has then, so the quantity must already be the current usage.
+    $writes = collect(Http::recorded())->map(fn ($pair) => $pair[0])
+        ->filter(fn (Request $r) => $r->method() === 'PATCH')
+        ->map(fn (Request $r) => str_contains($r->url(), 'subscription-items/') ? 'quantity' : 'swap')
+        ->values()->all();
+
+    expect($writes)->toBe(['quantity', 'swap']);
     Http::assertSent(fn (Request $r) => $r->method() === 'PATCH'
         && str_ends_with($r->url(), 'subscriptions/sub_y')
         && $r['data']['attributes']['product_id'] === '10'
@@ -192,7 +200,7 @@ test('a failed swap keeps the request and the next workspace is still processed'
     $exitCode = Artisan::call('app:process-yearly-subscriptions');
 
     expect($failing->fresh()->switch_to_monthly_requested_at)->not->toBeNull()
-        ->and(quantityPatches())->toBe([['quantity' => 4, 'disable_prorations' => true]])
+        ->and(quantityPatches())->toContain(['quantity' => 4, 'disable_prorations' => true])
         ->and($exitCode)->toBe(1);
 });
 
@@ -217,9 +225,9 @@ test('a dry run calls nothing that changes billing', function () {
     expect(Artisan::output())->toContain('invoice');
 });
 
-test('a switch that failed the day before is retried while the renewal is still ahead', function () {
-    // Yesterday the swap was refused, or the scheduler did not run. One chance would mean a
-    // full year billed to someone who asked for monthly.
+test('the switch to monthly waits for the last day of the paid year', function () {
+    // The swap starts a monthly cycle and invoices it straight away, so made two days early
+    // the customer pays two days twice. Only the renewal quantity is set before then.
     $this->travelTo(Carbon::parse('2027-10-19 04:10'));
     fakeYearlyApi(paidQuantity: 6);
     $workspace = yearlyBillingWorkspace('2027-10-21 10:00', displays: 2);
@@ -227,7 +235,9 @@ test('a switch that failed the day before is retried while the renewal is still 
 
     Artisan::call('app:process-yearly-subscriptions');
 
-    expect($workspace->fresh()->switch_to_monthly_requested_at)->toBeNull();
+    Http::assertNotSent(fn (Request $r) => $r->method() === 'PATCH' && str_contains($r->url(), 'subscriptions/sub_y'));
+    expect(quantityPatches())->toBe([['quantity' => 2, 'disable_prorations' => true]])
+        ->and($workspace->fresh()->switch_to_monthly_requested_at)->not->toBeNull();
 });
 
 test('a monthly subscription that was not cancelled after the switch is cancelled now', function () {

@@ -208,7 +208,7 @@
                         </form>
                     @elseif($workspace->switch_to_monthly_requested_at)
                         <p class="text-sm text-gray-500 sm:max-w-xl">
-                            Your subscription switches to monthly on {{ $subscription?->renews_at?->format('j F Y') ?? 'the date your current year ends' }}.
+                            Your subscription switches to monthly on {{ $subscription?->renews_at ? $subscription->renews_at->copy()->subDay()->format('j F Y').',' : '' }} the last day of your paid year.
                             Until then your yearly subscription carries on as it is.
                         </p>
                         <form action="{{ route('billing.switch-monthly.cancel') }}" method="POST" class="mt-3 sm:mt-0 shrink-0">
@@ -222,7 +222,7 @@
                     @else
                         <p class="text-sm text-gray-500 sm:max-w-xl">
                             Your yearly subscription runs until {{ $subscription?->renews_at?->format('j F Y') ?? 'the end of the paid year' }}.
-                            Switch to monthly and you pay per month from then on.
+                            Monthly billing starts on {{ $subscription?->renews_at ? $subscription->renews_at->copy()->subDay()->format('j F Y').',' : '' }} the last day of your paid year.
                         </p>
                         <form action="{{ route('billing.switch-monthly') }}" method="POST" class="mt-3 sm:mt-0 shrink-0">
                             @csrf

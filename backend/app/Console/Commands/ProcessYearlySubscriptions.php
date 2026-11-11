@@ -23,7 +23,7 @@ use Throwable;
  *    Lower usage is never credited.
  *  - In the days before renewal, the quantity is set to current usage without proration, so
  *    the renewal bills the new year for what is used then. A requested switch to monthly is
- *    made in that window too, so the renewal bills a month instead of a year.
+ *    made on the last day of the paid year: Lemon Squeezy starts the monthly cycle then.
  *  - A monthly subscription the yearly one replaced but that is still running is cancelled.
  */
 class ProcessYearlySubscriptions extends Command
@@ -33,9 +33,9 @@ class ProcessYearlySubscriptions extends Command
     protected $description = 'Invoice extra usage on yearly subscriptions and prepare their renewal';
 
     /**
-     * Days before renewal in which the renewal is prepared, every day. One day would leave a
-     * single chance: a refused swap or a day the scheduler did not run, and someone who asked
-     * for monthly is billed a full year. Setting the quantity again is harmless.
+     * Days before renewal in which the renewal quantity is set, every day, so a refused call
+     * or a day the scheduler did not run is made good the next day. Setting it again is
+     * harmless. A switch to monthly is only made on the last of these days.
      */
     private const RENEWAL_WINDOW_DAYS = 3;
 
@@ -70,7 +70,7 @@ class ProcessYearlySubscriptions extends Command
                     $this->cancelSuperseded($workspace, $subscription);
 
                     if ($today->gte($renewal->copy()->subDays(self::RENEWAL_WINDOW_DAYS)) && $today->lt($renewal)) {
-                        $this->prepareRenewal($workspace, $subscription);
+                        $this->prepareRenewal($workspace, $subscription, $today->equalTo($renewal->copy()->subDay()));
                         $handled++;
                     } elseif ($this->isAnniversary($today, $renewal)) {
                         $this->invoiceExtraUsage($workspace, $subscription);
@@ -146,42 +146,48 @@ class ProcessYearlySubscriptions extends Command
         }
     }
 
-    private function prepareRenewal(Workspace $workspace, Subscription $subscription): void
+    /**
+     * Set the quantity the renewal bills for and, on the last day of the paid year, make a
+     * requested switch to monthly.
+     *
+     * Verified in test mode: changing the variant to monthly starts a monthly cycle on the
+     * spot and invoices it straight away, for the quantity the item has at that moment, even
+     * with disable_prorations. Hence the order (quantity first) and the timing (only the last
+     * day, so the customer pays at most one day twice). A refused swap is reported and left
+     * for us to finish by hand; the request stays in place.
+     */
+    private function prepareRenewal(Workspace $workspace, Subscription $subscription, bool $isLastDay): void
     {
         $units = $this->units($workspace);
-
-        if ($workspace->switch_to_monthly_requested_at !== null) {
-            $this->line("Workspace {$workspace->id}: switch to monthly before renewal, {$units} units");
-
-            if ($this->option('dry-run')) {
-                return;
-            }
-
-            // Throws on a refusal, which keeps the request in place for a retry.
-            $subscription->swap(BillingPlans::switchProductId(), BillingPlans::switchMonthlyVariantId(), [
-                'disable_prorations' => true,
-            ]);
-
-            $workspace->forceFill(['switch_to_monthly_requested_at' => null])->save();
-
-            // The swap may have replaced the subscription item.
-            $this->usage->forgetSubscriptionItemId($subscription->lemon_squeezy_id);
-            $this->setRenewalQuantity($this->itemId($subscription), $units);
-
-            return;
-        }
-
         $itemId = $this->itemId($subscription);
 
-        if ($this->usage->getQuantity($itemId) === $units) {
+        if ($this->usage->getQuantity($itemId) !== $units) {
+            $this->line("Workspace {$workspace->id}: renewal set to {$units} units");
+
+            if (! $this->option('dry-run')) {
+                $this->setRenewalQuantity($itemId, $units);
+            }
+        }
+
+        if ($workspace->switch_to_monthly_requested_at === null || ! $isLastDay) {
             return;
         }
 
-        $this->line("Workspace {$workspace->id}: renewal set to {$units} units");
+        $this->line("Workspace {$workspace->id}: switch to monthly, {$units} units");
 
-        if (! $this->option('dry-run')) {
-            $this->setRenewalQuantity($itemId, $units);
+        if ($this->option('dry-run')) {
+            return;
         }
+
+        // Throws on a refusal, which keeps the request in place.
+        $subscription->swap(BillingPlans::switchProductId(), BillingPlans::switchMonthlyVariantId(), [
+            'disable_prorations' => true,
+        ]);
+
+        $workspace->forceFill(['switch_to_monthly_requested_at' => null])->save();
+
+        // The swap may have replaced the subscription item.
+        $this->usage->forgetSubscriptionItemId($subscription->lemon_squeezy_id);
     }
 
     private function setRenewalQuantity(string $itemId, int $units): void
