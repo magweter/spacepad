@@ -207,6 +207,13 @@
                         </div>
 
                         <div class="flex items-start gap-3">
+                            <input type="hidden" name="all_day_events_block" value="0">
+                            <input id="all_day_events_block" name="all_day_events_block" type="checkbox" value="1" class="mt-0.5 {{ $checkClass }}" {{ $bool('all_day_events_block', true) ? 'checked' : '' }}>
+                            <label for="all_day_events_block" class="text-sm text-gray-900">All-day events block the room</label>
+                            <x-info-tip text="An all-day event on the room's calendar, such as a training day or a closed room, shows the room as in use for the whole day. Events marked as free in the calendar never block the room, all-day or not." />
+                        </div>
+
+                        <div class="flex items-start gap-3">
                             <input type="hidden" name="led_enabled" value="0">
                             <input id="led_enabled" name="led_enabled" type="checkbox" value="1" class="mt-0.5 {{ $checkClass }}" {{ $bool('led_enabled') ? 'checked' : '' }}>
                             <label for="led_enabled" class="text-sm text-gray-900">LED strips follow the room state</label>
