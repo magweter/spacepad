@@ -9,6 +9,7 @@ return [
     'available' => 'Beschikbaar',
     'available_until' => 'Beschikbaar tot :time',
     'available_until_end_of_day' => 'Beschikbaar tot einde dag',
+    'all_day' => 'Hele dag',
     'next' => 'Volgende',
     'room' => 'Ruimte',
     'status' => 'Status',

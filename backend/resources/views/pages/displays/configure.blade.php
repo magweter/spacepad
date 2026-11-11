@@ -307,6 +307,17 @@
                     </label>
 
                     <label class="flex items-start gap-3 cursor-pointer">
+                        <input type="checkbox" name="all_day_events_block" value="1" class="mt-0.5 {{ $checkClass }}"
+                               {{ $ds::isAllDayEventsBlocking($display) ? 'checked' : '' }}>
+                        <div>
+                            <span class="flex items-center gap-1.5 text-sm font-medium text-gray-900">All-day events block the room
+                                <x-info-tip text="An all-day event on the room's calendar, such as a training day or a closed room, shows the room as in use for the whole day. Events marked as free in the calendar never block the room, all-day or not." />
+                            </span>
+                            <p class="text-xs text-gray-500">On by default. Turn off when the calendar holds all-day notes that are not bookings.</p>
+                        </div>
+                    </label>
+
+                    <label class="flex items-start gap-3 cursor-pointer">
                         <input type="checkbox" name="led_enabled" value="1" class="mt-0.5 {{ $checkClass }}"
                                {{ $ds::isLedEnabled($display) ? 'checked' : '' }}>
                         <div>

@@ -291,7 +291,7 @@
                                                 <svg class="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                                 </svg>
-                                                <span class="event-time" data-start="{{ $currentEvent['start']->toIso8601String() }}" data-end="{{ $currentEvent['end']->toIso8601String() }}"></span>
+                                                @if($currentEvent['allDay'] ?? false)<span>{{ $t('boards.all_day') }}</span>@else<span class="event-time" data-start="{{ $currentEvent['start']->toIso8601String() }}" data-end="{{ $currentEvent['end']->toIso8601String() }}"></span>@endif
                                             </div>
                                             @if($showOrganizer && filled($currentEvent['organizer']))
                                                 <span class="text-gray-500">•</span>
@@ -334,7 +334,7 @@
                                                     <svg class="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                                     </svg>
-                                                    <span class="event-time" data-start="{{ $nextEvent['start']->toIso8601String() }}" data-end="{{ $nextEvent['end']->toIso8601String() }}"></span>
+                                                    @if($nextEvent['allDay'] ?? false)<span>{{ $t('boards.all_day') }}</span>@else<span class="event-time" data-start="{{ $nextEvent['start']->toIso8601String() }}" data-end="{{ $nextEvent['end']->toIso8601String() }}"></span>@endif
                                                 </div>
                                                 @if($showOrganizer && filled($nextEvent['organizer'] ?? null))
                                                     <span class="text-gray-500">•</span>
@@ -454,7 +454,7 @@
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                             </svg>
-                                            <span class="event-time" data-start="{{ $currentEvent['start']->toIso8601String() }}" data-end="{{ $currentEvent['end']->toIso8601String() }}"></span>
+                                            @if($currentEvent['allDay'] ?? false)<span>{{ $t('boards.all_day') }}</span>@else<span class="event-time" data-start="{{ $currentEvent['start']->toIso8601String() }}" data-end="{{ $currentEvent['end']->toIso8601String() }}"></span>@endif
                                         </div>
                                         @if(($board->show_booker ?? true) && filled($currentEvent['organizer']))
                                             <span class="text-gray-500">•</span>
@@ -500,7 +500,7 @@
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                                 </svg>
-                                                <span class="event-time" data-start="{{ $nextEvent['start']->toIso8601String() }}" data-end="{{ $nextEvent['end']->toIso8601String() }}"></span>
+                                                @if($nextEvent['allDay'] ?? false)<span>{{ $t('boards.all_day') }}</span>@else<span class="event-time" data-start="{{ $nextEvent['start']->toIso8601String() }}" data-end="{{ $nextEvent['end']->toIso8601String() }}"></span>@endif
                                             </div>
                                             @if(($board->show_booker ?? true) && filled($nextEvent['organizer'] ?? null))
                                                 <span class="text-gray-500">•</span>
@@ -609,7 +609,7 @@
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                         </svg>
-                                        <span class="event-time" data-start="{{ $currentEvent['start']->toIso8601String() }}" data-end="{{ $currentEvent['end']->toIso8601String() }}"></span>
+                                        @if($currentEvent['allDay'] ?? false)<span>{{ $t('boards.all_day') }}</span>@else<span class="event-time" data-start="{{ $currentEvent['start']->toIso8601String() }}" data-end="{{ $currentEvent['end']->toIso8601String() }}"></span>@endif
                                     </div>
                                     @if(($board->show_booker ?? true) && filled($currentEvent['organizer']))
                                         <span class="text-gray-500">•</span>
@@ -657,7 +657,7 @@
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                             </svg>
-                                            <span class="event-time" data-start="{{ $nextEvent['start']->toIso8601String() }}" data-end="{{ $nextEvent['end']->toIso8601String() }}"></span>
+                                            @if($nextEvent['allDay'] ?? false)<span>{{ $t('boards.all_day') }}</span>@else<span class="event-time" data-start="{{ $nextEvent['start']->toIso8601String() }}" data-end="{{ $nextEvent['end']->toIso8601String() }}"></span>@endif
                                         </div>
                                     </div>
                                 </div>

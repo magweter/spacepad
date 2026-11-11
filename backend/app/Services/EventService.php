@@ -50,16 +50,16 @@ class EventService
                 // The caller did not state its timezone (an older app build). Keep the previous
                 // contract: hand back a day either side and let the client clamp, so nothing near
                 // its local midnight goes missing.
-                return $this->getAllEvents(
+                return $this->applyDisplayPolicies($this->getAllEvents(
                     $display,
                     $forDate->copy()->subDay()->startOfDay(),
                     $forDate->copy()->addDay()->endOfDay()
-                );
+                ), $display);
             }
 
             [$fetchStart, $fetchEnd] = $day->fetchRange();
 
-            return $this->clampToDay($this->getAllEvents($display, $fetchStart, $fetchEnd), $day);
+            return $this->clampToDay($this->applyDisplayPolicies($this->getAllEvents($display, $fetchStart, $fetchEnd), $display), $day);
         }
 
         // For the status screen the day always matters: a client that does not state one gets the
@@ -117,7 +117,33 @@ class EventService
 
         // The cached collection deliberately spans more than a day so tablets in different
         // timezones can share it; narrowing to the caller's day happens here, per request.
-        return $this->clampToDay($events, $day);
+        return $this->clampToDay($this->applyDisplayPolicies($events, $display), $day);
+    }
+
+    /**
+     * Apply the display's own settings to a collection of events.
+     *
+     * This runs after the cache rather than inside getAllEvents(), so the cached collection does not
+     * depend on any setting: changing one, on the display or on its profile, takes effect on the
+     * next request without having to find and clear every cache entry it touches.
+     */
+    private function applyDisplayPolicies(Collection $events, Display $display): Collection
+    {
+        if (DisplaySettings::isAllDayEventsBlocking($display)) {
+            return $events;
+        }
+
+        return $events->reject(fn (Event $event) => $event->isAllDay())->values();
+    }
+
+    /**
+     * A calendar date's midnight on the server's clock, in UTC.
+     */
+    private function serverMidnightOf(string $date): Carbon
+    {
+        return Carbon::createFromFormat('Y-m-d', substr($date, 0, 10), config('app.timezone'))
+            ->startOfDay()
+            ->utc();
     }
 
     /**
@@ -148,8 +174,27 @@ class EventService
     private function clampToDay(Collection $events, LocalDay $day): Collection
     {
         return $events
+            ->map(fn (Event $event) => $event->isAllDay() ? $this->placeOnDay($event, $day) : $event)
             ->filter(fn (Event $event) => $day->overlaps($event->start, $event->end))
             ->values();
+    }
+
+    /**
+     * Move an all-day event from the server's midnight to the tablet's.
+     *
+     * getAllEvents() can only place the dates on the server's clock, and the cached collection is
+     * shared between tablets in different timezones. A copy is moved, so the cached model keeps its
+     * server placement for the next tablet that asks.
+     */
+    private function placeOnDay(Event $event, LocalDay $day): Event
+    {
+        $serverTimezone = config('app.timezone');
+
+        $placed = clone $event;
+        $placed->start = $day->midnightOf($event->start->copy()->setTimezone($serverTimezone)->format('Y-m-d'));
+        $placed->end = $day->midnightOf($event->end->copy()->setTimezone($serverTimezone)->format('Y-m-d'));
+
+        return $placed;
     }
 
     /**
@@ -371,7 +416,7 @@ class EventService
      *
      * @throws Exception
      */
-    private function assertExternalEventOnDisplay(Display $display, string $externalId): void
+    private function assertExternalEventOnDisplay(Display $display, string $externalId): Event
     {
         // Whatever the tablet was just shown is in one of the two caches getEventsForDisplay
         // fills; only on a cold cache does this cost a provider read.
@@ -379,13 +424,15 @@ class EventService
             ?? Cache::get($display->getEventsCacheKey().':fallback')
             ?? $this->getAllEvents($display);
 
-        $known = $events->contains(
+        $known = $events->first(
             fn ($event) => $event->id === $externalId || $event->external_id === $externalId
         );
 
         if (! $known) {
             throw new Exception('Event not found on this display', 404);
         }
+
+        return $known;
     }
 
     /**
@@ -447,7 +494,14 @@ class EventService
         }
 
         // External event (not in DB) — requires write permission
-        $this->assertExternalEventOnDisplay($display, $eventId);
+        $external = $this->assertExternalEventOnDisplay($display, $eventId);
+
+        // An all-day event already runs to the end of the day; "extending" it would turn it into a
+        // timed event in the organiser's calendar.
+        if ($external->isAllDay()) {
+            throw new Exception('All-day events cannot be extended', 422);
+        }
+
         $this->extendExternalEvent($eventId, $display, $newEnd);
     }
 
@@ -523,7 +577,10 @@ class EventService
         $display = Display::findOrFail($displayId);
 
         // Use cached events if available to avoid redundant API calls during booking
-        $events = Cache::get($display->getEventsCacheKey()) ?? $this->getAllEvents($display);
+        $events = $this->applyDisplayPolicies(
+            Cache::get($display->getEventsCacheKey()) ?? $this->getAllEvents($display),
+            $display,
+        );
 
         return $events->contains(function ($event) use ($start, $end) {
             $eStart = $event->start;
@@ -585,6 +642,9 @@ class EventService
             'end' => $endDateStr,
             'timezone' => 'UTC',
             'isAllDay' => $isAllDay,
+            // "free" is what someone picks for a reminder or an out-of-office note that should not
+            // block anything; tentative, busy and away all do.
+            'isFree' => ($outlookEvent['showAs'] ?? null) === 'free',
         ];
     }
 
@@ -610,6 +670,8 @@ class EventService
             'end' => $isAllDay ? $end->getDate() : $end->getDateTime(),
             'timezone' => $start->getTimeZone() ?? $end->getTimeZone() ?? 'UTC',
             'isAllDay' => $isAllDay,
+            // Google's "Show as available": the event is on the calendar but does not block it.
+            'isFree' => $googleEvent->getTransparency() === 'transparent',
         ];
     }
 
@@ -714,6 +776,7 @@ class EventService
             'end' => $caldavEvent['end'],
             'timezone' => $caldavEvent['timezone'],
             'isAllDay' => $caldavEvent['isAllDay'],
+            'isFree' => $caldavEvent['isFree'] ?? false,
         ];
     }
 
@@ -779,7 +842,8 @@ class EventService
         logger()->debug('getAllEvents: raw external events fetched', [
             'display_id' => $display->id,
             'raw_count' => $rawExternal->count(),
-            'all_day_filtered' => $rawExternal->filter(fn ($e) => $e['isAllDay'])->count(),
+            'all_day' => $rawExternal->filter(fn ($e) => $e['isAllDay'])->count(),
+            'free_filtered' => $rawExternal->filter(fn ($e) => $e['isFree'] ?? false)->count(),
         ]);
 
         // Load persisted DB events: custom events and tablet bookings only
@@ -813,12 +877,25 @@ class EventService
         // route to the correct DB row and use the correct external calendar event ID.
         $matchedTabletIds = [];
 
+        // What blocks the room is the provider's own free/busy flag, not the shape of the event: an
+        // event marked "free" is a note on the calendar, whether it lasts an hour or a day. All-day
+        // events are always kept here, also on displays that ignore them, so the cached collection
+        // stays the same for every setting; see applyDisplayPolicies().
         $externalModels = $rawExternal
-            ->filter(fn ($e) => ! $e['isAllDay'])
+            ->reject(fn ($e) => $e['isFree'] ?? false)
             ->filter(fn ($e) => ! $this->isEventReleased($display->id, $e['id']))
             ->map(function ($ext) use ($display, $checkInEnabled, $gracePeriod, $tabletById, $tabletByStart, &$matchedTabletIds) {
-                $eventStart = Carbon::parse($ext['start'])->utc();
-                $eventEnd = Carbon::parse($ext['end'])->utc();
+                $isAllDay = (bool) $ext['isAllDay'];
+
+                if ($isAllDay) {
+                    // Dates, not instants. Placed on the server's midnight for now; clampToDay()
+                    // moves them to the asking tablet's midnight.
+                    $eventStart = $this->serverMidnightOf($ext['start']);
+                    $eventEnd = $this->serverMidnightOf($ext['end']);
+                } else {
+                    $eventStart = Carbon::parse($ext['start'])->utc();
+                    $eventEnd = Carbon::parse($ext['end'])->utc();
+                }
 
                 $tabletBooking = $tabletById[$ext['id']]
                     ?? $tabletByStart[$eventStart->format('Y-m-d H:i')]
@@ -837,10 +914,11 @@ class EventService
                 }
 
                 // Grace-period check only applies to pure external events; tablet bookings
-                // are handled by processExpiredCheckIns() before we get here.
+                // are handled by processExpiredCheckIns() before we get here. All-day events are
+                // never released: nobody checks in at midnight, so they would always expire.
                 if (! $tabletBooking) {
                     $checkedInAt = $this->getCheckInState($display->id, $ext['id']);
-                    if ($checkInEnabled && ! $checkedInAt && $eventStart->lt(now()->subMinutes($gracePeriod))) {
+                    if ($checkInEnabled && ! $isAllDay && ! $checkedInAt && $eventStart->lt(now()->subMinutes($gracePeriod))) {
                         $this->markEventReleased($display->id, $ext['id'], $eventEnd);
 
                         return null;
@@ -874,6 +952,7 @@ class EventService
                 $event->timezone = $ext['timezone'];
                 $event->checked_in_at = $checkedInAt;
                 $event->organizer_name = $ext['organizer_name'] ?? null;
+                $event->is_all_day = $isAllDay;
 
                 return $event;
             })

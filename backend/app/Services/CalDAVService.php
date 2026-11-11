@@ -105,46 +105,81 @@ XML;
                 throw new \Exception("Unexpected status code {$response['statusCode']}");
             }
 
-            // Parse multi-status response with calendar-data entries
-            $body = $response['body'];
-            $events = [];
-
-            preg_match_all('/<(?:cal|C):calendar-data[^>]*>(.*?)<\/(?:cal|C):calendar-data>/s', $body, $matches);
-
-            foreach ($matches[1] as $icalData) {
-                $vcalendar = Reader::read($icalData);
-                foreach ($vcalendar->select('VEVENT') as $vevent) {
-                    $start = $vevent->DTSTART->getDateTime();
-                    $end = $vevent->DTEND->getDateTime();
-
-                    $organizerName = null;
-                    if (isset($vevent->ORGANIZER)) {
-                        $cn = $vevent->ORGANIZER['CN'] ?? null;
-                        $organizerName = $cn ? (string) $cn : null;
-                        if (! $organizerName) {
-                            $val = (string) $vevent->ORGANIZER;
-                            $organizerName = str_starts_with($val, 'mailto:') ? substr($val, 7) : ($val ?: null);
-                        }
-                    }
-
-                    $events[] = [
-                        'id' => (string) $vevent->UID,
-                        'summary' => (string) $vevent->SUMMARY,
-                        'description' => (string) $vevent->DESCRIPTION,
-                        'location' => (string) $vevent->LOCATION,
-                        'organizer_name' => $organizerName,
-                        'start' => $start->format('Y-m-d\TH:i:sP'),
-                        'end' => $end->format('Y-m-d\TH:i:sP'),
-                        'timezone' => $start->getTimezone()->getName() ?? $end->getTimezone()->getName() ?? 'UTC',
-                        'isAllDay' => $vevent->DTSTART->hasTime() === false,
-                    ];
-                }
-            }
-
-            return $events;
+            return $this->parseEvents($response['body']);
         } catch (\Exception $e) {
             throw new \Exception('CalDAV request failed: '.$e->getMessage());
         }
+    }
+
+    /**
+     * The VEVENTs in a calendar-query multi-status response.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function parseEvents(string $body): array
+    {
+        $events = [];
+
+        preg_match_all('/<(?:cal|C):calendar-data[^>]*>(.*?)<\/(?:cal|C):calendar-data>/s', $body, $matches);
+
+        foreach ($matches[1] as $icalData) {
+            $vcalendar = Reader::read($icalData);
+            foreach ($vcalendar->select('VEVENT') as $vevent) {
+                if (! isset($vevent->DTSTART)) {
+                    continue;
+                }
+
+                $isAllDay = $vevent->DTSTART->hasTime() === false;
+                $start = $vevent->DTSTART->getDateTime();
+                $end = $this->effectiveEnd($vevent, $start, $isAllDay);
+
+                $organizerName = null;
+                if (isset($vevent->ORGANIZER)) {
+                    $cn = $vevent->ORGANIZER['CN'] ?? null;
+                    $organizerName = $cn ? (string) $cn : null;
+                    if (! $organizerName) {
+                        $val = (string) $vevent->ORGANIZER;
+                        $organizerName = str_starts_with($val, 'mailto:') ? substr($val, 7) : ($val ?: null);
+                    }
+                }
+
+                $events[] = [
+                    'id' => (string) $vevent->UID,
+                    'summary' => (string) $vevent->SUMMARY,
+                    'description' => (string) $vevent->DESCRIPTION,
+                    'location' => (string) $vevent->LOCATION,
+                    'organizer_name' => $organizerName,
+                    // An all-day event is a date, not an instant: it is handed on as one, so it
+                    // can be placed on the display's own midnight instead of the server's.
+                    'start' => $isAllDay ? $start->format('Y-m-d') : $start->format('Y-m-d\TH:i:sP'),
+                    'end' => $isAllDay ? $end->format('Y-m-d') : $end->format('Y-m-d\TH:i:sP'),
+                    'timezone' => $start->getTimezone()->getName() ?? $end->getTimezone()->getName() ?? 'UTC',
+                    'isAllDay' => $isAllDay,
+                    'isFree' => strtoupper((string) ($vevent->TRANSP ?? '')) === 'TRANSPARENT',
+                ];
+            }
+        }
+
+        return $events;
+    }
+
+    /**
+     * When an event ends, also for the events that do not say so with DTEND.
+     *
+     * DTEND is optional in iCalendar: an event can give a DURATION instead, or neither, in which
+     * case an all-day event lasts its one day and a timed event is a moment (RFC 5545, 3.6.1).
+     */
+    private function effectiveEnd(VEvent $vevent, \DateTimeImmutable $start, bool $isAllDay): \DateTimeImmutable
+    {
+        if (isset($vevent->DTEND)) {
+            return $vevent->DTEND->getDateTime();
+        }
+
+        if (isset($vevent->DURATION)) {
+            return $start->add($vevent->DURATION->getDateInterval());
+        }
+
+        return $isAllDay ? $start->modify('+1 day') : $start;
     }
 
     /**

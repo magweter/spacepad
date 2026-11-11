@@ -69,6 +69,7 @@ class DisplaySettingSections
                     'show_organizer' => 'boolean',
                     'show_meeting_title' => 'boolean',
                     'show_meeting_location' => 'boolean',
+                    'all_day_events_block' => 'boolean',
                     'led_enabled' => 'boolean',
                 ],
                 'display_only_keys' => [],

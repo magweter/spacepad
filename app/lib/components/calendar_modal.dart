@@ -132,7 +132,7 @@ class CalendarModal extends StatelessWidget {
                                               ),
                                               const SizedBox(width: 8),
                                               Text(
-                                                '${formatTime(context, event.start)} - ${formatTime(context, event.end)}',
+                                                formatEventTimes(context, event),
                                                 style: TextStyle(
                                                   color: AppTheme.platinum,
                                                   fontSize: 15,

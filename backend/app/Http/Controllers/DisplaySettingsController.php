@@ -245,6 +245,7 @@ class DisplaySettingsController extends Controller
                 'show_organizer' => 'boolean',
                 'show_meeting_title' => 'boolean',
                 'show_meeting_location' => 'boolean',
+                'all_day_events_block' => 'boolean',
                 'led_enabled' => 'boolean',
             ],
             DisplaySettingSections::TEXTS => [
@@ -297,6 +298,7 @@ class DisplaySettingsController extends Controller
         $updated = $updated && DisplaySettings::setShowOrganizerEnabled($display, $request->boolean('show_organizer'));
         $updated = $updated && DisplaySettings::setShowMeetingTitle($display, $request->boolean('show_meeting_title'));
         $updated = $updated && DisplaySettings::setShowMeetingLocation($display, $request->boolean('show_meeting_location'));
+        $updated = $updated && DisplaySettings::setAllDayEventsBlocking($display, $request->boolean('all_day_events_block'));
         $updated = $updated && DisplaySettings::setLedEnabled($display, $request->boolean('led_enabled'));
         $updated = $updated && DisplaySettings::setBorderThickness($display, $request->input('border_thickness', 'medium'));
 

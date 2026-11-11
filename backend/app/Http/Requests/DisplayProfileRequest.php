@@ -38,6 +38,7 @@ class DisplayProfileRequest extends FormRequest
             'show_organizer' => 'boolean',
             'show_meeting_title' => 'boolean',
             'show_meeting_location' => 'boolean',
+            'all_day_events_block' => 'boolean',
             'led_enabled' => 'boolean',
             'advertisement_enabled' => 'boolean',
 
