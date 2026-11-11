@@ -36,10 +36,12 @@ class MeetingMetaRow extends StatelessWidget {
     required this.isPortrait,
   });
 
-  /// Same scale as the rest of the dashboard, see DashboardPage._sp.
+  /// Same scale as the rest of the dashboard, see DashboardPage._sp, times the text size step
+  /// chosen for the meeting details.
   double _sp(BuildContext context, double size) {
     final s = MediaQuery.of(context).size.shortestSide;
-    return (size * (s / 750).clamp(0.5, 1.3)).roundToDouble();
+    final double step = controller.detailsScale;
+    return (size * (s / 750).clamp(0.5, 1.3) * step).roundToDouble();
   }
 
   /// The organiser, unless showing it adds nothing.
@@ -113,8 +115,13 @@ class MeetingMetaRow extends StatelessWidget {
         isPhone ? 5 : 8,
       );
 
-      final chips = SpaceRow(
-        spaceBetween: isPhone ? 10 : 16,
+      // A Wrap, not a row: at a large text size beside a panel the chips no longer fit side by
+      // side, and a chip that does not fit moves to the next line instead of running off the
+      // screen. A name longer than the whole line still shortens itself inside its chip.
+      final chips = Wrap(
+        spacing: isPhone ? 10 : 16,
+        runSpacing: isPhone ? 6 : _sp(context, 10),
+        crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           if (times != null) FrostedPanel(
             borderRadius: cornerRadius,
@@ -132,13 +139,7 @@ class MeetingMetaRow extends StatelessWidget {
           ),
           // A chip of its own rather than a separator on the line: it is the same kind of
           // fact as the time, so it gets the same chip, the same size and the same white.
-          //
-          // Three shares of the leftover space against one for the remaining time. Both
-          // sat on flex 1 before, which capped the name at half the row and clipped names
-          // that had room to spare, while "36 min left" left its own half half-empty.
-          if (organizer != null) Flexible(
-            flex: 3,
-            child: FrostedPanel(
+          if (organizer != null) FrostedPanel(
               borderRadius: cornerRadius,
               blurIntensity: 18,
               padding: chipPadding,
@@ -162,11 +163,8 @@ class MeetingMetaRow extends StatelessWidget {
                   ),
                 ],
               ),
-            ),
           ),
-          if (!stackSubtitle && subtitle.isNotEmpty) Flexible(
-            child: _subtitle(subtitle, subtitleStyle),
-          ),
+          if (!stackSubtitle && subtitle.isNotEmpty) _subtitle(subtitle, subtitleStyle),
         ],
       );
 

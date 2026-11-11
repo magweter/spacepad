@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Helpers\DisplaySettings;
 use Illuminate\Foundation\Http\FormRequest;
 
 class DisplayProfileRequest extends FormRequest
@@ -52,6 +53,7 @@ class DisplayProfileRequest extends FormRequest
             'cancel_permission' => 'nullable|in:all,tablet_only,none',
             'border_thickness' => 'nullable|in:small,medium,large',
             'font_family' => 'nullable|string|in:Inter,Roboto,Open Sans,Lato,Poppins,Montserrat',
+            ...DisplaySettings::fontSizeRules(),
 
             // Text overrides
             'text_available' => 'nullable|string|max:255',

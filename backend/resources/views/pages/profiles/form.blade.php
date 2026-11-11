@@ -263,7 +263,7 @@
                 {{-- Branding --}}
                 <div class="border border-gray-200 rounded-lg p-6">
                     <h3 class="text-base font-semibold text-gray-900">Branding</h3>
-                    <p class="mt-1 text-sm text-gray-500 mb-4">Font, logo and background for every display that follows this profile.</p>
+                    <p class="mt-1 text-sm text-gray-500 mb-4">Font, text sizes, logo and background for every display that follows this profile.</p>
 
                     <div class="space-y-6">
                         <div>
@@ -273,6 +273,25 @@
                                     <option value="{{ $font }}" {{ $val('font_family', 'Inter') === $font ? 'selected' : '' }}>{{ $font }}</option>
                                 @endforeach
                             </select>
+                        </div>
+
+                        {{-- Text sizes --}}
+                        <div class="pt-4 border-t border-gray-100">
+                            <p class="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-2">Text sizes
+                                <x-info-tip text="Make a text larger to read it from further away. A larger size uses more room, so a long meeting title is shortened sooner." />
+                            </p>
+                            <div class="grid grid-cols-2 gap-4">
+                                @foreach(\App\Helpers\DisplaySettings::FONT_SIZE_ELEMENTS as $element => $elementLabel)
+                                    <div>
+                                        <label for="font_size_{{ $element }}" class="block text-xs text-gray-500 mb-1">{{ $elementLabel }}</label>
+                                        <select name="font_size_{{ $element }}" id="font_size_{{ $element }}" class="{{ $selectClass }}">
+                                            @foreach(\App\Helpers\DisplaySettings::FONT_SIZES as $size => $sizeLabel)
+                                                <option value="{{ $size }}" {{ $val("font_size_{$element}", 'normal') === $size ? 'selected' : '' }}>{{ $sizeLabel }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                @endforeach
+                            </div>
                         </div>
 
                         {{-- Logo --}}

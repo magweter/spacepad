@@ -608,6 +608,38 @@ class DashboardController extends GetxController {
     }
   }
 
+  /// The factor for a text size step chosen in the dashboard. It multiplies the size the screen
+  /// already scales to, so a step means the same thing on a phone as on a large panel.
+  static double _fontScale(String? size) {
+    switch (size) {
+      case 'small':
+        return 0.85;
+      case 'large':
+        return 1.25;
+      case 'xlarge':
+        return 1.5;
+      case 'normal':
+      default:
+        return 1.0;
+    }
+  }
+
+  double get roomNameScale => _fontScale(globalSettings.value?.fontSizeRoomName);
+
+  double get clockScale => _fontScale(globalSettings.value?.fontSizeClock);
+
+  /// The meeting title, or the state text when the room is free.
+  double get titleScale => _fontScale(globalSettings.value?.fontSizeTitle);
+
+  /// The time, organizer and time left under the title.
+  double get detailsScale => _fontScale(globalSettings.value?.fontSizeDetails);
+
+  /// The bottom toolbar: the next meeting and the View schedule button.
+  double get toolbarScale => _fontScale(globalSettings.value?.fontSizeToolbar);
+
+  /// The calendar widget beside or in the main panel.
+  double get calendarScale => _fontScale(globalSettings.value?.fontSizeCalendar);
+
   bool get extendEnabled {
     return globalSettings.value?.extendEnabled ?? false;
   }

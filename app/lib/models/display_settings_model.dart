@@ -25,6 +25,12 @@ class DisplaySettingsModel {
   bool extendEnabled;
   bool showOrganizer;
   bool showMeetingLocation;
+  String fontSizeRoomName;
+  String fontSizeClock;
+  String fontSizeTitle;
+  String fontSizeDetails;
+  String fontSizeToolbar;
+  String fontSizeCalendar;
   bool ledEnabled;
 
   DisplaySettingsModel({
@@ -54,6 +60,12 @@ class DisplaySettingsModel {
     this.extendEnabled = false,
     this.showOrganizer = false,
     this.showMeetingLocation = false,
+    this.fontSizeRoomName = 'normal',
+    this.fontSizeClock = 'normal',
+    this.fontSizeTitle = 'normal',
+    this.fontSizeDetails = 'normal',
+    this.fontSizeToolbar = 'normal',
+    this.fontSizeCalendar = 'normal',
     this.ledEnabled = false,
   });
 
@@ -87,6 +99,12 @@ class DisplaySettingsModel {
       // Defaults to false, the same as the setting itself: a tablet talking to a backend
       // that predates it leaves the location line out rather than printing it forever.
       showMeetingLocation: data['show_meeting_location'] ?? false,
+      fontSizeRoomName: data['font_size_room_name'] ?? 'normal',
+      fontSizeClock: data['font_size_clock'] ?? 'normal',
+      fontSizeTitle: data['font_size_title'] ?? 'normal',
+      fontSizeDetails: data['font_size_details'] ?? 'normal',
+      fontSizeToolbar: data['font_size_toolbar'] ?? 'normal',
+      fontSizeCalendar: data['font_size_calendar'] ?? 'normal',
       // Off unless the portal says so: a tablet must never probe a port nobody asked it to.
       ledEnabled: data['led_enabled'] ?? false,
     );
@@ -120,6 +138,12 @@ class DisplaySettingsModel {
       'extend_enabled': extendEnabled,
       'show_organizer': showOrganizer,
       'show_meeting_location': showMeetingLocation,
+      'font_size_room_name': fontSizeRoomName,
+      'font_size_clock': fontSizeClock,
+      'font_size_title': fontSizeTitle,
+      'font_size_details': fontSizeDetails,
+      'font_size_toolbar': fontSizeToolbar,
+      'font_size_calendar': fontSizeCalendar,
       'led_enabled': ledEnabled,
     };
   }

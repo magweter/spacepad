@@ -90,9 +90,10 @@ class DisplaySettingSections
             ],
             self::BRANDING => [
                 'label' => 'Branding',
-                'description' => 'Font, logo and background.',
+                'description' => 'Font, text sizes, logo and background.',
                 'profile_keys' => [
                     'font_family' => 'string',
+                    ...array_map(fn () => 'string', DisplaySettings::fontSizeRules()),
                     'logo' => 'string',
                     'background_image' => 'string',
                 ],

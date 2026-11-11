@@ -49,7 +49,13 @@ class _DayTimelineWidgetState extends State<DayTimelineWidget> {
   // Full 24-hour timeline with fixed pixel height per hour.
   static const int _startHour = 0;
   static const int _endHour = 24;
-  static const double _hourHeight = 64.0; // px per hour
+  static const double _baseHourHeight = 64.0; // px per hour at the normal text size
+
+  /// The text size step chosen for the day schedule. The hour rows and the label column grow
+  /// with it, so a half-hour meeting still has the height for its title at a larger size.
+  double get _scale => widget.controller.calendarScale;
+
+  double get _hourHeight => _baseHourHeight * _scale;
   static const double _timelinePadding = 28.0; // extra space above 00:00 and below final 00:00
 
   double get _totalHeight => (_endHour - _startHour) * _hourHeight + _timelinePadding * 2;
@@ -233,7 +239,7 @@ class _DayTimelineWidgetState extends State<DayTimelineWidget> {
 
   @override
   Widget build(BuildContext context) {
-    final fontSize = widget.isPhone ? 15.0 : 17.0;
+    final fontSize = ((widget.isPhone ? 15.0 : 17.0) * _scale).roundToDouble();
 
     return FrostedPanel(
       borderRadius: widget.cornerRadius,
@@ -300,7 +306,7 @@ class _DayTimelineWidgetState extends State<DayTimelineWidget> {
   Widget _buildScrollableTimeline(List<EventModel> events, double fontSize) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final labelWidth = widget.isPhone ? 38.0 : 44.0;
+        final labelWidth = (widget.isPhone ? 38.0 : 44.0) * _scale;
         final eventAreaWidth = constraints.maxWidth - labelWidth - 6;
 
         return Stack(
@@ -375,7 +381,7 @@ class _DayTimelineWidgetState extends State<DayTimelineWidget> {
           left: 0,
           width: labelWidth,
           child: Transform.translate(
-            offset: const Offset(0, -8),
+            offset: Offset(0, -8 * _scale),
             child: Text(
               '${(h == _endHour ? 0 : h).toString().padLeft(2, '0')}:00',
               style: TextStyle(color: TWColors.gray_400, fontSize: fontSize - 3, height: 1),
@@ -538,7 +544,12 @@ class _EventBlock extends StatelessWidget {
           border: Border(left: BorderSide(color: _kEventColor, width: 2.5)),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
-        child: Column(
+        // A short block cannot hold a two-line title and the time: let the column keep its
+        // natural height and have the ClipRRect cut it off, instead of overflowing the block.
+        child: OverflowBox(
+          alignment: Alignment.topLeft,
+          maxHeight: double.infinity,
+          child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -567,6 +578,7 @@ class _EventBlock extends StatelessWidget {
               ),
             ],
           ],
+        ),
         ),
       ),
     );

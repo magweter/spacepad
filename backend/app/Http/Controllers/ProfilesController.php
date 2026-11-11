@@ -266,6 +266,9 @@ class ProfilesController extends Controller
         ProfileSettings::set($profile, 'cancel_permission', $request->input('cancel_permission', 'all'), 'string');
         ProfileSettings::set($profile, 'border_thickness', $request->input('border_thickness', 'medium'), 'string');
         ProfileSettings::set($profile, 'font_family', $request->input('font_family', 'Inter'), 'string');
+        foreach (array_keys(DisplaySettings::FONT_SIZE_ELEMENTS) as $element) {
+            ProfileSettings::set($profile, "font_size_{$element}", $request->input("font_size_{$element}") ?: 'normal', 'string');
+        }
 
         // Integers
         ProfileSettings::set($profile, 'check_in_minutes', (int) $request->input('check_in_minutes', 15), 'integer');
