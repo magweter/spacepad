@@ -78,6 +78,26 @@ Notes:
   background process, you cannot hot reload it; tell the user to run it in their own
   terminal when they want that.
 
+## Demo setup for testing
+
+To test on the tablet without logging in, pairing or booking meetings, run from `backend/`:
+
+```bash
+php84 artisan spacepad:demo
+```
+
+It creates (or reuses) the account `demo@spacepad.test` with Pro, a display "Boardroom Lighthouse"
+on an internal calendar, a tablet already paired to it, and meetings around the current time: one
+running now with a long subject, a few after it. It prints a portal login link (15 minutes, one
+use) and a complete `fvm flutter run --dart-define=DEMO_...` command; append `-d <device-id>` and
+any other flags. The app then opens straight on the dashboard of that display.
+
+- Run it again to move the meetings to the current time and get a fresh link. Each run replaces
+  the tablet's token, so only the latest printed command works.
+- The URL in the command is `APP_URL`. Pass `--url=` when the backend runs elsewhere, for example
+  `--url=http://10.0.2.2:8000` for an Android emulator.
+- It refuses to run when `APP_ENV=production`.
+
 ## LED test build (Philips SICP)
 
 The live integration lives in `app/lib/services/led_service.dart` and is switched on per display with the
