@@ -2,6 +2,7 @@
 
 use App\Console\Commands\CheckMarketingTriggers;
 use App\Console\Commands\CleanupExpiredEvents;
+use App\Console\Commands\ProcessYearlySubscriptions;
 use App\Console\Commands\ReconcileWorkspaceUsage;
 use App\Console\Commands\RefreshAnalytics;
 use App\Console\Commands\RenewEventSubscriptions;
@@ -41,6 +42,14 @@ Schedule::command(UpdateLemonSqueezySubscriptions::class)
     ->hourly()
     ->appendOutputTo(storage_path('logs/lemonsqueezy-usage.log'))
     ->withoutOverlapping(10); // Release lock after 10 minutes
+
+// Yearly subscriptions: extra usage invoiced on the monthly anniversary, and the quantity
+// (and a requested switch to monthly) settled the day before renewal.
+Schedule::command(ProcessYearlySubscriptions::class)
+    ->when(fn () => ! config('settings.is_self_hosted'))
+    ->dailyAt('04:10')
+    ->appendOutputTo(storage_path('logs/lemonsqueezy-usage.log'))
+    ->withoutOverlapping(30);
 
 Schedule::command(CheckMarketingTriggers::class)
     ->when(fn () => ! config('settings.is_self_hosted'))

@@ -249,6 +249,18 @@ a separate account with its own invisible set of displays.
 - One button on the workspace page opens the Lemon Squeezy billing portal in a new tab, to change the
   payment method, download invoices or cancel. A manually billed workspace has no portal and is
   pointed at support instead
+- Owners and admins can switch a monthly subscription to yearly from the workspace page. That opens a
+  fresh checkout for a year of the current usage at the current price, paid on the spot (so the card
+  is checked, with 3D Secure, while the customer is there). Once it is paid the monthly subscription
+  is cancelled automatically; an abandoned checkout changes nothing
+- A yearly subscription is not resized when usage changes. Once a month, on the day the year
+  started, usage above what was paid for is invoiced for the rest of the year. Less usage is never
+  credited. The day before renewal the subscription is set to the usage at that moment, so the new
+  year is billed for what is actually used
+- A yearly workspace can ask to go back to monthly. The paid year runs out first; the day before
+  renewal it switches, so the renewal bills a month. Until then the request can be taken back
+- `app:report-yearly-subscriptions` lists yearly subscriptions whose quantity at Lemon Squeezy
+  differs from usage, without changing anything
 - Besides a Lemon Squeezy subscription, Spacepad can put a workspace on one of two arrangements:
   **manually billed** (invoiced by us, at a per-workspace unit price) or **unlimited** (Pro for free,
   for a non-profit deal or a test account: never charged and no price shown). A workspace is on

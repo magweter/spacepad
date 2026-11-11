@@ -4,8 +4,10 @@ namespace App\Models;
 
 use App\Enums\UsageType;
 use App\Enums\WorkspaceRole;
+use App\Services\BillingPlans;
 use App\Services\InstanceService;
 use App\Traits\HasUlid;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -14,6 +16,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\DB;
 use LemonSqueezy\Laravel\Billable;
 use LemonSqueezy\Laravel\Checkout;
+use LemonSqueezy\Laravel\LemonSqueezy;
+use LemonSqueezy\Laravel\Subscription;
 
 class Workspace extends Model
 {
@@ -31,6 +35,7 @@ class Workspace extends Model
         'is_unlimited' => 'boolean',
         'is_manually_billed' => 'boolean',
         'manual_billing_unit_price' => 'decimal:2',
+        'switch_to_monthly_requested_at' => 'datetime',
     ];
 
     /**
@@ -590,6 +595,117 @@ class Workspace extends Model
 
         return $this->subscribe(config('settings.cloud_hosted_pro_plan_id'))
             ->redirectTo($redirectUrl ?? route('dashboard'));
+    }
+
+    /**
+     * Whether the owner can move this workspace from a monthly to a yearly subscription.
+     *
+     * A trial counts: the yearly checkout is paid straight away and the trial is cancelled.
+     */
+    public function canSwitchToYearly(): bool
+    {
+        if (! $this->canSwitchInterval()) {
+            return false;
+        }
+
+        $subscription = $this->liveSubscription();
+
+        return $subscription !== null
+            && $subscription->ends_at === null
+            && in_array($subscription->status, [Subscription::STATUS_ACTIVE, Subscription::STATUS_ON_TRIAL], true)
+            && ! BillingPlans::isYearly($subscription);
+    }
+
+    /**
+     * Whether the owner can ask to go from yearly back to monthly.
+     *
+     * The switch itself happens the day before the paid year ends; until then the request is
+     * only a flag, which is also what makes it possible to take it back.
+     */
+    public function canSwitchToMonthly(): bool
+    {
+        if (! $this->canSwitchInterval()) {
+            return false;
+        }
+
+        $subscription = $this->liveSubscription();
+
+        return $subscription !== null
+            && $subscription->ends_at === null
+            && in_array($subscription->status, [Subscription::STATUS_ACTIVE, Subscription::STATUS_PAST_DUE], true)
+            && BillingPlans::isYearly($subscription);
+    }
+
+    /**
+     * A Lemon Squeezy checkout for a year of the current usage, at the current list price.
+     *
+     * Built by hand because the vendor's Checkout has no way to set a quantity. The payload
+     * otherwise mirrors it, including the custom data the webhook uses to find this workspace.
+     */
+    public function getYearlySwitchCheckoutUrl(): string
+    {
+        $variant = BillingPlans::switchYearlyVariantId();
+
+        $response = LemonSqueezy::api('POST', 'checkouts', [
+            'data' => [
+                'type' => 'checkouts',
+                'attributes' => [
+                    'checkout_data' => array_filter([
+                        'name' => (string) $this->lemonSqueezyName(),
+                        'email' => (string) $this->lemonSqueezyEmail(),
+                        'variant_quantities' => [
+                            ['variant_id' => (int) $variant, 'quantity' => max(1, $this->getTotalUsageCount())],
+                        ],
+                        'custom' => [
+                            'billable_id' => (string) $this->getKey(),
+                            'billable_type' => $this->getMorphClass(),
+                            'subscription_type' => Subscription::DEFAULT_TYPE,
+                        ],
+                    ], fn ($value) => $value !== ''),
+                    // No discount field: a switch is always at the current list price.
+                    'checkout_options' => ['discount' => false],
+                    'product_options' => [
+                        // Marked, so the thank-you page does not count an existing customer
+                        // as a new conversion.
+                        'redirect_url' => route('billing.thanks', ['switched' => 1]),
+                    ],
+                    // A link paid much later would add a second yearly subscription, and the
+                    // year paid first would then be cancelled as superseded.
+                    'expires_at' => now()->addHour()->toIso8601String(),
+                ],
+                'relationships' => [
+                    'store' => ['data' => ['type' => 'stores', 'id' => (string) config('lemon-squeezy.store')]],
+                    'variant' => ['data' => ['type' => 'variants', 'id' => $variant]],
+                ],
+            ],
+        ]);
+
+        return $response['data']['attributes']['url'];
+    }
+
+    /**
+     * Subscriptions still running next to the given (yearly) one, which it replaces.
+     *
+     * @return Collection<int, Subscription>
+     */
+    public function subscriptionsSupersededBy(Subscription $current)
+    {
+        return $this->subscriptions()
+            ->whereKeyNot($current->getKey())
+            ->whereNotIn('status', [Subscription::STATUS_CANCELLED, Subscription::STATUS_EXPIRED])
+            ->whereNull('ends_at')
+            ->get();
+    }
+
+    /**
+     * The conditions both switch directions share.
+     */
+    private function canSwitchInterval(): bool
+    {
+        return ! config('settings.is_self_hosted')
+            && ! $this->is_manually_billed
+            && ! $this->is_unlimited
+            && BillingPlans::canSwitch();
     }
 
     /**
