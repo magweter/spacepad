@@ -12,10 +12,16 @@ on:
       - '.github/workflows/docker-build.yml'
   schedule:
     # Monday 04:17 UTC, two hours before the weekly image scan in security.yml. Rebuilds
-    # :dev so the scan sees this week's Debian security fixes instead of whatever was
-    # current at the last push to backend/.
+    # :dev and the latest release (:latest, :stable and its version tags) so the scan sees
+    # this week's Debian security fixes instead of whatever was current at the last push
+    # or release.
     - cron: '17 4 * * 1'
   workflow_dispatch:
+    inputs:
+      rebuild_release:
+        description: 'Rebuild the latest v* release with current Debian packages instead of building the selected ref'
+        type: boolean
+        default: false
 
 env:
   REGISTRY: ghcr.io
@@ -23,6 +29,7 @@ env:
 
 jobs:
   build-and-push:
+    if: ${{ !inputs.rebuild_release }}
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -109,5 +116,84 @@ jobs:
             GIT_TAG=${{ steps.version.outputs.git_tag }}
             GIT_COMMIT=${{ steps.version.outputs.git_commit }}
             APT_REFRESH=${{ steps.version.outputs.apt_refresh }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          # Own cache scope, so the release rebuild below does not evict the layers of dev.
+          cache-from: type=gha,scope=dev
+          cache-to: type=gha,mode=max,scope=dev
+
+  # :latest is otherwise only built when a v* tag is pushed, so between releases it keeps
+  # the Debian packages of release day and the weekly image scan goes red on fixes that
+  # were published since. Rebuild the newest release from its own tag every week: same
+  # code, same version string, current packages. Nothing from dev ends up in :latest.
+  rebuild-release:
+    if: ${{ github.event_name == 'schedule' || inputs.rebuild_release }}
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Find the latest release
+        id: release
+        # Final releases only (v1.9.1, not v1.10.0-beta.1), highest version first.
+        run: |
+          tag=$(git tag --list 'v*' --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1)
+          if [[ -z "$tag" ]]; then
+            echo "No release tag found" >&2
+            exit 1
+          fi
+          version="${tag#v}"
+          {
+            echo "tag=$tag"
+            echo "version=$version"
+            echo "minor=${version%.*}"
+            echo "apt_refresh=$(date -u +%F)"
+          } >> "$GITHUB_OUTPUT"
+          echo "Rebuilding $tag"
+
+      - name: Check out the release
+        env:
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+        run: git checkout --quiet "refs/tags/$RELEASE_TAG"
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4.2.0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
+        with:
+          driver: docker-container
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # The same tags a release push produces, minus the commit sha.
+      - name: Rebuild and push the release image
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        with:
+          context: ./backend
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:stable
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.release.outputs.version }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.release.outputs.minor }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.version=${{ steps.release.outputs.version }}
+          build-args: |
+            GIT_TAG=${{ steps.release.outputs.version }}
+            GIT_COMMIT=
+            APT_REFRESH=${{ steps.release.outputs.apt_refresh }}
+          cache-from: type=gha,scope=release
+          cache-to: type=gha,mode=max,scope=release
