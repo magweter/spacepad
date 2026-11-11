@@ -6,6 +6,7 @@ use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use LemonSqueezy\Laravel\Subscription;
 
 /**
  * Pushing billable usage to Lemon Squeezy.
@@ -138,6 +139,42 @@ class LemonSqueezyUsageService
         ]);
 
         return true;
+    }
+
+    /**
+     * Overwrite the local subscription row with what Lemon Squeezy currently says.
+     *
+     * Webhooks are the normal way status reaches us, but one can be missed: a subscription
+     * sat locally as past_due for eight months after it had expired at Lemon Squeezy, and
+     * was pushed, and refused, every hour of it. Called when a push is refused, so a
+     * subscription that is no longer live stops being treated as one.
+     *
+     * Returns the remote attributes, because the caller also needs what the local row
+     * does not keep: the payment processor. Lemon Squeezy cannot change a PayPal
+     * subscription through the API at all (the customer has to, in the portal), and
+     * answers a quantity update on one with a bare 500.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function refreshSubscription(Subscription $subscription): ?array
+    {
+        $response = $this->request()->get(self::BASE.'/subscriptions/'.$subscription->lemon_squeezy_id);
+
+        $attributes = $response->json('data.attributes');
+
+        if (! $response->successful() || ! is_array($attributes) || ! isset($attributes['status'])) {
+            Log::warning('Could not refresh Lemon Squeezy subscription', [
+                'subscription_id' => $subscription->lemon_squeezy_id,
+                'status' => $response->status(),
+                'error' => $this->errorDetail($response),
+            ]);
+
+            return null;
+        }
+
+        $subscription->sync($attributes);
+
+        return $attributes;
     }
 
     public function hasApiKey(): bool

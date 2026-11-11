@@ -204,3 +204,92 @@ test('a workspace without a subscription is skipped', function () {
 
     Http::assertNothingSent();
 });
+
+test('a subscription that expired at Lemon Squeezy without a webhook is synced locally and skipped', function () {
+    // Production case: the subscription_expired webhook never arrived, so the local row
+    // stayed past_due with no ends_at and was pushed, and refused, every hour for months.
+    Http::fake([
+        '*lemonsqueezy.com/v1/subscriptions/*' => Http::response([
+            'data' => ['attributes' => [
+                'status' => 'expired',
+                'product_id' => 1,
+                'variant_id' => 1,
+                'renews_at' => null,
+                'ends_at' => '2026-03-17T15:13:39.000000Z',
+                'subscription_items' => [['id' => 'item_1']],
+            ]],
+        ]),
+        '*lemonsqueezy.com/v1/subscription-items/*' => Http::response(['message' => 'An unexpected error occurred.'], 500),
+        '*lemonsqueezy.com/v1/usage-records*' => Http::response(['errors' => [['detail' => 'not metered']]], 422),
+    ]);
+
+    $owner = User::factory()->active()->create();
+    $workspace = subscribedWorkspace($owner);
+    DB::table('lemon_squeezy_subscriptions')->where('billable_id', $workspace->id)->update(['status' => 'past_due']);
+    Display::factory()->create(['workspace_id' => $workspace->id]);
+
+    $exitCode = Artisan::call('app:update-lemonsqueezy-subscriptions');
+
+    expect($exitCode)->toBe(0)
+        ->and(Artisan::output())->toContain('expired');
+
+    $row = DB::table('lemon_squeezy_subscriptions')->where('billable_id', $workspace->id)->first();
+    expect($row->status)->toBe('expired')
+        ->and($row->ends_at)->not->toBeNull();
+});
+
+test('a refused push on a subscription that is still live at Lemon Squeezy stays an error', function () {
+    Http::fake([
+        '*lemonsqueezy.com/v1/subscriptions/*' => Http::response([
+            'data' => ['attributes' => [
+                'status' => 'active',
+                'product_id' => 1,
+                'variant_id' => 1,
+                'renews_at' => now()->addMonth()->toIso8601String(),
+                'ends_at' => null,
+                'subscription_items' => [['id' => 'item_1']],
+            ]],
+        ]),
+        '*lemonsqueezy.com/v1/subscription-items/*' => Http::response(['message' => 'An unexpected error occurred.'], 500),
+        '*lemonsqueezy.com/v1/usage-records*' => Http::response(['errors' => [['detail' => 'not metered']]], 422),
+    ]);
+
+    $owner = User::factory()->active()->create();
+    $workspace = subscribedWorkspace($owner);
+    Display::factory()->create(['workspace_id' => $workspace->id]);
+
+    expect(Artisan::call('app:update-lemonsqueezy-subscriptions'))->toBe(1);
+});
+
+test('a PayPal subscription is reported as unsyncable and skipped rather than failing every hour', function () {
+    // Lemon Squeezy cannot change PayPal subscriptions through the API (the customer has
+    // to do it in the portal); the subscription-items endpoint answers with a 500. Two
+    // production subscriptions failed the hourly run for months because of this.
+    Http::fake([
+        '*lemonsqueezy.com/v1/subscriptions/*' => Http::response([
+            'data' => ['attributes' => [
+                'status' => 'active',
+                'product_id' => 1,
+                'variant_id' => 1,
+                'payment_processor' => 'paypal',
+                'renews_at' => now()->addMonth()->toIso8601String(),
+                'ends_at' => null,
+                'first_subscription_item' => ['id' => 'item_1', 'quantity' => 1],
+                'subscription_items' => [['id' => 'item_1']],
+            ]],
+        ]),
+        '*lemonsqueezy.com/v1/subscription-items/*' => Http::response(['message' => 'An unexpected error occurred.'], 500),
+        '*lemonsqueezy.com/v1/usage-records*' => Http::response(['errors' => [['detail' => 'not metered']]], 422),
+    ]);
+
+    $owner = User::factory()->active()->create();
+    $workspace = subscribedWorkspace($owner);
+    Display::factory()->count(3)->create(['workspace_id' => $workspace->id]);
+
+    $exitCode = Artisan::call('app:update-lemonsqueezy-subscriptions');
+    $output = Artisan::output();
+
+    expect($exitCode)->toBe(0)
+        ->and($output)->toContain('PayPal')
+        ->and($output)->toContain('billed for 1, uses 3');
+});
