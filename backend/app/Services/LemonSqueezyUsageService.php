@@ -34,6 +34,71 @@ class LemonSqueezyUsageService
     }
 
     /**
+     * Drop the cached item id, for when a variant swap may have replaced the item.
+     */
+    public function forgetSubscriptionItemId(string $subscriptionId): void
+    {
+        cache()->forget("lemonsqueezy:subscription:{$subscriptionId}:item-id");
+    }
+
+    /**
+     * The quantity a subscription item is billed for right now, or null if it cannot be read.
+     */
+    public function getQuantity(string $subscriptionItemId): ?int
+    {
+        $response = $this->request()->get(self::BASE."/subscription-items/{$subscriptionItemId}");
+
+        if (! $response->successful()) {
+            Log::warning('Could not read Lemon Squeezy subscription item', [
+                'subscription_item_id' => $subscriptionItemId,
+                'status' => $response->status(),
+                'error' => $this->errorDetail($response),
+            ]);
+
+            return null;
+        }
+
+        $quantity = $response->json('data.attributes.quantity');
+
+        return $quantity === null ? null : (int) $quantity;
+    }
+
+    /**
+     * Set the quantity with an explicit choice about proration.
+     *
+     * For a yearly subscription the default (prorate onto the next invoice, which is the
+     * renewal) is never what we want: an increase is invoiced now, and the quantity the
+     * renewal bills for is set without any proration so a decrease does not become a credit.
+     */
+    public function updateQuantity(string $subscriptionItemId, int $quantity, bool $invoiceImmediately = false, bool $disableProrations = false): bool
+    {
+        $attributes = array_filter([
+            'quantity' => $quantity,
+            'invoice_immediately' => $invoiceImmediately ?: null,
+            'disable_prorations' => $disableProrations ?: null,
+        ], fn ($value) => $value !== null);
+
+        $response = $this->request()->patch(self::BASE."/subscription-items/{$subscriptionItemId}", [
+            'data' => [
+                'type' => 'subscription-items',
+                'id' => $subscriptionItemId,
+                'attributes' => $attributes,
+            ],
+        ]);
+
+        if (! $response->successful()) {
+            Log::warning('Lemon Squeezy refused a quantity update', [
+                'subscription_item_id' => $subscriptionItemId,
+                'attributes' => $attributes,
+                'status' => $response->status(),
+                'error' => $this->errorDetail($response),
+            ]);
+        }
+
+        return $response->successful();
+    }
+
+    /**
      * Quantity-based billing.
      */
     public function setQuantity(string $subscriptionItemId, int $quantity): bool
