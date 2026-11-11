@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Enums\WorkspaceRole;
 use App\Models\User;
+use App\Models\Workspace;
 use App\Models\WorkspaceMember;
+use App\Services\BillingPlans;
 use App\Services\WorkspaceService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -56,6 +58,7 @@ class WorkspaceMemberController extends Controller
             'canOpenBillingPortal' => $workspace->hasBillingPortal(),
             // Monthly and yearly can be swapped from this page. Both are local checks; the
             // checkout url is only fetched behind the POST route.
+            'billingIntervalLabel' => $this->billingIntervalLabel($workspace),
             'canSwitchToYearly' => $workspace->canSwitchToYearly(),
             'canSwitchToMonthly' => $workspace->canSwitchToMonthly(),
         ]);
@@ -166,5 +169,27 @@ class WorkspaceMemberController extends Controller
         session()->forget('selected_workspace_id');
 
         return redirect()->route('dashboard')->with('success', "You have left {$workspace->name}.");
+    }
+
+    /**
+     * How the live Lemon Squeezy subscription is billed, in a few words for the card heading.
+     * Null when there is no such subscription: manual and unlimited workspaces explain
+     * themselves in the action bar already.
+     */
+    private function billingIntervalLabel(Workspace $workspace): ?string
+    {
+        if (config('settings.is_self_hosted') || $workspace->is_manually_billed || $workspace->is_unlimited) {
+            return null;
+        }
+
+        $subscription = $workspace->liveSubscription();
+
+        if ($subscription === null) {
+            return null;
+        }
+
+        $interval = BillingPlans::isYearly($subscription) ? 'yearly' : 'monthly';
+
+        return $subscription->onTrial() ? "Trial, then billed {$interval}" : 'Billed '.$interval;
     }
 }

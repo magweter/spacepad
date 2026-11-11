@@ -116,3 +116,25 @@ test('the unit count in the copy matches what the checkout charges', function ()
     viewWorkspacePage($owner, $workspace)
         ->assertSee('Pay a year in advance for your current 1 unit.');
 });
+
+test('the subscription card says whether the workspace pays monthly or yearly', function (string $variant, string $status, string $label) {
+    [$workspace, $owner, $member] = intervalUiWorkspace($variant);
+    DB::table('lemon_squeezy_subscriptions')->update(['status' => $status, 'trial_ends_at' => $status === 'on_trial' ? now()->addWeek() : null]);
+
+    viewWorkspacePage($owner, $workspace)->assertSee($label);
+    // Everyone can see how the workspace is billed, not only those who can change it.
+    viewWorkspacePage($member, $workspace)->assertSee($label);
+})->with([
+    'monthly' => ['11', 'active', 'Billed monthly'],
+    'yearly' => ['12', 'active', 'Billed yearly'],
+    'trial on a monthly plan' => ['11', 'on_trial', 'Trial, then billed monthly'],
+]);
+
+test('a workspace without a subscription shows no billing interval', function () {
+    [$workspace, $owner] = intervalUiWorkspace('11');
+    DB::table('lemon_squeezy_subscriptions')->delete();
+
+    viewWorkspacePage($owner, $workspace)
+        ->assertDontSee('Billed monthly')
+        ->assertDontSee('Billed yearly');
+});

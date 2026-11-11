@@ -55,7 +55,12 @@
             };
         @endphp
 
-        <h2 class="text-base font-semibold text-gray-900 mb-1">Subscription</h2>
+        <div class="flex items-center gap-2 mb-1">
+            <h2 class="text-base font-semibold text-gray-900">Subscription</h2>
+            @if($billingIntervalLabel)
+                <span class="inline-flex items-center rounded-md bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-600">{{ $billingIntervalLabel }}</span>
+            @endif
+        </div>
         <p class="text-sm text-gray-500 mb-4">
             Usage for this workspace. Displays count once, boards count double. There is no charge
             per team member.
