@@ -270,3 +270,14 @@ test('a new yearly subscription clears an old request to go monthly', function (
 
     expect($workspace->fresh()->switch_to_monthly_requested_at)->toBeNull();
 });
+
+test('coming back from the switch checkout says yearly is active and monthly is stopped', function () {
+    [$workspace, $owner] = switchingWorkspace();
+
+    $this->actingAs($owner);
+    session()->put('selected_workspace_id', $workspace->id);
+
+    $this->get(route('billing.thanks', ['switched' => 1]))
+        ->assertRedirect(route('dashboard'))
+        ->assertSessionHas('success', 'Your yearly subscription is active. Your monthly subscription has been stopped and will not be charged again.');
+});

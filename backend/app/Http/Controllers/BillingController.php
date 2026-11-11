@@ -139,8 +139,11 @@ class BillingController extends Controller
     public function thanks(Request $request): RedirectResponse
     {
         // An existing customer switching to yearly is not a new purchase for ad reporting.
+        // Lemon Squeezy only sends the customer back after a successful payment. The webhook
+        // that cancels the monthly subscription arrives within seconds of it.
         if ($request->boolean('switched')) {
-            return redirect()->route('dashboard');
+            return redirect()->route('dashboard')
+                ->with('success', 'Your yearly subscription is active. Your monthly subscription has been stopped and will not be charged again.');
         }
 
         GoogleTagManagerFacade::flashPush([
