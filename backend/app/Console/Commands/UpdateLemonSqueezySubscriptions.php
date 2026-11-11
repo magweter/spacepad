@@ -113,6 +113,45 @@ class UpdateLemonSqueezySubscriptions extends Command
                     // for a while the only sign of trouble was the exit code, with nothing
                     // to say which workspace caused it.
                     if (! $this->usage->pushUnits($subscription->lemon_squeezy_id, $units, ['workspace_id' => $workspace->id])) {
+                        // A refusal is often Lemon Squeezy's way of saying the subscription
+                        // is not what we think it is: a missed webhook left one expired
+                        // subscription looking live for months. Pull the truth before
+                        // deciding whether this is an error at all.
+                        $remote = $this->usage->refreshSubscription($subscription);
+
+                        if ($remote !== null && ! $subscription->valid()) {
+                            $this->line(sprintf(
+                                'Skipping workspace %s: subscription %s is %s at Lemon Squeezy, local row synced',
+                                $workspace->id,
+                                $subscription->lemon_squeezy_id,
+                                $subscription->status,
+                            ));
+                            $skippedCount++;
+
+                            continue;
+                        }
+
+                        // Nothing we can do from here: Lemon Squeezy only lets the customer
+                        // change a PayPal subscription, through the portal. Say so with the
+                        // numbers, since the quantity at Lemon Squeezy will drift from the
+                        // real usage until someone acts on it.
+                        if (($remote['payment_processor'] ?? null) === 'paypal') {
+                            $billed = $remote['first_subscription_item']['quantity'] ?? null;
+                            $message = sprintf(
+                                'Workspace %s pays through PayPal, which Lemon Squeezy cannot update via the API: billed for %s, uses %d units',
+                                $workspace->id,
+                                $billed ?? '?',
+                                $units,
+                            );
+                            $this->warn($message);
+                            if ($billed !== $units) {
+                                Log::warning($message, ['workspace_id' => $workspace->id, 'subscription_id' => $subscription->lemon_squeezy_id]);
+                            }
+                            $skippedCount++;
+
+                            continue;
+                        }
+
                         $errorCount++;
                         $this->error(sprintf(
                             'Lemon Squeezy refused workspace %s (subscription %s, %d units)',
