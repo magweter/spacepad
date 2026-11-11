@@ -43,6 +43,11 @@ RUN echo "apt refresh: ${APT_REFRESH}" \
     && apt-get upgrade -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 RUN install-php-extensions opentelemetry protobuf
+# The base image ships a full compiler toolchain (gcc, g++, make, binutils, libc6-dev,
+# linux-libc-dev). Nothing needs it at runtime, and linux-libc-dev alone adds some fifty
+# kernel CVEs to every weekly image scan. Drop it once the extensions above are built.
+RUN apt-get purge -y --auto-remove gcc g++ make linux-libc-dev libc6-dev binutils cpp pkg-config \
+    && rm -rf /var/lib/apt/lists/*
 
 # CVE-2026-109618 / CVE-2026-109619 (php2shell) are fixed in PHP 8.4.27. The tag above floats,
 # so fail the build rather than ship an older PHP from a stale registry mirror or layer cache.
