@@ -95,19 +95,6 @@ onBeforeUnmount(() => { clearInterval(tick); clearInterval(poll); });
                         <span class="self-start rounded-lg border border-dashed border-offline-border px-3 py-1.5 font-mono text-lg font-semibold tracking-[0.12em]">{{ code }}</span>
                     </div>
 
-                    <div class="sp-card flex flex-col gap-3 px-5 py-[18px]">
-                        <div class="flex items-center justify-between">
-                            <h2 class="font-display text-base font-bold tracking-tight">Calendars</h2>
-                            <a :href="urls.calendars" class="text-xs font-semibold text-navy hover:underline">Manage</a>
-                        </div>
-                        <p v-if="!accounts.length" class="text-[13px] text-muted">No calendar connected yet. <a :href="urls.newDisplay" class="font-semibold text-navy hover:underline">Connect one</a>.</p>
-                        <ul v-else class="flex flex-col gap-2.5 text-[13px]">
-                            <li v-for="(a, i) in accounts" :key="i" class="flex items-center gap-2.5">
-                                <span class="h-2 w-2 flex-none rounded-full bg-available"></span>
-                                <span class="flex min-w-0 flex-col"><span class="truncate font-medium">{{ a.email }}</span><span class="text-xs text-muted">{{ a.provider }}, {{ a.readOnly ? 'read only' : 'read and book' }}</span></span>
-                            </li>
-                        </ul>
-                    </div>
 
                     <div v-if="selfHosted" class="sp-card flex flex-col gap-1 px-5 py-[18px] text-[13px]">
                         <h2 class="font-display text-base font-bold tracking-tight">This instance</h2>

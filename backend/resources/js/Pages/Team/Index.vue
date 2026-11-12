@@ -15,13 +15,7 @@ const props = defineProps({
     can: Object, needsPro: Boolean, roles: Array, urls: Object,
 });
 
-const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
 const managers = computed(() => props.members.filter((m) => m.role !== 'member').length);
-const subtitle = computed(() => {
-    const parts = [plural(props.members.length, 'member')];
-    if (props.can.revokeInvitation) parts.push(plural(props.invitations.length, 'pending invitation'));
-    return `${parts.join(', ')}. Members are free, you pay per display.`;
-});
 const figures = computed(() => [
     { label: 'Members', value: props.members.length },
     { label: 'Owners and admins', value: managers.value },
@@ -35,7 +29,6 @@ const figures = computed(() => [
 
     <PortalShell :shell="shell" title="Team">
         <div class="flex max-w-[1040px] flex-col gap-4 px-6 pt-7 pb-10 md:px-8">
-            <p class="-mt-2 text-[13px] text-muted">{{ subtitle }}</p>
 
             <FlashMessage />
 

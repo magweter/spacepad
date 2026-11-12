@@ -9,7 +9,8 @@ import HelpPanel from './Help/HelpPanel.vue';
 import HelpIcon from './Help/HelpIcon.vue';
 import { openHelp } from './Help/helpPanel.js';
 
-const props = defineProps({ shell: { type: Object, required: true }, title: { type: String, default: null } });
+// `pro` puts the Pro chip right next to the title, for pages that are part of Pro.
+const props = defineProps({ shell: { type: Object, required: true }, title: { type: String, default: null }, pro: { type: Boolean, default: false } });
 
 const switching = ref(false);
 const page = usePage();
@@ -82,7 +83,7 @@ function switchTo(workspace) {
 
         <main class="flex min-w-0 flex-[999_1_560px] flex-col">
             <header v-if="title" class="flex flex-wrap items-center gap-4 border-b border-line bg-surface px-6 py-3.5 md:px-8">
-                <h1 class="font-display text-[22px] font-bold tracking-tight">{{ title }}</h1>
+                <h1 class="flex items-center gap-2 font-display text-[22px] font-bold tracking-tight">{{ title }}<span v-if="pro" class="rounded-md border border-info-border bg-info-bg px-1.5 py-px font-sans text-[11px] font-semibold tracking-normal text-info">Pro</span></h1>
                 <div class="ml-auto flex flex-wrap items-center gap-3"><slot name="actions" /></div>
             </header>
             <slot />

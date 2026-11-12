@@ -184,12 +184,13 @@ const fieldClass = 'rounded-lg border border-line bg-surface px-3 py-2 text-[13p
                             <span>Display</span><span>Status</span><span>Calendar</span><span>Tablet</span><span>Profile</span><span><span class="sr-only">Actions</span></span>
                         </div>
                         <div v-for="d in filtered" :key="d.id"
-                             class="grid items-center gap-3 border-b border-line-soft px-4 last:border-b-0 hover:bg-surface-raised"
+                             class="grid cursor-pointer items-center gap-3 border-b border-line-soft px-4 last:border-b-0 hover:bg-surface-raised"
+                             @click="open(d.id)"
                              :class="[canBulkAssign ? 'grid-cols-[28px_2.2fr_1.3fr_1.6fr_1.2fr_1fr_40px]' : 'grid-cols-[2.2fr_1.3fr_1.6fr_1.2fr_1fr_40px]', openId === d.id ? 'bg-surface-raised' : '']">
                             <span v-if="canBulkAssign" class="flex h-14 items-center">
-                                <input v-model="picked" type="checkbox" :value="d.id" :aria-label="`Select ${d.name}`" class="h-4 w-4 accent-navy">
+                                <input v-model="picked" type="checkbox" :value="d.id" :aria-label="`Select ${d.name}`" class="h-4 w-4 accent-navy" @click.stop>
                             </span>
-                            <button type="button" class="flex h-14 min-w-0 items-center gap-3 text-left text-ink" @click="open(d.id)">
+                            <button type="button" class="flex h-14 min-w-0 cursor-pointer items-center gap-3 text-left text-ink" @click.stop="open(d.id)">
                                 <span class="inline-flex h-6 w-[34px] flex-none items-center justify-center rounded bg-navy" aria-hidden="true">
                                     <span class="h-4 w-[26px] rounded-sm" :class="d.view.fill"></span>
                                 </span>
@@ -224,14 +225,14 @@ const fieldClass = 'rounded-lg border border-line bg-surface px-3 py-2 text-[13p
                                 </span>
                                 <span v-else class="text-[13px] text-muted">-</span>
                             </span>
-                            <RowMenu :display="d" :has-pro="hasPro" @open="open(d.id)" @toggle="actions.toggle(d)" @make-active="actions.makeActive(d)" @diagnose="actions.diagnose(d)" @remove="actions.remove(d)" />
+                            <span class="cursor-default" @click.stop><RowMenu :display="d" :has-pro="hasPro" @open="open(d.id)" @toggle="actions.toggle(d)" @make-active="actions.makeActive(d)" @diagnose="actions.diagnose(d)" @remove="actions.remove(d)" /></span>
                         </div>
                         <p v-if="!filtered.length" class="px-4 py-8 text-center text-[13px] text-muted">No display matches this filter.</p>
                     </div>
                 </Card>
 
                 <div v-else class="grid gap-3.5 sm:grid-cols-2 xl:grid-cols-3">
-                    <button v-for="d in filtered" :key="d.id" type="button" class="sp-card sp-card-pad-md sp-card-interactive flex flex-col gap-2.5 text-left text-ink" @click="open(d.id)">
+                    <button v-for="d in filtered" :key="d.id" type="button" class="sp-card sp-card-pad-md sp-card-interactive flex cursor-pointer flex-col gap-2.5 text-left text-ink" @click="open(d.id)">
                         <span class="flex items-center gap-2">
                             <span class="flex-1 truncate font-semibold">{{ d.name }}</span>
                             <span :class="['sp-badge', `sp-badge-${d.view.tone}`]"><StatusDot :status="d.view.tone" />{{ d.view.label }}</span>

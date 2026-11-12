@@ -33,15 +33,6 @@ const connect = (provider = null, permission = 'write') => { modal.value = { typ
 watch(() => props.openModal, (value) => { if (value) open(value.type, value.accountId); }, { immediate: true });
 watch(() => props.adminConsent, (value) => { if (value) modal.value = { type: 'admin-consent' }; }, { immediate: true });
 
-const attention = computed(() => props.accounts.filter((a) => a.status === 'error' || a.needsBookingMethod || a.needsServiceAccount).length);
-const summary = computed(() => {
-    const n = props.accounts.length;
-    if (!n) return 'No calendar connected yet';
-    const sources = `${n} ${n === 1 ? 'source' : 'sources'}`;
-    const rooms = `${props.calendars.length} room ${props.calendars.length === 1 ? 'calendar' : 'calendars'}`;
-    const state = attention.value ? `${attention.value} ${attention.value === 1 ? 'needs' : 'need'} attention` : 'all connected';
-    return `${sources}, ${rooms}, ${state}`;
-});
 </script>
 
 <template>
@@ -49,7 +40,6 @@ const summary = computed(() => {
 
     <PortalShell :shell="shell" title="Calendars">
         <template #actions>
-            <span class="text-[13px] text-muted">{{ summary }}</span>
             <Button @click="connect()"><template #icon><Icon name="plus" :size="16" :stroke="2.5" /></template>Connect source</Button>
         </template>
 

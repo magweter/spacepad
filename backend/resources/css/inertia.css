@@ -12,7 +12,8 @@
 @import '@fontsource/ibm-plex-mono/500.css';
 @import '@fontsource/ibm-plex-mono/600.css';
 @import './design-system/tokens.css';
-@import './design-system/components.css';
+/* In the components layer, so a Tailwind utility on a design system element (sp-card flex-row) wins. */
+@import './design-system/components.css' layer(components);
 @source "../js";
 
 /*

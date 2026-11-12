@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { ref } from 'vue';
 import { Head } from '@inertiajs/vue3';
 import PortalShell from '../../Components/PortalShell.vue';
 import FlashMessage from '../../Components/FlashMessage.vue';
@@ -18,10 +18,6 @@ const props = defineProps({
 const cancelling = ref(Boolean(props.errors?.reason || props.errors?.details));
 const managing = ref(false);
 
-const subtitle = computed(() => {
-    const plan = props.billing.hasPro ? (props.billing.selfHosted ? 'Self-hosted Pro' : 'Pro') : 'Free plan';
-    return [plan, props.billing.interval?.toLowerCase()].filter(Boolean).join(', ') + '. Per display, never per user.';
-});
 </script>
 
 <template>
@@ -29,7 +25,6 @@ const subtitle = computed(() => {
 
     <PortalShell :shell="shell" title="Billing">
         <div class="flex flex-col gap-6 px-6 pt-7 pb-10 md:px-8">
-            <p class="-mt-2 text-[13px] text-muted">{{ subtitle }}</p>
 
             <FlashMessage />
 

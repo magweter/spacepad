@@ -79,9 +79,8 @@ function destroy() {
 <template>
     <Head title="Profiles" />
 
-    <PortalShell :shell="shell" title="Profiles">
+    <PortalShell :shell="shell" title="Profiles" pro>
         <template #actions>
-            <Chip tone="info">Pro</Chip>
             <Button v-if="hasPro" :href="urls.create"><template #icon><Icon name="plus" :size="16" :stroke="2.5" /></template>New profile</Button>
         </template>
 

@@ -5,10 +5,9 @@ import PortalShell from '../../Components/PortalShell.vue';
 import FlashMessage from '../../Components/FlashMessage.vue';
 import Icon from '../../Components/Icon.vue';
 import Button from '../../DesignSystem/Button.vue';
-import Chip from '../../DesignSystem/Chip.vue';
 import EmptyState from '../../DesignSystem/EmptyState.vue';
 import Modal from '../../DesignSystem/Modal.vue';
-import BoardList from './Partials/BoardList.vue';
+import BoardCards from './Partials/BoardCards.vue';
 import BoardEditor from './Partials/BoardEditor.vue';
 import BoardPreview from './Partials/BoardPreview.vue';
 
@@ -33,16 +32,13 @@ async function copy() {
 <template>
     <Head :title="creating ? 'New board' : board ? `${board.name}, boards` : 'Boards'" />
 
-    <PortalShell :shell="shell" title="Boards">
+    <PortalShell :shell="shell" title="Boards" pro>
         <template #actions>
             <Button v-if="canCreate && !creating" :href="urls.create"><template #icon><Icon name="plus" :size="16" :stroke="2.5" /></template>New board</Button>
         </template>
 
         <div class="flex flex-col gap-6 px-6 pt-7 pb-10 md:px-8">
-            <div class="flex flex-wrap items-center gap-3">
-                <Chip tone="info">Pro</Chip>
-                <span class="text-[13px] text-muted">Overviews of many rooms at once, for TVs, lobbies and the browser.</span>
-            </div>
+            <p class="max-w-[720px] text-[13px] text-muted">Overviews of many rooms at once, for TVs, lobbies and the browser.</p>
 
             <FlashMessage />
 
@@ -70,18 +66,18 @@ async function copy() {
                 </EmptyState>
             </div>
 
-            <div v-else class="flex flex-wrap items-start gap-6">
-                <BoardList :boards="boards" :selected-id="board?.id ?? null" :creating="creating" :can-create="canCreate" :create-url="urls.create" />
+            <!-- One board open: all its settings and the large preview. -->
+            <section v-else-if="showEditor" aria-label="Board editor" class="flex min-w-0 flex-col gap-5">
+                <a :href="urls.index" class="inline-flex items-center gap-1.5 self-start text-[13px] font-semibold text-muted hover:text-navy">
+                    <Icon name="arrowLeft" :size="14" />All boards
+                </a>
+                <BoardEditor :key="editorKey" :board="creating ? null : board" :workspace-id="workspaceId" :displays="displays"
+                             :fonts="fonts" :languages="languages" :urls="urls" />
+                <BoardPreview v-if="!creating && board" :src="board.showUrl" :version="board.version" />
+            </section>
 
-                <section aria-label="Board editor" class="flex min-w-0 flex-[999_1_560px] flex-col gap-5">
-                    <template v-if="showEditor">
-                        <BoardEditor :key="editorKey" :board="creating ? null : board" :workspace-id="workspaceId" :displays="displays"
-                                     :fonts="fonts" :languages="languages" :urls="urls" />
-                        <BoardPreview v-if="!creating && board" :src="board.showUrl" :version="board.version" />
-                    </template>
-                    <p v-else class="text-[13px] text-muted">Pick a board on the left to open it.</p>
-                </section>
-            </div>
+            <!-- The overview: the boards as cards with a preview. -->
+            <BoardCards v-else :boards="boards" :can-create="canCreate" :create-url="urls.create" />
         </div>
 
         <Modal :open="publicOpen && !!board?.publicUrl" title="Your board has a public link" @close="publicOpen = false">

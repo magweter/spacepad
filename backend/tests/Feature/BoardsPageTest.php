@@ -44,7 +44,7 @@ test('a free workspace is sent to the upsell from create and edit', function () 
     $this->actingAs($user)->get(route('boards.edit', $board))->assertRedirect(route('boards.index'));
 });
 
-test('the list shows each board and opens the first one in the editor', function () {
+test('the overview shows each board as a card, settings opens the editor', function () {
     $user = proBoardsUser();
     $workspace = $user->primaryWorkspace();
     $room = Display::factory()->create(['workspace_id' => $workspace->id, 'status' => DisplayStatus::ACTIVE, 'name' => 'Boardroom', 'display_name' => 'Boardroom']);
@@ -66,7 +66,13 @@ test('the list shows each board and opens the first one in the editor', function
             ->where('boards.0.viewMode', 'table')
             ->where('boards.0.roomCount', 1)
             ->where('boards.0.editUrl', route('boards.edit', $first))
+            ->where('boards.0.showUrl', route('boards.show', $first))
             ->where('boards.1.showAll', true)
+            ->where('board', null));
+
+    // Settings opens the editor for one board.
+    $this->actingAs($user)->get(route('boards.edit', $first))
+        ->assertInertia(fn (Assert $page) => $page
             ->where('board.id', $first->id)
             ->where('board.display_ids', [$room->id])
             ->where('board.updateUrl', route('boards.update', $first))

@@ -41,8 +41,8 @@ class BoardsPageController extends Controller
     }
 
     /**
-     * Render the page. With $creating the editor holds a new board; otherwise it holds $editing,
-     * or the first board of the list when the user may edit it.
+     * Render the page. Without $editing or $creating it is the overview of the boards as cards;
+     * with one of them it is the editor for that board or a new one.
      */
     public function render(Request $request, Workspace $workspace, ?Board $editing = null, bool $creating = false): Response
     {
@@ -52,10 +52,6 @@ class BoardsPageController extends Controller
         $boards = $hasPro
             ? Board::where('workspace_id', $workspace->id)->with(['user', 'displays'])->orderBy('name')->get()
             : collect();
-
-        if (! $creating && $editing === null) {
-            $editing = $boards->first(fn (Board $board) => $user->can('update', $board));
-        }
 
         $editorWorkspaceId = $editing?->workspace_id ?? $workspace->id;
         $displays = $hasPro
@@ -107,6 +103,7 @@ class BoardsPageController extends Controller
             'isPublic' => $board->is_public && $board->public_token,
             'createdBy' => $board->user?->name,
             'editUrl' => route('boards.edit', $board),
+            'showUrl' => route('boards.show', $board),
             'canUpdate' => $user->can('update', $board),
         ];
     }
