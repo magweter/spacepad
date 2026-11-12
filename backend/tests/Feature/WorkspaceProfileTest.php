@@ -12,6 +12,7 @@ use App\Models\Workspace;
 use App\Models\WorkspaceMember;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Inertia\Testing\AssertableInertia as Assert;
 
 uses(RefreshDatabase::class);
 
@@ -23,7 +24,6 @@ beforeEach(function () {
  * Two optional questions on the dashboard, after the first display: how many rooms, and
  * what the workspace used before. Answers land in onboarding_answers, one row per click.
  */
-const PROFILE_CARD = 'Two quick questions?';
 
 /**
  * @return array{0: Workspace, 1: User}
@@ -47,10 +47,11 @@ test('the owner sees the card after the first display, with the options of the o
 
     $this->actingAs($owner)->get(route('dashboard'))
         ->assertOk()
-        ->assertSee('Your first display is live. Two quick questions?')
-        ->assertSee('6 to 25')
-        ->assertSee('Outlook or Google only')
-        ->assertSee('Pronestor');
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('profileCard.firstDisplay', true)
+            ->where('profileCard.roomOptions.2.label', '6 to 25')
+            ->where('profileCard.solutionOptions.1.label', 'Outlook or Google only')
+            ->where('profileCard.solutionOptions.5.label', 'Pronestor'));
 
     expect(FunnelEvent::where('workspace_id', $workspace->id)->where('event', 'profile_card_shown')->count())->toBe(1);
 
@@ -61,7 +62,7 @@ test('the owner sees the card after the first display, with the options of the o
 test('nobody is asked before the first display', function () {
     $owner = User::factory()->active()->create(['usage_type' => UsageType::BUSINESS]);
 
-    $this->actingAs($owner)->get(route('dashboard'))->assertOk()->assertDontSee(PROFILE_CARD);
+    $this->actingAs($owner)->get(route('dashboard'))->assertOk()->assertInertia(fn (Assert $page) => $page->where('profileCard', null));
 });
 
 test('a member, a personal user and a self-hosted instance are not asked', function () {
@@ -156,7 +157,7 @@ test('closing the card keeps earlier answers and hides it for good', function ()
         ->and(FunnelEvent::where('event', FunnelStep::PROFILE_CARD_DISMISSED->value)->count())->toBe(1)
         ->and($workspace->shouldAskProfile($owner))->toBeFalse();
 
-    $this->actingAs($owner)->get(route('dashboard'))->assertDontSee(PROFILE_CARD);
+    $this->actingAs($owner)->get(route('dashboard'))->assertInertia(fn (Assert $page) => $page->where('profileCard', null));
 });
 
 test('a member cannot answer for the workspace', function () {

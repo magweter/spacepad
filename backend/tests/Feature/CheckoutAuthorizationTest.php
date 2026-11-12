@@ -121,7 +121,7 @@ test('the dashboard tells a member to ask the owner, and calls no API while rend
     $this->actingAs($member);
     session()->put('selected_workspace_id', $workspace->id);
 
-    $this->get(route('dashboard'))
+    $this->get(route('portal.manage'))
         ->assertOk()
         ->assertSee('Ask an owner or admin of this workspace');
 
@@ -139,7 +139,7 @@ test('the dashboard shows the owner a real checkout button without calling the A
     $this->actingAs($owner);
     session()->put('selected_workspace_id', $workspace->id);
 
-    $this->get(route('dashboard'))
+    $this->get(route('portal.manage'))
         ->assertOk()
         ->assertSee(route('billing.checkout'), false);
 

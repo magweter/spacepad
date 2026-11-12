@@ -39,7 +39,7 @@ watch(() => props.step, (step) => flow.track(step, 'viewed'), { immediate: true 
 </script>
 
 <template>
-    <Head :title="`Set up a display · ${meta[step].name}`" />
+    <Head :title="`Set up a display - ${meta[step].name}`" />
 
     <PortalShell :shell="shell">
         <header class="flex flex-wrap items-center justify-between gap-x-8 gap-y-4 border-b border-line bg-surface px-8 py-3.5">

@@ -162,7 +162,8 @@ test('looking around ends on the dashboard, even without a calendar', function (
     $this->actingAs($user)->post(route('onboarding.start'), ['choice' => 'look_around'])
         ->assertRedirect(route('dashboard'));
 
-    $this->actingAs($user)->get(route('dashboard'))->assertOk()->assertSee('Set up your first display');
+    $this->actingAs($user)->get(route('dashboard'))->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->component('Overview/Index')->where('checklist.display', false)->where('urls.newDisplay', route('setup.first-display')));
 });
 
 test('skipping setup goes to the dashboard and ends onboarding', function () {

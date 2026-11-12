@@ -38,7 +38,7 @@ watch(() => props.step, (step) => onboarding.track(step, 'viewed'), { immediate:
 </script>
 
 <template>
-    <Head :title="`Welcome · ${meta[step].name}`" />
+    <Head :title="`Welcome - ${meta[step].name}`" />
 
     <OnboardingLayout title="Four steps to get you set up" subtitle="Setting up will only take 1 minute and help us provide the best experience."
                       :items="rail" :user="user" :logout-url="urls.logout">

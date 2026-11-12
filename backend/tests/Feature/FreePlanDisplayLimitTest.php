@@ -174,7 +174,7 @@ test('the dashboard marks a display that needs Pro', function () {
     displayIn($workspace, $owner, DisplayStatus::REQUIRES_PRO, '2026-02-01');
 
     $this->actingAs($owner)
-        ->get(route('dashboard'))
+        ->get(route('portal.manage'))
         ->assertOk()
         ->assertSee('Requires Pro')
         ->assertSee('Make active')

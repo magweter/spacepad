@@ -1,0 +1,84 @@
+<?php
+
+use App\Enums\DisplayStatus;
+use App\Enums\PermissionType;
+use App\Models\Device;
+use App\Models\Display;
+use App\Models\Event;
+use App\Models\OutlookAccount;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
+use Inertia\Testing\AssertableInertia as Assert;
+
+uses(RefreshDatabase::class);
+
+beforeEach(function () {
+    config(['settings.is_self_hosted' => false]);
+});
+
+function overviewDisplay(User $user, array $attributes = []): Display
+{
+    return Display::factory()->create(['user_id' => $user->id, 'workspace_id' => $user->primaryWorkspace()->id] + $attributes);
+}
+
+test('the overview shows each room with its bookings from the cache', function () {
+    $user = User::factory()->active()->create();
+    $display = overviewDisplay($user, ['display_name' => 'Boardroom']);
+    Cache::put($display->getEventsCacheKey(), collect([
+        new Event(['summary' => 'Design sync', 'start' => now()->subMinutes(10), 'end' => now()->addMinutes(20), 'source' => 'outlook']),
+    ]));
+
+    $this->actingAs($user)->get(route('dashboard'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('Overview/Index')
+            ->where('rooms.0.name', 'Boardroom')
+            ->where('rooms.0.hasData', true)
+            ->where('rooms.0.events.0.title', 'Design sync')
+            ->where('rooms.0.events.0.tablet', false));
+});
+
+test('a room whose tablet has not asked yet has no data, and the overview calls no calendar', function () {
+    $user = User::factory()->active()->create();
+    overviewDisplay($user);
+
+    $this->actingAs($user)->get(route('dashboard'))
+        ->assertInertia(fn (Assert $page) => $page->where('rooms.0.hasData', false)->where('rooms.0.events', []));
+});
+
+test('a tablet that has been quiet for a while counts as offline', function () {
+    $user = User::factory()->active()->create();
+    $display = overviewDisplay($user);
+    Device::factory()->create(['user_id' => $user->id, 'workspace_id' => $user->primaryWorkspace()->id, 'display_id' => $display->id, 'last_activity_at' => now()->subHour()]);
+
+    $this->actingAs($user)->get(route('dashboard'))
+        ->assertInertia(fn (Assert $page) => $page->where('rooms.0.device.online', false)->where('checklist.tablet', true));
+});
+
+test('only what blocks the product shows as a notice', function () {
+    $user = User::factory()->active()->create();
+    overviewDisplay($user);
+
+    $this->actingAs($user)->get(route('dashboard'))->assertInertia(fn (Assert $page) => $page->where('notices', []));
+
+    overviewDisplay($user, ['status' => DisplayStatus::REQUIRES_PRO]);
+    OutlookAccount::where('user_id', $user->id)->update(['permission_type' => PermissionType::WRITE, 'booking_method' => null]);
+
+    $this->actingAs($user)->get(route('dashboard'))
+        ->assertInertia(fn (Assert $page) => $page->where('notices', fn ($notices) => collect($notices)->pluck('tag')->contains('Paused')));
+});
+
+test('links to a tab of the old dashboard open the classic page', function () {
+    $user = User::factory()->active()->create();
+
+    $this->actingAs($user)->get(route('dashboard', ['tab' => 'boards']))->assertRedirect(route('portal.manage', ['tab' => 'boards']));
+    $this->actingAs($user)->get(route('portal.manage'))->assertOk()->assertViewIs('pages.dashboard');
+});
+
+test('a flow that ends in a modal still lands on the classic page', function () {
+    $user = User::factory()->active()->create();
+
+    $this->actingAs($user)->withSession(['open-google-booking-method-modal' => 'abc'])
+        ->get(route('dashboard'))
+        ->assertRedirect(route('portal.manage'));
+});

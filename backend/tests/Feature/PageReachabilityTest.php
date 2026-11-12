@@ -43,7 +43,7 @@ test('it loads dashboard when authenticated', function () {
         ->get(route('dashboard'));
 
     $response->assertStatus(200);
-    $response->assertViewIs('pages.dashboard');
+    $response->assertInertia(fn (Assert $page) => $page->component('Overview/Index'));
 });
 
 test('it loads displays page when authenticated', function () {

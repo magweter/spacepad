@@ -15,6 +15,7 @@ use App\Services\CalDAVService;
 use App\Services\Funnel;
 use App\Services\GoogleService;
 use App\Services\OutlookService;
+use App\Support\PortalShell;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -52,7 +53,7 @@ class FirstDisplayController extends Controller
         return Inertia::render('FirstDisplay/Flow', [
             'step' => $step,
             'steps' => self::STEPS,
-            'shell' => $this->shell($request, $workspace),
+            'shell' => PortalShell::for($request, $workspace, 'displays'),
             'accounts' => $accounts,
             'display' => $display ? ['id' => $display->id, 'name' => $display->display_name ?: $display->name] : null,
             'device' => $device ? ['name' => $device->name] : null,
@@ -221,33 +222,6 @@ class FirstDisplayController extends Controller
             ->where(fn ($query) => $query->where('display_id', $display->id)->orWhere('created_at', '>=', $display->created_at))
             ->latest()
             ->first();
-    }
-
-    /**
-     * What the portal shell around the flow shows: the workspace, its plan and who is signed in.
-     *
-     * @return array<string, mixed>
-     */
-    private function shell(Request $request, Workspace $workspace): array
-    {
-        $user = $request->user();
-        $role = $workspace->members()->whereKey($user->id)->first()?->pivot?->role;
-
-        return [
-            'workspace' => $workspace->name,
-            'plan' => $workspace->hasPro() ? 'Pro workspace' : 'Free workspace',
-            'user' => $user->name,
-            'role' => $role ? ucfirst(is_string($role) ? $role : $role->value) : null,
-            'logout' => route('logout'),
-            'nav' => [
-                ['label' => 'Overview', 'href' => route('dashboard'), 'active' => false],
-                ['label' => 'Displays', 'href' => route('dashboard'), 'active' => true],
-                ['label' => 'Boards', 'href' => route('dashboard', ['tab' => 'boards']), 'active' => false],
-                ['label' => 'Profiles', 'href' => route('dashboard', ['tab' => 'profiles']), 'active' => false],
-                ['label' => 'Team', 'href' => route('workspaces.members'), 'active' => false, 'divider' => true],
-                ['label' => 'Account', 'href' => route('profile.show'), 'active' => false],
-            ],
-        ];
     }
 
     /**

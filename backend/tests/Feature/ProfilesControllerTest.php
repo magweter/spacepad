@@ -29,7 +29,7 @@ test('the profiles tab lists the workspace profiles', function () {
     DisplayProfile::factory()->create(['workspace_id' => $this->workspace->id, 'name' => 'Ground floor']);
 
     $this->actingAs($this->user)
-        ->get(route('dashboard', ['tab' => 'profiles']))
+        ->get(route('portal.manage', ['tab' => 'profiles']))
         ->assertOk()
         ->assertSee('Ground floor');
 });
@@ -52,7 +52,7 @@ test('a non-pro user gets the same tab teaser for profiles as for boards', funct
     ]);
     session()->put('selected_workspace_id', $free->primaryWorkspace()->id);
 
-    $response = $this->actingAs($free)->get(route('dashboard'))->assertOk();
+    $response = $this->actingAs($free)->get(route('portal.manage'))->assertOk();
 
     // The tab stays visible and explains itself instead of quietly not being there.
     $response->assertSee('Profiles (Pro Feature)');
@@ -65,7 +65,7 @@ test('a non-pro user gets the same tab teaser for profiles as for boards', funct
 });
 
 test('a pro user gets a working profiles tab instead of the teaser', function () {
-    $response = $this->actingAs($this->user)->get(route('dashboard'))->assertOk();
+    $response = $this->actingAs($this->user)->get(route('portal.manage'))->assertOk();
 
     $response->assertSee("switchTab('profiles')", false);
     $response->assertSee('id="tab-content-profiles"', false);

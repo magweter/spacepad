@@ -9,6 +9,7 @@ use App\Models\WorkspaceMember;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Inertia\Testing\AssertableInertia as Assert;
 use LemonSqueezy\Laravel\Events\SubscriptionCancelled;
 use LemonSqueezy\Laravel\Events\SubscriptionResumed;
 use LemonSqueezy\Laravel\Subscription;
@@ -153,7 +154,7 @@ test('a cancel from the portal is asked about on the dashboard', function () {
     $row = SubscriptionCancellation::sole();
     expect($row->source)->toBe('portal')->and($row->reason)->toBeNull();
 
-    $this->actingAs($owner)->get(route('dashboard'))->assertSee('Sorry to see you go');
+    $this->actingAs($owner)->get(route('dashboard'))->assertInertia(fn (Assert $page) => $page->whereNot('cancellation', null));
 
     $this->actingAs($owner)
         ->post(route('billing.cancellations.feedback', $row), ['reason' => 'missing_feature', 'details' => 'Outlook add-in'])
@@ -162,7 +163,7 @@ test('a cancel from the portal is asked about on the dashboard', function () {
     expect($row->fresh()->reason)->toBe(CancellationReason::MISSING_FEATURE)
         ->and($row->fresh()->user_id)->toBe($owner->id);
 
-    $this->actingAs($owner)->get(route('dashboard'))->assertDontSee('Sorry to see you go');
+    $this->actingAs($owner)->get(route('dashboard'))->assertInertia(fn (Assert $page) => $page->where('cancellation', null));
 });
 
 test('the question can be closed', function () {
@@ -173,7 +174,7 @@ test('the question can be closed', function () {
     $this->actingAs($owner)->post(route('billing.cancellations.dismiss', $row));
 
     expect($row->fresh()->dismissed_at)->not->toBeNull();
-    $this->actingAs($owner)->get(route('dashboard'))->assertDontSee('Sorry to see you go');
+    $this->actingAs($owner)->get(route('dashboard'))->assertInertia(fn (Assert $page) => $page->where('cancellation', null));
 });
 
 test('taking the cancellation back removes the open question', function () {

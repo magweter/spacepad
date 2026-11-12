@@ -23,6 +23,7 @@ use App\Http\Controllers\JoinRequestController;
 use App\Http\Controllers\LicenseController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\OutlookAccountsController;
+use App\Http\Controllers\OverviewController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProfilesController;
 use App\Http\Controllers\RoadmapController;
@@ -87,7 +88,8 @@ Route::prefix('auth')->group(function () {
 Route::get('/outlook-accounts/callback', [OutlookAccountsController::class, 'callback']);
 
 Route::middleware(['auth', 'user.update-last-activity'])->group(function () {
-    Route::get('/', DashboardController::class)->name('dashboard')->middleware('user.active');
+    Route::get('/', OverviewController::class)->name('dashboard')->middleware('user.active');
+    Route::get('/manage', DashboardController::class)->name('portal.manage')->middleware('user.active');
     Route::get('/onboarding', [OnboardingController::class, 'index'])->name('onboarding')->middleware('user.onboarding');
     Route::post('/onboarding/workspace', [OnboardingController::class, 'workspace'])->name('onboarding.workspace');
     Route::post('/onboarding/rooms', [OnboardingController::class, 'rooms'])->name('onboarding.rooms');

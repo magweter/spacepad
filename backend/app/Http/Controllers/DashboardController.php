@@ -28,6 +28,17 @@ class DashboardController extends Controller
     {
         $user = auth()->user();
 
+        // The overview links its notices here; the modals they open only exist on this page.
+        $modal = match (request('open')) {
+            'google-booking-method' => 'open-google-booking-method-modal',
+            'microsoft-booking-method' => 'open-microsoft-booking-method-modal',
+            'service-account' => 'open-service-account-modal',
+            default => null,
+        };
+        if ($modal && request()->filled('account')) {
+            session()->now($modal, request('account'));
+        }
+
         // Load workspaces with pivot data (role) - this includes all workspaces user is a member of
         $workspaces = $user->workspaces()->withPivot('role')->get();
 

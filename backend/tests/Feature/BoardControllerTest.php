@@ -60,7 +60,7 @@ test('user can view boards list', function () {
     ]);
 
     $response = $this->actingAs($this->user)
-        ->get(route('dashboard').'?tab=boards');
+        ->get(route('portal.manage').'?tab=boards');
 
     $response->assertStatus(200);
     $response->assertSee('Boards');

@@ -201,7 +201,7 @@ test('bulk assigning rejects a profile from another workspace', function () {
 test('the displays overview shows the linked profile and flags a customised display', function () {
     // The profile sits as a chip under the display name; deviating adds a marker to its tooltip.
     $this->actingAs($this->user)
-        ->get(route('dashboard', ['tab' => 'displays']))
+        ->get(route('portal.manage', ['tab' => 'displays']))
         ->assertOk()
         ->assertSee('Meeting rooms')
         ->assertDontSee('with its own settings in one or more sections');
@@ -209,7 +209,7 @@ test('the displays overview shows the linked profile and flags a customised disp
     saveSection($this, $this->display, DisplaySettingSections::BRANDING, ['font_family' => 'Lato']);
 
     $this->actingAs($this->user)
-        ->get(route('dashboard', ['tab' => 'displays']))
+        ->get(route('portal.manage', ['tab' => 'displays']))
         ->assertOk()
         ->assertSee('Meeting rooms')
         ->assertSee('with its own settings in one or more sections');
@@ -226,7 +226,7 @@ test('the bulk how-to shows until a profile has actually been assigned', functio
 
     // The fixture display already follows a profile, so the how-to has served its purpose.
     $this->actingAs($this->user)
-        ->get(route('dashboard', ['tab' => 'displays']))
+        ->get(route('portal.manage', ['tab' => 'displays']))
         ->assertOk()
         ->assertDontSee('Configure several displays at once');
 
@@ -234,7 +234,7 @@ test('the bulk how-to shows until a profile has actually been assigned', functio
     Display::where('workspace_id', $this->workspace->id)->update(['display_profile_id' => null]);
 
     $this->actingAs($this->user)
-        ->get(route('dashboard', ['tab' => 'displays']))
+        ->get(route('portal.manage', ['tab' => 'displays']))
         ->assertOk()
         ->assertSee('Configure several displays at once');
 });
@@ -249,7 +249,7 @@ test('hiding the how-to does not take the bulk assign controls with it', functio
 
     // The how-to is onboarding; the bulk bar is the feature and must always stay.
     $this->actingAs($this->user)
-        ->get(route('dashboard', ['tab' => 'displays']))
+        ->get(route('portal.manage', ['tab' => 'displays']))
         ->assertOk()
         ->assertDontSee('Configure several displays at once')
         ->assertSee('Assign profile')
