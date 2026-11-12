@@ -304,17 +304,26 @@ class _DashboardPageState extends State<DashboardPage> {
         }),
         SizedBox(height: space),
         Flexible(
-          child: Obx(() => StatusTitle(
-            text: controller.title,
-            style: FontService.instance.getTextStyle(
-              fontFamily: controller.currentFontFamily.value,
-              fontSize: _sp(context, 50) * controller.titleScale,
-              fontWeight: FontWeight.w700,
-              color: Colors.white,
-            ),
-          )),
+          child: Obx(() {
+            // Set a little tighter than the font's own line height, so a title of two or three
+            // lines reads as one block instead of three loose rows.
+            final size = _sp(context, 44) * controller.titleScale;
+            return StatusTitle(
+              text: controller.title,
+              style: FontService.instance.getTextStyle(
+                fontFamily: controller.currentFontFamily.value,
+                fontSize: size,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+                height: 1.15,
+                letterSpacing: -0.02 * size,
+              ),
+            );
+          }),
         ),
-        SizedBox(height: space),
+        // More room under the title than above it: the details belong to the title, but at a
+        // tight line height they otherwise read as a fourth line of it.
+        SizedBox(height: space == 0 ? 0 : (isPhone ? 10.0 : _sp(context, 20))),
         MeetingMetaRow(
           controller: controller,
           isPhone: isPhone,

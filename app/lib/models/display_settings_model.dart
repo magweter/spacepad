@@ -29,6 +29,7 @@ class DisplaySettingsModel {
   String fontSizeClock;
   String fontSizeTitle;
   String fontSizeDetails;
+  String fontSizeButtons;
   String fontSizeToolbar;
   String fontSizeCalendar;
   bool ledEnabled;
@@ -64,6 +65,7 @@ class DisplaySettingsModel {
     this.fontSizeClock = 'normal',
     this.fontSizeTitle = 'normal',
     this.fontSizeDetails = 'normal',
+    this.fontSizeButtons = 'normal',
     this.fontSizeToolbar = 'normal',
     this.fontSizeCalendar = 'normal',
     this.ledEnabled = false,
@@ -103,6 +105,7 @@ class DisplaySettingsModel {
       fontSizeClock: data['font_size_clock'] ?? 'normal',
       fontSizeTitle: data['font_size_title'] ?? 'normal',
       fontSizeDetails: data['font_size_details'] ?? 'normal',
+      fontSizeButtons: data['font_size_buttons'] ?? 'normal',
       fontSizeToolbar: data['font_size_toolbar'] ?? 'normal',
       fontSizeCalendar: data['font_size_calendar'] ?? 'normal',
       // Off unless the portal says so: a tablet must never probe a port nobody asked it to.
@@ -142,6 +145,7 @@ class DisplaySettingsModel {
       'font_size_clock': fontSizeClock,
       'font_size_title': fontSizeTitle,
       'font_size_details': fontSizeDetails,
+      'font_size_buttons': fontSizeButtons,
       'font_size_toolbar': fontSizeToolbar,
       'font_size_calendar': fontSizeCalendar,
       'led_enabled': ledEnabled,

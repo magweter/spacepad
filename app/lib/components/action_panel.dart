@@ -18,8 +18,8 @@ class ActionPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
-    
-    return SpaceRow(
+
+    final row = SpaceRow(
       mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -46,6 +46,7 @@ class ActionPanel extends StatelessWidget {
                     onPressed: isBooking ? null : () => controller.toggleBookingOptions(),
                     isPhone: isPhone,
                     cornerRadius: cornerRadius,
+                    scale: controller.buttonsScale,
                     isLoading: isBooking && bookingDuration == null,
                   ),
                   ActionButton(
@@ -53,6 +54,7 @@ class ActionPanel extends StatelessWidget {
                     onPressed: () => controller.checkIn(),
                     isPhone: isPhone,
                     cornerRadius: cornerRadius,
+                    scale: controller.buttonsScale,
                   ),
                 ],
               );
@@ -78,6 +80,7 @@ class ActionPanel extends StatelessWidget {
                             : null,
                           isPhone: isPhone,
                           cornerRadius: cornerRadius,
+                          scale: controller.buttonsScale,
                           disabled: !controller.availableBookingDurations.contains(min) || (isBooking && bookingDuration != min),
                           isLoading: isBooking && bookingDuration == min, // Only show loading on the clicked button
                         ),
@@ -89,6 +92,7 @@ class ActionPanel extends StatelessWidget {
                         onPressed: isBooking ? null : () => controller.showCustomBookingModal(context, isPhone, cornerRadius),
                         isPhone: isPhone,
                         cornerRadius: cornerRadius,
+                        scale: controller.buttonsScale,
                         disabled: isBooking,
                         isLoading: isBooking && bookingDuration == null, // Show loading if custom booking is in progress
                       ),
@@ -99,6 +103,7 @@ class ActionPanel extends StatelessWidget {
                       onPressed: isBooking ? null : () => controller.hideBookingOptions(),
                       isPhone: isPhone,
                       cornerRadius: cornerRadius,
+                      scale: controller.buttonsScale,
                       disabled: isBooking,
                     ),
                   ],
@@ -123,6 +128,7 @@ class ActionPanel extends StatelessWidget {
                             : null,
                           isPhone: isPhone,
                           cornerRadius: cornerRadius,
+                          scale: controller.buttonsScale,
                           disabled: !controller.availableBookingDurations.contains(min) || (isBooking && bookingDuration != min),
                           isLoading: isBooking && bookingDuration == min,
                         ),
@@ -134,6 +140,7 @@ class ActionPanel extends StatelessWidget {
                         onPressed: isBooking ? null : () => controller.showCustomBookingModal(context, isPhone, cornerRadius),
                         isPhone: isPhone,
                         cornerRadius: cornerRadius,
+                        scale: controller.buttonsScale,
                         disabled: isBooking,
                         isLoading: isBooking && bookingDuration == null,
                       ),
@@ -144,6 +151,7 @@ class ActionPanel extends StatelessWidget {
                       onPressed: isBooking ? null : () => controller.hideBookingOptions(),
                       isPhone: isPhone,
                       cornerRadius: cornerRadius,
+                      scale: controller.buttonsScale,
                       disabled: isBooking,
                     ),
                   ],
@@ -156,6 +164,7 @@ class ActionPanel extends StatelessWidget {
             onPressed: isBooking ? null : () => controller.toggleBookingOptions(),
             isPhone: isPhone,
             cornerRadius: cornerRadius,
+            scale: controller.buttonsScale,
             isLoading: isBooking && bookingDuration == null, // Only show loading if no specific duration button was clicked
           );
           }
@@ -186,6 +195,7 @@ class ActionPanel extends StatelessWidget {
                           : null,
                       isPhone: isPhone,
                       cornerRadius: cornerRadius,
+                      scale: controller.buttonsScale,
                       disabled: !controller.availableExtendDurations.contains(min) || (isExtending && controller.extendDuration.value != min),
                       isLoading: isExtending && controller.extendDuration.value == min,
                     ),
@@ -196,6 +206,7 @@ class ActionPanel extends StatelessWidget {
                   onPressed: isExtending ? null : () => controller.hideExtendOptions(),
                   isPhone: isPhone,
                   cornerRadius: cornerRadius,
+                  scale: controller.buttonsScale,
                   disabled: isExtending,
                 ),
               ],
@@ -214,6 +225,7 @@ class ActionPanel extends StatelessWidget {
                   textColor: Colors.white,
                   isPhone: isPhone,
                   cornerRadius: cornerRadius,
+                  scale: controller.buttonsScale,
                   isLoading: isCancelling,
                 ),
               if (controller.canExtendCurrentEvent)
@@ -222,6 +234,7 @@ class ActionPanel extends StatelessWidget {
                   onPressed: isExtending ? null : () => controller.toggleExtendOptions(),
                   isPhone: isPhone,
                   cornerRadius: cornerRadius,
+                  scale: controller.buttonsScale,
                   isLoading: isExtending && controller.extendDuration.value == null,
                 ),
               if (controller.bookingEnabled && controller.hasCustomBooking)
@@ -230,6 +243,7 @@ class ActionPanel extends StatelessWidget {
                   onPressed: isBooking ? null : () => controller.showCustomBookingModal(context, isPhone, cornerRadius),
                   isPhone: isPhone,
                   cornerRadius: cornerRadius,
+                  scale: controller.buttonsScale,
                   disabled: isBooking,
                   isLoading: isBooking && controller.bookingDuration.value == null,
                 ),
@@ -253,11 +267,27 @@ class ActionPanel extends StatelessWidget {
               onPressed: () => controller.checkIn(),
               isPhone: isPhone,
               cornerRadius: cornerRadius,
+              scale: controller.buttonsScale,
             );
           }
           return SizedBox.shrink();
         }),
       ]
     );
+
+    // At the larger text sizes three buttons can be wider than the content column. They shrink
+    // to fit instead of running off the screen; the booking options in portrait scroll instead,
+    // so they keep their size.
+    return Obx(() {
+      final optionsOpen = controller.showBookingOptions.value as bool;
+      final scrolls = isPortrait && optionsOpen && !controller.isReserved && controller.bookingEnabled;
+      if (scrolls) return row;
+
+      return FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.centerLeft,
+        child: row,
+      );
+    });
   }
-} 
+}

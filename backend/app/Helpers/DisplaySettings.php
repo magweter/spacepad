@@ -577,6 +577,7 @@ class DisplaySettings
         'clock' => 'Clock',
         'title' => 'Meeting title or status',
         'details' => 'Meeting details',
+        'buttons' => 'Buttons',
         'toolbar' => 'Bottom toolbar',
         'calendar' => 'Calendar widget',
     ];
