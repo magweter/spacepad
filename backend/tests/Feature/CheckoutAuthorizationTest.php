@@ -7,6 +7,7 @@ use App\Models\Workspace;
 use App\Models\WorkspaceMember;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Inertia\Testing\AssertableInertia as Assert;
 
 uses(RefreshDatabase::class);
 
@@ -109,7 +110,7 @@ test('checkout is unavailable on a self-hosted instance', function () {
     $this->post(route('billing.checkout'))->assertNotFound();
 });
 
-test('the dashboard tells a member to ask the owner, and calls no API while rendering', function () {
+test('the billing page tells a member to ask the owner, and calls no API while rendering', function () {
     Http::fake();
 
     [$workspace, , $member] = payableWorkspace();
@@ -121,16 +122,16 @@ test('the dashboard tells a member to ask the owner, and calls no API while rend
     $this->actingAs($member);
     session()->put('selected_workspace_id', $workspace->id);
 
-    $this->get(route('portal.manage'))
+    $this->get(route('billing.index'))
         ->assertOk()
-        ->assertSee('Ask an owner or admin of this workspace');
+        ->assertInertia(fn (Assert $page) => $page->where('billing.canManage', false)->where('billing.state', 'ask'));
 
     // The old blade built a Checkout during rendering, which POSTed to Lemon Squeezy on
     // every dashboard view for every non-Pro user.
     Http::assertNothingSent();
 });
 
-test('the dashboard shows the owner a real checkout button without calling the API', function () {
+test('the billing page shows the owner a real checkout button without calling the API', function () {
     Http::fake();
 
     [$workspace, $owner] = payableWorkspace();
@@ -139,9 +140,9 @@ test('the dashboard shows the owner a real checkout button without calling the A
     $this->actingAs($owner);
     session()->put('selected_workspace_id', $workspace->id);
 
-    $this->get(route('portal.manage'))
+    $this->get(route('billing.index'))
         ->assertOk()
-        ->assertSee(route('billing.checkout'), false);
+        ->assertInertia(fn (Assert $page) => $page->where('billing.state', 'checkout')->where('urls.checkout', route('billing.checkout')));
 
     Http::assertNothingSent();
 });

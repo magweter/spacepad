@@ -57,15 +57,6 @@ test('a profile is selected from the query string', function () {
             ->where('profiles.1.selected', true));
 });
 
-test('the profiles tab lists the workspace profiles', function () {
-    DisplayProfile::factory()->create(['workspace_id' => $this->workspace->id, 'name' => 'Ground floor']);
-
-    $this->actingAs($this->user)
-        ->get(route('portal.manage', ['tab' => 'profiles']))
-        ->assertOk()
-        ->assertSee('Ground floor');
-});
-
 test('non-pro users see the profiles page with an upgrade note but cannot create one', function () {
     // Business user without a license/subscription is non-Pro in both cloud and self-hosted modes.
     $free = User::factory()->active()->create([
@@ -115,32 +106,6 @@ test('the create page starts from the defaults', function () {
             ->where('values.font_family', 'Inter')
             ->where('values.cancel_permission', 'all')
             ->where('urls.save', route('profiles.store')));
-});
-
-test('a non-pro user gets the same tab teaser for profiles as for boards', function () {
-    $free = User::factory()->active()->create([
-        'usage_type' => UsageType::BUSINESS,
-    ]);
-    session()->put('selected_workspace_id', $free->primaryWorkspace()->id);
-
-    $response = $this->actingAs($free)->get(route('portal.manage'))->assertOk();
-
-    // The tab stays visible and explains itself instead of quietly not being there.
-    $response->assertSee('Profiles (Pro Feature)');
-    $response->assertSee('Boards (Pro Feature)');
-    $response->assertSee('id="tab-profiles"', false);
-
-    // But it cannot be opened, and none of its content is rendered.
-    $response->assertDontSee('id="tab-content-profiles"', false);
-    $response->assertDontSee("switchTab('profiles')", false);
-});
-
-test('a pro user gets a working profiles tab instead of the teaser', function () {
-    $response = $this->actingAs($this->user)->get(route('portal.manage'))->assertOk();
-
-    $response->assertSee("switchTab('profiles')", false);
-    $response->assertSee('id="tab-content-profiles"', false);
-    $response->assertDontSee('Profiles (Pro Feature)');
 });
 
 test('user can create a profile with settings', function () {

@@ -30,35 +30,6 @@ class BoardController extends Controller
     ) {}
 
     /**
-     * Display a listing of boards for the current workspace
-     */
-    public function index(): View|Factory|Application
-    {
-        $user = auth()->user();
-
-        // Check Pro access
-        if (! $user->hasProForCurrentWorkspace()) {
-            abort(403, 'Boards is a Pro feature. Please upgrade to access this feature.');
-        }
-
-        $selectedWorkspace = $user->getSelectedWorkspace();
-
-        if (! $selectedWorkspace) {
-            abort(404, 'No workspace found');
-        }
-
-        $boards = Board::where('workspace_id', $selectedWorkspace->id)
-            ->with(['user', 'displays'])
-            ->orderBy('name')
-            ->get();
-
-        return view('pages.boards.index', [
-            'boards' => $boards,
-            'workspace' => $selectedWorkspace,
-        ]);
-    }
-
-    /**
      * Open the Boards page with the editor on a new board. Without Pro the page shows its upsell.
      */
     public function create(Request $request): InertiaResponse|RedirectResponse

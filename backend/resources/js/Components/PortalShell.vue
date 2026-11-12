@@ -2,13 +2,17 @@
 // The portal shell from the design: a navy sidebar that never changes, the page beside it. Pages
 // that pass a title get the white header bar with their actions on the right.
 import { ref } from 'vue';
-import { router } from '@inertiajs/vue3';
+import { router, usePage } from '@inertiajs/vue3';
 import Logo from './Logo.vue';
 import Icon from './Icon.vue';
+import HelpPanel from './Help/HelpPanel.vue';
+import HelpIcon from './Help/HelpIcon.vue';
+import { openHelp } from './Help/helpPanel.js';
 
 const props = defineProps({ shell: { type: Object, required: true }, title: { type: String, default: null } });
 
 const switching = ref(false);
+const page = usePage();
 const initials = (name) => (name || '?').split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase();
 
 function switchTo(workspace) {
@@ -55,6 +59,17 @@ function switchTo(workspace) {
 
             <div class="flex-1"></div>
 
+            <div v-if="!page.props.app?.selfHosted" class="flex flex-col gap-0.5">
+                <button type="button" class="sp-nav text-left text-[13px]" @click="openHelp('help')">
+                    <span class="sp-nav-icon"><HelpIcon name="help" /></span>
+                    <span class="sp-nav-label">Need help?</span>
+                </button>
+                <button type="button" class="sp-nav text-left text-[13px]" @click="openHelp('roadmap')">
+                    <span class="sp-nav-icon"><HelpIcon name="lightbulb" /></span>
+                    <span class="sp-nav-label">Make a request</span>
+                </button>
+            </div>
+
             <div class="flex items-center gap-2.5 px-1.5 py-1">
                 <span class="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-on-navy-muted text-[13px] font-semibold text-navy">{{ initials(shell.user) }}</span>
                 <a :href="shell.account" class="flex min-w-0 flex-1 flex-col rounded-md hover:opacity-80" :aria-current="shell.accountActive ? 'page' : null" title="Your account">
@@ -72,5 +87,7 @@ function switchTo(workspace) {
             </header>
             <slot />
         </main>
+
+        <HelpPanel v-if="!page.props.app?.selfHosted" />
     </div>
 </template>

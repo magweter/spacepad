@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\SupportMessage;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -10,7 +11,7 @@ use Illuminate\Support\Facades\Mail;
 
 class SupportController extends Controller
 {
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request): JsonResponse|RedirectResponse
     {
         abort_if(config('settings.is_self_hosted'), 404);
 
@@ -39,6 +40,10 @@ class SupportController extends Controller
                 'user_id' => $user->id,
                 'error' => $e->getMessage(),
             ]);
+        }
+
+        if ($request->wantsJson()) {
+            return response()->json(['sent' => true, 'email' => $user->email]);
         }
 
         return back()->with('support_sent', true);

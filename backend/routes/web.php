@@ -12,12 +12,12 @@ use App\Http\Controllers\BillingController;
 use App\Http\Controllers\BoardController;
 use App\Http\Controllers\CalDAVAccountsController;
 use App\Http\Controllers\CalendarController;
-use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DisplayController;
 use App\Http\Controllers\DisplayDiagnosticsController;
 use App\Http\Controllers\DisplaySettingsController;
 use App\Http\Controllers\FirstDisplayController;
 use App\Http\Controllers\GoogleAccountsController;
+use App\Http\Controllers\HelpController;
 use App\Http\Controllers\Invitations\AcceptInvitationController;
 use App\Http\Controllers\JoinRequestController;
 use App\Http\Controllers\LicenseController;
@@ -90,7 +90,6 @@ Route::get('/outlook-accounts/callback', [OutlookAccountsController::class, 'cal
 
 Route::middleware(['auth', 'user.update-last-activity'])->group(function () {
     Route::get('/', OverviewController::class)->name('dashboard')->middleware('user.active');
-    Route::get('/manage', DashboardController::class)->name('portal.manage')->middleware('user.active');
     Route::middleware('user.active')->group(function () {
         Route::get('/displays', [Portal\DisplaysPageController::class, 'index'])->name('displays.index');
         Route::get('/boards', [Portal\BoardsPageController::class, 'index'])->name('boards.index');
@@ -257,6 +256,7 @@ Route::middleware(['auth', 'user.update-last-activity'])->group(function () {
     Route::get('/boards/{board}/images/logo', [BoardController::class, 'serveLogo'])->name('boards.images.logo');
 
     // Support / FAQ
+    Route::get('/help', [HelpController::class, 'index'])->name('help.data');
     Route::post('/support/ask', [SupportController::class, 'store'])->name('support.ask');
 
     // Roadmap
