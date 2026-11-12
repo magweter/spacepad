@@ -210,10 +210,12 @@ class _DashboardPageState extends State<DashboardPage> {
               style: FontService.instance.getTextStyle(
                 fontFamily: controller.currentFontFamily.value,
                 fontSize: _sp(context, 16) * controller.roomNameScale,
-                fontWeight: FontWeight.w400,
-                // `text-muted` (dark): reads on black and on the glass ground alike.
-                color: const Color(0xFF94A3B8),
-              ),
+                fontWeight: FontWeight.w500,
+                // `text-2` (dark), a step lighter than muted grey, with a soft shadow: small text
+                // over a light patch of a background photo (a sky, a white wall) otherwise
+                // disappears. On a plain dark ground the shadow does not show.
+                color: const Color(0xFFCBD5E1),
+              ).copyWith(shadows: const [Shadow(color: Color(0x99000000), blurRadius: 6)]),
             ),
         ],
       ),
