@@ -41,6 +41,7 @@ test('the sizes survive a round trip through the branding section', function () 
             'font_size_clock' => 'large',
             'font_size_title' => 'large',
             'font_size_details' => 'small',
+            'font_size_buttons' => 'large',
             'font_size_toolbar' => 'small',
             'font_size_calendar' => 'normal',
         ])
@@ -52,6 +53,7 @@ test('the sizes survive a round trip through the branding section', function () 
         ->and(DisplaySettings::getFontSize($display, 'clock'))->toBe('large')
         ->and(DisplaySettings::getFontSize($display, 'title'))->toBe('large')
         ->and(DisplaySettings::getFontSize($display, 'details'))->toBe('small')
+        ->and(DisplaySettings::getFontSize($display, 'buttons'))->toBe('large')
         ->and(DisplaySettings::getFontSize($display, 'toolbar'))->toBe('small')
         ->and(DisplaySettings::getFontSize($display, 'calendar'))->toBe('normal');
 });
@@ -97,7 +99,8 @@ test('the sizes reach the tablet', function () {
 
     $settings = $this->actingAs($device)->getJson('/api/displays')->assertOk()->json('data.0.settings');
 
-    expect($settings['font_size_room_name'])->toBe('xlarge');
+    expect($settings['font_size_room_name'])->toBe('xlarge')
+        ->and($settings['font_size_buttons'])->toBe('normal');
 
     foreach (['clock', 'title', 'details', 'toolbar', 'calendar'] as $element) {
         expect($settings["font_size_{$element}"])->toBe('normal');

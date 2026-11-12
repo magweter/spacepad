@@ -634,6 +634,9 @@ class DashboardController extends GetxController {
   /// The time, organizer and time left under the title.
   double get detailsScale => _fontScale(globalSettings.value?.fontSizeDetails);
 
+  /// The action buttons under the meeting details: book, check in, extend and end.
+  double get buttonsScale => _fontScale(globalSettings.value?.fontSizeButtons);
+
   /// The bottom toolbar: the next meeting and the View schedule button.
   double get toolbarScale => _fontScale(globalSettings.value?.fontSizeToolbar);
 

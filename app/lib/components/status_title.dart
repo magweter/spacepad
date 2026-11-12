@@ -24,15 +24,27 @@ class StatusTitle extends StatelessWidget {
     return LayoutBuilder(builder: (context, constraints) {
       var lines = maxLines;
 
-      if (constraints.hasBoundedHeight) {
-        final lineHeight = (TextPainter(
-          text: TextSpan(text: text, style: style),
-          textDirection: Directionality.of(context),
-          textScaler: MediaQuery.maybeTextScalerOf(context) ?? TextScaler.noScaling,
-          maxLines: 1,
-        )..layout()).height;
+      // Lay the title out the way it will be painted, at this width and with the ellipsis, and
+      // keep the most lines that fit. Dividing the height by the height of one line was not
+      // enough: a wrapped paragraph is not always a whole number of single lines tall, and at
+      // the largest sizes the last line came out half covered by the meeting details.
+      if (constraints.hasBoundedHeight && constraints.hasBoundedWidth) {
+        final textScaler = MediaQuery.maybeTextScalerOf(context) ?? TextScaler.noScaling;
+        final direction = Directionality.of(context);
 
-        lines = (constraints.maxHeight / lineHeight).floor().clamp(1, maxLines);
+        for (lines = maxLines; lines > 1; lines--) {
+          final painter = TextPainter(
+            text: TextSpan(text: text, style: style),
+            textDirection: direction,
+            textScaler: textScaler,
+            maxLines: lines,
+            ellipsis: '\u2026',
+          )..layout(maxWidth: constraints.maxWidth);
+          final height = painter.height;
+          painter.dispose();
+
+          if (height <= constraints.maxHeight) break;
+        }
       }
 
       return Text(

@@ -33,6 +33,7 @@ class DisplaySettingsResource extends JsonResource
             'font_size_clock' => $this->getFontSize('clock'),
             'font_size_title' => $this->getFontSize('title'),
             'font_size_details' => $this->getFontSize('details'),
+            'font_size_buttons' => $this->getFontSize('buttons'),
             'font_size_toolbar' => $this->getFontSize('toolbar'),
             'font_size_calendar' => $this->getFontSize('calendar'),
             'cancel_permission' => $this->getCancelPermission(),
