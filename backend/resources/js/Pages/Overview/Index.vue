@@ -27,6 +27,20 @@ const updated = computed(() => {
     return seconds < 60 ? 'just now' : `${Math.round(seconds / 60)} min ago`;
 });
 const occupancyLabels = computed(() => hours.value);
+const firstName = computed(() => (props.shell.user || '').split(/[\s.@]+/)[0]);
+const greeting = computed(() => {
+    const h = now.value.getHours();
+    const part = h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
+    return firstName.value ? `${part}, ${firstName.value.charAt(0).toUpperCase()}${firstName.value.slice(1)}!` : `${part}!`;
+});
+// One sentence on how things stand.
+const summary = computed(() => {
+    const f = figures.value;
+    if (!props.rooms.length) return 'Welcome to Spacepad. Set up your first display and its room shows up here, live.';
+    if (props.notices.length) return `${props.notices.length === 1 ? 'One thing needs' : `${props.notices.length} things need`} your attention. The rest runs as it should.`;
+    if (!f.live) return 'Welcome back. Your rooms show up here as soon as their tablets are online.';
+    return `Welcome back. ${f.free} of ${f.live} ${f.live === 1 ? 'room is' : 'rooms are'} free right now, with ${f.bookings} ${f.bookings === 1 ? 'booking' : 'bookings'} today.`;
+});
 const code = computed(() => props.connectCode?.match(/.{1,3}/g)?.join(' '));
 
 const tone = {
@@ -53,6 +67,11 @@ onBeforeUnmount(() => { clearInterval(tick); clearInterval(poll); });
         </template>
 
         <div class="flex flex-col gap-6 px-6 pt-7 pb-10 md:px-8">
+            <div class="flex flex-col gap-1">
+                <h2 class="font-display text-[26px] leading-tight font-bold tracking-tight">{{ greeting }}</h2>
+                <p class="text-muted">{{ summary }}</p>
+            </div>
+
             <FlashMessage />
 
             <section v-if="notices.length" aria-label="Needs attention" class="flex flex-col gap-2.5">
@@ -65,8 +84,8 @@ onBeforeUnmount(() => { clearInterval(tick); clearInterval(poll); });
 
             <div class="flex flex-wrap items-start gap-6">
                 <div class="flex min-w-0 flex-[999_1_560px] flex-col gap-4">
-                    <RoomsNow :rooms="list" :hours="hours" :now-left="nowLeft" :now-label="nowLabel" :updated="updated" :urls="urls" />
                     <KeyFigures v-if="rooms.length" :figures="figures" :accounts="accounts" />
+                    <RoomsNow :rooms="list" :hours="hours" :now-left="nowLeft" :now-label="nowLabel" :updated="updated" :urls="urls" />
                     <Occupancy v-if="occupancy.length" :hours="occupancy" :labels="occupancyLabels" />
                 </div>
 
