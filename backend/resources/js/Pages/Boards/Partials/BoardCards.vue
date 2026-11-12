@@ -19,7 +19,7 @@ const meta = (b) => [
 </script>
 
 <template>
-    <section aria-label="Your boards" class="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+    <section aria-label="Your boards" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         <article v-for="b in boards" :key="b.id" class="sp-card overflow-hidden">
             <a :href="b.showUrl" target="_blank" rel="noopener" class="block bg-navy-800 p-2" :aria-label="`Open ${b.name}`">
                 <BoardFrame :src="b.showUrl" :title="`Preview of ${b.name}`" :width="1024" />
