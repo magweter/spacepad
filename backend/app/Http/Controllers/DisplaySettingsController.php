@@ -255,6 +255,7 @@ class DisplaySettingsController extends Controller
                 'text_checkin' => 'nullable|string|max:64',
             ],
             DisplaySettingSections::BRANDING => [
+                'theme' => DisplaySettings::themeRule(),
                 'font_family' => 'nullable|string|in:Inter,Roboto,Open Sans,Lato,Poppins,Montserrat',
                 ...DisplaySettings::fontSizeRules(),
                 'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
@@ -335,8 +336,12 @@ class DisplaySettingsController extends Controller
     {
         $updated = true;
 
+        if ($request->filled('theme')) {
+            $updated = DisplaySettings::setTheme($display, $request->input('theme'));
+        }
+
         if ($request->has('font_family')) {
-            $updated = DisplaySettings::setFontFamily($display, $request->input('font_family'));
+            $updated = $updated && DisplaySettings::setFontFamily($display, $request->input('font_family'));
         }
 
         foreach (array_keys(DisplaySettings::FONT_SIZE_ELEMENTS) as $element) {

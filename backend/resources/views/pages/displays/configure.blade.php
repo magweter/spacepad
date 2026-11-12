@@ -377,7 +377,26 @@
                                      :description="$sections[\App\Helpers\DisplaySettingSections::BRANDING]['description']"
                                      :multipart="true">
                 <div class="space-y-6">
+                    {{-- Theme --}}
                     <div>
+                        <p class="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-2">Theme
+                            <x-info-tip text="The look of the whole screen. Both themes show the room status as a coloured border and a word: green when free, red when in use, amber when a meeting is about to start or end." />
+                        </p>
+                        <div class="space-y-2">
+                            @foreach($ds::THEMES as $theme => $themeLabel)
+                                <label class="flex items-start gap-2 cursor-pointer">
+                                    <input type="radio" name="theme" value="{{ $theme }}" class="mt-0.5 {{ $radioClass }}"
+                                           {{ old('theme', $ds::getTheme($display)) === $theme ? 'checked' : '' }}>
+                                    <span>
+                                        <span class="block text-sm text-gray-700">{{ $themeLabel }}{{ $theme === 'classic' ? ' (default)' : '' }}</span>
+                                        <span class="block text-xs text-gray-500">{{ $ds::THEME_DESCRIPTIONS[$theme] }}</span>
+                                    </span>
+                                </label>
+                            @endforeach
+                        </div>
+                    </div>
+
+                    <div class="pt-4 border-t border-gray-100">
                         <label for="font_family" class="block text-sm font-medium text-gray-700 mb-1">Font family</label>
                         <select name="font_family" id="font_family" class="{{ $selectClass }}">
                             @foreach(['Inter', 'Roboto', 'Open Sans', 'Lato', 'Poppins', 'Montserrat'] as $font)

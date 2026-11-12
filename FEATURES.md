@@ -135,6 +135,14 @@ Neither is inherited from a profile: they belong to the display itself.
 Part of the same **Configure display** screen, in the Branding, State texts and Advertisement sections.
 
 ### Branding
+- Choose a **theme** for the whole screen. Also settable on a profile.
+  - **Classic** (default): the screen framed in the status colour on black.
+  - **Glass**: a dark navy screen with a soft glow in the status colour from the corners, a thick
+    status border, frosted translucent buttons, chips, bottom bar and timeline, and the clock and the
+    title in a bolder display font (Space Grotesk). Border and glow are green when free, red in use,
+    amber when a meeting is about to start or end or check-in is due, and grey while the tablet is
+    offline or cannot reach the server; the status always comes with a word on screen. A status change
+    crossfades instead of jumping. A background image still works and sits under the glow.
 - Upload a custom **logo** (shown on the display)
 - Upload a custom **background image** or choose from built-in backgrounds
 - Choose a **font family**: Inter, Roboto, Open Sans, Lato, Poppins, Montserrat

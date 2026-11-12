@@ -52,6 +52,7 @@ class DisplayProfileRequest extends FormRequest
             'timeline_widget_mode' => 'nullable|in:none,side_panel,inline,full_panel',
             'cancel_permission' => 'nullable|in:all,tablet_only,none',
             'border_thickness' => 'nullable|in:small,medium,large',
+            'theme' => DisplaySettings::themeRule(),
             'font_family' => 'nullable|string|in:Inter,Roboto,Open Sans,Lato,Poppins,Montserrat',
             ...DisplaySettings::fontSizeRules(),
 

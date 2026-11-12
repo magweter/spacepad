@@ -234,6 +234,11 @@ class Display extends Model
         return DisplaySettings::getFontFamily($this);
     }
 
+    public function getTheme(): string
+    {
+        return DisplaySettings::getTheme($this);
+    }
+
     public function getFontSize(string $element): string
     {
         return DisplaySettings::getFontSize($this, $element);

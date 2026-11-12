@@ -300,6 +300,40 @@ class DisplaySettings
         return self::setSetting($display, 'font_family', $fontFamily, 'string');
     }
 
+    /**
+     * The looks a display can take. Classic is the original look: the whole screen framed in the
+     * status colour on black. Glass keeps the status border but sets the screen on a dark ground
+     * with a glow in the status colour and frosted panels and buttons.
+     */
+    public const THEMES = [
+        'classic' => 'Classic',
+        'glass' => 'Glass',
+    ];
+
+    public const THEME_DESCRIPTIONS = [
+        'classic' => 'The screen framed in the status colour on black.',
+        'glass' => 'A dark screen with a soft glow in the status colour, frosted panels and buttons, and a bolder headline font.',
+    ];
+
+    public static function getTheme(Display $display): string
+    {
+        return self::getSetting($display, 'theme', 'classic');
+    }
+
+    public static function setTheme(Display $display, string $theme): bool
+    {
+        if (! array_key_exists($theme, self::THEMES)) {
+            return false;
+        }
+
+        return self::setSetting($display, 'theme', $theme, 'string');
+    }
+
+    public static function themeRule(): string
+    {
+        return 'nullable|in:'.implode(',', array_keys(self::THEMES));
+    }
+
     public static function getCheckInMinutes(Display $display): int
     {
         return self::getSetting($display, 'check_in_minutes', 15);

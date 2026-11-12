@@ -19,6 +19,7 @@ import 'package:spacepad/models/display_model.dart';
 import 'package:spacepad/models/display_settings_model.dart';
 import 'package:flutter/material.dart';
 import 'package:spacepad/components/custom_booking_modal.dart';
+import 'package:spacepad/components/glass_theme.dart';
 
 class DashboardController extends GetxController {
   final RxBool loading = RxBool(true);
@@ -306,6 +307,17 @@ class DashboardController extends GetxController {
     }
 
     return 'till_end_of_day'.tr;
+  }
+
+  bool get isGlassTheme => globalSettings.value?.theme == 'glass';
+
+  /// The state the display shows, as one value. Offline wins: a display that cannot reach the
+  /// server may be showing a state that is no longer true.
+  RoomTone get tone {
+    if (isOffline.value || isServerUnreachable.value) return RoomTone.offline;
+    if (isTransitioning || isCheckInActive) return RoomTone.transitioning;
+    if (isReserved) return RoomTone.reserved;
+    return RoomTone.available;
   }
 
   bool get isReserved {
