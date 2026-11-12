@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\Workspace;
 use App\Services\FreePlanDisplayLimit;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia;
 
 uses(RefreshDatabase::class);
 
@@ -113,7 +114,7 @@ test('another display can be made the active one', function () {
 
     $this->actingAs($owner)
         ->post(route('displays.makeActive', $waiting))
-        ->assertRedirect(route('dashboard'))
+        ->assertRedirect(route('displays.index', ['display' => $waiting->id]))
         ->assertSessionHas('success');
 
     expect($waiting->fresh()->status)->toBe(DisplayStatus::READY)
@@ -168,15 +169,18 @@ test('resuming a switched-off display is refused while another one is live', fun
     expect($off->fresh()->status)->toBe(DisplayStatus::DEACTIVATED);
 });
 
-test('the dashboard marks a display that needs Pro', function () {
+test('the displays page marks a display that needs Pro and offers to make it active', function () {
     [$workspace, $owner] = freeWorkspace();
     displayIn($workspace, $owner, DisplayStatus::ACTIVE, '2026-01-01');
-    displayIn($workspace, $owner, DisplayStatus::REQUIRES_PRO, '2026-02-01');
+    $waiting = displayIn($workspace, $owner, DisplayStatus::REQUIRES_PRO, '2026-02-01');
 
     $this->actingAs($owner)
-        ->get(route('portal.manage'))
+        ->get(route('displays.index'))
         ->assertOk()
-        ->assertSee('Requires Pro')
-        ->assertSee('Make active')
-        ->assertSee('The free plan has one active display.');
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('Displays/Index')
+            ->where('displays', fn ($displays) => collect($displays)->contains(fn ($d) => $d['id'] === $waiting->id
+                && $d['status'] === 'requires_pro'
+                && $d['statusLabel'] === 'Requires Pro'
+                && $d['urls']['makeActive'] === route('displays.makeActive', $waiting))));
 });

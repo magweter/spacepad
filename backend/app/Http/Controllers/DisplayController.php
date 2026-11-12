@@ -141,7 +141,7 @@ class DisplayController extends Controller
             return redirect()->route('setup.first-display', ['step' => 'tablet', 'display' => $display->id]);
         }
 
-        return redirect()->route('dashboard')->with($display ? 'success' : 'error', $display ?
+        return redirect()->route('displays.index', $display ? ['display' => $display->id] : [])->with($display ? 'success' : 'error', $display ?
             'Display created! Now enter the connect code in the app on your tablet to connect it to the display.' :
             'Display could not be created. Please try again later.'
         );
@@ -183,14 +183,14 @@ class DisplayController extends Controller
 
         if ($data['status'] === DisplayStatus::ACTIVE->value && $this->freePlan->hasOtherLiveDisplay($display)) {
             return redirect()
-                ->route('dashboard')
+                ->route('displays.index', ['display' => $display->id])
                 ->with('error', 'The free plan has one active display. Upgrade to Pro to use more.');
         }
 
         $display->update(['status' => $data['status']]);
 
         return redirect()
-            ->route('dashboard')
+            ->route('displays.index', ['display' => $display->id])
             ->with('status', 'Display status has been changed.');
     }
 
@@ -204,7 +204,7 @@ class DisplayController extends Controller
         $this->freePlan->makeActive($display);
 
         return redirect()
-            ->route('dashboard')
+            ->route('displays.index', ['display' => $display->id])
             ->with('success', 'This display is now the active one.');
     }
 
@@ -225,7 +225,7 @@ class DisplayController extends Controller
         }
 
         return redirect()
-            ->route('dashboard')
+            ->route('displays.index')
             ->with('status', 'Display has successfully been deleted.');
     }
 
