@@ -28,6 +28,7 @@ class DisplaySettingsResource extends JsonResource
             'show_meeting_title' => $this->getShowMeetingTitle(),
             'logo_url' => $this->getLogoUrl(),
             'background_image_url' => $this->getBackgroundImageUrl(),
+            'theme' => $this->getTheme(),
             'font_family' => $this->getFontFamily(),
             'font_size_room_name' => $this->getFontSize('room_name'),
             'font_size_clock' => $this->getFontSize('clock'),

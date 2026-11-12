@@ -9,11 +9,15 @@ class AuthenticatedBackground extends StatefulWidget {
   final Widget child;
   final BorderRadius? borderRadius;
 
+  /// The colour behind the image, and the whole background when there is none.
+  final Color color;
+
   const AuthenticatedBackground({
     Key? key,
     this.imageUrl,
     required this.child,
     this.borderRadius,
+    this.color = Colors.black,
   }) : super(key: key);
 
   @override
@@ -109,7 +113,7 @@ class _AuthenticatedBackgroundState extends State<AuthenticatedBackground> {
     return Container(
       decoration: BoxDecoration(
         borderRadius: widget.borderRadius,
-        color: Colors.black,
+        color: widget.color,
         image: _imageProvider != null && !_hasError
             ? DecorationImage(
                 image: _imageProvider!,

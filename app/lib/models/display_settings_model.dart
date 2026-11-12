@@ -13,6 +13,8 @@ class DisplaySettingsModel {
   bool showMeetingTitle;
   String? logoUrl;
   String? backgroundImageUrl;
+  /// 'classic' (the original look) or 'glass'.
+  String theme;
   String fontFamily;
   String cancelPermission;
   String borderThickness;
@@ -48,6 +50,7 @@ class DisplaySettingsModel {
     required this.showMeetingTitle,
     this.logoUrl,
     this.backgroundImageUrl,
+    this.theme = 'classic',
     required this.fontFamily,
     this.cancelPermission = 'all',
     this.borderThickness = 'medium',
@@ -85,6 +88,8 @@ class DisplaySettingsModel {
       showMeetingTitle: data['show_meeting_title'] ?? true,
       logoUrl: data['logo_url'],
       backgroundImageUrl: data['background_image_url'],
+      // Classic against a backend that predates themes, the look every display had until then.
+      theme: data['theme'] ?? 'classic',
       fontFamily: data['font_family'] ?? 'Inter',
       cancelPermission: data['cancel_permission'] ?? 'all',
       borderThickness: data['border_thickness'] ?? 'medium',
@@ -126,6 +131,7 @@ class DisplaySettingsModel {
       'show_meeting_title': showMeetingTitle,
       'logo_url': logoUrl,
       'background_image_url': backgroundImageUrl,
+      'theme': theme,
       'font_family': fontFamily,
       'cancel_permission': cancelPermission,
       'border_thickness': borderThickness,

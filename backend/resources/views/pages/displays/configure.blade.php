@@ -60,6 +60,30 @@
                                value="{{ old('display_name', $display->display_name) }}" class="mt-1 bg-white {{ $inputClass }}">
                         <p class="mt-1 text-xs text-gray-500">Shown in the top right corner of the tablet.</p>
                     </div>
+                    <div>
+                        <label for="location" class="flex items-center gap-1.5 text-sm font-medium text-gray-700">Location
+                            <x-info-tip text="Printed in small text under the room name, together with the seat count. For a Google Workspace or Microsoft 365 room it is filled in from the floor and capacity in your directory. Leave it empty to show the room name alone." />
+                        </label>
+                        @php $suggestLocation = $display->location === null ? ($roomSuggestion['location'] ?? null) : null; @endphp
+                        <input type="text" name="location" id="location" maxlength="64" placeholder="e.g. Floor 1"
+                               value="{{ old('location', $display->location ?? $suggestLocation) }}" class="mt-1 bg-white {{ $inputClass }}">
+                        @if($suggestLocation)
+                            <p class="mt-1 text-xs text-blue-700">Filled in from your calendar. Save to keep it.</p>
+                        @else
+                            <p class="mt-1 text-xs text-gray-500">Optional. Shown under the room name.</p>
+                        @endif
+                    </div>
+                    <div>
+                        <label for="capacity" class="block text-sm font-medium text-gray-700">Seats</label>
+                        @php $suggestCapacity = $display->capacity === null ? ($roomSuggestion['capacity'] ?? null) : null; @endphp
+                        <input type="number" name="capacity" id="capacity" min="1" max="999" placeholder="e.g. 12"
+                               value="{{ old('capacity', $display->capacity ?? $suggestCapacity) }}" class="mt-1 bg-white {{ $inputClass }}">
+                        @if($suggestCapacity)
+                            <p class="mt-1 text-xs text-blue-700">Filled in from your calendar. Save to keep it.</p>
+                        @else
+                            <p class="mt-1 text-xs text-gray-500">Optional. Shown under the room name as "12 seats".</p>
+                        @endif
+                    </div>
                 </div>
 
                 {{-- The read-only facts sit inside the form so Save can be the last thing in the
@@ -377,7 +401,26 @@
                                      :description="$sections[\App\Helpers\DisplaySettingSections::BRANDING]['description']"
                                      :multipart="true">
                 <div class="space-y-6">
+                    {{-- Theme --}}
                     <div>
+                        <p class="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-2">Theme
+                            <x-info-tip text="The look of the whole screen. Both themes show the room status as a coloured border and a word: green when free, red when in use, amber when a meeting is about to start or end." />
+                        </p>
+                        <div class="space-y-2">
+                            @foreach($ds::THEMES as $theme => $themeLabel)
+                                <label class="flex items-start gap-2 cursor-pointer">
+                                    <input type="radio" name="theme" value="{{ $theme }}" class="mt-0.5 {{ $radioClass }}"
+                                           {{ old('theme', $ds::getTheme($display)) === $theme ? 'checked' : '' }}>
+                                    <span>
+                                        <span class="block text-sm text-gray-700">{{ $themeLabel }}{{ $theme === 'classic' ? ' (default)' : '' }}</span>
+                                        <span class="block text-xs text-gray-500">{{ $ds::THEME_DESCRIPTIONS[$theme] }}</span>
+                                    </span>
+                                </label>
+                            @endforeach
+                        </div>
+                    </div>
+
+                    <div class="pt-4 border-t border-gray-100">
                         <label for="font_family" class="block text-sm font-medium text-gray-700 mb-1">Font family</label>
                         <select name="font_family" id="font_family" class="{{ $selectClass }}">
                             @foreach(['Inter', 'Roboto', 'Open Sans', 'Lato', 'Poppins', 'Montserrat'] as $font)

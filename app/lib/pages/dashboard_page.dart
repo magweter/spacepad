@@ -20,6 +20,7 @@ import 'package:spacepad/components/admin_actions.dart';
 import 'package:spacepad/components/day_timeline_widget.dart';
 import 'package:spacepad/components/meeting_meta_row.dart';
 import 'package:spacepad/components/status_title.dart';
+import 'package:spacepad/components/glass_theme.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -127,25 +128,96 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  /// The room name in the header corner, and the long-press target that reveals the admin
-  /// actions when they are hidden.
+  /// The screen inside its status border: the classic black (or background image) framed in the
+  /// status colour, or the glass ground with the status glow behind the content.
+  ///
+  /// Shared by every timeline layout, so a theme is drawn the same way in all of them.
+  Widget _buildFrame(BuildContext context, DashboardController controller, double cornerRadius, Widget child) {
+    final glass = controller.isGlassTheme;
+    final tone = controller.tone;
+    final radius = BorderRadius.circular(cornerRadius);
+
+    final Color borderColor = glass
+        ? GlassTokens.statusColor(tone)
+        : (controller.isTransitioning || controller.isCheckInActive
+            ? TWColors.amber_500
+            : (controller.isReserved ? TWColors.rose_600 : TWColors.green_600));
+
+    final content = Padding(padding: _getInnerPadding(context), child: child);
+
+    return AnimatedContainer(
+      duration: glass ? GlassTokens.crossfade : Duration.zero,
+      curve: Curves.easeOut,
+      height: double.infinity,
+      width: double.infinity,
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(color: borderColor, borderRadius: radius),
+      padding: EdgeInsets.all(_getContainerPadding(context, controller)),
+      child: AuthenticatedBackground(
+        imageUrl: controller.globalSettings.value?.backgroundImageUrl,
+        borderRadius: radius,
+        color: glass ? GlassTokens.ground : Colors.black,
+        child: glass ? GlassGlow(tone: tone, child: content) : content,
+      ),
+    );
+  }
+
+  /// The clock and the status title: the chosen font in the classic theme, the display face in
+  /// the glass theme.
+  TextStyle _headlineStyle(DashboardController controller, double fontSize) {
+    if (controller.isGlassTheme) {
+      return GlassTokens.displayFace(fontSize: fontSize);
+    }
+    return FontService.instance.getTextStyle(
+      fontFamily: controller.currentFontFamily.value,
+      fontSize: fontSize,
+      fontWeight: FontWeight.w700,
+      color: Colors.white,
+    );
+  }
+
+  /// The room name in the header corner with the location and seat count under it, and the
+  /// long-press target that reveals the admin actions when they are hidden.
   ///
   /// That long press is the only way back to the admin actions on a display that hides them.
   Widget _buildRoomName(BuildContext context, DashboardController controller, bool hideAdminActions) {
+    final subline = controller.roomSubline;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onLongPressStart: (_) { if (hideAdminActions) controller.startLongPressTimer(); },
       onLongPressEnd: (_) { if (hideAdminActions) controller.cancelLongPressTimer(); },
-      child: Text(
-        controller.roomName,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: FontService.instance.getTextStyle(
-          fontFamily: controller.currentFontFamily.value,
-          fontSize: _sp(context, 28) * controller.roomNameScale,
-          fontWeight: FontWeight.w500,
-          color: TWColors.white,
-        ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Text(
+            controller.roomName,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: FontService.instance.getTextStyle(
+              fontFamily: controller.currentFontFamily.value,
+              fontSize: _sp(context, 28) * controller.roomNameScale,
+              fontWeight: controller.isGlassTheme ? FontWeight.w600 : FontWeight.w500,
+              color: TWColors.white,
+            ),
+          ),
+          if (subline.isNotEmpty)
+            Text(
+              subline,
+              key: const ValueKey('room-subline'),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: FontService.instance.getTextStyle(
+                fontFamily: controller.currentFontFamily.value,
+                fontSize: _sp(context, 16) * controller.roomNameScale,
+                fontWeight: FontWeight.w500,
+                // `text-2` (dark), a step lighter than muted grey, with a soft shadow: small text
+                // over a light patch of a background photo (a sky, a white wall) otherwise
+                // disappears. On a plain dark ground the shadow does not show.
+                color: const Color(0xFFCBD5E1),
+              ).copyWith(shadows: const [Shadow(color: Color(0x99000000), blurRadius: 6)]),
+            ),
+        ],
       ),
     );
   }
@@ -204,12 +276,15 @@ class _DashboardPageState extends State<DashboardPage> {
           children: [
             Obx(() => Text(
               formatTime(context, controller.time.value),
-              style: FontService.instance.getTextStyle(
-                fontFamily: controller.currentFontFamily.value,
-                fontSize: _sp(context, 28) * controller.clockScale,
-                fontWeight: FontWeight.w500,
-                color: TWColors.white,
-              ),
+              style: controller.isGlassTheme
+                  ? GlassTokens.displayFace(fontSize: _sp(context, 32) * controller.clockScale)
+                      .copyWith(fontFeatures: const [FontFeature.tabularFigures()])
+                  : FontService.instance.getTextStyle(
+                      fontFamily: controller.currentFontFamily.value,
+                      fontSize: _sp(context, 28) * controller.clockScale,
+                      fontWeight: FontWeight.w500,
+                      color: TWColors.white,
+                    ),
             )),
             const SizedBox(width: 16),
             // All the width the clock leaves, with the room name pinned to its right edge. The
@@ -306,12 +381,8 @@ class _DashboardPageState extends State<DashboardPage> {
         Flexible(
           child: Obx(() => StatusTitle(
             text: controller.title,
-            style: FontService.instance.getTextStyle(
-              fontFamily: controller.currentFontFamily.value,
-              fontSize: _sp(context, 50) * controller.titleScale,
-              fontWeight: FontWeight.w700,
-              color: Colors.white,
-            ),
+            // The display face runs narrower than the classic fonts, so it takes a step up.
+            style: _headlineStyle(controller, _sp(context, controller.isGlassTheme ? 56 : 50) * controller.titleScale),
           )),
         ),
         SizedBox(height: space),
@@ -383,7 +454,11 @@ class _DashboardPageState extends State<DashboardPage> {
                   borderRadius: BorderRadius.circular(8),
                   onTap: () => showDialog(
                     context: context,
-                    builder: (context) => CalendarModal(events: controller.events, selectedDate: DateTime.now()),
+                    barrierColor: controller.isGlassTheme ? GlassTokens.scrim : null,
+                    builder: (context) => GlassScope(
+                      enabled: controller.isGlassTheme,
+                      child: CalendarModal(events: controller.events, selectedDate: DateTime.now()),
+                    ),
                   ),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
@@ -421,320 +496,273 @@ class _DashboardPageState extends State<DashboardPage> {
     return Scaffold(
       backgroundColor: AppTheme.black,
       body: Obx(() {
-        if (controller.loading.value) {
-          return Center(
-            child: Spinner(size: 40, thickness: 4, color: AppTheme.platinum),
+        Widget layout() {
+          if (controller.loading.value) {
+            return Center(
+              child: Spinner(size: 40, thickness: 4, color: AppTheme.platinum),
+            );
+          }
+
+          final timelineMode = controller.timelineWidgetMode; // 'none' | 'side_panel' | 'inline' | 'full_panel'
+          final timelineEnabled = timelineMode != 'none';
+          final timelineWidth = isPhone ? 220.0 : _panelWidth(context, 300);
+          final inlineTimelineWidth = isPhone ? 260.0 : _panelWidth(context, 324);
+          final inlineTimelineMaxHeight = isPhone ? 330.0 : 484.0;
+          final gap = isPhone ? 10.0 : 16.0;
+          final portraitTimelineHeight = isPhone ? 200.0 : _panelSize(context, 260).clamp(200.0, 260.0);
+
+          final safeMargin = _safeMargin(context, isPhone);
+
+          final mainStack = Stack(
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildHeader(context, controller, isPhone, timelineToggle: timelineEnabled),
+                  SizedBox(height: safeMargin),
+                  Expanded(
+                    child: _buildMainContent(
+                      context, controller, isPhone, cornerRadius, isPortrait,
+                      // mainStack serves both 'none' and 'side_panel'. Only the latter puts a panel
+                      // beside the content, and only while it is open.
+                      panelBeside: timelineMode == 'side_panel' && _timelineOpen,
+                    ),
+                  ),
+                  SizedBox(height: safeMargin),
+                  _buildBottomBar(context, controller, isPhone, cornerRadius),
+                ],
+              ),
+
+              // Advertisement overlay — hidden while timeline is open
+              if (!timelineEnabled || !_timelineOpen) Obx(() {
+                final settings = controller.globalSettings.value;
+                final adEnabled = settings?.advertisementEnabled ?? false;
+                final adUrl = settings?.advertisementImageUrl;
+                if (!adEnabled || adUrl == null || !controller.showAdvertisement.value) {
+                  return const SizedBox.shrink();
+                }
+                return Align(
+                  alignment: Alignment.centerRight,
+                  child: FractionallySizedBox(
+                    widthFactor: 0.5,
+                    heightFactor: 1.0,
+                    child: Stack(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(cornerRadius),
+                          child: AuthenticatedImage(
+                            imageUrl: adUrl,
+                            fit: BoxFit.contain,
+                            onError: controller.dismissAdvertisement,
+                            placeholder: const SizedBox.shrink(),
+                            errorWidget: const SizedBox.shrink(),
+                          ),
+                        ),
+                        Positioned(
+                          top: 12,
+                          right: 12,
+                          child: Semantics(
+                            label: 'dismiss_advertisement'.tr,
+                            button: true,
+                            child: GestureDetector(
+                              onTap: controller.dismissAdvertisement,
+                              child: Container(
+                                decoration: const BoxDecoration(
+                                  color: Colors.black54,
+                                  shape: BoxShape.circle,
+                                ),
+                                padding: const EdgeInsets.all(6),
+                                child: const Icon(
+                                  Icons.close,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }),
+            ],
           );
-        }
 
-        final timelineMode = controller.timelineWidgetMode; // 'none' | 'side_panel' | 'inline' | 'full_panel'
-        final timelineEnabled = timelineMode != 'none';
-        final timelineWidth = isPhone ? 220.0 : _panelWidth(context, 300);
-        final inlineTimelineWidth = isPhone ? 260.0 : _panelWidth(context, 324);
-        final inlineTimelineMaxHeight = isPhone ? 330.0 : 484.0;
-        final gap = isPhone ? 10.0 : 16.0;
-        final portraitTimelineHeight = isPhone ? 200.0 : _panelSize(context, 260).clamp(200.0, 260.0);
+          // The Row sits at the Scaffold (black) level so the colored border only
+          // wraps the main panel. The timeline panel is outside the colored Container.
+          final mainPanel = _buildFrame(context, controller, cornerRadius, mainStack);
 
-        final safeMargin = _safeMargin(context, isPhone);
+          // ── none ──────────────────────────────────────────────────────────────
+          if (timelineMode == 'none') return mainPanel;
 
-        final mainStack = Stack(
-          children: [
-            Column(
+          // ── inline ────────────────────────────────────────────────────────────
+          // Timeline lives inside the main panel: header row at the top,
+          // content + timeline side by side, action bar at the bottom.
+          if (timelineMode == 'inline') {
+            final inlineContentWidget = _buildMainContent(
+              context, controller, isPhone, cornerRadius, isPortrait,
+              // The timeline sits beside the content in landscape and under it in portrait,
+              // so this row never has the full width of the display.
+              panelBeside: true,
+            );
+
+            final inlineChild = Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _buildHeader(context, controller, isPhone, timelineToggle: timelineEnabled),
+                _buildHeader(context, controller, isPhone),
                 SizedBox(height: safeMargin),
+                // Middle: portrait → content above, timeline below; landscape → side by side
                 Expanded(
-                  child: _buildMainContent(
-                    context, controller, isPhone, cornerRadius, isPortrait,
-                    // mainStack serves both 'none' and 'side_panel'. Only the latter puts a panel
-                    // beside the content, and only while it is open.
-                    panelBeside: timelineMode == 'side_panel' && _timelineOpen,
-                  ),
+                  child: isPortrait
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Expanded(child: inlineContentWidget),
+                          SizedBox(height: gap),
+                          SizedBox(
+                            height: portraitTimelineHeight,
+                            child: DayTimelineWidget(
+                              controller: controller,
+                              isPhone: isPhone,
+                              cornerRadius: cornerRadius,
+                              frosted: true,
+                            ),
+                          ),
+                        ],
+                      )
+                    : Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Expanded(child: inlineContentWidget),
+                          SizedBox(width: gap),
+                          Align(
+                            alignment: Alignment.center,
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(maxHeight: inlineTimelineMaxHeight),
+                              child: SizedBox(
+                                width: inlineTimelineWidth,
+                                child: DayTimelineWidget(
+                                  controller: controller,
+                                  isPhone: isPhone,
+                                  cornerRadius: cornerRadius,
+                                  frosted: true,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                 ),
                 SizedBox(height: safeMargin),
                 _buildBottomBar(context, controller, isPhone, cornerRadius),
               ],
-            ),
+            );
 
-            // Advertisement overlay — hidden while timeline is open
-            if (!timelineEnabled || !_timelineOpen) Obx(() {
-              final settings = controller.globalSettings.value;
-              final adEnabled = settings?.advertisementEnabled ?? false;
-              final adUrl = settings?.advertisementImageUrl;
-              if (!adEnabled || adUrl == null || !controller.showAdvertisement.value) {
-                return const SizedBox.shrink();
-              }
-              return Align(
-                alignment: Alignment.centerRight,
-                child: FractionallySizedBox(
-                  widthFactor: 0.5,
-                  heightFactor: 1.0,
-                  child: Stack(
-                    children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(cornerRadius),
-                        child: AuthenticatedImage(
-                          imageUrl: adUrl,
-                          fit: BoxFit.contain,
-                          onError: controller.dismissAdvertisement,
-                          placeholder: const SizedBox.shrink(),
-                          errorWidget: const SizedBox.shrink(),
-                        ),
+            return _buildFrame(context, controller, cornerRadius, inlineChild);
+          }
+
+          // ── full_panel ────────────────────────────────────────────────────────
+          // Full-height timeline on the right (landscape) or below content (portrait);
+          // main content (header + status + bottom bar) in a Column.
+          if (timelineMode == 'full_panel') {
+
+            final fullPanelHeaderRow = _buildHeader(context, controller, isPhone);
+
+            final fullPanelContentWidget = _buildMainContent(
+              context, controller, isPhone, cornerRadius, isPortrait,
+              // Same as inline: the timeline always takes either the right side or the bottom.
+              panelBeside: true,
+            );
+
+            final fullPanelBottomBar = _buildBottomBar(context, controller, isPhone, cornerRadius);
+
+            final fullPanelTimeline = DayTimelineWidget(
+              controller: controller,
+              isPhone: isPhone,
+              cornerRadius: cornerRadius,
+              frosted: true,
+            );
+
+            final Widget fullPanelChild = isPortrait
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    fullPanelHeaderRow,
+                    SizedBox(height: safeMargin),
+                    Expanded(child: fullPanelContentWidget),
+                    SizedBox(height: safeMargin),
+                    SizedBox(height: portraitTimelineHeight, child: fullPanelTimeline),
+                    SizedBox(height: gap),
+                    fullPanelBottomBar,
+                  ],
+                )
+              : Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          fullPanelHeaderRow,
+                          SizedBox(height: safeMargin),
+                          Expanded(child: fullPanelContentWidget),
+                          SizedBox(height: safeMargin),
+                          fullPanelBottomBar,
+                        ],
                       ),
-                      Positioned(
-                        top: 12,
-                        right: 12,
-                        child: Semantics(
-                          label: 'dismiss_advertisement'.tr,
-                          button: true,
-                          child: GestureDetector(
-                            onTap: controller.dismissAdvertisement,
-                            child: Container(
-                              decoration: const BoxDecoration(
-                                color: Colors.black54,
-                                shape: BoxShape.circle,
-                              ),
-                              padding: const EdgeInsets.all(6),
-                              child: const Icon(
-                                Icons.close,
-                                color: Colors.white,
-                                size: 20,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }),
-          ],
-        );
+                    ),
+                    SizedBox(width: gap),
+                    SizedBox(width: inlineTimelineWidth, child: fullPanelTimeline),
+                  ],
+                );
 
-        // The Row sits at the Scaffold (black) level so the colored border only
-        // wraps the main panel. The timeline panel is outside the colored Container.
-        final mainPanel = Container(
-          height: double.infinity,
-          width: double.infinity,
-          clipBehavior: Clip.antiAlias,
-          decoration: BoxDecoration(
-            color: controller.isTransitioning || controller.isCheckInActive
-                ? TWColors.amber_500
-                : (controller.isReserved ? TWColors.rose_600 : TWColors.green_600),
-            borderRadius: BorderRadius.circular(cornerRadius),
-          ),
-          padding: EdgeInsets.all(_getContainerPadding(context, controller)),
-          child: AuthenticatedBackground(
-            imageUrl: controller.globalSettings.value?.backgroundImageUrl,
-            borderRadius: BorderRadius.circular(cornerRadius),
-            child: Padding(
-              padding: _getInnerPadding(context),
-              child: mainStack,
-            ),
-          ),
-        );
+            return _buildFrame(context, controller, cornerRadius, fullPanelChild);
+          }
 
-        // ── none ──────────────────────────────────────────────────────────────
-        if (timelineMode == 'none') return mainPanel;
-
-        // ── inline ────────────────────────────────────────────────────────────
-        // Timeline lives inside the main panel: header row at the top,
-        // content + timeline side by side, action bar at the bottom.
-        if (timelineMode == 'inline') {
-          final inlineContentWidget = _buildMainContent(
-            context, controller, isPhone, cornerRadius, isPortrait,
-            // The timeline sits beside the content in landscape and under it in portrait,
-            // so this row never has the full width of the display.
-            panelBeside: true,
-          );
-
-          final inlineChild = Column(
+          // ── side_panel ────────────────────────────────────────────────────────
+          return Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _buildHeader(context, controller, isPhone),
-              SizedBox(height: safeMargin),
-              // Middle: portrait → content above, timeline below; landscape → side by side
-              Expanded(
-                child: isPortrait
-                  ? Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Expanded(child: inlineContentWidget),
-                        SizedBox(height: gap),
-                        SizedBox(
-                          height: portraitTimelineHeight,
-                          child: DayTimelineWidget(
-                            controller: controller,
-                            isPhone: isPhone,
-                            cornerRadius: cornerRadius,
-                            frosted: true,
-                          ),
+              Expanded(child: mainPanel),
+
+              // Timeline panel — outside the colored Container so the border only
+              // wraps the main panel. ClipRect + AnimatedContainer animate width
+              // from 0 → timelineWidth + gap. OverflowBox keeps the child at its
+              // natural width while the container clips it during the transition.
+              ClipRect(
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeOut,
+                  width: _timelineOpen ? timelineWidth + gap : 0,
+                  child: OverflowBox(
+                    maxWidth: timelineWidth + gap,
+                    alignment: Alignment.centerRight,
+                    child: SizedBox(
+                      width: timelineWidth + gap,
+                      child: Padding(
+                        padding: EdgeInsets.only(left: gap),
+                        child: DayTimelineWidget(
+                          controller: controller,
+                          isPhone: isPhone,
+                          cornerRadius: cornerRadius,
+                          frosted: true,
                         ),
-                      ],
-                    )
-                  : Row(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Expanded(child: inlineContentWidget),
-                        SizedBox(width: gap),
-                        Align(
-                          alignment: Alignment.center,
-                          child: ConstrainedBox(
-                            constraints: BoxConstraints(maxHeight: inlineTimelineMaxHeight),
-                            child: SizedBox(
-                              width: inlineTimelineWidth,
-                              child: DayTimelineWidget(
-                                controller: controller,
-                                isPhone: isPhone,
-                                cornerRadius: cornerRadius,
-                                frosted: true,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-              ),
-              SizedBox(height: safeMargin),
-              _buildBottomBar(context, controller, isPhone, cornerRadius),
-            ],
-          );
-
-          return Container(
-            height: double.infinity,
-            width: double.infinity,
-            clipBehavior: Clip.antiAlias,
-            decoration: BoxDecoration(
-              color: controller.isTransitioning || controller.isCheckInActive
-                  ? TWColors.amber_500
-                  : (controller.isReserved ? TWColors.rose_600 : TWColors.green_600),
-              borderRadius: BorderRadius.circular(cornerRadius),
-            ),
-            padding: EdgeInsets.all(_getContainerPadding(context, controller)),
-            child: AuthenticatedBackground(
-              imageUrl: controller.globalSettings.value?.backgroundImageUrl,
-              borderRadius: BorderRadius.circular(cornerRadius),
-              child: Padding(
-                padding: _getInnerPadding(context),
-                child: inlineChild,
-              ),
-            ),
-          );
-        }
-
-        // ── full_panel ────────────────────────────────────────────────────────
-        // Full-height timeline on the right (landscape) or below content (portrait);
-        // main content (header + status + bottom bar) in a Column.
-        if (timelineMode == 'full_panel') {
-
-          final fullPanelHeaderRow = _buildHeader(context, controller, isPhone);
-
-          final fullPanelContentWidget = _buildMainContent(
-            context, controller, isPhone, cornerRadius, isPortrait,
-            // Same as inline: the timeline always takes either the right side or the bottom.
-            panelBeside: true,
-          );
-
-          final fullPanelBottomBar = _buildBottomBar(context, controller, isPhone, cornerRadius);
-
-          final fullPanelTimeline = DayTimelineWidget(
-            controller: controller,
-            isPhone: isPhone,
-            cornerRadius: cornerRadius,
-            frosted: true,
-          );
-
-          final Widget fullPanelChild = isPortrait
-            ? Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  fullPanelHeaderRow,
-                  SizedBox(height: safeMargin),
-                  Expanded(child: fullPanelContentWidget),
-                  SizedBox(height: safeMargin),
-                  SizedBox(height: portraitTimelineHeight, child: fullPanelTimeline),
-                  SizedBox(height: gap),
-                  fullPanelBottomBar,
-                ],
-              )
-            : Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        fullPanelHeaderRow,
-                        SizedBox(height: safeMargin),
-                        Expanded(child: fullPanelContentWidget),
-                        SizedBox(height: safeMargin),
-                        fullPanelBottomBar,
-                      ],
-                    ),
-                  ),
-                  SizedBox(width: gap),
-                  SizedBox(width: inlineTimelineWidth, child: fullPanelTimeline),
-                ],
-              );
-
-          return Container(
-            height: double.infinity,
-            width: double.infinity,
-            clipBehavior: Clip.antiAlias,
-            decoration: BoxDecoration(
-              color: controller.isTransitioning || controller.isCheckInActive
-                  ? TWColors.amber_500
-                  : (controller.isReserved ? TWColors.rose_600 : TWColors.green_600),
-              borderRadius: BorderRadius.circular(cornerRadius),
-            ),
-            padding: EdgeInsets.all(_getContainerPadding(context, controller)),
-            child: AuthenticatedBackground(
-              imageUrl: controller.globalSettings.value?.backgroundImageUrl,
-              borderRadius: BorderRadius.circular(cornerRadius),
-              child: Padding(
-                padding: _getInnerPadding(context),
-                child: fullPanelChild,
-              ),
-            ),
-          );
-        }
-
-        // ── side_panel ────────────────────────────────────────────────────────
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Expanded(child: mainPanel),
-
-            // Timeline panel — outside the colored Container so the border only
-            // wraps the main panel. ClipRect + AnimatedContainer animate width
-            // from 0 → timelineWidth + gap. OverflowBox keeps the child at its
-            // natural width while the container clips it during the transition.
-            ClipRect(
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeOut,
-                width: _timelineOpen ? timelineWidth + gap : 0,
-                child: OverflowBox(
-                  maxWidth: timelineWidth + gap,
-                  alignment: Alignment.centerRight,
-                  child: SizedBox(
-                    width: timelineWidth + gap,
-                    child: Padding(
-                      padding: EdgeInsets.only(left: gap),
-                      child: DayTimelineWidget(
-                        controller: controller,
-                        isPhone: isPhone,
-                        cornerRadius: cornerRadius,
-                        frosted: true,
                       ),
                     ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          );
+        }
+
+        // Read here, inside the Obx, so a theme change from the portal redraws the screen.
+        final glass = controller.isGlassTheme;
+        return GlassScope(
+          enabled: glass,
+          // Behind the side panel, which sits outside the frame.
+          child: ColoredBox(color: glass ? GlassTokens.ground : AppTheme.black, child: layout()),
         );
       }),
     );

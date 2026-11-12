@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:tailwind_components/tailwind_components.dart';
+import 'package:spacepad/components/glass_theme.dart';
 
 class FrostedPanel extends StatelessWidget {
   final Widget child;
@@ -9,6 +10,10 @@ class FrostedPanel extends StatelessWidget {
   final Color backgroundColor;
   final EdgeInsetsGeometry? padding;
 
+  /// Whether the caller left the colour to the panel. Only those panels take the glass fill
+  /// and edge under a [GlassScope]; a panel with a colour of its own keeps it.
+  final bool _defaultLift;
+
   const FrostedPanel({
     super.key,
     required this.child,
@@ -16,7 +21,8 @@ class FrostedPanel extends StatelessWidget {
     this.blurIntensity = 18,
     Color? backgroundColor,
     this.padding,
-  }) : backgroundColor = backgroundColor ?? defaultLift;
+  }) : backgroundColor = backgroundColor ?? defaultLift,
+       _defaultLift = backgroundColor == null;
 
   /// The lift every frosted surface takes, whatever sits behind it.
   ///
@@ -46,10 +52,12 @@ class FrostedPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final glass = _defaultLift && GlassScope.of(context);
     final panel = Container(
       decoration: BoxDecoration(
-        color: backgroundColor,
+        color: glass ? GlassTokens.glass : backgroundColor,
         borderRadius: BorderRadius.circular(borderRadius),
+        border: glass ? Border.all(color: GlassTokens.glassBorder, width: 1) : null,
       ),
       padding: padding,
       child: child,

@@ -7,6 +7,7 @@ use App\Helpers\DisplaySettingSections;
 use App\Models\Display;
 use App\Models\DisplaySetting;
 use App\Services\ImageService;
+use App\Services\RoomDetailsService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -33,9 +34,18 @@ class DisplaySettingsController extends Controller
 
         // No profile list: linking and unlinking live on the Displays tab, which can do it for
         // several displays at once. This screen only reports which profile is followed.
+        $display->load('calendar.room', 'settings', 'profile.settings');
+
+        // While location or seats are empty, offer what the calendar provider has for the room.
+        // It only fills the form: nothing is stored until Save.
+        $roomSuggestion = $display->location === null || $display->capacity === null
+            ? app(RoomDetailsService::class)->forDisplay($display)
+            : null;
+
         return view('pages.displays.configure', [
-            'display' => $display->load('calendar', 'settings', 'profile.settings'),
+            'display' => $display,
             'sections' => DisplaySettingSections::all(),
+            'roomSuggestion' => $roomSuggestion,
         ]);
     }
 
@@ -255,6 +265,7 @@ class DisplaySettingsController extends Controller
                 'text_checkin' => 'nullable|string|max:64',
             ],
             DisplaySettingSections::BRANDING => [
+                'theme' => DisplaySettings::themeRule(),
                 'font_family' => 'nullable|string|in:Inter,Roboto,Open Sans,Lato,Poppins,Montserrat',
                 ...DisplaySettings::fontSizeRules(),
                 'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
@@ -335,8 +346,12 @@ class DisplaySettingsController extends Controller
     {
         $updated = true;
 
+        if ($request->filled('theme')) {
+            $updated = DisplaySettings::setTheme($display, $request->input('theme'));
+        }
+
         if ($request->has('font_family')) {
-            $updated = DisplaySettings::setFontFamily($display, $request->input('font_family'));
+            $updated = $updated && DisplaySettings::setFontFamily($display, $request->input('font_family'));
         }
 
         foreach (array_keys(DisplaySettings::FONT_SIZE_ELEMENTS) as $element) {

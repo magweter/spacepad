@@ -24,6 +24,8 @@ class Display extends Model
         'display_profile_id',
         'name',
         'display_name',
+        'location',
+        'capacity',
         'calendar_id',
         'status',
         'last_sync_at',
@@ -33,6 +35,7 @@ class Display extends Model
     protected $casts = [
         'last_sync_at' => 'datetime',
         'last_event_at' => 'datetime',
+        'capacity' => 'integer',
         'status' => DisplayStatus::class,
     ];
 
@@ -232,6 +235,11 @@ class Display extends Model
     public function getFontFamily(): string
     {
         return DisplaySettings::getFontFamily($this);
+    }
+
+    public function getTheme(): string
+    {
+        return DisplaySettings::getTheme($this);
     }
 
     public function getFontSize(string $element): string
