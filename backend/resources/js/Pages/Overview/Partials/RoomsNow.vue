@@ -4,7 +4,7 @@ import Card from '../../../DesignSystem/Card.vue';
 import EmptyState from '../../../DesignSystem/EmptyState.vue';
 import Button from '../../../DesignSystem/Button.vue';
 
-defineProps({ rooms: Array, hours: Array, nowLeft: Number, nowLabel: String, updated: String, urls: Object });
+defineProps({ rooms: Array, hours: Array, nowLeft: Number, nowLabel: String, urls: Object });
 
 const view = ref('timeline');
 const rail = { free: 'border-l-available', busy: 'border-l-reserved', checkin: 'border-l-checkin', offline: 'border-l-offline' };
@@ -18,7 +18,6 @@ const block = { past: 'bg-line text-ink-3', busy: 'bg-reserved text-white', chec
     <section aria-label="Live room status" class="flex flex-col gap-3.5">
         <div class="flex flex-wrap items-center gap-3">
             <h2 class="font-display text-base font-bold tracking-tight">Rooms right now</h2>
-            <span v-if="rooms.length" class="text-xs text-muted">Updated {{ updated }}</span>
             <div class="flex-1"></div>
             <div v-if="rooms.length" class="inline-flex overflow-hidden rounded-lg border border-line bg-surface">
                 <button v-for="v in ['timeline', 'cards']" :key="v" type="button" :aria-pressed="view === v" @click="view = v"

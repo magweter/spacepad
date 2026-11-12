@@ -7,6 +7,7 @@ use App\Models\Display;
 use App\Models\Event;
 use App\Models\OutlookAccount;
 use App\Models\User;
+use App\Services\EventService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -14,7 +15,7 @@ use Inertia\Testing\AssertableInertia as Assert;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    config(['settings.is_self_hosted' => false]);
+    config(['settings.is_self_hosted' => false, 'services.events.cache_enabled' => true]);
 });
 
 function overviewDisplay(User $user, array $attributes = []): Display
@@ -81,4 +82,16 @@ test('a flow that ends in a modal still lands on the classic page', function () 
     $this->actingAs($user)->withSession(['open-google-booking-method-modal' => 'abc'])
         ->get(route('dashboard'))
         ->assertRedirect(route('portal.manage'));
+});
+
+test('with caching off the events are fetched on the spot', function () {
+    config(['services.events.cache_enabled' => false]);
+    $user = User::factory()->active()->create();
+    $display = overviewDisplay($user);
+
+    $this->mock(EventService::class)->shouldReceive('getEventsForDisplay')->once()->with($display->id)
+        ->andReturn(collect([new Event(['summary' => 'Planning', 'start' => now()->addHour(), 'end' => now()->addHours(2), 'source' => 'outlook'])]));
+
+    $this->actingAs($user)->get(route('dashboard'))
+        ->assertInertia(fn (Assert $page) => $page->where('rooms.0.hasData', true)->where('rooms.0.events.0.title', 'Planning'));
 });

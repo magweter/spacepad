@@ -19,13 +19,8 @@ const props = defineProps({
 });
 
 const now = ref(new Date());
-const loadedAt = ref(new Date());
 const { list, hours, figures, occupancy, nowLeft, nowLabel } = useRoomDay(toRef(props, 'rooms'), now);
 
-const updated = computed(() => {
-    const seconds = Math.round((now.value - loadedAt.value) / 1000);
-    return seconds < 60 ? 'just now' : `${Math.round(seconds / 60)} min ago`;
-});
 const occupancyLabels = computed(() => hours.value);
 const firstName = computed(() => (props.shell.user || '').split(/[\s.@]+/)[0]);
 const greeting = computed(() => {
@@ -53,7 +48,7 @@ let tick;
 let poll;
 onMounted(() => {
     tick = setInterval(() => { now.value = new Date(); }, 20000);
-    poll = setInterval(() => router.reload({ only: ['rooms', 'notices'], onSuccess: () => { loadedAt.value = new Date(); now.value = new Date(); } }), 60000);
+    poll = setInterval(() => router.reload({ only: ['rooms', 'notices'], onSuccess: () => { now.value = new Date(); } }), 60000);
 });
 onBeforeUnmount(() => { clearInterval(tick); clearInterval(poll); });
 </script>
@@ -85,7 +80,7 @@ onBeforeUnmount(() => { clearInterval(tick); clearInterval(poll); });
             <div class="flex flex-wrap items-start gap-6">
                 <div class="flex min-w-0 flex-[999_1_560px] flex-col gap-4">
                     <KeyFigures v-if="rooms.length" :figures="figures" :accounts="accounts" />
-                    <RoomsNow :rooms="list" :hours="hours" :now-left="nowLeft" :now-label="nowLabel" :updated="updated" :urls="urls" />
+                    <RoomsNow :rooms="list" :hours="hours" :now-left="nowLeft" :now-label="nowLabel" :urls="urls" />
                     <Occupancy v-if="occupancy.length" :hours="occupancy" :labels="occupancyLabels" />
                 </div>
 
