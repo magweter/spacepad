@@ -83,7 +83,13 @@ onMounted(() => {
 });
 onBeforeUnmount(() => { clearInterval(timer); observer?.disconnect(); });
 
-const glass = 'border-[1.5px] border-[var(--glass-border)] bg-[var(--glass)] shadow-[inset_0_1px_0_var(--glass-border)]';
+// The panels as the app draws them: frosted with a hairline edge in glass, a plain light lift in
+// classic (FrostedPanel.defaultLift, 20% white, no edge).
+const panel = computed(() => (isGlass.value
+    ? 'border-[1.5px] border-[var(--glass-border)] bg-[var(--glass)] shadow-[inset_0_1px_0_var(--glass-border)]'
+    : 'bg-white/20'));
+// Classic panels are rounder and its buttons a touch lighter, as in the app.
+const radius = computed(() => (isGlass.value ? 'rounded-[7px]' : 'rounded-[10px]'));
 </script>
 
 <template>
@@ -120,11 +126,11 @@ const glass = 'border-[1.5px] border-[var(--glass-border)] bg-[var(--glass)] sha
                             <span class="text-[var(--text-muted)]" :style="{ fontSize: px(15, 'details') }">{{ detail }}</span>
                             <span v-if="organizer" class="text-[var(--text-muted)]" :style="{ fontSize: px(13, 'details') }">Booked by Sanne de Vries</span>
                             <span v-if="actions.length" class="mt-2.5 flex flex-wrap gap-1.5">
-                                <span v-for="a in actions" :key="a" :class="glass" class="rounded-[7px] px-3 py-[7px] font-semibold" :style="{ fontSize: px(12, 'toolbar') }">{{ a }}</span>
+                                <span v-for="a in actions" :key="a" :class="[panel, radius]" class="px-3 py-[7px] font-semibold" :style="{ fontSize: px(12, 'buttons') }">{{ a }}</span>
                             </span>
                         </div>
 
-                        <div :class="glass" class="flex h-[37px] items-center justify-between rounded-[7px] px-3" :style="{ fontSize: px(11.5, 'toolbar') }">
+                        <div :class="[panel, radius]" class="flex h-[37px] items-center justify-between px-3" :style="{ fontSize: px(11.5, 'toolbar') }">
                             <span><span class="mr-2.5 text-[var(--text-muted)] tabular-nums">11:00</span><b>{{ s.show_meeting_title ? 'Design sync' : text('text_reserved') }}</b></span>
                             <span v-if="s.view_schedule" class="inline-flex items-center gap-1.5">
                                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></svg>View schedule
@@ -135,14 +141,14 @@ const glass = 'border-[1.5px] border-[var(--glass-border)] bg-[var(--glass)] sha
                     <div v-if="shown === 'advert'" class="relative w-1/2 flex-none">
                         <img :src="advertisement" alt="" class="h-full w-full object-cover">
                     </div>
-                    <div v-else-if="timeline" class="relative flex flex-none flex-col gap-2 border-l border-[var(--glass-border)] bg-[var(--glass)] px-3.5 py-4"
-                         :class="s.timeline_widget_mode === 'full_panel' ? 'w-[190px]' : 'my-auto mr-4 w-[170px] rounded-[7px] border'"
+                    <div v-else-if="timeline" class="relative flex flex-none flex-col gap-2 px-3.5 py-4"
+                         :class="[panel, s.timeline_widget_mode === 'full_panel' ? 'w-[190px] rounded-none border-y-0 border-r-0' : ['my-auto mr-4 w-[170px]', radius]]"
                          :style="{ fontSize: px(11, 'calendar') }">
                         <span class="font-semibold">Today</span>
-                        <span class="rounded-[5px] border-l-[3px] border-[var(--status-reserved)] bg-[var(--glass)] px-2 py-1.5">
+                        <span class="rounded-[5px] border-l-[3px] border-[var(--status-reserved)] px-2 py-1.5" :class="isGlass ? 'bg-[var(--glass)]' : 'bg-white/10'">
                             <span class="block text-[var(--text-muted)] tabular-nums">10:00</span>{{ s.show_meeting_title ? 'Q4 planning' : text('text_reserved') }}
                         </span>
-                        <span class="rounded-[5px] border-l-[3px] border-[var(--status-reserved)] bg-[var(--glass)] px-2 py-1.5">
+                        <span class="rounded-[5px] border-l-[3px] border-[var(--status-reserved)] px-2 py-1.5" :class="isGlass ? 'bg-[var(--glass)]' : 'bg-white/10'">
                             <span class="block text-[var(--text-muted)] tabular-nums">11:00</span>{{ s.show_meeting_title ? 'Design sync' : text('text_reserved') }}
                         </span>
                     </div>
