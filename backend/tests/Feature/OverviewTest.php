@@ -117,3 +117,25 @@ test('every portal page knows how this person can get Pro', function () {
             ->where('upgrade.canManage', false)
             ->where('upgrade.managers', ['Martijn']));
 });
+
+test('with caching off a failing calendar is left alone for a while instead of asked on every load', function () {
+    config(['services.events.cache_enabled' => false]);
+    $user = User::factory()->active()->create();
+    overviewDisplay($user);
+
+    $this->mock(EventService::class)->shouldReceive('getEventsForDisplay')->once()->andThrow(new RuntimeException('Calendar did not answer'));
+
+    $this->actingAs($user)->get(route('dashboard'))->assertInertia(fn (Assert $page) => $page->where('rooms.0.hasData', false));
+    $this->actingAs($user)->get(route('dashboard'))->assertInertia(fn (Assert $page) => $page->where('rooms.0.hasData', false));
+});
+
+test('with caching off the fetched events are kept for a minute', function () {
+    config(['services.events.cache_enabled' => false]);
+    $user = User::factory()->active()->create();
+    overviewDisplay($user);
+
+    $this->mock(EventService::class)->shouldReceive('getEventsForDisplay')->once()->andReturn(collect());
+
+    $this->actingAs($user)->get(route('dashboard'));
+    $this->actingAs($user)->get(route('displays.index'))->assertInertia(fn (Assert $page) => $page->where('displays.0.hasData', true));
+});

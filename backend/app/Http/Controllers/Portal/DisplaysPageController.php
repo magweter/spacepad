@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Portal;
 
-use App\Enums\DisplayStatus;
 use App\Enums\EventSource;
 use App\Helpers\DisplaySettings;
 use App\Http\Controllers\Controller;
@@ -10,14 +9,13 @@ use App\Models\Calendar;
 use App\Models\Device;
 use App\Models\Display;
 use App\Models\DisplayProfile;
-use App\Services\EventService;
+use App\Support\PortalEvents;
 use App\Support\PortalShell;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
 use Inertia\Response;
-use Throwable;
 
 /**
  * Every display of the workspace in one list, with a side panel per display (deep-linkable with
@@ -39,6 +37,7 @@ class DisplaysPageController extends Controller
 
         $hasPro = $workspace->hasPro();
 
+        PortalEvents::reset();
         $displays = Display::where('workspace_id', $workspace->id)
             ->with(['calendar.outlookAccount', 'calendar.googleAccount', 'calendar.caldavAccount', 'calendar.room', 'settings', 'profile'])
             ->orderBy('name')
@@ -82,7 +81,7 @@ class DisplaysPageController extends Controller
     {
         $devices = $devices->sortByDesc('last_activity_at')->values();
         $latest = $devices->first();
-        $cached = $this->events($display);
+        $cached = PortalEvents::for($display);
         $grace = $cached !== null && $display->isCheckInEnabled() ? $display->getCheckInGracePeriod() : null;
         $device = fn (Device $d) => [
             'name' => $d->name,
@@ -159,28 +158,5 @@ class DisplaysPageController extends Controller
             'detail' => $detail,
             'isRoom' => $calendar->room !== null,
         ];
-    }
-
-    /**
-     * The display's events as the tablets see them: from the cache, or fetched straight away when
-     * caching is off. Same rule as the overview.
-     */
-    private function events(Display $display): ?Collection
-    {
-        if (config('services.events.cache_enabled')) {
-            return Cache::get($display->getEventsCacheKey()) ?? Cache::get($display->getEventsCacheKey().':fallback');
-        }
-
-        if ($display->calendar_id === null || $display->status === DisplayStatus::REQUIRES_PRO) {
-            return null;
-        }
-
-        try {
-            return app(EventService::class)->getEventsForDisplay($display->id);
-        } catch (Throwable $e) {
-            report($e);
-
-            return null;
-        }
     }
 }
