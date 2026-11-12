@@ -18,6 +18,10 @@ class GlassTokens {
   /// `glass-border` (dark): the hairline edge of a frosted surface.
   static const Color glassBorder = Color(0x38FFFFFF);
 
+  /// `scrim` (dark): the backdrop behind a dialog, dark enough that the screen behind the glass
+  /// panel no longer reads through it.
+  static const Color scrim = Color(0xB3020617);
+
   /// `status-*` (dark): green free, red in use, amber about to change, grey offline.
   static const Color available = Color(0xFF4ADE80);
   static const Color reserved = Color(0xFFF87171);
@@ -55,7 +59,8 @@ class GlassTokens {
 ///
 /// A scope rather than a parameter, because the buttons, chips, the bottom bar and the
 /// timeline all draw a [FrostedPanel] and each sits a few widgets deep. Dialogs open in a route
-/// of their own, outside the scope, so they keep their own look.
+/// of their own, outside the dashboard's scope, so the code that opens one wraps it in a scope
+/// of its own.
 class GlassScope extends InheritedWidget {
   final bool enabled;
 

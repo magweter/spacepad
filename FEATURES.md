@@ -142,7 +142,8 @@ Part of the same **Configure display** screen, in the Branding, State texts and 
 - Choose a **theme** for the whole screen. Also settable on a profile.
   - **Classic** (default): the screen framed in the status colour on black.
   - **Glass**: a dark navy screen with a soft glow in the status colour from the corners, a thick
-    status border, frosted translucent buttons, chips, bottom bar and timeline, and the clock and the
+    status border, frosted translucent buttons, chips, bottom bar and timeline (the schedule and booking popups too,
+    on a dark backdrop so the screen behind them does not read through), and the clock and the
     title in a bolder display font (Space Grotesk). Border and glow are green when free, red in use,
     amber when a meeting is about to start or end or check-in is due, and grey while the tablet is
     offline or cannot reach the server; the status always comes with a word on screen. A status change

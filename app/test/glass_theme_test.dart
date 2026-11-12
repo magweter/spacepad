@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:spacepad/components/calendar_modal.dart';
 import 'package:spacepad/components/frosted_panel.dart';
 import 'package:spacepad/components/glass_theme.dart';
 import 'package:spacepad/controllers/dashboard_controller.dart';
@@ -129,6 +130,24 @@ void main() {
     await _pump(tester, 'glass', []);
     expect(edge(tester)?.top.color, GlassTokens.glassBorder);
     expect(tester.widget<FrostedPanel>(find.byKey(const ValueKey('bottom-toolbar'))), isNotNull);
+  });
+
+  testWidgets('the schedule popup takes the glass edge in the glass theme', (tester) async {
+    Border? edge() {
+      final panel = find.descendant(of: find.byType(CalendarModal), matching: find.byType(FrostedPanel)).first;
+      final box = tester.widget<Container>(find.descendant(of: panel, matching: find.byType(Container)).first);
+      return (box.decoration as BoxDecoration).border as Border?;
+    }
+
+    await _pump(tester, 'glass', []);
+    await tester.tap(find.text('view_schedule'.tr));
+    await tester.pumpAndSettle();
+    expect(edge()?.top.color, GlassTokens.glassBorder);
+
+    await _pump(tester, 'classic', []);
+    await tester.tap(find.text('view_schedule'.tr));
+    await tester.pumpAndSettle();
+    expect(edge(), isNull);
   });
 
   group('the line under the room name', () {

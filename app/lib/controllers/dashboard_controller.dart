@@ -523,10 +523,16 @@ class DashboardController extends GetxController {
   void showCustomBookingModal(BuildContext context, bool isPhone, double cornerRadius) {
     showDialog(
       context: context,
-      builder: (context) => CustomBookingModal(
-        controller: this,
-        isPhone: isPhone,
-        cornerRadius: cornerRadius,
+      barrierColor: isGlassTheme ? GlassTokens.scrim : null,
+      // A dialog opens in a route of its own, outside the dashboard's scope, so it is handed the
+      // theme again here.
+      builder: (context) => GlassScope(
+        enabled: isGlassTheme,
+        child: CustomBookingModal(
+          controller: this,
+          isPhone: isPhone,
+          cornerRadius: cornerRadius,
+        ),
       ),
     );
   }

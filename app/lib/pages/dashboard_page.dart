@@ -452,7 +452,11 @@ class _DashboardPageState extends State<DashboardPage> {
                   borderRadius: BorderRadius.circular(8),
                   onTap: () => showDialog(
                     context: context,
-                    builder: (context) => CalendarModal(events: controller.events, selectedDate: DateTime.now()),
+                    barrierColor: controller.isGlassTheme ? GlassTokens.scrim : null,
+                    builder: (context) => GlassScope(
+                      enabled: controller.isGlassTheme,
+                      child: CalendarModal(events: controller.events, selectedDate: DateTime.now()),
+                    ),
                   ),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
