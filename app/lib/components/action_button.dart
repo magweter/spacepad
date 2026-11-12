@@ -13,6 +13,9 @@ class ActionButton extends StatelessWidget {
   final bool disabled;
   final bool isLoading;
 
+  /// The text size step chosen for the buttons, see DashboardController.buttonsScale.
+  final double scale;
+
   const ActionButton({
     super.key,
     required this.text,
@@ -23,16 +26,28 @@ class ActionButton extends StatelessWidget {
     this.textColor,
     this.disabled = false,
     this.isLoading = false,
+    this.scale = 1.0,
   });
+
+  /// Same screen scale as the rest of the dashboard (DashboardPage._sp), times [scale], so the
+  /// buttons grow with the display and with the chosen size instead of staying at one size
+  /// while the title and the details around them change.
+  double _size(BuildContext context, double phone, double other) {
+    if (isPhone) return (phone * scale).roundToDouble();
+    final s = MediaQuery.of(context).size.shortestSide;
+    return (other * (s / 750).clamp(0.5, 1.3) * scale).roundToDouble();
+  }
 
   @override
   Widget build(BuildContext context) {
     final Color effectiveBorderColor = borderColor ?? TWColors.gray_500.withAlpha(160);
     final bool isDisabled = disabled || isLoading;
+    final fontSize = _size(context, 16, 22);
+    final spinnerSize = _size(context, 20, 24);
     return Opacity(
       opacity: isDisabled ? 0.5 : 1.0,
       child: Container(
-        margin: EdgeInsets.only(top: isPhone ? 10 : 20, bottom: isPhone ? 10 : 20),
+        margin: EdgeInsets.symmetric(vertical: _size(context, 10, 20)),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(cornerRadius),
         ),
@@ -48,11 +63,11 @@ class ActionButton extends StatelessWidget {
                 children: [
                   Padding(
                     padding: EdgeInsets.symmetric(
-                      vertical: isPhone ? 12 : 16,
-                      horizontal: isPhone ? 20 : 28,
+                      vertical: _size(context, 12, 16),
+                      horizontal: _size(context, 20, 28),
                     ),
                     child: SizedBox(
-                      height: isPhone ? 22 : 26, // Fixed height to match text line height
+                      height: (fontSize * 1.3).roundToDouble(), // Fixed height to match text line height
                       child: Stack(
                         alignment: Alignment.center,
                         children: [
@@ -63,7 +78,7 @@ class ActionButton extends StatelessWidget {
                               text.tr,
                               style: TextStyle(
                                 color: textColor ?? TWColors.white,
-                                fontSize: isPhone ? 16 : 20,
+                                fontSize: fontSize,
                                 fontWeight: FontWeight.w700,
                                 height: 1.0, // Ensure consistent line height
                               ),
@@ -73,8 +88,8 @@ class ActionButton extends StatelessWidget {
                           // Show loading indicator on top when loading
                           if (isLoading)
                             SizedBox(
-                              width: isPhone ? 20 : 24,
-                              height: isPhone ? 20 : 24,
+                              width: spinnerSize,
+                              height: spinnerSize,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
                                 valueColor: AlwaysStoppedAnimation<Color>(
