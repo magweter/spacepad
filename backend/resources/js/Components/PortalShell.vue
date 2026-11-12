@@ -32,7 +32,7 @@ function switchTo(workspace) {
 <template>
     <div class="flex min-h-screen flex-wrap bg-ground text-sm leading-normal text-ink">
         <aside class="flex flex-[0_0_100%] flex-col gap-6 bg-navy px-3.5 py-5 text-on-navy-2 md:sticky md:top-0 md:h-screen md:w-[248px] md:flex-[0_0_248px] md:overflow-y-auto">
-            <Logo :href="shell.nav[0].href" dark small class="px-1.5 pt-0.5 pb-1.5" />
+            <Logo :href="shell.nav[0].href" dark class="px-1.5 pt-0.5 pb-1.5" />
 
             <div class="relative">
                 <button type="button" aria-label="Switch workspace" :aria-expanded="switching" @click="switching = !switching"
