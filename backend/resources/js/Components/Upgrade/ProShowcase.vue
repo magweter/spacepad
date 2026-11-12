@@ -42,7 +42,7 @@ const ground = 'radial-gradient(70% 80% at 100% 0%, color-mix(in srgb, var(--bra
         <div class="absolute bottom-[9%] left-[13%] w-[38%] rotate-1">
             <MiniDisplay room="Focus 1" title="All yours!" detail="Free until 11:00" tone="available" :photo="photos.green" button="Book now" />
         </div>
-        <div v-if="enterprise" class="absolute bottom-[6%] left-[3%] w-[22%] -rotate-3 opacity-90">
+        <div v-if="enterprise" class="absolute right-[9%] bottom-[23%] w-[24%] rotate-2">
             <MiniDisplay room="Atlas" title="Check in" detail="Starts now" tone="checkin" :photo="photos.glass" />
         </div>
 
