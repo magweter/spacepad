@@ -161,14 +161,14 @@ test('connecting a calendar account reports a milestone, for the first one only'
         'password' => 'secret',
     ]);
 
-    $connect('first@example.com')->assertRedirect(route('dashboard'));
+    $connect('first@example.com')->assertRedirect(route('calendars.index'));
 
     nextRequest();
     $this->get(route('dashboard'))->assertSee('calendar_connected', false);
 
     // A second account is not a funnel step: they are already past it.
     nextRequest();
-    $connect('second@example.com')->assertRedirect(route('dashboard'));
+    $connect('second@example.com')->assertRedirect(route('calendars.index'));
 
     nextRequest();
     $this->get(route('dashboard'))->assertDontSee('calendar_connected', false);

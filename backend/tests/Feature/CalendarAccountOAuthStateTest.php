@@ -45,7 +45,7 @@ describe('google account linking', function () {
         $this->actingAs($user)
             ->withSession(['google_oauth_state' => 'expected-state'])
             ->get('/google-accounts/callback?code=attacker-code&state=other-state')
-            ->assertRedirect(route('dashboard'))
+            ->assertRedirect(route('calendars.index'))
             ->assertSessionHas('error');
     });
 
@@ -58,7 +58,7 @@ describe('google account linking', function () {
 
         $this->actingAs($user)
             ->get('/google-accounts/callback?code=attacker-code&state=anything')
-            ->assertRedirect(route('dashboard'))
+            ->assertRedirect(route('calendars.index'))
             ->assertSessionHas('error');
     });
 
@@ -77,7 +77,7 @@ describe('google account linking', function () {
         $this->actingAs($user)
             ->withSession(['google_oauth_state' => 'expected-state'])
             ->get('/google-accounts/callback?code=real-code&state=expected-state')
-            ->assertRedirect(route('dashboard'))
+            ->assertRedirect(route('calendars.index'))
             ->assertSessionHas('success')
             ->assertSessionMissing('google_oauth_state');
     });
@@ -112,7 +112,7 @@ describe('outlook account linking', function () {
         $this->actingAs($user)
             ->withSession(['outlook_oauth_state' => 'expected-state'])
             ->get('/outlook-accounts/callback?code=attacker-code&state=other-state')
-            ->assertRedirect(route('dashboard'))
+            ->assertRedirect(route('calendars.index'))
             ->assertSessionHas('error');
     });
 
@@ -125,7 +125,7 @@ describe('outlook account linking', function () {
 
         $this->actingAs($user)
             ->get('/outlook-accounts/callback?code=attacker-code&state=anything')
-            ->assertRedirect(route('dashboard'))
+            ->assertRedirect(route('calendars.index'))
             ->assertSessionHas('error');
     });
 
@@ -143,7 +143,7 @@ describe('outlook account linking', function () {
         $this->actingAs($user)
             ->withSession(['outlook_oauth_state' => 'expected-state'])
             ->get('/outlook-accounts/callback?code=real-code&state=expected-state')
-            ->assertRedirect(route('dashboard'))
+            ->assertRedirect(route('calendars.index'))
             ->assertSessionHas('success')
             ->assertSessionMissing('outlook_oauth_state');
     });
