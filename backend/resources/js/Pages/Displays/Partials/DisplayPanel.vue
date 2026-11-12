@@ -3,7 +3,6 @@
 // the right. It works on the row data the list already has, so opening it costs no request.
 import { computed, ref } from 'vue';
 import Button from '../../../DesignSystem/Button.vue';
-import Chip from '../../../DesignSystem/Chip.vue';
 import Notice from '../../../DesignSystem/Notice.vue';
 import StatusDot from '../../../DesignSystem/StatusDot.vue';
 import Icon from '../../../Components/Icon.vue';
@@ -59,18 +58,37 @@ const heading = 'text-xs font-semibold tracking-[0.04em] text-muted uppercase';
                 </button>
             </div>
 
-            <div class="flex flex-wrap gap-2 border-b border-line px-6 py-3.5">
-                <Button v-if="hasPro" size="sm" :href="display.urls.configure" external><template #icon><Icon name="settings" :size="14" /></template>Configure</Button>
-                <span v-else class="inline-flex items-center gap-1.5">
-                    <Button size="sm" disabled title="Upgrade to Pro to configure displays"><template #icon><Icon name="settings" :size="14" /></template>Configure</Button>
-                    <a :href="urls.upgrade"><Chip tone="info">Pro</Chip></a>
-                </span>
-                <Button v-if="display.status === 'requires_pro'" size="sm" variant="secondary" :disabled="busy" title="Use this display instead of the current active one" @click="emit('makeActive')">Make active</Button>
-                <Button v-else size="sm" variant="secondary" :disabled="busy" @click="emit('toggle')">
-                    <template #icon><Icon :name="display.status === 'active' ? 'pause' : 'play'" :size="14" /></template>{{ display.status === 'active' ? 'Pause' : 'Resume' }}
-                </Button>
-                <Button v-if="hasPro" size="sm" variant="secondary" @click="emit('diagnose')"><template #icon><Icon name="search" :size="14" /></template>Troubleshoot</Button>
-                <Button size="sm" variant="danger" :disabled="busy" @click="emit('remove')"><template #icon><Icon name="trash" :size="14" /></template>Delete</Button>
+            <!-- One main action, the others as a quiet group, delete apart on the right. -->
+            <div class="flex items-center gap-2 border-b border-line px-6 py-3.5">
+                <a v-if="hasPro" :href="display.urls.configure"
+                   class="inline-flex h-9 flex-1 items-center justify-center gap-2 rounded-lg whitespace-nowrap bg-navy px-3 text-[13px] font-semibold text-white hover:bg-navy-700">
+                    <Icon name="settings" :size="15" />Configure
+                </a>
+                <a v-else :href="urls.upgrade" title="Configuring a display is part of Pro"
+                   class="inline-flex h-9 flex-1 items-center justify-center gap-2 rounded-lg whitespace-nowrap border border-line bg-surface px-3 text-[13px] font-semibold text-ink-2 hover:border-navy hover:text-navy">
+                    <Icon name="settings" :size="15" />Configure
+                    <span class="rounded-md border border-info-border bg-info-bg px-1.5 py-px text-[11px] font-semibold text-info">Pro</span>
+                </a>
+
+                <div class="inline-flex h-9 overflow-hidden rounded-lg border border-line bg-surface">
+                    <button v-if="display.status === 'requires_pro'" type="button" :disabled="busy" title="Use this display instead of the current active one"
+                            class="inline-flex items-center gap-1.5 px-3 text-[13px] whitespace-nowrap font-semibold text-ink-2 hover:bg-surface-raised hover:text-ink disabled:opacity-50" @click="emit('makeActive')">
+                        <Icon name="play" :size="14" />Make active
+                    </button>
+                    <button v-else type="button" :disabled="busy" :title="display.status === 'active' ? 'Stop showing this display on its tablet' : 'Show this display on its tablet again'"
+                            class="inline-flex items-center gap-1.5 px-3 text-[13px] whitespace-nowrap font-semibold text-ink-2 hover:bg-surface-raised hover:text-ink disabled:opacity-50" @click="emit('toggle')">
+                        <Icon :name="display.status === 'active' ? 'pause' : 'play'" :size="14" />{{ display.status === 'active' ? 'Pause' : 'Resume' }}
+                    </button>
+                    <button v-if="hasPro" type="button" title="Troubleshoot the calendar sync"
+                            class="inline-flex items-center gap-1.5 border-l border-line px-3 text-[13px] whitespace-nowrap font-semibold text-ink-2 hover:bg-surface-raised hover:text-ink" @click="emit('diagnose')">
+                        <Icon name="search" :size="14" />Troubleshoot
+                    </button>
+                </div>
+
+                <button type="button" :disabled="busy" aria-label="Delete display" title="Delete display"
+                        class="inline-flex h-9 w-9 flex-none items-center justify-center rounded-lg border border-line bg-surface text-muted hover:border-reserved-border hover:bg-reserved-bg hover:text-reserved-text disabled:opacity-50" @click="emit('remove')">
+                    <Icon name="trash" :size="15" />
+                </button>
             </div>
 
             <div class="flex flex-col gap-[22px] overflow-y-auto px-6 py-5">

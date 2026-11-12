@@ -47,7 +47,7 @@ test('the page lists the accounts of the workspace with their access and booking
     $this->actingAs($user)->get(route('calendars.index'))
         ->assertInertia(fn (Assert $page) => $page
             ->component('Calendars/Index')
-            ->where('shell.nav.3.active', true)
+            ->where('shell.nav.4.active', true)
             ->has('accounts', 3)
             ->where('accounts.0.provider', 'microsoft')
             ->where('accounts.0.permission', 'write')

@@ -30,7 +30,7 @@ test('the profiles page lists the workspace profiles and selects the first', fun
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page->component('Profiles/Index')
             ->where('hasPro', true)
-            ->where('shell.nav.4.active', true)
+            ->where('shell.nav.3.active', true)
             ->has('profiles', 2)
             ->where('profiles.0.name', 'A rooms')
             ->where('profiles.0.displays', 1)
