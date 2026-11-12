@@ -51,6 +51,7 @@ class DisplaySettingsForm
             'text_reserved' => $ds::getReservedText($display) ?? '',
             'text_checkin' => $ds::getCheckInText($display) ?? '',
 
+            'theme' => $ds::getTheme($display),
             'font_family' => $ds::getFontFamily($display),
 
             'advertisement_enabled' => $ds::isAdvertisementEnabled($display),
@@ -100,6 +101,7 @@ class DisplaySettingsForm
             'text_reserved' => '',
             'text_checkin' => '',
 
+            'theme' => 'classic',
             'font_family' => 'Inter',
 
             'advertisement_enabled' => false,
@@ -204,6 +206,9 @@ class DisplaySettingsForm
     {
         return [
             'fonts' => self::FONTS,
+            'themes' => collect(DisplaySettings::THEMES)
+                ->map(fn ($label, $value) => ['value' => $value, 'label' => $label, 'help' => DisplaySettings::THEME_DESCRIPTIONS[$value]])
+                ->values()->all(),
             'fontSizeElements' => collect(DisplaySettings::FONT_SIZE_ELEMENTS)
                 ->map(fn ($label, $key) => ['key' => $key, 'label' => $label])->values()->all(),
             'fontSizes' => collect(DisplaySettings::FONT_SIZES)

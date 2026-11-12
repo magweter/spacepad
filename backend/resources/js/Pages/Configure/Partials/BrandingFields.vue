@@ -1,8 +1,9 @@
 <script setup>
-// Branding: font, text sizes, logo and background. Uploads ride along with the section's save.
+// Branding: theme, font, text sizes, logo and background. Uploads ride along with the section's save.
 import { computed } from 'vue';
 import FieldRow from './FieldRow.vue';
 import ImagePicker from './ImagePicker.vue';
+import Segmented from './Segmented.vue';
 import { inputClass } from './fields';
 
 const props = defineProps({
@@ -27,12 +28,17 @@ function pickBackground(file) {
 const backgroundUrl = computed(() => (props.form.default_background
     ? props.options.backgrounds.find((b) => b.key === props.form.default_background)?.url
     : props.images.background.url));
+const themeHelp = computed(() => props.options.themes.find((t) => t.value === props.form.theme)?.help);
 const isCurrent = (key) => props.form.default_background === key
     || (!props.form.default_background && !props.form.background_image && !props.form.remove_background_image && props.images.background.default === key);
 </script>
 
 <template>
     <div class="flex flex-col gap-3">
+        <FieldRow label="Theme" :help="themeHelp" :error="form.errors.theme">
+            <Segmented v-model="form.theme" :options="options.themes" label="Theme" />
+        </FieldRow>
+
         <FieldRow label="Font" for="font_family" :error="form.errors.font_family">
             <select id="font_family" v-model="form.font_family" :class="inputClass">
                 <option v-for="f in options.fonts" :key="f" :value="f">{{ f }}</option>

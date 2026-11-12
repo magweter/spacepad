@@ -21,7 +21,7 @@ import DisplayFields from './Partials/DisplayFields.vue';
 import TextsFields from './Partials/TextsFields.vue';
 import BrandingFields from './Partials/BrandingFields.vue';
 import AdvertisementFields from './Partials/AdvertisementFields.vue';
-import { inputClass, keysFor, uploadFields } from './Partials/fields';
+import { inputClass, keysFor, numberClass, uploadFields } from './Partials/fields';
 import { usePreviewImages } from './Partials/useSettingsPreview';
 
 const props = defineProps({
@@ -74,8 +74,26 @@ function resetAll() {
     });
 }
 
-const names = useForm({ name: props.display.name, display_name: props.display.roomName || '' });
+// Location and seats start from the calendar provider's floor and capacity for the room when the
+// display has none yet; nothing is stored until Save, so the form counts as changed from the start.
+const suggestion = props.display.roomSuggestion || {};
+const suggestedLocation = props.display.location == null && suggestion.location ? suggestion.location : null;
+const suggestedCapacity = props.display.capacity == null && suggestion.capacity ? suggestion.capacity : null;
+const names = useForm({
+    name: props.display.name,
+    display_name: props.display.roomName || '',
+    location: props.display.location ?? '',
+    capacity: props.display.capacity ?? '',
+});
+if (suggestedLocation) names.location = suggestedLocation;
+if (suggestedCapacity) names.capacity = suggestedCapacity;
 const saveNames = () => names.put(props.urls.rename, { preserveScroll: true, onSuccess: () => names.defaults() });
+
+// The line under the room name on the tablet, as the app joins it.
+const subline = computed(() => {
+    const seats = Number(names.capacity) > 0 ? `${names.capacity} ${Number(names.capacity) === 1 ? 'seat' : 'seats'}` : null;
+    return [String(names.location || '').trim(), seats].filter(Boolean).join(', ');
+});
 
 // Everything the preview needs, straight from the forms.
 const settings = computed(() => Object.assign({}, props.values, ...Object.values(forms).map((f) => f.data())));
@@ -123,13 +141,21 @@ const errorBag = computed(() => Object.values(forms).map((f) => f.errors.error).
                 <SectionNav :items="nav" />
 
                 <div class="flex max-w-[600px] min-w-0 flex-[1_1_380px] flex-col gap-5">
-                    <SectionCard id="general" title="General" description="The names of this display. Calendar and status are shown for reference.">
+                    <SectionCard id="general" title="General" description="The names of this display and where the room is. Calendar and status are shown for reference.">
                         <div class="flex flex-col gap-3">
                             <FieldRow label="Display name" for="name" help="Only used in the portal, to tell displays apart." :error="names.errors.name">
                                 <input id="name" v-model="names.name" type="text" maxlength="255" required :class="inputClass">
                             </FieldRow>
                             <FieldRow label="Room name" for="display_name" help="Shown in the top right corner of the tablet." :error="names.errors.display_name">
                                 <input id="display_name" v-model="names.display_name" type="text" maxlength="255" required :class="inputClass">
+                            </FieldRow>
+                            <FieldRow label="Location" for="location" :error="names.errors.location"
+                                      :help="suggestedLocation ? 'Filled in from your calendar. Save to keep it.' : 'Optional. Shown under the room name, for example Floor 1.'">
+                                <input id="location" v-model="names.location" type="text" maxlength="64" placeholder="Floor 1" :class="inputClass">
+                            </FieldRow>
+                            <FieldRow label="Seats" for="capacity" :error="names.errors.capacity"
+                                      :help="suggestedCapacity ? 'Filled in from your calendar. Save to keep it.' : 'Optional. Shown under the room name as 12 seats.'">
+                                <input id="capacity" v-model="names.capacity" type="number" min="1" max="999" placeholder="12" :class="numberClass">
                             </FieldRow>
                         </div>
                         <template #footer>
@@ -167,7 +193,7 @@ const errorBag = computed(() => Object.values(forms).map((f) => f.errors.error).
                 </div>
 
                 <aside aria-label="Live preview" class="sticky top-6 flex max-w-[640px] min-w-0 flex-[1_1_420px] flex-col gap-3.5">
-                    <TabletPreview :settings="settings" :room="names.display_name || display.name"
+                    <TabletPreview :settings="settings" :room="names.display_name || display.name" :subline="subline"
                                    :logo="preview.logo.value" :background="preview.background.value" :advertisement="preview.advertisement.value" />
 
                     <div class="sp-card flex flex-col gap-2 px-[18px] py-3.5 text-[13px]">

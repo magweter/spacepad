@@ -15,6 +15,7 @@ use App\Services\CalDAVService;
 use App\Services\Funnel;
 use App\Services\GoogleService;
 use App\Services\OutlookService;
+use App\Services\RoomDetailsService;
 use App\Support\PortalShell;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -98,12 +99,17 @@ class FirstDisplayController extends Controller
 
         try {
             if ($data['provider'] === 'outlook') {
-                $rooms = collect(app(OutlookService::class)->fetchRooms($account))
+                $fetched = app(OutlookService::class)->fetchRooms($account) ?? [];
+                // Kept, so the display created from this list gets the room's floor and seats.
+                app(RoomDetailsService::class)->remember($account, $fetched);
+                $rooms = collect($fetched)
                     ->map(fn ($room) => ['id' => $room['emailAddress'], 'name' => $room['displayName'], 'detail' => $room['emailAddress']])->values()->all();
                 $calendars = collect(app(OutlookService::class)->fetchCalendars($account))
                     ->map(fn ($calendar) => ['id' => $calendar['id'], 'name' => $calendar['name'], 'detail' => null])->values()->all();
             } elseif ($data['provider'] === 'google') {
-                $rooms = collect(app(GoogleService::class)->fetchRooms($account))
+                $fetched = app(GoogleService::class)->fetchRooms($account);
+                app(RoomDetailsService::class)->remember($account, $fetched);
+                $rooms = collect($fetched)
                     ->map(fn ($room) => ['id' => $room->getResourceEmail(), 'name' => $room->getResourceName(), 'detail' => $room->getResourceEmail()])->values()->all();
                 $calendars = collect(app(GoogleService::class)->fetchCalendars($account))
                     ->map(fn ($calendar) => ['id' => $calendar->getId(), 'name' => $calendar->getSummary(), 'detail' => null])->values()->all();

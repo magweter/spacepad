@@ -19,6 +19,7 @@ import 'package:spacepad/models/display_model.dart';
 import 'package:spacepad/models/display_settings_model.dart';
 import 'package:flutter/material.dart';
 import 'package:spacepad/components/custom_booking_modal.dart';
+import 'package:spacepad/components/glass_theme.dart';
 
 class DashboardController extends GetxController {
   final RxBool loading = RxBool(true);
@@ -230,6 +231,17 @@ class DashboardController extends GetxController {
     return globalDisplay?.name ?? 'meeting_room'.tr;
   }
 
+  /// The line under the room name, e.g. "Floor 1, 12 seats". Empty when neither is set.
+  String get roomSubline {
+    final location = globalDisplay?.location?.trim();
+    final capacity = globalDisplay?.capacity;
+    return [
+      if (location != null && location.isNotEmpty) location,
+      if (capacity != null && capacity > 0)
+        capacity == 1 ? 'one_seat'.tr : 'x_seats'.trParams({'count': capacity.toString()}),
+    ].join(', ');
+  }
+
   String get title {
     if (isReserved) {
       return currentEvent!.summary;
@@ -306,6 +318,17 @@ class DashboardController extends GetxController {
     }
 
     return 'till_end_of_day'.tr;
+  }
+
+  bool get isGlassTheme => globalSettings.value?.theme == 'glass';
+
+  /// The state the display shows, as one value. Offline wins: a display that cannot reach the
+  /// server may be showing a state that is no longer true.
+  RoomTone get tone {
+    if (isOffline.value || isServerUnreachable.value) return RoomTone.offline;
+    if (isTransitioning || isCheckInActive) return RoomTone.transitioning;
+    if (isReserved) return RoomTone.reserved;
+    return RoomTone.available;
   }
 
   bool get isReserved {
@@ -500,10 +523,16 @@ class DashboardController extends GetxController {
   void showCustomBookingModal(BuildContext context, bool isPhone, double cornerRadius) {
     showDialog(
       context: context,
-      builder: (context) => CustomBookingModal(
-        controller: this,
-        isPhone: isPhone,
-        cornerRadius: cornerRadius,
+      barrierColor: isGlassTheme ? GlassTokens.scrim : null,
+      // A dialog opens in a route of its own, outside the dashboard's scope, so it is handed the
+      // theme again here.
+      builder: (context) => GlassScope(
+        enabled: isGlassTheme,
+        child: CustomBookingModal(
+          controller: this,
+          isPhone: isPhone,
+          cornerRadius: cornerRadius,
+        ),
       ),
     );
   }

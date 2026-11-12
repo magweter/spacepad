@@ -105,7 +105,18 @@ Configure display screen (they used to be settable only while creating the displ
 | **Display name** | Dashboard only, to tell displays apart. Listed by the tablet's setup wizard and under **Used by** on a profile, so it should be unique per display. |
 | **Room name** | Printed in the top right corner of the tablet. Several displays may share it on purpose — a building or floor name, for instance. |
 
-Neither is inherited from a profile: they belong to the display itself.
+The same block holds an optional **location** (up to 64 characters, e.g. "Floor 1") and **seat count**
+(1 to 999). The tablet prints them in small text under the room name as one line, "Floor 1, 12 seats",
+or whichever of the two is set; with neither, the room name stands alone. Emptying a field clears it.
+
+For a display on a **Google Workspace** or **Microsoft 365** room, both come from the directory:
+the floor (a number becomes "Floor 2", a Google floor section is added after a comma) and the
+capacity. A new display gets them from the room list the room picker fetched, without a second
+call. On Configure display, empty fields are filled in from the room and marked "Filled in from
+your calendar", and stored only on Save. The room list is kept for an hour per calendar account.
+A value someone typed is never replaced. CalDAV and personal calendars have no such data.
+
+Neither the names nor these two are inherited from a profile: they belong to the display itself.
 
 | Setting | Options |
 |---|---|
@@ -135,6 +146,15 @@ Neither is inherited from a profile: they belong to the display itself.
 Part of the same **Configure display** screen, in the Branding, State texts and Advertisement sections.
 
 ### Branding
+- Choose a **theme** for the whole screen. Also settable on a profile.
+  - **Classic** (default): the screen framed in the status colour on black.
+  - **Glass**: a dark navy screen with a soft glow in the status colour from the corners, a thick
+    status border, frosted translucent buttons, chips, bottom bar and timeline (the schedule and booking popups too,
+    on a dark backdrop so the screen behind them does not read through), and the clock and the
+    title in a bolder display font (Space Grotesk). Border and glow are green when free, red in use,
+    amber when a meeting is about to start or end or check-in is due, and grey while the tablet is
+    offline or cannot reach the server; the status always comes with a word on screen. A status change
+    crossfades instead of jumping. A background image still works and sits under the glow.
 - Upload a custom **logo** (shown on the display)
 - Upload a custom **background image** or choose from built-in backgrounds
 - Choose a **font family**: Inter, Roboto, Open Sans, Lato, Poppins, Montserrat

@@ -8,6 +8,7 @@ use App\Models\Device;
 use App\Models\Display;
 use App\Models\DisplaySetting;
 use App\Services\ImageService;
+use App\Services\RoomDetailsService;
 use App\Support\DisplaySettingsForm;
 use App\Support\PortalShell;
 use Illuminate\Http\RedirectResponse;
@@ -35,8 +36,14 @@ class DisplaySettingsController extends Controller
             return redirect()->route('dashboard')->with('error', 'Display configuration is only available for Pro users.');
         }
 
-        $display->load('calendar', 'settings', 'profile.settings');
+        $display->load('calendar.room', 'settings', 'profile.settings');
         $workspace = $display->workspace;
+
+        // While location or seats are empty, offer what the calendar provider has for the room.
+        // It only fills the form: nothing is stored until Save.
+        $roomSuggestion = $display->location === null || $display->capacity === null
+            ? app(RoomDetailsService::class)->forDisplay($display)
+            : null;
         $profile = $display->profile;
         $advertisement = $request->user()->hasAdvertisementFeature();
 
@@ -59,6 +66,10 @@ class DisplaySettingsController extends Controller
                 'id' => $display->id,
                 'name' => $display->name,
                 'roomName' => $display->display_name,
+                'location' => $display->location,
+                'capacity' => $display->capacity,
+                // Floor and seats from the calendar provider, offered for the empty fields above.
+                'roomSuggestion' => $roomSuggestion,
                 'status' => $display->status?->value,
                 'statusLabel' => $display->status?->label(),
                 'calendar' => $display->calendar?->name,
@@ -303,6 +314,7 @@ class DisplaySettingsController extends Controller
                 'text_checkin' => 'nullable|string|max:64',
             ],
             DisplaySettingSections::BRANDING => [
+                'theme' => DisplaySettings::themeRule(),
                 'font_family' => 'nullable|string|in:Inter,Roboto,Open Sans,Lato,Poppins,Montserrat',
                 ...DisplaySettings::fontSizeRules(),
                 'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
@@ -383,8 +395,12 @@ class DisplaySettingsController extends Controller
     {
         $updated = true;
 
+        if ($request->filled('theme')) {
+            $updated = DisplaySettings::setTheme($display, $request->input('theme'));
+        }
+
         if ($request->has('font_family')) {
-            $updated = DisplaySettings::setFontFamily($display, $request->input('font_family'));
+            $updated = $updated && DisplaySettings::setFontFamily($display, $request->input('font_family'));
         }
 
         foreach (array_keys(DisplaySettings::FONT_SIZE_ELEMENTS) as $element) {

@@ -1,7 +1,7 @@
 <script setup>
 // A drawing of the tablet with the settings as they stand in the form, saved or not. It shows what
-// the settings change (texts, buttons, schedule, border, font, sizes, logo, background and the
-// advertisement); the meeting in it is an example. Drawn at 640 by 400 and scaled to fit.
+// the settings change (theme, texts, buttons, schedule, border, font, sizes, logo, background and
+// the advertisement); the meeting in it is an example. Drawn at 640 by 400 and scaled to fit.
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import Segmented from './Segmented.vue';
 import { defaultTexts } from './fields';
@@ -9,6 +9,7 @@ import { defaultTexts } from './fields';
 const props = defineProps({
     settings: { type: Object, required: true },
     room: { type: String, default: 'Meeting room' },
+    subline: { type: String, default: '' },
     logo: { type: String, default: null },
     background: { type: String, default: null },
     advertisement: { type: String, default: null },
@@ -33,6 +34,14 @@ const px = (value, element) => `${(value * (element ? size(element) : 1)).toFixe
 const tone = computed(() => ({ available: 'available', transitioning: 'checkin', checkin: 'checkin' }[shown.value] ?? 'reserved'));
 const frameColor = computed(() => `var(--status-${tone.value})`);
 const border = computed(() => ({ small: 4, medium: 7, large: 11 }[s.value.border_thickness] ?? 7));
+
+// Glass: the dark ground with a glow in the status colour, the clock and title in the display
+// face. Classic: black inside the status frame, everything in the chosen font.
+const isGlass = computed(() => s.value.theme === 'glass');
+const ground = computed(() => (isGlass.value
+    ? 'radial-gradient(60% 80% at 100% 0%, color-mix(in srgb, var(--frame) 22%, transparent), transparent 70%), radial-gradient(70% 90% at 0% 100%, color-mix(in srgb, var(--frame) 30%, transparent), transparent 70%), var(--ground)'
+    : '#000'));
+const headline = computed(() => (isGlass.value ? 'font-display' : ''));
 
 const title = computed(() => {
     switch (shown.value) {
@@ -90,21 +99,24 @@ const glass = 'border-[1.5px] border-[var(--glass-border)] bg-[var(--glass)] sha
             <div ref="outer" class="relative aspect-[16/10] overflow-hidden rounded-[6px]">
                 <div data-theme="dark" class="absolute top-0 left-0 flex h-[400px] w-[640px] origin-top-left text-[var(--text)]"
                      :style="{ transform: `scale(${scale})`, fontFamily: `'${s.font_family}', Inter, sans-serif`, border: `${border}px solid var(--frame)`,
-                               background: `radial-gradient(70% 90% at 0% 100%, color-mix(in srgb, var(--frame) 40%, transparent), transparent 70%), var(--ground)` }">
+                               background: ground }">
                     <img v-if="background" :src="background" alt="" class="absolute inset-0 h-full w-full object-cover opacity-45">
 
                     <div class="relative flex min-w-0 flex-1 flex-col px-[22px] pt-[18px] pb-4">
                         <div class="flex items-start justify-between gap-3">
-                            <span class="font-display leading-none font-bold tracking-tight tabular-nums" :style="{ fontSize: px(21, 'clock') }">{{ clock }}</span>
-                            <span class="flex items-center gap-2 text-right leading-tight font-semibold tracking-tight" :style="{ fontSize: px(15, 'room_name') }">
-                                <svg v-if="s.timeline_widget_mode === 'side_panel'" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></svg>
-                                {{ room }}
+                            <span :class="headline" class="leading-none font-bold tracking-tight tabular-nums" :style="{ fontSize: px(21, 'clock') }">{{ clock }}</span>
+                            <span class="flex items-start gap-2 text-right">
+                                <svg v-if="s.timeline_widget_mode === 'side_panel'" class="mt-0.5" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></svg>
+                                <span class="flex flex-col items-end">
+                                    <span class="leading-tight font-semibold tracking-tight" :style="{ fontSize: px(15, 'room_name') }">{{ room }}</span>
+                                    <span v-if="subline" class="text-[var(--text-2)]" :style="{ fontSize: px(9, 'room_name') }">{{ subline }}</span>
+                                </span>
                             </span>
                         </div>
 
                         <div class="flex min-h-0 flex-1 flex-col items-start justify-center gap-[5px]">
                             <img v-if="logo" :src="logo" alt="" class="mb-2 h-[30px] w-auto max-w-[160px] object-contain">
-                            <span class="line-clamp-2 leading-[1.02] font-bold tracking-tight" :style="{ fontSize: px(shown === 'advert' ? 26 : 34, 'title') }">{{ title }}</span>
+                            <span :class="headline" class="line-clamp-2 leading-[1.02] font-bold tracking-tight" :style="{ fontSize: px(shown === 'advert' ? 26 : 34, 'title') }">{{ title }}</span>
                             <span class="text-[var(--text-muted)]" :style="{ fontSize: px(15, 'details') }">{{ detail }}</span>
                             <span v-if="organizer" class="text-[var(--text-muted)]" :style="{ fontSize: px(13, 'details') }">Booked by Sanne de Vries</span>
                             <span v-if="actions.length" class="mt-2.5 flex flex-wrap gap-1.5">
