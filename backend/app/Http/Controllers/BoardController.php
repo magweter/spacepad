@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\DisplayStatus;
 use App\Enums\EventStatus;
 use App\Helpers\DisplaySettings;
+use App\Http\Controllers\Portal\BoardsPageController;
 use App\Http\Requests\CreateBoardRequest;
 use App\Http\Requests\UpdateBoardRequest;
 use App\Models\Board;
@@ -16,9 +16,11 @@ use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Contracts\View\Factory;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\Str;
+use Inertia\Response as InertiaResponse;
 
 class BoardController extends Controller
 {
@@ -57,15 +59,14 @@ class BoardController extends Controller
     }
 
     /**
-     * Show the form for creating a new board
+     * Open the Boards page with the editor on a new board. Without Pro the page shows its upsell.
      */
-    public function create(): View|Factory|Application
+    public function create(Request $request): InertiaResponse|RedirectResponse
     {
-        $user = auth()->user();
+        $user = $request->user();
 
-        // Check Pro access
         if (! $user->hasProForCurrentWorkspace()) {
-            abort(403, 'Boards is a Pro feature. Please upgrade to access this feature.');
+            return redirect()->route('boards.index');
         }
 
         $this->authorize('create', Board::class);
@@ -76,17 +77,7 @@ class BoardController extends Controller
             abort(404, 'No workspace found');
         }
 
-        // Get all active displays from the workspace
-        $displays = Display::where('workspace_id', $selectedWorkspace->id)
-            ->whereIn('status', [DisplayStatus::READY, DisplayStatus::ACTIVE])
-            ->orderBy('name')
-            ->get();
-
-        return view('pages.boards.form', [
-            'board' => null,
-            'displays' => $displays,
-            'workspace' => $selectedWorkspace,
-        ]);
+        return app(BoardsPageController::class)->render($request, $selectedWorkspace, creating: true);
     }
 
     /**
@@ -166,10 +157,8 @@ class BoardController extends Controller
             $board->displays()->detach();
         }
 
-        $query = $board->is_public ? '&show_public='.$board->id : '';
-
-        return redirect(route('dashboard').'?tab=boards'.$query)
-            ->with('success', 'Board created successfully.');
+        return redirect()->route('boards.edit', array_filter(['board' => $board, 'show_public' => $board->is_public ? 1 : null]))
+            ->with('success', 'Board created.');
     }
 
     /**
@@ -228,30 +217,21 @@ class BoardController extends Controller
     }
 
     /**
-     * Show the form for editing the specified board
+     * Open the Boards page with the editor on this board. Without Pro the page shows its upsell.
      */
-    public function edit(Board $board): View|Factory|Application
+    public function edit(Request $request, Board $board): InertiaResponse|RedirectResponse
     {
-        $user = auth()->user();
+        $user = $request->user();
 
-        // Check Pro access
         if (! $user->hasProForCurrentWorkspace()) {
-            abort(403, 'Boards is a Pro feature. Please upgrade to access this feature.');
+            return redirect()->route('boards.index');
         }
 
         $this->authorize('update', $board);
 
-        // Get all active displays from the workspace
-        $displays = Display::where('workspace_id', $board->workspace_id)
-            ->whereIn('status', [DisplayStatus::READY, DisplayStatus::ACTIVE])
-            ->orderBy('name')
-            ->get();
+        $workspace = $user->getSelectedWorkspace() ?? $board->workspace;
 
-        return view('pages.boards.form', [
-            'board' => $board,
-            'displays' => $displays,
-            'workspace' => $board->workspace,
-        ]);
+        return app(BoardsPageController::class)->render($request, $workspace, $board->load('displays'));
     }
 
     /**
@@ -339,10 +319,8 @@ class BoardController extends Controller
         }
 
         // Only open the public URL modal when public access was just newly enabled
-        $query = (! $wasPublic && $board->is_public) ? '&show_public='.$board->id : '';
-
-        return redirect(route('dashboard').'?tab=boards'.$query)
-            ->with('success', 'Board updated successfully.');
+        return redirect()->route('boards.edit', array_filter(['board' => $board, 'show_public' => (! $wasPublic && $board->is_public) ? 1 : null]))
+            ->with('success', 'Board saved.');
     }
 
     /**
@@ -364,8 +342,8 @@ class BoardController extends Controller
 
         $board->delete();
 
-        return redirect(route('dashboard').'?tab=boards')
-            ->with('success', 'Board deleted successfully.');
+        return redirect()->route('boards.index')
+            ->with('success', 'Board deleted.');
     }
 
     /**

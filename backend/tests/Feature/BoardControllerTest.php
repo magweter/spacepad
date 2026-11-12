@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Models\Workspace;
 use App\Services\EventService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia as Assert;
 
 uses(RefreshDatabase::class);
 
@@ -45,7 +46,8 @@ test('user can create a board', function () {
             'show_meeting_title' => true,
         ]);
 
-    $response->assertRedirect();
+    $board = Board::where('name', 'Test Board')->firstOrFail();
+    $response->assertRedirect(route('boards.edit', $board));
     $this->assertDatabaseHas('boards', [
         'name' => 'Test Board',
         'workspace_id' => $this->workspace->id,
@@ -59,11 +61,12 @@ test('user can view boards list', function () {
         'user_id' => $this->user->id,
     ]);
 
-    $response = $this->actingAs($this->user)
-        ->get(route('portal.manage').'?tab=boards');
-
-    $response->assertStatus(200);
-    $response->assertSee('Boards');
+    $this->actingAs($this->user)
+        ->get(route('boards.index'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('Boards/Index')
+            ->has('boards', 3));
 });
 
 test('user can view a board', function () {
@@ -102,7 +105,7 @@ test('user can update a board', function () {
             'show_meeting_title' => true,
         ]);
 
-    $response->assertRedirect();
+    $response->assertRedirect(route('boards.edit', $board));
     $this->assertDatabaseHas('boards', [
         'id' => $board->id,
         'name' => 'Updated Board Name',
@@ -119,7 +122,7 @@ test('user can delete a board', function () {
     $response = $this->actingAs($this->user)
         ->delete(route('boards.destroy', $board));
 
-    $response->assertRedirect();
+    $response->assertRedirect(route('boards.index'));
     $this->assertDatabaseMissing('boards', [
         'id' => $board->id,
     ]);
@@ -391,7 +394,7 @@ test('board edit form renders the category editor with the stored layout', funct
     $display = Display::factory()->create([
         'workspace_id' => $this->workspace->id,
         'status' => DisplayStatus::ACTIVE,
-        'name' => 'Zaal 1',
+        'name' => 'Zaal 1', 'display_name' => 'Zaal 1',
     ]);
 
     $board = Board::factory()->create([
@@ -402,19 +405,25 @@ test('board edit form renders the category editor with the stored layout', funct
         ],
     ]);
 
-    $response = $this->actingAs($this->user)->get(route('boards.edit', $board));
-
-    $response->assertStatus(200);
-    $response->assertSee('Room Categories');
-    $response->assertSee('Verdieping 1');
-    $response->assertSee('boardCategories()', false);
+    $this->actingAs($this->user)->get(route('boards.edit', $board))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('Boards/Index')
+            ->where('creating', false)
+            ->where('board.id', $board->id)
+            ->where('board.categories.0.name', 'Verdieping 1')
+            ->where('board.categories.0.display_ids', [$display->id])
+            ->where('displays.0.name', 'Zaal 1'));
 });
 
 test('board create form renders the category editor', function () {
-    $response = $this->actingAs($this->user)->get(route('boards.create'));
-
-    $response->assertStatus(200);
-    $response->assertSee('Room Categories');
+    $this->actingAs($this->user)->get(route('boards.create'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('Boards/Index')
+            ->where('creating', true)
+            ->where('board', null)
+            ->where('workspaceId', $this->workspace->id));
 });
 
 test('table view renders all category groups in one table so the columns line up', function () {
