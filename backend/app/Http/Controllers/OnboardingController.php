@@ -99,7 +99,6 @@ class OnboardingController extends Controller
                 'events' => route('onboarding.events'),
                 'skip' => route('onboarding.skip'),
                 'logout' => route('logout'),
-                'invitationBase' => url('/invitations'),
                 'license' => 'https://github.com/magweter/spacepad/blob/main/LICENSE.md',
             ],
         ]);

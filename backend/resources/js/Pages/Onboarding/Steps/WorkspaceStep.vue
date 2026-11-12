@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed } from 'vue';
 import { router, useForm, usePage } from '@inertiajs/vue3';
 import ChoiceCard from '../../../Components/ChoiceCard.vue';
 import StepHeading from '../../../Components/StepHeading.vue';
@@ -18,21 +18,8 @@ const form = useForm({
     accept_terms: false,
 });
 
-const inviteOpen = ref(false);
-const invite = ref('');
-const inviteError = ref('');
-
 function submit() {
     form.post(props.urls.workspace, { preserveScroll: true });
-}
-
-function openInvite() {
-    const link = invite.value.trim();
-    if (!link.startsWith(`${props.urls.invitationBase}/`)) {
-        inviteError.value = 'That is not a Spacepad invite link. It starts with ' + props.urls.invitationBase + '/';
-        return;
-    }
-    window.location.href = link;
 }
 
 function skip() {
@@ -81,22 +68,7 @@ function skip() {
         </label>
         <span v-if="form.errors.accept_terms" class="text-xs text-reserved-text">{{ form.errors.accept_terms }}</span>
 
-        <div v-if="inviteOpen" class="flex flex-col gap-1.5">
-            <label for="invite" class="text-[13px] font-semibold">Invite link</label>
-            <div class="flex gap-2">
-                <input id="invite" v-model="invite" type="url" :placeholder="`${urls.invitationBase}/…`" @input="inviteError = ''"
-                       class="min-w-0 flex-1 rounded-[10px] border border-offline-border bg-surface px-3.5 py-[11px] text-sm focus:border-navy focus:outline-none">
-                <Button variant="secondary" @click="openInvite">Open</Button>
-            </div>
-            <span v-if="inviteError" class="text-xs text-reserved-text">{{ inviteError }}</span>
-        </div>
-
-        <div class="flex flex-wrap items-center justify-between gap-3">
-            <span v-if="!inviteOpen" class="text-xs text-muted">
-                Already using Spacepad with colleagues?
-                <button type="button" class="font-semibold text-navy hover:underline" @click="inviteOpen = true">Enter their invite link</button>
-            </span>
-            <span v-else></span>
+        <div class="flex flex-wrap items-center justify-end gap-3">
             <div class="flex items-center gap-2">
                 <Button v-if="!(selfHosted && !user.termsAccepted)" variant="ghost" size="lg" @click="skip">Skip this step</Button>
                 <Button type="submit" size="lg" :disabled="!form.usage_type || form.processing">Continue</Button>
