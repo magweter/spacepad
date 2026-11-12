@@ -26,7 +26,7 @@ const flow = useOnboarding(props.urls);
 const meta = {
     calendar: { name: 'Calendar', tip: null },
     room: { name: 'Room', tip: null },
-    tablet: { name: 'Tablet', tip: ['Any tablet', 'iPad on iPadOS 15 or newer, Android 7 or newer.'] },
+    tablet: { name: 'Tablet', tip: null },
     done: { name: 'Done', tip: ['Add more any time', 'The other rooms follow the same steps, with the calendar already connected.'] },
 };
 const components = { calendar: CalendarStep, room: RoomStep, tablet: TabletStep, done: DoneStep };
@@ -45,7 +45,7 @@ watch(() => props.step, (step) => flow.track(step, 'viewed'), { immediate: true 
         <header class="flex flex-wrap items-center justify-between gap-x-8 gap-y-4 border-b border-line bg-surface px-8 py-3.5">
             <div class="flex flex-col gap-px">
                 <span class="text-base font-bold tracking-tight">Set up your first display</span>
-                <span class="text-xs text-muted">About four minutes. Stop whenever you like; it picks up where you left off.</span>
+                <span class="text-xs text-muted">Your progress is saved automatically.</span>
             </div>
             <ol aria-label="Steps" class="flex flex-wrap items-center">
                 <li v-for="item in stepper" :key="item.key" class="flex items-center">

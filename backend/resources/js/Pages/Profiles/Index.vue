@@ -91,11 +91,19 @@ function destroy() {
             </p>
             <FlashMessage />
 
-            <div v-if="!hasPro" class="sp-card max-w-[640px] px-6 py-6">
-                <EmptyState title="Profiles are part of Pro">
-                    A profile is a reusable set of display settings. Link displays to it and they all follow it, so you configure many rooms at once instead of one by one.
-                    <template #actions><Button variant="accent" @click="openUpgrade('profiles')">See what Pro adds</Button></template>
-                </EmptyState>
+            <!-- Free workspace: what profiles are and how to get them, as on the Boards page. -->
+            <div v-if="!hasPro" class="sp-card flex max-w-2xl flex-col gap-4 px-6 py-6">
+                <div class="flex flex-col gap-1.5">
+                    <h2 class="font-display text-xl font-bold tracking-tight">Set up many displays at once</h2>
+                    <p class="text-ink-3">A profile is a reusable set of display settings. Link displays to it and they all follow it, so you configure many rooms at once instead of one by one.</p>
+                </div>
+                <ul class="flex flex-col gap-1.5 text-[13px] text-ink-2">
+                    <li class="flex items-center gap-2"><Icon name="check" :size="14" :stroke="2.5" class="text-available" />Check-in, booking, texts, branding and advertisement in one place</li>
+                    <li class="flex items-center gap-2"><Icon name="check" :size="14" :stroke="2.5" class="text-available" />Change the profile and every linked display follows</li>
+                    <li class="flex items-center gap-2"><Icon name="check" :size="14" :stroke="2.5" class="text-available" />A single display can still keep its own values per section</li>
+                </ul>
+                <p class="text-xs text-muted">Profiles are part of Pro.</p>
+                <div><Button variant="accent" @click="openUpgrade('profiles')">See what Pro adds</Button></div>
             </div>
 
             <div v-else-if="!profiles.length" class="sp-card max-w-[640px] px-6 py-6">
