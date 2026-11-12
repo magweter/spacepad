@@ -4,13 +4,17 @@ namespace App\Http\Controllers;
 
 use App\Helpers\DisplaySettings;
 use App\Helpers\DisplaySettingSections;
+use App\Models\Device;
 use App\Models\Display;
 use App\Models\DisplaySetting;
 use App\Services\ImageService;
-use Illuminate\Contracts\View\View;
+use App\Support\DisplaySettingsForm;
+use App\Support\PortalShell;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class DisplaySettingsController extends Controller
 {
@@ -21,9 +25,9 @@ class DisplaySettingsController extends Controller
     /**
      * The single configuration screen for a display: behaviour, display, texts, branding and
      * advertisement, each of which independently either follows the linked profile or has its own
-     * values. Replaces the old separate settings and customization screens.
+     * values. Saved per section, next to a preview of the tablet.
      */
-    public function configure(Display $display): View|RedirectResponse
+    public function configure(Request $request, Display $display): Response|RedirectResponse
     {
         $this->authorize('update', $display);
 
@@ -31,11 +35,55 @@ class DisplaySettingsController extends Controller
             return redirect()->route('dashboard')->with('error', 'Display configuration is only available for Pro users.');
         }
 
-        // No profile list: linking and unlinking live on the Displays tab, which can do it for
+        $display->load('calendar', 'settings', 'profile.settings');
+        $workspace = $display->workspace;
+        $profile = $display->profile;
+        $advertisement = $request->user()->hasAdvertisementFeature();
+
+        $sections = collect(DisplaySettingsForm::sections())
+            ->reject(fn ($s, $key) => $key === DisplaySettingSections::ADVERTISEMENT && ! $advertisement)
+            ->map(fn ($s, $key) => $s + [
+                'follows' => DisplaySettings::sectionFollowsProfile($display, $key),
+                'update' => route('displays.section.update', ['display' => $display, 'section' => $key]),
+                'reset' => route('displays.section.reset', ['display' => $display, 'section' => $key]),
+            ])
+            ->all();
+
+        $device = Device::where('display_id', $display->id)->orderByDesc('last_activity_at')->first();
+
+        // No profile picker: linking and unlinking live on the Displays page, which can do it for
         // several displays at once. This screen only reports which profile is followed.
-        return view('pages.displays.configure', [
-            'display' => $display->load('calendar', 'settings', 'profile.settings'),
-            'sections' => DisplaySettingSections::all(),
+        return Inertia::render('Configure/Index', [
+            'shell' => PortalShell::for($request, $workspace, 'displays'),
+            'display' => [
+                'id' => $display->id,
+                'name' => $display->name,
+                'roomName' => $display->display_name,
+                'status' => $display->status?->value,
+                'statusLabel' => $display->status?->label(),
+                'calendar' => $display->calendar?->name,
+                'lastSync' => $display->last_sync_at?->diffForHumans(),
+                'device' => $device ? [
+                    'name' => $device->name,
+                    'lastSeen' => $device->last_activity_at?->diffForHumans(),
+                    'online' => $device->last_activity_at?->gt(now()->subMinutes(10)) ?? false,
+                ] : null,
+            ],
+            'profile' => $profile ? [
+                'name' => $profile->name,
+                'editUrl' => route('profiles.edit', $profile),
+                'deviates' => DisplaySettings::deviatesFromProfile($display),
+            ] : null,
+            'sections' => $sections,
+            'values' => DisplaySettingsForm::displayValues($display),
+            'images' => DisplaySettingsForm::displayImages($display),
+            'options' => DisplaySettingsForm::options(),
+            'urls' => [
+                'back' => route('displays.index'),
+                'rename' => route('displays.update', $display),
+                'resetToProfile' => route('displays.settings.reset-to-profile', $display),
+                'profiles' => route('profiles.index'),
+            ],
         ]);
     }
 
@@ -159,7 +207,7 @@ class DisplaySettingsController extends Controller
         $workspace = $user->getSelectedWorkspace();
 
         if (! $workspace || ! $user->hasProForWorkspace($workspace)) {
-            return redirect()->route('dashboard')->with('error', 'Profiles are only available for Pro users.');
+            return redirect()->route('displays.index')->with('error', 'Profiles are only available for Pro users.');
         }
 
         $validated = $request->validate([
@@ -177,7 +225,7 @@ class DisplaySettingsController extends Controller
             ->get();
 
         if ($displays->isEmpty()) {
-            return redirect()->route('dashboard', ['tab' => 'displays'])
+            return redirect()->route('displays.index')
                 ->with('error', 'No displays were updated.');
         }
 
@@ -201,7 +249,7 @@ class DisplaySettingsController extends Controller
             ? "{$count} ".($count === 1 ? 'display' : 'displays').' unlinked from their profile.'
             : "{$count} ".($count === 1 ? 'display' : 'displays').' now follow the selected profile.';
 
-        return redirect()->route('dashboard', ['tab' => 'displays'])->with('success', $message);
+        return redirect()->route('displays.index')->with('success', $message);
     }
 
     /**

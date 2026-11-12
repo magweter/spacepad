@@ -19,6 +19,7 @@ use Google\Service\Calendar\Event as GoogleEvent;
 use Google\Service\Calendar\EventDateTime;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Inertia\Testing\AssertableInertia as Assert;
 
 uses(RefreshDatabase::class);
 
@@ -359,12 +360,8 @@ test('the configure screen and the profile form offer the setting, checked by de
     session()->put('selected_workspace_id', $workspace->id);
     $display = Display::factory()->create(['workspace_id' => $workspace->id, 'user_id' => $owner->id, 'status' => 'active']);
 
-    $configure = $this->actingAs($owner)->get(route('displays.configure', $display))->assertOk();
-    $profile = $this->actingAs($owner)->get(route('profiles.create'))->assertOk();
-
-    foreach ([$configure, $profile] as $response) {
-        expect($response->getContent())
-            ->toContain('All-day events block the room')
-            ->toMatch('/name="all_day_events_block" [^>]*value="1"[^>]*checked/s');
-    }
+    $this->actingAs($owner)->get(route('displays.configure', $display))->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->component('Configure/Index')->where('values.all_day_events_block', true));
+    $this->actingAs($owner)->get(route('profiles.create'))->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->component('Profiles/Edit')->where('values.all_day_events_block', true));
 });

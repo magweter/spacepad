@@ -11,6 +11,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Inertia\Testing\AssertableInertia as Assert;
 
 uses(RefreshDatabase::class);
 
@@ -144,7 +145,7 @@ test('bulk assigning a profile clears the selected displays own settings', funct
             'display_ids' => [$other->id],
             'display_profile_id' => $this->profile->id,
         ])
-        ->assertRedirect(route('dashboard', ['tab' => 'displays']));
+        ->assertRedirect(route('displays.index'));
 
     $fresh = $other->fresh();
 
@@ -162,7 +163,7 @@ test('bulk unlinking keeps the display values so nothing changes on the wall', f
             'display_ids' => [$this->display->id],
             'display_profile_id' => '',
         ])
-        ->assertRedirect(route('dashboard', ['tab' => 'displays']));
+        ->assertRedirect(route('displays.index'));
 
     $fresh = $this->display->fresh();
 
@@ -198,21 +199,22 @@ test('bulk assigning rejects a profile from another workspace', function () {
         ->assertSessionHasErrors('display_profile_id');
 });
 
-test('the displays overview shows the linked profile and flags a customised display', function () {
-    // The profile sits as a chip under the display name; deviating adds a marker to its tooltip.
+test('the displays page shows the linked profile and flags a customised display', function () {
     $this->actingAs($this->user)
-        ->get(route('portal.manage', ['tab' => 'displays']))
+        ->get(route('displays.index'))
         ->assertOk()
-        ->assertSee('Meeting rooms')
-        ->assertDontSee('with its own settings in one or more sections');
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('displays.0.profile.name', 'Meeting rooms')
+            ->where('displays.0.profile.deviates', false));
 
     saveSection($this, $this->display, DisplaySettingSections::BRANDING, ['font_family' => 'Lato']);
 
     $this->actingAs($this->user)
-        ->get(route('portal.manage', ['tab' => 'displays']))
+        ->get(route('displays.index'))
         ->assertOk()
-        ->assertSee('Meeting rooms')
-        ->assertSee('with its own settings in one or more sections');
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('displays.0.profile.name', 'Meeting rooms')
+            ->where('displays.0.profile.deviates', true));
 });
 
 test('the bulk how-to shows until a profile has actually been assigned', function () {
@@ -224,50 +226,69 @@ test('the bulk how-to shows until a profile has actually been assigned', functio
         'display_profile_id' => null,
     ]);
 
-    // The fixture display already follows a profile, so the how-to has served its purpose.
+    // The fixture display already follows a profile, so the how-to has served its purpose. The
+    // bulk controls stay: the how-to is onboarding, the bulk bar is the feature.
     $this->actingAs($this->user)
-        ->get(route('portal.manage', ['tab' => 'displays']))
+        ->get(route('displays.index'))
         ->assertOk()
-        ->assertDontSee('Configure several displays at once');
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('showBulkHint', false)
+            ->where('canBulkAssign', true)
+            ->where('profiles.0.name', 'Meeting rooms')
+            ->where('urls.bulk', route('displays.profile.bulk')));
 
     // With nothing assigned anywhere, it comes back.
     Display::where('workspace_id', $this->workspace->id)->update(['display_profile_id' => null]);
 
     $this->actingAs($this->user)
-        ->get(route('portal.manage', ['tab' => 'displays']))
+        ->get(route('displays.index'))
         ->assertOk()
-        ->assertSee('Configure several displays at once');
-});
-
-test('hiding the how-to does not take the bulk assign controls with it', function () {
-    Display::factory()->create([
-        'workspace_id' => $this->workspace->id,
-        'user_id' => $this->user->id,
-        'status' => DisplayStatus::ACTIVE,
-        'display_profile_id' => null,
-    ]);
-
-    // The how-to is onboarding; the bulk bar is the feature and must always stay.
-    $this->actingAs($this->user)
-        ->get(route('portal.manage', ['tab' => 'displays']))
-        ->assertOk()
-        ->assertDontSee('Configure several displays at once')
-        ->assertSee('Assign profile')
-        ->assertSee('Unlink');
+        ->assertInertia(fn (Assert $page) => $page->where('showBulkHint', true)->where('canBulkAssign', true));
 });
 
 test('the configuration screen shows a badge per section', function () {
     saveSection($this, $this->display, DisplaySettingSections::BRANDING, ['font_family' => 'Lato']);
 
-    $html = $this->actingAs($this->user)
+    // Branding has its own values now, the others still follow the profile. Advertisement is
+    // feature-gated, so it is not offered at all.
+    $this->actingAs($this->user)
         ->get(route('displays.configure', $this->display))
         ->assertOk()
-        ->getContent();
+        ->assertInertia(fn (Assert $page) => $page->component('Configure/Index')
+            ->where('sections.behavior.follows', true)
+            ->where('sections.display.follows', true)
+            ->where('sections.texts.follows', true)
+            ->where('sections.branding.follows', false)
+            ->where('sections.branding.reset', route('displays.section.reset', ['display' => $this->display, 'section' => 'branding']))
+            ->where('sections.branding.update', route('displays.section.update', ['display' => $this->display, 'section' => 'branding']))
+            ->missing('sections.advertisement')
+            // Values resolve through the profile where the display has none of its own.
+            ->where('values.booking_enabled', true)
+            ->where('values.text_available', 'Vrij')
+            ->where('values.font_family', 'Lato'));
+});
 
-    // Four sections still follow the profile, branding does not. (Advertisement is feature-gated.)
-    expect(substr_count($html, 'Follows profile'))->toBeGreaterThanOrEqual(3);
-    expect($html)->toContain('Own settings');
-    expect($html)->toContain('Follow profile');
+test('the advertisement section is offered to accounts with the feature', function () {
+    $this->user->featureFlags()->updateOrCreate([], ['advertisement' => true]);
+
+    $this->actingAs($this->user->fresh())
+        ->get(route('displays.configure', $this->display))
+        ->assertInertia(fn (Assert $page) => $page->has('sections.advertisement'));
+});
+
+test('an inherited logo is shown as the profile\'s on the configuration screen', function () {
+    Storage::fake('public');
+
+    $this->actingAs($this->user)->put(route('profiles.update', $this->profile), [
+        'name' => $this->profile->name,
+        'logo' => UploadedFile::fake()->image('logo.png'),
+    ])->assertRedirect();
+
+    $this->actingAs($this->user)
+        ->get(route('displays.configure', $this->display))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('images.logo.own', false)
+            ->where('images.logo.url', fn ($url) => str_starts_with($url, route('displays.images', ['display' => $this->display, 'type' => 'logo']))));
 });
 
 test('a profile image is inherited by the displays that follow it', function () {
@@ -358,13 +379,13 @@ test('resetting branding drops the display logo and falls back to the profile im
 });
 
 test('the profile form exposes the image fields', function () {
-    $html = $this->actingAs($this->user)
+    $this->actingAs($this->user)
         ->get(route('profiles.edit', $this->profile))
         ->assertOk()
-        ->getContent();
-
-    expect($html)->toContain('name="logo"')
-        ->toContain('name="background_image"')
-        ->toContain('name="default_background"')
-        ->toContain('enctype="multipart/form-data"');
+        ->assertInertia(fn (Assert $page) => $page->component('Profiles/Edit')
+            ->has('images.logo')
+            ->has('images.background')
+            ->has('options.backgrounds', 8)
+            ->where('values.booking_enabled', true)
+            ->where('values.text_available', 'Vrij'));
 });
