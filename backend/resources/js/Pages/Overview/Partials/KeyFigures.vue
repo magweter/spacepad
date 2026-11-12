@@ -21,7 +21,11 @@ const tiles = computed(() => {
       <div class="grid grid-cols-2 py-1 lg:grid-cols-4">
         <div v-for="(tile, i) in tiles" :key="tile.label" class="flex flex-col gap-1 px-5 py-4" :class="i < tiles.length - 1 ? 'lg:border-r lg:border-line-soft' : ''">
             <span class="text-[13px] font-medium text-muted">{{ tile.label }}</span>
-            <span class="font-display text-[30px] leading-none font-bold tracking-[-0.03em] tabular-nums">{{ tile.value }}<span v-if="tile.of !== undefined" class="ml-1 text-base text-muted">/{{ tile.of }}</span></span>
+            <span class="flex items-baseline gap-1 font-display leading-none font-bold tabular-nums">
+                <!-- Nothing to count yet reads as a dash, not as 0/0. -->
+                <span class="text-[30px] tracking-[-0.03em]">{{ tile.of === 0 ? '-' : tile.value }}</span>
+                <span v-if="tile.of" class="text-base text-muted">/ {{ tile.of }}</span>
+            </span>
             <span class="text-xs text-muted">{{ tile.sub }}</span>
         </div>
       </div>
