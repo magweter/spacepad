@@ -15,6 +15,7 @@ use App\Services\CalDAVService;
 use App\Services\FunnelTracking;
 use App\Services\GoogleService;
 use App\Services\OutlookService;
+use App\Services\RoomDetailsService;
 use Exception;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -126,6 +127,10 @@ class DisplayController extends Controller
         });
 
         if ($display) {
+            // The floor and seats the provider keeps for the room, from the list the room picker
+            // just fetched. Never a fresh call here: creating a display must not wait on it.
+            app(RoomDetailsService::class)->fillMissing($display, fetch: false);
+
             event(new UserOnboarded($request->user(), $display));
             FunnelTracking::displayCreated($workspace);
         }

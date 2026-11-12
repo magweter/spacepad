@@ -62,17 +62,27 @@
                     </div>
                     <div>
                         <label for="location" class="flex items-center gap-1.5 text-sm font-medium text-gray-700">Location
-                            <x-info-tip text="Printed in small text under the room name, together with the seat count. Leave it empty to show the room name alone." />
+                            <x-info-tip text="Printed in small text under the room name, together with the seat count. For a Google Workspace or Microsoft 365 room it is filled in from the floor and capacity in your directory. Leave it empty to show the room name alone." />
                         </label>
+                        @php $suggestLocation = $display->location === null ? ($roomSuggestion['location'] ?? null) : null; @endphp
                         <input type="text" name="location" id="location" maxlength="64" placeholder="e.g. Floor 1"
-                               value="{{ old('location', $display->location) }}" class="mt-1 bg-white {{ $inputClass }}">
-                        <p class="mt-1 text-xs text-gray-500">Optional. Shown under the room name.</p>
+                               value="{{ old('location', $display->location ?? $suggestLocation) }}" class="mt-1 bg-white {{ $inputClass }}">
+                        @if($suggestLocation)
+                            <p class="mt-1 text-xs text-blue-700">Filled in from your calendar. Save to keep it.</p>
+                        @else
+                            <p class="mt-1 text-xs text-gray-500">Optional. Shown under the room name.</p>
+                        @endif
                     </div>
                     <div>
                         <label for="capacity" class="block text-sm font-medium text-gray-700">Seats</label>
+                        @php $suggestCapacity = $display->capacity === null ? ($roomSuggestion['capacity'] ?? null) : null; @endphp
                         <input type="number" name="capacity" id="capacity" min="1" max="999" placeholder="e.g. 12"
-                               value="{{ old('capacity', $display->capacity) }}" class="mt-1 bg-white {{ $inputClass }}">
-                        <p class="mt-1 text-xs text-gray-500">Optional. Shown under the room name as "12 seats".</p>
+                               value="{{ old('capacity', $display->capacity ?? $suggestCapacity) }}" class="mt-1 bg-white {{ $inputClass }}">
+                        @if($suggestCapacity)
+                            <p class="mt-1 text-xs text-blue-700">Filled in from your calendar. Save to keep it.</p>
+                        @else
+                            <p class="mt-1 text-xs text-gray-500">Optional. Shown under the room name as "12 seats".</p>
+                        @endif
                     </div>
                 </div>
 

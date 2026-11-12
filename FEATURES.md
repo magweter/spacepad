@@ -109,6 +109,13 @@ The same block holds an optional **location** (up to 64 characters, e.g. "Floor 
 (1 to 999). The tablet prints them in small text under the room name as one line, "Floor 1, 12 seats",
 or whichever of the two is set; with neither, the room name stands alone. Emptying a field clears it.
 
+For a display on a **Google Workspace** or **Microsoft 365** room, both come from the directory:
+the floor (a number becomes "Floor 2", a Google floor section is added after a comma) and the
+capacity. A new display gets them from the room list the room picker fetched, without a second
+call. On Configure display, empty fields are filled in from the room and marked "Filled in from
+your calendar", and stored only on Save. The room list is kept for an hour per calendar account.
+A value someone typed is never replaced. CalDAV and personal calendars have no such data.
+
 Neither the names nor these two are inherited from a profile: they belong to the display itself.
 
 | Setting | Options |

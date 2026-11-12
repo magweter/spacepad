@@ -7,6 +7,7 @@ use App\Models\GoogleAccount;
 use App\Models\OutlookAccount;
 use App\Services\GoogleService;
 use App\Services\OutlookService;
+use App\Services\RoomDetailsService;
 use Google\Service\Exception as GoogleException;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Contracts\View\Factory;
@@ -17,7 +18,8 @@ class RoomController extends Controller
 {
     public function __construct(
         protected OutlookService $outlookService,
-        protected GoogleService $googleService
+        protected GoogleService $googleService,
+        protected RoomDetailsService $roomDetails,
     ) {}
 
     public function outlook(string $id): View|Factory|Application
@@ -29,6 +31,9 @@ class RoomController extends Controller
 
         try {
             $rooms = $this->outlookService->fetchRooms($account);
+            // Kept, so the display created from this list gets the room's floor and seats
+            // without asking Microsoft a second time.
+            $this->roomDetails->remember($account, $rooms ?? []);
 
             return view('components.rooms.picker', [
                 'rooms' => collect($rooms)->map(function (array $room) {
@@ -65,6 +70,7 @@ class RoomController extends Controller
 
         try {
             $rooms = $this->googleService->fetchRooms($account);
+            $this->roomDetails->remember($account, $rooms);
 
             return view('components.rooms.picker', [
                 'rooms' => collect($rooms)->map(function ($room) {
