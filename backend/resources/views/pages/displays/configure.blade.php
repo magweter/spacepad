@@ -60,6 +60,20 @@
                                value="{{ old('display_name', $display->display_name) }}" class="mt-1 bg-white {{ $inputClass }}">
                         <p class="mt-1 text-xs text-gray-500">Shown in the top right corner of the tablet.</p>
                     </div>
+                    <div>
+                        <label for="location" class="flex items-center gap-1.5 text-sm font-medium text-gray-700">Location
+                            <x-info-tip text="Printed in small text under the room name, together with the seat count. Leave it empty to show the room name alone." />
+                        </label>
+                        <input type="text" name="location" id="location" maxlength="64" placeholder="e.g. Floor 1"
+                               value="{{ old('location', $display->location) }}" class="mt-1 bg-white {{ $inputClass }}">
+                        <p class="mt-1 text-xs text-gray-500">Optional. Shown under the room name.</p>
+                    </div>
+                    <div>
+                        <label for="capacity" class="block text-sm font-medium text-gray-700">Seats</label>
+                        <input type="number" name="capacity" id="capacity" min="1" max="999" placeholder="e.g. 12"
+                               value="{{ old('capacity', $display->capacity) }}" class="mt-1 bg-white {{ $inputClass }}">
+                        <p class="mt-1 text-xs text-gray-500">Optional. Shown under the room name as "12 seats".</p>
+                    </div>
                 </div>
 
                 {{-- The read-only facts sit inside the form so Save can be the last thing in the

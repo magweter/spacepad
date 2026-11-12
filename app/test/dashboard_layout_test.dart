@@ -29,7 +29,8 @@ class _FakeDashboardController extends DashboardController {
   @override
   void onInit() {
     updateTime();
-    globalDisplay = DisplayModel(id: '1', name: _roomName, settings: settings);
+    // With a subline, so the header is as tall as it gets.
+    globalDisplay = DisplayModel(id: '1', name: _roomName, location: 'Floor 1', capacity: 12, settings: settings);
     globalSettings.value = settings;
     events.assignAll(fakeEvents);
     loading.value = false;
@@ -117,7 +118,7 @@ void main() {
 
         expect(tester.takeException(), isNull, reason: 'the layout overflowed');
 
-        final header = tester.getRect(find.text(_roomName));
+        final header = tester.getRect(find.text(_roomName)).expandToInclude(tester.getRect(find.byKey(const ValueKey('room-subline'))));
         final title = tester.getRect(find.byType(StatusTitle));
         final buttons = tester.getRect(find.byType(ActionPanel));
         final bottomBar = tester.getRect(find.byKey(const ValueKey('bottom-toolbar')));

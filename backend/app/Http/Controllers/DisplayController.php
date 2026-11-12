@@ -137,7 +137,8 @@ class DisplayController extends Controller
     }
 
     /**
-     * Rename a display: the dashboard-only device name and the room name on the tablet.
+     * Rename a display: the dashboard-only device name, the room name on the tablet and the location
+     * and seat count printed under it.
      *
      * Both were only settable while creating the display, so a room that was renamed, moved or
      * mistyped had to be deleted and set up again — including reconnecting the tablet.
@@ -149,9 +150,12 @@ class DisplayController extends Controller
         $data = $request->validate([
             'name' => 'required|string|max:255',
             'display_name' => 'required|string|max:255',
+            'location' => 'nullable|string|max:64',
+            'capacity' => 'nullable|integer|min:1|max:999',
         ]);
 
-        $display->update($data);
+        // An emptied field clears the value instead of keeping the old one.
+        $display->update([...$data, 'location' => $data['location'] ?? null, 'capacity' => $data['capacity'] ?? null]);
 
         // Bust the kiosk cache so the tablet picks up a new room name without waiting for its
         // next settings poll to happen to land after the write.
@@ -159,7 +163,7 @@ class DisplayController extends Controller
 
         return redirect()
             ->route('displays.configure', $display)
-            ->with('success', 'Display names updated. Changes may take up to 1 minute to appear on your display.');
+            ->with('success', 'Display information updated. Changes may take up to 1 minute to appear on your display.');
     }
 
     public function updateStatus(Request $request, Display $display): RedirectResponse

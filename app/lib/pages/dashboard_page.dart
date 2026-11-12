@@ -176,25 +176,46 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  /// The room name in the header corner, and the long-press target that reveals the admin
-  /// actions when they are hidden.
+  /// The room name in the header corner with the location and seat count under it, and the
+  /// long-press target that reveals the admin actions when they are hidden.
   ///
   /// That long press is the only way back to the admin actions on a display that hides them.
   Widget _buildRoomName(BuildContext context, DashboardController controller, bool hideAdminActions) {
+    final subline = controller.roomSubline;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onLongPressStart: (_) { if (hideAdminActions) controller.startLongPressTimer(); },
       onLongPressEnd: (_) { if (hideAdminActions) controller.cancelLongPressTimer(); },
-      child: Text(
-        controller.roomName,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: FontService.instance.getTextStyle(
-          fontFamily: controller.currentFontFamily.value,
-          fontSize: _sp(context, 28) * controller.roomNameScale,
-          fontWeight: controller.isGlassTheme ? FontWeight.w600 : FontWeight.w500,
-          color: TWColors.white,
-        ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Text(
+            controller.roomName,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: FontService.instance.getTextStyle(
+              fontFamily: controller.currentFontFamily.value,
+              fontSize: _sp(context, 28) * controller.roomNameScale,
+              fontWeight: controller.isGlassTheme ? FontWeight.w600 : FontWeight.w500,
+              color: TWColors.white,
+            ),
+          ),
+          if (subline.isNotEmpty)
+            Text(
+              subline,
+              key: const ValueKey('room-subline'),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: FontService.instance.getTextStyle(
+                fontFamily: controller.currentFontFamily.value,
+                fontSize: _sp(context, 16) * controller.roomNameScale,
+                fontWeight: FontWeight.w400,
+                // `text-muted` (dark): reads on black and on the glass ground alike.
+                color: const Color(0xFF94A3B8),
+              ),
+            ),
+        ],
       ),
     );
   }

@@ -231,6 +231,17 @@ class DashboardController extends GetxController {
     return globalDisplay?.name ?? 'meeting_room'.tr;
   }
 
+  /// The line under the room name, e.g. "Floor 1, 12 seats". Empty when neither is set.
+  String get roomSubline {
+    final location = globalDisplay?.location?.trim();
+    final capacity = globalDisplay?.capacity;
+    return [
+      if (location != null && location.isNotEmpty) location,
+      if (capacity != null && capacity > 0)
+        capacity == 1 ? 'one_seat'.tr : 'x_seats'.trParams({'count': capacity.toString()}),
+    ].join(', ');
+  }
+
   String get title {
     if (isReserved) {
       return currentEvent!.summary;

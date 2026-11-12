@@ -105,7 +105,11 @@ Configure display screen (they used to be settable only while creating the displ
 | **Display name** | Dashboard only, to tell displays apart. Listed by the tablet's setup wizard and under **Used by** on a profile, so it should be unique per display. |
 | **Room name** | Printed in the top right corner of the tablet. Several displays may share it on purpose — a building or floor name, for instance. |
 
-Neither is inherited from a profile: they belong to the display itself.
+The same block holds an optional **location** (up to 64 characters, e.g. "Floor 1") and **seat count**
+(1 to 999). The tablet prints them in small text under the room name as one line, "Floor 1, 12 seats",
+or whichever of the two is set; with neither, the room name stands alone. Emptying a field clears it.
+
+Neither the names nor these two are inherited from a profile: they belong to the display itself.
 
 | Setting | Options |
 |---|---|

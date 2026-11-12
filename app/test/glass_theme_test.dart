@@ -15,13 +15,15 @@ import 'package:spacepad/translations/translations.dart';
 class _FakeDashboardController extends DashboardController {
   final DisplaySettingsModel settings;
   final List<EventModel> fakeEvents;
+  final String? location;
+  final int? capacity;
 
-  _FakeDashboardController(this.settings, this.fakeEvents);
+  _FakeDashboardController(this.settings, this.fakeEvents, {this.location, this.capacity});
 
   @override
   void onInit() {
     updateTime();
-    globalDisplay = DisplayModel(id: '1', name: 'Boardroom', settings: settings);
+    globalDisplay = DisplayModel(id: '1', name: 'Boardroom', location: location, capacity: capacity, settings: settings);
     globalSettings.value = settings;
     events.assignAll(fakeEvents);
     loading.value = false;
@@ -52,7 +54,7 @@ EventModel _event(String id, int fromMinutes, int toMinutes) {
   );
 }
 
-Future<DashboardController> _pump(WidgetTester tester, String theme, List<EventModel> events) async {
+Future<DashboardController> _pump(WidgetTester tester, String theme, List<EventModel> events, {String? location, int? capacity}) async {
   tester.view.physicalSize = const Size(1024, 600);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
@@ -60,7 +62,7 @@ Future<DashboardController> _pump(WidgetTester tester, String theme, List<EventM
 
   await tester.pumpWidget(const SizedBox());
   Get.reset();
-  final controller = Get.put<DashboardController>(_FakeDashboardController(_settings(theme), events));
+  final controller = Get.put<DashboardController>(_FakeDashboardController(_settings(theme), events, location: location, capacity: capacity));
   await tester.pumpWidget(GetMaterialApp(
     translations: AppTranslations(),
     locale: const Locale('en'),
@@ -127,5 +129,32 @@ void main() {
     await _pump(tester, 'glass', []);
     expect(edge(tester)?.top.color, GlassTokens.glassBorder);
     expect(tester.widget<FrostedPanel>(find.byKey(const ValueKey('bottom-toolbar'))), isNotNull);
+  });
+
+  group('the line under the room name', () {
+    String? subline(WidgetTester tester) {
+      final found = find.byKey(const ValueKey('room-subline'));
+      return found.evaluate().isEmpty ? null : tester.widget<Text>(found).data;
+    }
+
+    testWidgets('lists the location and the seats', (tester) async {
+      await _pump(tester, 'glass', [], location: 'Floor 1', capacity: 12);
+      expect(subline(tester), 'Floor 1, 12 seats');
+    });
+
+    testWidgets('says seat for one', (tester) async {
+      await _pump(tester, 'classic', [], capacity: 1);
+      expect(subline(tester), '1 seat');
+    });
+
+    testWidgets('shows the location alone', (tester) async {
+      await _pump(tester, 'classic', [], location: 'Floor 1');
+      expect(subline(tester), 'Floor 1');
+    });
+
+    testWidgets('is left out when neither is set', (tester) async {
+      await _pump(tester, 'glass', [], location: '  ');
+      expect(subline(tester), isNull);
+    });
   });
 }
