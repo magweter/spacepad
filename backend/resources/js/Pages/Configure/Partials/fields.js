@@ -35,7 +35,7 @@ export const sectionKeys = {
     behavior: ['check_in_enabled', 'check_in_minutes', 'check_in_grace_period', 'booking_enabled', 'allow_future_bookings', 'extend_enabled', 'cancel_permission', 'hide_admin_actions'],
     display: ['view_schedule', 'timeline_widget_mode', 'border_thickness', 'show_organizer', 'show_meeting_title', 'show_meeting_location', 'all_day_events_block', 'led_enabled'],
     texts: ['text_available', 'text_transitioning', 'text_reserved', 'text_checkin'],
-    branding: ['font_family'], // plus a font_size_<element> per options.fontSizeElements
+    branding: ['theme', 'font_family'], // plus a font_size_<element> per options.fontSizeElements
     advertisement: ['advertisement_enabled', 'advertisement_interval', 'advertisement_duration'],
 };
 

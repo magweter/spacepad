@@ -29,14 +29,15 @@ class _FakeDashboardController extends DashboardController {
   @override
   void onInit() {
     updateTime();
-    globalDisplay = DisplayModel(id: '1', name: _roomName, settings: settings);
+    // With a subline, so the header is as tall as it gets.
+    globalDisplay = DisplayModel(id: '1', name: _roomName, location: 'Floor 1', capacity: 12, settings: settings);
     globalSettings.value = settings;
     events.assignAll(fakeEvents);
     loading.value = false;
   }
 }
 
-DisplaySettingsModel _settings({String timelineMode = 'none', String size = 'normal'}) {
+DisplaySettingsModel _settings({String timelineMode = 'none', String size = 'normal', String theme = 'classic'}) {
   return DisplaySettingsModel(
     checkInEnabled: false,
     bookingEnabled: true,
@@ -46,6 +47,7 @@ DisplaySettingsModel _settings({String timelineMode = 'none', String size = 'nor
     calendarEnabled: true,
     hideAdminActions: false,
     showMeetingTitle: true,
+    theme: theme,
     fontFamily: 'Inter',
     extendEnabled: true,
     showOrganizer: true,
@@ -107,15 +109,16 @@ Future<void> _pumpDashboard(WidgetTester tester, DisplaySettingsModel settings, 
 void main() {
   setUpAll(() => GoogleFonts.config.allowRuntimeFetching = false);
 
+  for (final theme in ['classic', 'glass']) {
   for (final screen in _screens) {
   for (final mode in ['none', 'side_panel', 'inline', 'full_panel']) {
     for (final size in ['normal', 'xlarge']) {
-      testWidgets('a long title keeps clear of the header and the bottom bar (${screen.width.toInt()}x${screen.height.toInt()}, $mode, $size)', (tester) async {
-        await _pumpDashboard(tester, _settings(timelineMode: mode, size: size), screen: screen);
+      testWidgets('a long title keeps clear of the header and the bottom bar ($theme, ${screen.width.toInt()}x${screen.height.toInt()}, $mode, $size)', (tester) async {
+        await _pumpDashboard(tester, _settings(timelineMode: mode, size: size, theme: theme), screen: screen);
 
         expect(tester.takeException(), isNull, reason: 'the layout overflowed');
 
-        final header = tester.getRect(find.text(_roomName));
+        final header = tester.getRect(find.text(_roomName)).expandToInclude(tester.getRect(find.byKey(const ValueKey('room-subline'))));
         final title = tester.getRect(find.byType(StatusTitle));
         final buttons = tester.getRect(find.byType(ActionPanel));
         final bottomBar = tester.getRect(find.byKey(const ValueKey('bottom-toolbar')));
@@ -129,6 +132,7 @@ void main() {
         expect(lines, inInclusiveRange(1, 3));
       });
     }
+  }
   }
   }
 
