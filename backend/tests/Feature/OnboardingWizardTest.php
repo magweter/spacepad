@@ -351,7 +351,8 @@ test('a colleague is offered the workspace of their company', function () {
     $this->actingAs($colleague)->get(route('onboarding'))
         ->assertInertia(fn (Assert $page) => $page->component('Onboarding/JoinExisting')
             ->where('sent', false)
-            ->where('workspace.name', $owner->primaryWorkspace()->name));
+            ->where('workspace.name', $owner->primaryWorkspace()->name)
+            ->where('user.email', 'sanne.de.vries@acme.test'));
 
     $this->actingAs($colleague)->post(route('onboarding.join'))->assertRedirect(route('onboarding'));
 

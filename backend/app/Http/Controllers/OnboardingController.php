@@ -333,7 +333,7 @@ class OnboardingController extends Controller
 
         return [
             'sent' => $pending !== null,
-            'email' => $user->email,
+            'user' => ['name' => $user->name, 'email' => $user->email],
             'domain' => EmailDomain::of($user->email),
             'workspace' => [
                 'name' => $colleagues->name,
