@@ -15,6 +15,7 @@ import BulkBar from './Partials/BulkBar.vue';
 import DisplayPanel from './Partials/DisplayPanel.vue';
 import DiagnosticsModal from './Partials/DiagnosticsModal.vue';
 import RowMenu from './Partials/RowMenu.vue';
+import DisplayGlyph from './Partials/DisplayGlyph.vue';
 
 const props = defineProps({
     shell: Object, displays: Array, selected: String, profiles: Array, hasPro: Boolean, canCreate: Boolean,
@@ -191,9 +192,7 @@ const fieldClass = 'rounded-lg border border-line bg-surface px-3 py-2 text-[13p
                                 <input v-model="picked" type="checkbox" :value="d.id" :aria-label="`Select ${d.name}`" class="h-4 w-4 accent-navy" @click.stop>
                             </span>
                             <button type="button" class="flex h-14 min-w-0 cursor-pointer items-center gap-3 text-left text-ink" @click.stop="open(d.id)">
-                                <span class="inline-flex h-6 w-[34px] flex-none items-center justify-center rounded bg-navy" aria-hidden="true">
-                                    <span class="h-4 w-[26px] rounded-sm" :class="d.view.fill"></span>
-                                </span>
+                                <DisplayGlyph :tone="d.view.tone" />
                                 <span class="flex min-w-0 flex-col">
                                     <span class="truncate font-semibold">{{ d.name }}</span>
                                     <span v-if="d.displayName && d.displayName !== d.name" class="truncate text-xs text-muted">{{ d.displayName }}</span>
@@ -233,7 +232,8 @@ const fieldClass = 'rounded-lg border border-line bg-surface px-3 py-2 text-[13p
 
                 <div v-else class="grid gap-3.5 sm:grid-cols-2 xl:grid-cols-3">
                     <button v-for="d in filtered" :key="d.id" type="button" class="sp-card sp-card-pad-md sp-card-interactive flex cursor-pointer flex-col gap-2.5 text-left text-ink" @click="open(d.id)">
-                        <span class="flex items-center gap-2">
+                        <span class="flex items-center gap-2.5">
+                            <DisplayGlyph :tone="d.view.tone" />
                             <span class="flex-1 truncate font-semibold">{{ d.name }}</span>
                             <span :class="['sp-badge', `sp-badge-${d.view.tone}`]"><StatusDot :status="d.view.tone" />{{ d.view.label }}</span>
                         </span>
