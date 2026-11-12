@@ -21,4 +21,5 @@ enum FunnelStep: string
     case ONBOARDING_STEP_SKIPPED = 'onboarding_step_skipped';
     case ONBOARDING_COMPLETED = 'onboarding_completed';
     case ONBOARDING_SKIPPED = 'onboarding_skipped';
+    case IT_REQUEST_SENT = 'it_request_sent';
 }

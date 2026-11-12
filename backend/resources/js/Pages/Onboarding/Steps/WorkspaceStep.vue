@@ -13,7 +13,7 @@ const page = usePage();
 const selfHosted = computed(() => page.props.app.selfHosted);
 
 const form = useForm({
-    usage_type: props.user.usageType ?? 'business',
+    usage_type: props.user.usageType ?? null,
     workspace_name: props.workspace.name ?? '',
     accept_terms: false,
 });
@@ -35,15 +35,14 @@ function openInvite() {
     window.location.href = link;
 }
 
-function signOut() {
-    router.post(props.urls.logout);
+function skip() {
+    router.post(props.urls.workspace, { skip: true });
 }
 </script>
 
 <template>
-    <StepHeading :eyebrow="eyebrow" :title="`Welcome, ${user.firstName}. How will you use Spacepad?`">
-        We tailor the setup to your situation. Signed in as {{ user.email }}.
-        <button type="button" class="font-semibold text-navy hover:underline" @click="signOut">Not you?</button>
+    <StepHeading :eyebrow="eyebrow" title="Welcome! How will you use Spacepad?">
+        We tailor the setup to your situation.
     </StepHeading>
 
     <form class="flex flex-col gap-6" @submit.prevent="submit">
@@ -98,7 +97,10 @@ function signOut() {
                 <button type="button" class="font-semibold text-navy hover:underline" @click="inviteOpen = true">Enter their invite link</button>
             </span>
             <span v-else></span>
-            <Button type="submit" size="lg" :disabled="form.processing">Continue</Button>
+            <div class="flex items-center gap-2">
+                <Button v-if="!(selfHosted && !user.termsAccepted)" variant="ghost" size="lg" @click="skip">Skip this step</Button>
+                <Button type="submit" size="lg" :disabled="!form.usage_type || form.processing">Continue</Button>
+            </div>
         </div>
     </form>
 </template>

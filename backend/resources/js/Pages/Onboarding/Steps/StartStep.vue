@@ -1,12 +1,22 @@
 <script setup>
-import { ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import { router } from '@inertiajs/vue3';
+import confetti from 'canvas-confetti';
 import StepHeading from '../../../Components/StepHeading.vue';
 
 defineOptions({ inheritAttrs: false });
 
 const props = defineProps({ urls: Object, eyebrow: String, onboarding: Object });
 const processing = ref(false);
+
+// A small celebration on arrival, in the brand colours. Skipped for anyone who asked their
+// system for less motion.
+onMounted(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const colors = ['#FDA312', '#14213D', '#16A34A', '#FFFFFF'];
+    confetti({ particleCount: 90, spread: 70, startVelocity: 38, origin: { x: 0.62, y: 0.25 }, colors, disableForReducedMotion: true });
+    setTimeout(() => confetti({ particleCount: 50, spread: 100, origin: { x: 0.62, y: 0.3 }, colors, disableForReducedMotion: true }), 250);
+});
 
 function start(choice) {
     processing.value = true;
@@ -15,8 +25,13 @@ function start(choice) {
 </script>
 
 <template>
-    <StepHeading :eyebrow="eyebrow" title="How do you want to start?">
-        Your workspace is ready. Neither is final; you can do the other any time from the portal.
+    <StepHeading :eyebrow="eyebrow" title="Great! You're ready to go.">
+        <template #before-title>
+            <span class="mb-1 flex h-12 w-12 items-center justify-center rounded-full bg-available-bg text-available-text">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5" /></svg>
+            </span>
+        </template>
+        Your workspace is set up. How do you want to start? You can always do the other one later from the portal.
     </StepHeading>
 
     <div class="flex flex-col gap-3">

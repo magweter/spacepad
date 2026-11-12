@@ -101,6 +101,7 @@ Route::middleware(['auth', 'user.update-last-activity'])->group(function () {
     Route::get('/setup/first-display/resources', [FirstDisplayController::class, 'resources'])->name('setup.first-display.resources');
     Route::get('/setup/first-display/device-status', [FirstDisplayController::class, 'deviceStatus'])->name('setup.first-display.device-status');
     Route::get('/setup/first-display/live', [FirstDisplayController::class, 'live'])->name('setup.first-display.live');
+    Route::post('/setup/first-display/it-request', [FirstDisplayController::class, 'itRequest'])->name('setup.first-display.it-request');
 
     Route::post('/outlook-accounts/auth', [OutlookAccountsController::class, 'auth'])->name('outlook-accounts.auth');
     Route::post('/outlook-accounts/booking-method', [OutlookAccountsController::class, 'setBookingMethod'])->name('outlook-accounts.set-booking-method');

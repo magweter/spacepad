@@ -32,6 +32,12 @@ const components = { workspace: WorkspaceStep, rooms: RoomsStep, tablets: Tablet
 const current = computed(() => props.steps.indexOf(props.step));
 const rail = computed(() => props.steps.map((key, i) => ({ key, ...meta[key], number: i + 1, done: i < current.value, current: i === current.value })));
 const tip = computed(() => meta[props.step].tip);
+const initials = computed(() => (props.user.name || props.user.email || '?').split(/[\s.@]+/).filter(Boolean).slice(0, 2).map((p) => p[0]).join('').toUpperCase());
+
+function logout() {
+    router.post(props.urls.logout);
+}
+
 const eyebrow = computed(() => `${current.value + 1} of ${props.steps.length}, ${meta[props.step].name}`);
 
 watch(() => props.step, (step) => onboarding.track(step, 'viewed'), { immediate: true });
@@ -64,6 +70,14 @@ watch(() => props.step, (step) => onboarding.track(step, 'viewed'), { immediate:
             <div class="hidden flex-col gap-1 rounded-lg bg-navy-800 p-3.5 text-[13px] md:flex">
                 <span class="font-semibold text-white">{{ tip[0] }}</span>
                 <span class="text-on-navy-muted">{{ tip[1] }}</span>
+            </div>
+            <div class="flex items-center gap-2.5 border-t border-navy-700 pt-4">
+                <span class="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-on-navy-muted text-[13px] font-semibold text-navy">{{ initials }}</span>
+                <span class="flex min-w-0 flex-1 flex-col">
+                    <span class="truncate text-[13px] font-medium text-white">{{ user.name }}</span>
+                    <span class="truncate text-xs text-on-navy-muted">{{ user.email }}</span>
+                </span>
+                <button type="button" class="rounded-md px-2 py-1 text-xs font-semibold text-on-navy-2 hover:bg-navy-800 hover:text-white" @click="logout">Log out</button>
             </div>
         </aside>
 

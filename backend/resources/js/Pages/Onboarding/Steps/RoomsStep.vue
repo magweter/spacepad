@@ -67,8 +67,8 @@ function submit() {
         <div class="flex items-center justify-between">
             <button type="button" class="text-[13px] font-semibold text-muted hover:text-navy" @click="onboarding.goTo('workspace')">← Back</button>
             <div class="flex items-center gap-2">
-                <Button variant="ghost" size="lg" @click="router.post(urls.rooms, { skip: true })">Skip</Button>
-                <Button type="submit" size="lg" :disabled="form.processing">Continue</Button>
+                <Button variant="ghost" size="lg" @click="router.post(urls.rooms, { skip: true })">Skip this step</Button>
+                <Button type="submit" size="lg" :disabled="(!form.previous_solution && !form.rooms && !form.locations) || form.processing">Continue</Button>
             </div>
         </div>
     </form>

@@ -11,7 +11,7 @@ const props = defineProps({ answers: Object, options: Object, urls: Object, eyeb
 
 const form = useForm({
     tablets: props.answers.tablets,
-    features: props.answers.features?.length ? [...props.answers.features] : ['room_displays', 'booking'],
+    features: props.answers.features?.length ? [...props.answers.features] : [],
 });
 
 function toggle(value) {
@@ -51,8 +51,8 @@ function submit() {
         <div class="flex items-center justify-between">
             <button type="button" class="text-[13px] font-semibold text-muted hover:text-navy" @click="onboarding.goTo('rooms')">← Back</button>
             <div class="flex items-center gap-2">
-                <Button variant="ghost" size="lg" @click="router.post(urls.tablets, { skip: true })">Skip</Button>
-                <Button type="submit" size="lg" :disabled="form.processing">Continue</Button>
+                <Button variant="ghost" size="lg" @click="router.post(urls.tablets, { skip: true })">Skip this step</Button>
+                <Button type="submit" size="lg" :disabled="(!form.tablets && !form.features.length) || form.processing">Continue</Button>
             </div>
         </div>
     </form>

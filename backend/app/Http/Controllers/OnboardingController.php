@@ -54,7 +54,7 @@ class OnboardingController extends Controller
             'step' => $step,
             'steps' => self::STEPS,
             'user' => [
-                'firstName' => $this->firstName($user),
+                'name' => $user->name,
                 'email' => $user->email,
                 'usageType' => $user->usage_type?->value,
                 'termsAccepted' => $user->terms_accepted_at !== null,
@@ -98,6 +98,18 @@ class OnboardingController extends Controller
         $user = $request->user();
         $workspace = $this->currentWorkspace($request);
         $selfHosted = config('settings.is_self_hosted');
+
+        // On a self-hosted instance the licence terms cannot be skipped.
+        if ($selfHosted && ! $user->terms_accepted_at) {
+            $request->merge(['skip' => false]);
+        }
+
+        if ($request->boolean('skip')) {
+            $user->update(['usage_type' => $user->usage_type ?? UsageType::BUSINESS]);
+            $this->stepEvent(FunnelStep::ONBOARDING_STEP_SKIPPED, 'workspace', $workspace, $user);
+
+            return redirect()->route('onboarding', ['step' => 'rooms']);
+        }
 
         $data = $request->validate([
             'usage_type' => ['required', Rule::enum(UsageType::class)],
@@ -263,17 +275,6 @@ class OnboardingController extends Controller
         }
 
         return 'start';
-    }
-
-    /**
-     * "Sanne" for sanne.de.vries@acme.com, until someone sets a name of their own.
-     */
-    private function firstName(User $user): string
-    {
-        $local = strstr($user->email, '@', true) ?: $user->email;
-        $name = $user->name && $user->name !== $local ? $user->name : preg_split('/[._+-]/', $local)[0];
-
-        return ucfirst(strtok($name, ' '));
     }
 
     private function stepEvent(FunnelStep $event, string $step, Workspace $workspace, User $user): void

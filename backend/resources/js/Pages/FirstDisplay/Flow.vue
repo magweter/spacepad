@@ -24,7 +24,7 @@ const props = defineProps({
 const flow = useOnboarding(props.urls);
 
 const meta = {
-    calendar: { name: 'Calendar', tip: ['Nothing moves', 'Spacepad reads your calendar. Rooms, bookings and people stay where they are.'] },
+    calendar: { name: 'Calendar', tip: null },
     room: { name: 'Room', tip: ['Just one for now', 'Add the other rooms once the first display is on the wall.'] },
     tablet: { name: 'Tablet', tip: ['Any tablet', 'iPad from iOS 15, Android from 8.'] },
     done: { name: 'Done', tip: ['Add more any time', 'The other rooms follow the same steps, with the calendar already connected.'] },
@@ -61,10 +61,10 @@ watch(() => props.step, (step) => flow.track(step, 'viewed'), { immediate: true 
             </ol>
         </header>
 
-        <div class="flex w-full max-w-[760px] flex-col gap-6 p-8">
+        <div class="mx-auto flex w-full max-w-[760px] flex-col gap-6 px-6 py-8 md:px-8 md:py-12">
             <FlashMessage />
             <component :is="components[step]" v-bind="$props" :eyebrow="eyebrow" :flow="flow" />
-            <p class="text-[13px] text-muted"><span class="font-semibold text-ink-2">{{ meta[step].tip[0] }}.</span> {{ meta[step].tip[1] }}</p>
+            <p v-if="meta[step].tip" class="text-[13px] text-muted"><span class="font-semibold text-ink-2">{{ meta[step].tip[0] }}.</span> {{ meta[step].tip[1] }}</p>
         </div>
     </PortalShell>
 </template>

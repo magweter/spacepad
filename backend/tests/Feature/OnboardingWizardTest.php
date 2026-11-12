@@ -8,8 +8,10 @@ use App\Models\FunnelEvent;
 use App\Models\OnboardingAnswer;
 use App\Models\OutlookAccount;
 use App\Models\User;
+use App\Notifications\ItAdminCalendarRequest;
 use App\Support\OnboardingReturn;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Notification;
 use Inertia\Testing\AssertableInertia as Assert;
 
 uses(RefreshDatabase::class);
@@ -53,7 +55,7 @@ test('a newcomer lands on the first of four steps', function () {
             ->component('Onboarding/Wizard')
             ->where('step', 'workspace')
             ->where('steps', ['workspace', 'rooms', 'tablets', 'start'])
-            ->where('user.firstName', 'Sanne')
+            ->where('user.email', 'sanne.de.vries@acme.test')
             ->has('options.rooms', 4)
             ->has('options.locations', 3)
             ->has('options.tablets', 4)
@@ -265,4 +267,43 @@ test('a sign-in link shows the inbox state', function () {
 
     $this->get(route('login'))
         ->assertInertia(fn (Assert $page) => $page->component('Auth/Login')->where('sentTo', 'tom@acme.test'));
+});
+
+test('skipping the first step still gives the workspace a usage type', function () {
+    $user = newcomer();
+
+    $this->actingAs($user)->post(route('onboarding.workspace'), ['skip' => true])
+        ->assertRedirect(route('onboarding', ['step' => 'rooms']));
+
+    expect($user->fresh()->usage_type)->toBe(UsageType::BUSINESS)
+        ->and(stepsRecorded($user))->toBe(['onboarding_step_skipped:workspace']);
+});
+
+test('the licence terms on a self-hosted instance cannot be skipped', function () {
+    config(['settings.is_self_hosted' => true]);
+    $user = newcomer();
+    $user->update(['terms_accepted_at' => null]);
+
+    $this->actingAs($user)->post(route('onboarding.workspace'), ['skip' => true, 'usage_type' => 'business'])
+        ->assertSessionHasErrors('accept_terms');
+});
+
+test('someone without admin rights can mail a request to IT', function () {
+    Notification::fake();
+    $user = User::factory()->active()->create(['name' => 'Sanne de Vries']);
+
+    $this->actingAs($user)->from(route('setup.first-display'))
+        ->post(route('setup.first-display.it-request'), ['email' => 'it@acme.test'])
+        ->assertRedirect(route('setup.first-display'))
+        ->assertSessionHas('success');
+
+    Notification::assertSentOnDemand(
+        ItAdminCalendarRequest::class,
+        fn ($notification, $channels, $notifiable) => $notifiable->routes['mail'] === 'it@acme.test'
+            && $notification->requesterName === 'Sanne de Vries'
+    );
+    expect(FunnelEvent::where('event', 'it_request_sent')->count())->toBe(1);
+
+    $this->actingAs($user)->post(route('setup.first-display.it-request'), ['email' => 'not-an-email'])
+        ->assertSessionHasErrors('email');
 });

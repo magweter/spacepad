@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\FunnelStep;
 use App\Enums\PermissionType;
 use App\Models\CalDAVAccount;
 use App\Models\Device;
@@ -9,11 +10,16 @@ use App\Models\Display;
 use App\Models\GoogleAccount;
 use App\Models\OutlookAccount;
 use App\Models\Workspace;
+use App\Notifications\ItAdminCalendarRequest;
 use App\Services\CalDAVService;
+use App\Services\Funnel;
 use App\Services\GoogleService;
 use App\Services\OutlookService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -56,6 +62,7 @@ class FirstDisplayController extends Controller
                 'step' => route('setup.first-display'),
                 'events' => route('onboarding.events'),
                 'resources' => route('setup.first-display.resources'),
+                'itRequest' => route('setup.first-display.it-request'),
                 'deviceStatus' => route('setup.first-display.device-status', $display ? ['display' => $display->id] : []),
                 'outlookAuth' => route('outlook-accounts.auth'),
                 'googleAuth' => route('google-accounts.auth'),
@@ -129,6 +136,37 @@ class FirstDisplayController extends Controller
         $device = $display ? $this->device($workspace, $display) : null;
 
         return response()->json(['paired' => $device !== null, 'name' => $device?->name]);
+    }
+
+    /**
+     * Mail an IT admin a request to connect the calendars, for someone without the rights.
+     */
+    public function itRequest(Request $request): RedirectResponse
+    {
+        $data = $request->validate(['email' => ['required', 'email', 'max:255']], [
+            'email.required' => 'Enter the email address of your IT admin.',
+        ]);
+
+        $user = $request->user();
+        $workspace = $this->currentWorkspace($request);
+
+        $key = 'it-request:'.$user->id;
+        if (RateLimiter::tooManyAttempts($key, 5)) {
+            return back()->with('error', 'You sent a few requests already. Try again in an hour.');
+        }
+        RateLimiter::hit($key, 3600);
+
+        Notification::route('mail', $data['email'])->notify(new ItAdminCalendarRequest(
+            requesterName: $user->name,
+            requesterEmail: $user->email,
+            workspaceName: $workspace->name,
+            microsoftConsentUrl: config('services.microsoft.enabled') ? app(OutlookService::class)->getAdminConsentUrl() : null,
+            setupUrl: route('setup.first-display'),
+        ));
+
+        Funnel::record(FunnelStep::IT_REQUEST_SENT, $workspace, $user);
+
+        return back()->with('success', "We emailed {$data['email']}. The rooms show up here once they have connected the calendar.");
     }
 
     /**

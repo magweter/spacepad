@@ -82,7 +82,7 @@ function useDifferentEmail() {
                               :class="isRegister ? 'bg-white text-navy shadow-[0_1px_2px_rgba(15,23,42,0.08)]' : 'text-muted hover:text-navy'">Create account</Link>
                     </nav>
 
-                    <FlashMessage />
+                    <FlashMessage :success="false" />
 
                     <!-- Sent state -->
                     <div v-if="sentTo" class="flex flex-col gap-5">
