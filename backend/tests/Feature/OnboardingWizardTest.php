@@ -250,8 +250,10 @@ test('the live screen shows the display and the tablet', function () {
     $this->actingAs($user)->get(route('setup.first-display.live', ['display' => $display->id]))
         ->assertInertia(fn (Assert $page) => $page
             ->component('FirstDisplay/Live')
+            ->has('shell')
             ->where('display.name', 'Boardroom')
-            ->where('device.name', 'Lobby iPad'));
+            ->where('device.name', 'Lobby iPad')
+            ->where('urls', ['dashboard' => route('dashboard')]));
 });
 
 test('registering needs only an email address', function () {

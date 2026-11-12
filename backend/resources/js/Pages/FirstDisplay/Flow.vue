@@ -27,7 +27,7 @@ const meta = {
     calendar: { name: 'Calendar', tip: null },
     room: { name: 'Room', tip: null },
     tablet: { name: 'Tablet', tip: null },
-    done: { name: 'Done', tip: ['Add more any time', 'The other rooms follow the same steps, with the calendar already connected.'] },
+    done: { name: 'Done', tip: null },
 };
 const components = { calendar: CalendarStep, room: RoomStep, tablet: TabletStep, done: DoneStep };
 
@@ -61,7 +61,7 @@ watch(() => props.step, (step) => flow.track(step, 'viewed'), { immediate: true 
             </ol>
         </header>
 
-        <div class="mx-auto flex w-full max-w-[760px] flex-col gap-6 px-6 py-8 md:px-8 md:py-12">
+        <div class="mx-auto flex w-full flex-col gap-6 px-6 py-8 md:px-8 md:py-12" :class="step === 'done' ? 'max-w-[960px]' : 'max-w-[760px]'">
             <FlashMessage />
             <component :is="components[step]" v-bind="$props" :eyebrow="eyebrow" :flow="flow" />
             <p v-if="meta[step].tip" class="text-[13px] text-muted"><span class="font-semibold text-ink-2">{{ meta[step].tip[0] }}.</span> {{ meta[step].tip[1] }}</p>

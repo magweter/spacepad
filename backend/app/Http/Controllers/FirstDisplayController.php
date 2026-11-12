@@ -177,7 +177,7 @@ class FirstDisplayController extends Controller
     }
 
     /**
-     * The "first display live" screen.
+     * The display on the wall, inside the portal: the display and its tablet, and the way back.
      */
     public function live(Request $request): Response
     {
@@ -187,17 +187,14 @@ class FirstDisplayController extends Controller
         $account = $this->accounts($workspace)[0] ?? null;
 
         return Inertia::render('FirstDisplay/Live', [
+            'shell' => PortalShell::for($request, $workspace, 'displays'),
             'display' => $display ? ['name' => $display->display_name ?: $display->name] : null,
-            'device' => $device ? ['name' => $device->name] : null,
+            'device' => $device ? [
+                'name' => $device->name,
+                'online' => $device->last_activity_at?->gt(now()->subMinutes(10)) ?? false,
+            ] : null,
             'provider' => $account['providerLabel'] ?? null,
-            'hasPro' => $workspace->hasPro(),
-            'urls' => [
-                'dashboard' => route('dashboard'),
-                'addDisplay' => route('setup.first-display', ['step' => 'room', 'new' => 1]),
-                'team' => route('workspaces.members'),
-                'boards' => route('boards.create'),
-                'configure' => $display ? route('displays.configure', $display) : null,
-            ],
+            'urls' => ['dashboard' => route('dashboard')],
         ]);
     }
 
