@@ -5,6 +5,8 @@ import Logo from '../../Components/Logo.vue';
 import DevicePreview from '../../Components/DevicePreview.vue';
 import Button from '../../DesignSystem/Button.vue';
 import Chip from '../../DesignSystem/Chip.vue';
+import ProBadge from '../../Components/Upgrade/ProBadge.vue';
+import UpgradeModal from '../../Components/Upgrade/UpgradeModal.vue';
 
 const props = defineProps({
     display: { type: Object, default: null },
@@ -54,19 +56,19 @@ const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-dig
                     <a :href="urls.addDisplay" class="sp-card sp-card-pad-sm sp-card-interactive">
                         <span class="flex items-center justify-between gap-3">
                             <span class="flex flex-col"><span class="font-semibold">Add the other rooms</span><span class="text-xs text-muted">Same steps, with the calendar already connected.</span></span>
-                            <Chip v-if="!hasPro" tone="info">Pro</Chip>
+                            <ProBadge v-if="!hasPro" feature="displays" />
                         </span>
                     </a>
                     <a :href="urls.team" class="sp-card sp-card-pad-sm sp-card-interactive">
                         <span class="flex items-center justify-between gap-3">
                             <span class="flex flex-col"><span class="font-semibold">Invite facilities or IT</span><span class="text-xs text-muted">No charge per member. Give reception a seat so they see room status too.</span></span>
-                            <Chip v-if="!hasPro" tone="info">Pro</Chip>
+                            <ProBadge v-if="!hasPro" feature="team" />
                         </span>
                     </a>
                     <a :href="urls.boards" class="sp-card sp-card-pad-sm sp-card-interactive">
                         <span class="flex items-center justify-between gap-3">
                             <span class="flex flex-col"><span class="font-semibold">Put an overview on the lobby TV</span><span class="text-xs text-muted">A board shows every room at once. Share it with a public link, no login.</span></span>
-                            <Chip v-if="!hasPro" tone="info">Pro</Chip>
+                            <ProBadge v-if="!hasPro" feature="boards" />
                         </span>
                     </a>
                 </div>
@@ -77,4 +79,5 @@ const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-dig
             </div>
         </main>
     </div>
+    <UpgradeModal />
 </template>

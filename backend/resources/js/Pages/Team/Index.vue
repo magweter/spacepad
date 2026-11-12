@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import { Head } from '@inertiajs/vue3';
 import PortalShell from '../../Components/PortalShell.vue';
+import { openUpgrade } from '../../Components/Upgrade/upgrade';
 import FlashMessage from '../../Components/FlashMessage.vue';
 import Notice from '../../DesignSystem/Notice.vue';
 import InviteCard from './Partials/InviteCard.vue';
@@ -43,7 +44,7 @@ const figures = computed(() => [
 
             <InviteCard v-if="can.invite" :url="urls.invite" />
             <Notice v-else-if="needsPro" tone="info" title="Inviting colleagues is part of Pro"
-                    :action="can.manageBilling ? 'See plans' : null" :href="can.manageBilling ? urls.billing : null">
+                    action="See what Pro adds" @action="openUpgrade('team')">
                 {{ can.manageBilling ? 'Upgrade to Pro to invite colleagues into this workspace.' : 'Ask an owner or admin of this workspace to upgrade to Pro.' }}
             </Notice>
 

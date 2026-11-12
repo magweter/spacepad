@@ -21,6 +21,9 @@ return [
 
     'cloud_hosted_pro_plan_id' => env('CLOUD_HOSTED_PRO_PLAN_ID'),
 
+    // Where the upgrade dialog sends Enterprise and demo requests.
+    'sales_email' => env('SALES_EMAIL', 'support@spacepad.io'),
+
     // Switching an existing subscription between monthly and yearly. Every switch goes
     // through a separate Lemon Squeezy product without a trial (the product behind
     // cloud_hosted_pro_plan_id has one and is only for a first checkout), in both

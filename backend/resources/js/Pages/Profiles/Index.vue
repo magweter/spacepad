@@ -4,6 +4,7 @@
 import { computed, ref } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import PortalShell from '../../Components/PortalShell.vue';
+import { openUpgrade } from '../../Components/Upgrade/upgrade';
 import FlashMessage from '../../Components/FlashMessage.vue';
 import Icon from '../../Components/Icon.vue';
 import Button from '../../DesignSystem/Button.vue';
@@ -79,7 +80,7 @@ function destroy() {
 <template>
     <Head title="Profiles" />
 
-    <PortalShell :shell="shell" title="Profiles" pro>
+    <PortalShell :shell="shell" title="Profiles" pro pro-feature="profiles">
         <template #actions>
             <Button v-if="hasPro" :href="urls.create"><template #icon><Icon name="plus" :size="16" :stroke="2.5" /></template>New profile</Button>
         </template>
@@ -93,7 +94,7 @@ function destroy() {
             <div v-if="!hasPro" class="sp-card max-w-[640px] px-6 py-6">
                 <EmptyState title="Profiles are part of Pro">
                     A profile is a reusable set of display settings. Link displays to it and they all follow it, so you configure many rooms at once instead of one by one.
-                    <template #actions><Button variant="accent" :href="urls.upgrade" external>See plans</Button></template>
+                    <template #actions><Button variant="accent" @click="openUpgrade('profiles')">See what Pro adds</Button></template>
                 </EmptyState>
             </div>
 

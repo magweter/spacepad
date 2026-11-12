@@ -5,12 +5,19 @@ import { ref } from 'vue';
 import { router, usePage } from '@inertiajs/vue3';
 import Logo from './Logo.vue';
 import Icon from './Icon.vue';
+import ProBadge from './Upgrade/ProBadge.vue';
+import UpgradeModal from './Upgrade/UpgradeModal.vue';
 import HelpPanel from './Help/HelpPanel.vue';
 import HelpIcon from './Help/HelpIcon.vue';
 import { openHelp } from './Help/helpPanel.js';
 
 // `pro` puts the Pro chip right next to the title, for pages that are part of Pro.
-const props = defineProps({ shell: { type: Object, required: true }, title: { type: String, default: null }, pro: { type: Boolean, default: false } });
+const props = defineProps({
+    shell: { type: Object, required: true },
+    title: { type: String, default: null },
+    pro: { type: Boolean, default: false },
+    proFeature: { type: String, default: 'displays' },
+});
 
 const switching = ref(false);
 const page = usePage();
@@ -53,7 +60,7 @@ function switchTo(workspace) {
                         <span class="sp-nav-icon"><Icon :name="item.icon" /></span>
                         <span class="sp-nav-label">{{ item.label }}</span>
                         <span v-if="item.count" class="sp-nav-count">{{ item.count }}</span>
-                        <span v-else-if="item.pro" class="rounded-md border border-info-border bg-info-bg px-1.5 py-px text-[11px] font-semibold text-info">Pro</span>
+                        <ProBadge v-else-if="item.pro" :feature="item.key" />
                     </a>
                 </template>
             </nav>
@@ -83,12 +90,13 @@ function switchTo(workspace) {
 
         <main class="flex min-w-0 flex-[999_1_560px] flex-col">
             <header v-if="title" class="flex flex-wrap items-center gap-4 border-b border-line bg-surface px-6 py-3.5 md:px-8">
-                <h1 class="flex items-center gap-2 font-display text-[22px] font-bold tracking-tight">{{ title }}<span v-if="pro" class="rounded-md border border-info-border bg-info-bg px-1.5 py-px font-sans text-[11px] font-semibold tracking-normal text-info">Pro</span></h1>
+                <h1 class="flex items-center gap-2 font-display text-[22px] font-bold tracking-tight">{{ title }}<ProBadge v-if="pro" :feature="proFeature" /></h1>
                 <div class="ml-auto flex flex-wrap items-center gap-3"><slot name="actions" /></div>
             </header>
             <slot />
         </main>
 
         <HelpPanel v-if="!page.props.app?.selfHosted" />
+        <UpgradeModal />
     </div>
 </template>

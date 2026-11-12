@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, toRef, watch } from 'vue';
 import { Head, router } from '@inertiajs/vue3';
 import PortalShell from '../../Components/PortalShell.vue';
+import { openUpgrade } from '../../Components/Upgrade/upgrade';
 import FlashMessage from '../../Components/FlashMessage.vue';
 import Icon from '../../Components/Icon.vue';
 import Button from '../../DesignSystem/Button.vue';
@@ -15,7 +16,7 @@ import BulkBar from './Partials/BulkBar.vue';
 import DisplayPanel from './Partials/DisplayPanel.vue';
 import DiagnosticsModal from './Partials/DiagnosticsModal.vue';
 import RowMenu from './Partials/RowMenu.vue';
-import DisplayGlyph from './Partials/DisplayGlyph.vue';
+import DisplayGlyph from '../../Components/DisplayGlyph.vue';
 
 const props = defineProps({
     shell: Object, displays: Array, selected: String, profiles: Array, hasPro: Boolean, canCreate: Boolean,
@@ -125,10 +126,8 @@ const fieldClass = 'rounded-lg border border-line bg-surface px-3 py-2 text-[13p
             <span v-if="subtitle" class="text-[13px] text-muted">{{ subtitle }}</span>
             <Button v-if="hasPro" variant="secondary" :href="urls.profiles" external>Manage profiles</Button>
             <template v-if="canCreate">
-                <span v-if="mustUpgrade" class="inline-flex items-center gap-2">
-                    <Button disabled title="Upgrade to Pro to create more displays"><template #icon><Icon name="plus" :size="16" :stroke="2.5" /></template>New display</Button>
-                    <a :href="urls.upgrade"><Chip tone="info">Pro</Chip></a>
-                </span>
+                <!-- On the free plan with its display in use, the button explains Pro instead of a dead end. -->
+                <Button v-if="mustUpgrade" @click="openUpgrade('displays')"><template #icon><Icon name="plus" :size="16" :stroke="2.5" /></template>New display</Button>
                 <Button v-else :href="urls.newDisplay" external><template #icon><Icon name="plus" :size="16" :stroke="2.5" /></template>New display</Button>
             </template>
         </template>

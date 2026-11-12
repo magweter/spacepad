@@ -2,11 +2,13 @@
 
 use App\Enums\DisplayStatus;
 use App\Enums\PermissionType;
+use App\Enums\WorkspaceRole;
 use App\Models\Device;
 use App\Models\Display;
 use App\Models\Event;
 use App\Models\OutlookAccount;
 use App\Models\User;
+use App\Models\WorkspaceMember;
 use App\Services\EventService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
@@ -94,4 +96,24 @@ test('with caching off the events are fetched on the spot', function () {
 
     $this->actingAs($user)->get(route('dashboard'))
         ->assertInertia(fn (Assert $page) => $page->where('rooms.0.hasData', true)->where('rooms.0.events.0.title', 'Planning'));
+});
+
+test('every portal page knows how this person can get Pro', function () {
+    $owner = User::factory()->active()->create(['name' => 'Martijn Wetering']);
+    $workspace = $owner->primaryWorkspace();
+    $member = User::factory()->active()->create();
+    WorkspaceMember::create(['workspace_id' => $workspace->id, 'user_id' => $member->id, 'role' => WorkspaceRole::MEMBER]);
+
+    $this->actingAs($owner)->get(route('dashboard'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('upgrade.hasPro', false)
+            ->where('upgrade.canManage', true)
+            ->where('upgrade.trial', true)
+            ->where('upgrade.salesEmail', config('settings.sales_email'))
+            ->where('upgrade.urls.checkout', route('billing.checkout')));
+
+    $this->actingAs($member)->withSession(['selected_workspace_id' => $workspace->id])->get(route('displays.index'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('upgrade.canManage', false)
+            ->where('upgrade.managers', ['Martijn']));
 });

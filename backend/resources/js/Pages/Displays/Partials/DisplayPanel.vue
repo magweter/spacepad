@@ -6,6 +6,7 @@ import Button from '../../../DesignSystem/Button.vue';
 import Notice from '../../../DesignSystem/Notice.vue';
 import StatusDot from '../../../DesignSystem/StatusDot.vue';
 import Icon from '../../../Components/Icon.vue';
+import { openUpgrade } from '../../../Components/Upgrade/upgrade';
 
 const props = defineProps({ display: Object, hasPro: Boolean, connectCode: String, urls: Object, busy: Boolean });
 const emit = defineEmits(['close', 'toggle', 'makeActive', 'diagnose', 'remove']);
@@ -64,11 +65,11 @@ const heading = 'text-xs font-semibold tracking-[0.04em] text-muted uppercase';
                    class="inline-flex h-9 flex-1 items-center justify-center gap-2 rounded-lg whitespace-nowrap bg-navy px-3 text-[13px] font-semibold text-white hover:bg-navy-700">
                     <Icon name="settings" :size="15" />Configure
                 </a>
-                <a v-else :href="urls.upgrade" title="Configuring a display is part of Pro"
+                <button v-else type="button" title="Configuring a display is part of Pro" @click="openUpgrade('configure')"
                    class="inline-flex h-9 flex-1 items-center justify-center gap-2 rounded-lg whitespace-nowrap border border-line bg-surface px-3 text-[13px] font-semibold text-ink-2 hover:border-navy hover:text-navy">
                     <Icon name="settings" :size="15" />Configure
                     <span class="rounded-md border border-info-border bg-info-bg px-1.5 py-px text-[11px] font-semibold text-info">Pro</span>
-                </a>
+                </button>
 
                 <div class="inline-flex h-9 overflow-hidden rounded-lg border border-line bg-surface">
                     <button v-if="display.status === 'requires_pro'" type="button" :disabled="busy" title="Use this display instead of the current active one"
@@ -95,7 +96,7 @@ const heading = 'text-xs font-semibold tracking-[0.04em] text-muted uppercase';
                 <Notice v-if="display.status === 'error'" tone="warning" title="Calendar sync failed">
                     Try reconnecting the calendar account, then resume the display.
                 </Notice>
-                <Notice v-else-if="display.status === 'requires_pro'" tone="warning" title="Waiting for Pro" action="Upgrade" :href="urls.upgrade">
+                <Notice v-else-if="display.status === 'requires_pro'" tone="warning" title="Waiting for Pro" action="See Pro" @action="openUpgrade('displays')">
                     The free plan shows one display. Make this one the active display, or upgrade to bring them all back.
                 </Notice>
                 <Notice v-else-if="display.status === 'deactivated'" tone="neutral" title="Paused">

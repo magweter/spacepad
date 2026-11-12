@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue';
 import { Head } from '@inertiajs/vue3';
 import PortalShell from '../../Components/PortalShell.vue';
+import { openUpgrade } from '../../Components/Upgrade/upgrade';
 import FlashMessage from '../../Components/FlashMessage.vue';
 import Icon from '../../Components/Icon.vue';
 import Button from '../../DesignSystem/Button.vue';
@@ -32,7 +33,7 @@ async function copy() {
 <template>
     <Head :title="creating ? 'New board' : board ? `${board.name}, boards` : 'Boards'" />
 
-    <PortalShell :shell="shell" title="Boards" pro>
+    <PortalShell :shell="shell" title="Boards" pro pro-feature="boards">
         <template #actions>
             <Button v-if="canCreate && !creating" :href="urls.create"><template #icon><Icon name="plus" :size="16" :stroke="2.5" /></template>New board</Button>
         </template>
@@ -54,7 +55,7 @@ async function copy() {
                     <li class="flex items-center gap-2"><Icon name="check" :size="14" :stroke="2.5" class="text-available" />A public link for screens without a login</li>
                 </ul>
                 <p class="text-xs text-muted">Boards are part of Pro. A board is billed as two displays.</p>
-                <div><Button variant="accent" :href="urls.upgrade">Upgrade to Pro</Button></div>
+                <div><Button variant="accent" @click="openUpgrade('boards')">See what Pro adds</Button></div>
             </div>
 
             <div v-else-if="!boards.length && !creating" class="sp-card">

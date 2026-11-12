@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, toRef } from 'vue';
-import { Head, router } from '@inertiajs/vue3';
+import { Head, router, usePage } from '@inertiajs/vue3';
+import { openUpgrade } from '../../Components/Upgrade/upgrade';
 import PortalShell from '../../Components/PortalShell.vue';
 import FlashMessage from '../../Components/FlashMessage.vue';
 import Icon from '../../Components/Icon.vue';
@@ -18,6 +19,7 @@ const props = defineProps({
     connectCode: String, profileCard: Object, cancellation: Object, selfHosted: Object, urls: Object,
 });
 
+const page = usePage();
 const now = ref(new Date());
 const { list, hours, figures, occupancy, nowLeft, nowLabel } = useRoomDay(toRef(props, 'rooms'), now);
 
@@ -58,7 +60,8 @@ onBeforeUnmount(() => { clearInterval(tick); clearInterval(poll); });
 
     <PortalShell :shell="shell" title="Overview">
         <template #actions>
-            <Button :href="urls.newDisplay"><template #icon><Icon name="plus" :size="16" :stroke="2.5" /></template>New display</Button>
+            <Button v-if="page.props.upgrade?.mustUpgradeForDisplay" @click="openUpgrade('displays')"><template #icon><Icon name="plus" :size="16" :stroke="2.5" /></template>New display</Button>
+            <Button v-else :href="urls.newDisplay"><template #icon><Icon name="plus" :size="16" :stroke="2.5" /></template>New display</Button>
         </template>
 
         <div class="flex flex-col gap-6 px-6 pt-7 pb-10 md:px-8">
@@ -73,7 +76,8 @@ onBeforeUnmount(() => { clearInterval(tick); clearInterval(poll); });
                 <div v-for="(n, i) in notices" :key="i" class="flex flex-wrap items-center gap-4 rounded-xl border px-4 py-3 text-[13px]" :class="tone[n.tone]">
                     <span class="flex-none rounded-lg border-[1.5px] border-current bg-surface px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap">{{ n.tag }}</span>
                     <span class="flex min-w-0 flex-1 flex-col"><span class="font-semibold">{{ n.title }}</span><span class="text-xs opacity-85">{{ n.body }}</span></span>
-                    <a :href="n.href" class="rounded-lg bg-navy px-3 py-1.5 text-xs font-semibold whitespace-nowrap text-white hover:bg-navy-700">{{ n.cta }}</a>
+                    <button v-if="n.upgrade" type="button" class="rounded-lg bg-navy px-3 py-1.5 text-xs font-semibold whitespace-nowrap text-white hover:bg-navy-700" @click="openUpgrade(n.upgrade)">{{ n.cta }}</button>
+                    <a v-else :href="n.href" class="rounded-lg bg-navy px-3 py-1.5 text-xs font-semibold whitespace-nowrap text-white hover:bg-navy-700">{{ n.cta }}</a>
                 </div>
             </section>
 
