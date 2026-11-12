@@ -174,7 +174,7 @@ class OverviewController extends Controller
                 'tone' => 'danger', 'tag' => 'Paused',
                 'title' => $paused === 1 ? '1 display is paused' : "{$paused} displays are paused",
                 'body' => 'The free plan shows one display. Upgrade to Pro to bring the others back.',
-                'cta' => 'Upgrade', 'href' => route('workspaces.members'),
+                'cta' => 'Upgrade', 'href' => route('billing.index'),
             ];
         }
 

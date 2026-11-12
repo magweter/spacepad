@@ -44,7 +44,7 @@ class JoinRequestController extends Controller
             'urls' => [
                 'approve' => route('join-requests.approve', $joinRequest),
                 'decline' => route('join-requests.decline', $joinRequest),
-                'upgrade' => route('workspaces.members'),
+                'upgrade' => route('billing.index'),
                 'dashboard' => route('dashboard'),
             ],
         ]);

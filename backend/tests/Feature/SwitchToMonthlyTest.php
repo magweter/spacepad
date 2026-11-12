@@ -63,7 +63,7 @@ test('the owner can ask to go back to monthly', function () {
     session()->put('selected_workspace_id', $workspace->id);
 
     $this->post(route('billing.switch-monthly'))
-        ->assertRedirect(route('workspaces.members'))
+        ->assertRedirect(route('billing.index'))
         ->assertSessionHas('success');
 
     expect($workspace->fresh()->switch_to_monthly_requested_at)->not->toBeNull();
@@ -78,7 +78,7 @@ test('the owner can change their mind before the year ends', function () {
     session()->put('selected_workspace_id', $workspace->id);
 
     $this->delete(route('billing.switch-monthly.cancel'))
-        ->assertRedirect(route('workspaces.members'))
+        ->assertRedirect(route('billing.index'))
         ->assertSessionHas('success');
 
     expect($workspace->fresh()->switch_to_monthly_requested_at)->toBeNull();
@@ -101,7 +101,7 @@ test('a monthly workspace cannot ask to go monthly', function () {
     session()->put('selected_workspace_id', $workspace->id);
 
     $this->post(route('billing.switch-monthly'))
-        ->assertRedirect(route('workspaces.members'))
+        ->assertRedirect(route('billing.index'))
         ->assertSessionHas('error');
 
     expect($workspace->fresh()->switch_to_monthly_requested_at)->toBeNull();

@@ -148,7 +148,7 @@ test('a workspace that cannot switch is sent back without a checkout', function 
     session()->put('selected_workspace_id', $workspace->id);
 
     $this->post(route('billing.switch-yearly'))
-        ->assertRedirect(route('workspaces.members'))
+        ->assertRedirect(route('billing.index'))
         ->assertSessionHas('error');
 
     Http::assertNotSent(fn ($request) => str_contains($request->url(), '/checkouts'));
@@ -169,7 +169,7 @@ test('a failing checkout leaves the owner on the page with an explanation', func
     session()->put('selected_workspace_id', $workspace->id);
 
     $this->post(route('billing.switch-yearly'))
-        ->assertRedirect(route('workspaces.members'))
+        ->assertRedirect(route('billing.index'))
         ->assertSessionHas('error');
 });
 

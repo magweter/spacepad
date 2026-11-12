@@ -10,11 +10,12 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
+use Inertia\Testing\AssertableInertia as Assert;
 
 uses(RefreshDatabase::class);
 
 /**
- * The switch between monthly and yearly lives on the workspace page, for owners and admins.
+ * The switch between monthly and yearly lives on the billing page, for owners and admins.
  */
 beforeEach(function () {
     config([
@@ -65,7 +66,7 @@ function viewWorkspacePage(User $user, Workspace $workspace)
     test()->actingAs($user);
     session()->put('selected_workspace_id', $workspace->id);
 
-    return test()->get(route('workspaces.members'));
+    return test()->get(route('billing.index'));
 }
 
 test('the owner of a monthly workspace is offered yearly', function () {
@@ -73,10 +74,8 @@ test('the owner of a monthly workspace is offered yearly', function () {
 
     viewWorkspacePage($owner, $workspace)
         ->assertOk()
-        ->assertSee('Switch to yearly')
-        ->assertSee('Pay a year in advance for your current 3 units. Your monthly subscription stops immediately and switches to a yearly subscription.')
-        ->assertDontSee('Switch to monthly')
-        ->assertDontSee('refund');
+        ->assertInertia(fn (Assert $page) => $page->component('Billing/Index')
+            ->where('billing.switch', ['to' => 'yearly', 'units' => 3]));
 });
 
 test('the owner of a yearly workspace is offered monthly', function () {
@@ -84,9 +83,10 @@ test('the owner of a yearly workspace is offered monthly', function () {
 
     viewWorkspacePage($owner, $workspace)
         ->assertOk()
-        ->assertSee('Switch to monthly')
-        ->assertSee('Monthly billing starts on 20 October 2027, the last day of your paid year.')
-        ->assertDontSee('Switch to yearly');
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('billing.switch.to', 'monthly')
+            ->where('billing.switch.paidUntil', '21 October 2027')
+            ->where('billing.switch.switchOn', '20 October 2027'));
 });
 
 test('a requested switch shows its date and can be taken back', function () {
@@ -95,9 +95,10 @@ test('a requested switch shows its date and can be taken back', function () {
 
     viewWorkspacePage($owner, $workspace)
         ->assertOk()
-        ->assertSee('Your subscription switches to monthly on 20 October 2027, the last day of your paid year.')
-        ->assertSee('Keep yearly')
-        ->assertDontSee('Switch to monthly');
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('billing.switch.to', 'pending-monthly')
+            ->where('billing.switch.switchOn', '20 October 2027')
+            ->where('urls.keepYearly', route('billing.switch-monthly.cancel')));
 });
 
 test('a member sees no switch', function () {
@@ -105,8 +106,7 @@ test('a member sees no switch', function () {
 
     viewWorkspacePage($member, $workspace)
         ->assertOk()
-        ->assertDontSee('Switch to yearly')
-        ->assertDontSee('Switch to monthly');
+        ->assertInertia(fn (Assert $page) => $page->where('billing.canManage', false)->where('billing.switch', null));
 });
 
 test('the unit count in the copy matches what the checkout charges', function () {
@@ -115,16 +115,16 @@ test('the unit count in the copy matches what the checkout charges', function ()
     $workspace->forceFill(['displays_count' => 0, 'boards_count' => 0])->save();
 
     viewWorkspacePage($owner, $workspace)
-        ->assertSee('Pay a year in advance for your current 1 unit.');
+        ->assertInertia(fn (Assert $page) => $page->where('billing.switch.units', 1));
 });
 
 test('the subscription card says whether the workspace pays monthly or yearly', function (string $variant, string $status, string $label) {
     [$workspace, $owner, $member] = intervalUiWorkspace($variant);
     DB::table('lemon_squeezy_subscriptions')->update(['status' => $status, 'trial_ends_at' => $status === 'on_trial' ? now()->addWeek() : null]);
 
-    viewWorkspacePage($owner, $workspace)->assertSee($label);
+    viewWorkspacePage($owner, $workspace)->assertInertia(fn (Assert $page) => $page->where('billing.interval', $label));
     // Everyone can see how the workspace is billed, not only those who can change it.
-    viewWorkspacePage($member, $workspace)->assertSee($label);
+    viewWorkspacePage($member, $workspace)->assertInertia(fn (Assert $page) => $page->where('billing.interval', $label));
 })->with([
     'monthly' => ['11', 'active', 'Billed monthly'],
     'yearly' => ['12', 'active', 'Billed yearly'],
@@ -136,6 +136,5 @@ test('a workspace without a subscription shows no billing interval', function ()
     DB::table('lemon_squeezy_subscriptions')->delete();
 
     viewWorkspacePage($owner, $workspace)
-        ->assertDontSee('Billed monthly')
-        ->assertDontSee('Billed yearly');
+        ->assertInertia(fn (Assert $page) => $page->where('billing.interval', null));
 });

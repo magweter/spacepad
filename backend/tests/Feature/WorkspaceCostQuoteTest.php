@@ -9,6 +9,7 @@ use App\Models\Workspace;
 use App\Models\WorkspaceMember;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Inertia\Testing\AssertableInertia as Assert;
 
 uses(RefreshDatabase::class);
 
@@ -51,7 +52,7 @@ function visitWorkspacePage(Workspace $workspace, User $owner)
     test()->actingAs($owner);
     session()->put('selected_workspace_id', $workspace->id);
 
-    return test()->get(route('workspaces.members'));
+    return test()->get(route('billing.index'));
 }
 
 test('a Lemon Squeezy workspace is quoted the list price in dollars', function () {
@@ -59,8 +60,7 @@ test('a Lemon Squeezy workspace is quoted the list price in dollars', function (
 
     visitWorkspacePage($workspace, $owner)
         ->assertOk()
-        ->assertSee('$6.00')
-        ->assertDontSee('€');
+        ->assertInertia(fn (Assert $page) => $page->where('billing.currency', '$')->where('billing.unitPrice', 6));
 });
 
 test('a subscribed workspace is quoted what Lemon Squeezy actually charges', function () {
@@ -79,8 +79,7 @@ test('a subscribed workspace is quoted what Lemon Squeezy actually charges', fun
 
     visitWorkspacePage($workspace, $owner)
         ->assertOk()
-        ->assertSee('$2.50')
-        ->assertDontSee('$6.00');
+        ->assertInertia(fn (Assert $page) => $page->where('billing.currency', '$')->where('billing.unitPrice', 2.5));
 });
 
 test('the list price stands in when the actual price is not known yet', function () {
@@ -99,7 +98,7 @@ test('the list price stands in when the actual price is not known yet', function
 
     visitWorkspacePage($workspace, $owner)
         ->assertOk()
-        ->assertSee('$6.00');
+        ->assertInertia(fn (Assert $page) => $page->where('billing.unitPrice', 6));
 });
 
 test('a manually billed workspace is quoted its negotiated price in euro', function () {
@@ -111,12 +110,11 @@ test('a manually billed workspace is quoted its negotiated price in euro', funct
 
     visitWorkspacePage($workspace, $owner)
         ->assertOk()
-        ->assertSee('€3.00')
-        ->assertDontSee('$3.00')
-        ->assertDontSee('$6.00')
-        // No Lemon Squeezy subscription exists, so it must not send them to their order email.
-        ->assertDontSee('Manage subscription')
-        ->assertSee('We invoice this workspace directly');
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('billing.currency', '€')
+            ->where('billing.unitPrice', 3)
+            // No Lemon Squeezy subscription exists, so it must not send them to their order email.
+            ->where('billing.state', 'manual'));
 });
 
 test('a manually billed workspace without a negotiated price falls back to the list price', function () {
@@ -127,7 +125,7 @@ test('a manually billed workspace without a negotiated price falls back to the l
 
     visitWorkspacePage($workspace, $owner)
         ->assertOk()
-        ->assertSee('€6.00');
+        ->assertInertia(fn (Assert $page) => $page->where('billing.currency', '€')->where('billing.unitPrice', 6));
 });
 
 test('an unlimited workspace is quoted nothing', function () {
@@ -135,8 +133,7 @@ test('an unlimited workspace is quoted nothing', function () {
 
     visitWorkspacePage($workspace, $owner)
         ->assertOk()
-        ->assertDontSee('per month')
-        ->assertSee('This workspace has Pro at no charge.');
+        ->assertInertia(fn (Assert $page) => $page->where('billing.monthlyCost', null)->where('billing.state', 'unlimited'));
 });
 
 test('a self-hosted instance is quoted nothing', function () {
@@ -146,7 +143,7 @@ test('a self-hosted instance is quoted nothing', function () {
 
     visitWorkspacePage($workspace, $owner)
         ->assertOk()
-        ->assertDontSee('per month');
+        ->assertInertia(fn (Assert $page) => $page->where('billing.monthlyCost', null));
 });
 
 test('no unit price configured means no quote at all', function () {
@@ -156,7 +153,7 @@ test('no unit price configured means no quote at all', function () {
 
     visitWorkspacePage($workspace, $owner)
         ->assertOk()
-        ->assertDontSee('per month');
+        ->assertInertia(fn (Assert $page) => $page->where('billing.monthlyCost', null));
 });
 
 test('the usage total still drives the amount', function () {
@@ -169,5 +166,5 @@ test('the usage total still drives the amount', function () {
 
     visitWorkspacePage($workspace->fresh(), $owner)
         ->assertOk()
-        ->assertSee('$24.00');
+        ->assertInertia(fn (Assert $page) => $page->where('billing.monthlyCost', 24));
 });

@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Models\Workspace;
 use App\Models\WorkspaceMember;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia as Assert;
 
 uses(RefreshDatabase::class);
 
@@ -198,12 +199,15 @@ test('the members page is reachable and lists the team', function () {
 
     $this->get(route('workspaces.members'))
         ->assertOk()
-        ->assertViewIs('pages.workspaces.members')
-        ->assertSee($users['admin']->email)
-        ->assertSee($users['member']->email);
+        ->assertInertia(fn (Assert $page) => $page->component('Team/Index')
+            ->has('members', 3)
+            ->where('members', fn ($members) => collect($members)->pluck('email')->contains($users['admin']->email)
+                && collect($members)->pluck('email')->contains($users['member']->email))
+            ->where('can.changeRoles', true)
+            ->where('can.removeMembers', true));
 });
 
-test('owners and admins get subscription controls on the manage workspace page', function () {
+test('owners and admins get subscription controls on the billing page', function () {
     [$workspace, $users] = teamWithRoles(['owner', 'admin', 'member']);
     $workspace->update(['is_unlimited' => true]);
 
@@ -211,24 +215,28 @@ test('owners and admins get subscription controls on the manage workspace page',
     foreach (['owner', 'admin', 'member'] as $role) {
         asOwnerOf($workspace, $users[$role]);
 
-        $this->get(route('workspaces.members'))
+        $this->get(route('billing.index'))
             ->assertOk()
-            ->assertSee('Total units');
+            ->assertInertia(fn (Assert $page) => $page->has('billing.usage.total'));
     }
 
-    // ...but only the people who carry billing can act on it. Before billing moved here, the
-    // button was on the personal account page and shown to every member.
+    // ...but only the people who carry billing can act on it.
     foreach (['owner', 'admin'] as $role) {
         asOwnerOf($workspace, $users[$role]);
 
-        $this->get(route('workspaces.members'))->assertSee('Manage subscription');
+        $this->get(route('billing.index'))->assertInertia(fn (Assert $page) => $page
+            ->where('billing.canManage', true)
+            // The test environment is self-hosted, where Pro is managed in Lemon Squeezy.
+            ->where('billing.state', 'modal'));
     }
 
     asOwnerOf($workspace, $users['member']);
 
-    $this->get(route('workspaces.members'))
-        ->assertDontSee('Manage subscription')
-        ->assertSee('Only owners and admins can change the subscription');
+    // A member sees who to ask instead.
+    $this->get(route('billing.index'))->assertInertia(fn (Assert $page) => $page
+        ->where('billing.canManage', false)
+        ->where('billing.state', 'others')
+        ->has('billing.managers', 2));
 });
 
 test('an outsider cannot see the members page of a workspace they are not in', function () {
@@ -245,4 +253,5 @@ test('an outsider cannot see the members page of a workspace they are not in', f
 
     $response->assertOk();
     $response->assertDontSee($workspace->name);
+    $response->assertInertia(fn (Assert $page) => $page->where('shell.workspace', fn ($name) => $name !== $workspace->name));
 });

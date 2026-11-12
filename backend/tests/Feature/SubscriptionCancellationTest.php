@@ -73,7 +73,7 @@ test('the owner cancels with a reason', function () {
 
     $this->actingAs($owner)
         ->post(route('billing.cancel'), ['reason' => 'switched', 'details' => 'Joan'])
-        ->assertRedirect(route('workspaces.members'))
+        ->assertRedirect(route('billing.index'))
         ->assertSessionHas('success');
 
     expect($subscription->fresh()->cancelled())->toBeTrue();
@@ -198,13 +198,15 @@ test('someone from another workspace cannot answer for it', function () {
         ->assertForbidden();
 });
 
-test('the workspace page offers to cancel an active subscription', function () {
+test('the billing page offers to cancel an active subscription', function () {
     [, $owner] = workspaceWithSubscriptionToCancel();
 
-    $this->actingAs($owner)->get(route('workspaces.members'))
+    $this->actingAs($owner)->get(route('billing.index'))
         ->assertOk()
-        ->assertSee('Cancel subscription')
-        ->assertSee('Why are you cancelling?');
+        ->assertInertia(fn (Assert $page) => $page
+            ->whereNot('billing.cancel', null)
+            ->where('urls.cancel', route('billing.cancel'))
+            ->has('cancellationReasons', count(CancellationReason::cases())));
 });
 
 test('the latest reason reaches the analytics snapshot', function () {

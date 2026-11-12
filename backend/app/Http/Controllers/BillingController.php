@@ -32,7 +32,7 @@ class BillingController extends Controller
         // counts as subscribed, so this also covers the window in which someone is trialling
         // and follows a stale tab or an old link back to the checkout.
         if ($workspace->subscribed()) {
-            return redirect()->route('workspaces.members')
+            return redirect()->route('billing.index')
                 ->with('info', 'This workspace already has a subscription.');
         }
 
@@ -66,7 +66,7 @@ class BillingController extends Controller
             // explanation, not on an error screen.
             report($e);
 
-            return redirect()->route('workspaces.members')
+            return redirect()->route('billing.index')
                 ->with('error', 'We could not open the billing portal just now. Please try again, or email support@spacepad.io.');
         }
     }
@@ -88,7 +88,7 @@ class BillingController extends Controller
         $this->authorize('manageBilling', $workspace);
 
         if (! $workspace->canSwitchToYearly()) {
-            return redirect()->route('workspaces.members')
+            return redirect()->route('billing.index')
                 ->with('error', 'This workspace cannot switch to a yearly subscription right now. Email support@spacepad.io if you think it should.');
         }
 
@@ -97,7 +97,7 @@ class BillingController extends Controller
         } catch (Throwable $e) {
             report($e);
 
-            return redirect()->route('workspaces.members')
+            return redirect()->route('billing.index')
                 ->with('error', 'We could not open the checkout just now. Please try again, or email support@spacepad.io.');
         }
     }
@@ -116,13 +116,13 @@ class BillingController extends Controller
         $this->authorize('manageBilling', $workspace);
 
         if (! $workspace->canSwitchToMonthly()) {
-            return redirect()->route('workspaces.members')
+            return redirect()->route('billing.index')
                 ->with('error', 'This workspace cannot switch to a monthly subscription right now. Email support@spacepad.io if you think it should.');
         }
 
         $workspace->forceFill(['switch_to_monthly_requested_at' => now()])->save();
 
-        return redirect()->route('workspaces.members')
+        return redirect()->route('billing.index')
             ->with('success', 'Your subscription switches to monthly on the last day of your paid year.');
     }
 
@@ -135,7 +135,7 @@ class BillingController extends Controller
 
         $workspace->forceFill(['switch_to_monthly_requested_at' => null])->save();
 
-        return redirect()->route('workspaces.members')
+        return redirect()->route('billing.index')
             ->with('success', 'Your subscription stays yearly.');
     }
 
@@ -159,7 +159,7 @@ class BillingController extends Controller
         $subscription = $workspace->cancellableSubscription();
 
         if (! $subscription) {
-            return redirect()->route('workspaces.members')
+            return redirect()->route('billing.index')
                 ->with('info', 'This subscription is already cancelled.');
         }
 
@@ -168,7 +168,7 @@ class BillingController extends Controller
         } catch (Throwable $e) {
             report($e);
 
-            return redirect()->route('workspaces.members')
+            return redirect()->route('billing.index')
                 ->with('error', 'We could not cancel your subscription just now. Please try again, or email support@spacepad.io.');
         }
 
@@ -184,7 +184,7 @@ class BillingController extends Controller
 
         $endsAt = $subscription->fresh()?->ends_at;
 
-        return redirect()->route('workspaces.members')
+        return redirect()->route('billing.index')
             ->with('success', $endsAt
                 ? 'Your subscription is cancelled. Pro stays active until '.$endsAt->format('j F Y').'.'
                 : 'Your subscription is cancelled.');

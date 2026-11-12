@@ -294,15 +294,27 @@ a separate account with its own invisible set of displays.
   a calendar returns to the setup, the display is created from a room picker, the tablet step updates
   the moment a tablet pairs, and someone without admin rights can email a request to their IT admin.
   It ends on a "first display live" screen with the next steps
-- **Dashboard** — overview of all connected displays and their current status
-- **Team** — invite colleagues, manage roles, and switch between workspaces
+- **Overview** — a greeting with how things stand, key figures (displays online, rooms free, bookings
+  today, calendars), only the notices that block the product, the rooms right now as a timeline or
+  cards, occupancy per hour and the setup checklist. Read from the cached events, so it never calls a
+  calendar provider
+- **Displays** — list with live status, calendar, tablet and profile, filters, bulk profile assignment,
+  and a side panel per display (deep-linkable) with its tablets, calendar, today's bookings, profile,
+  pairing code and actions
+- **Team** — invite colleagues, manage roles, pending invitations and join requests
+- **Billing** — plan, usage per display, checkout, billing portal, monthly or yearly, cancel with a
+  reason, licence key on self-hosted
+- **Settings** — rename, create another workspace, leave or delete a workspace
+- **Account** — your details, your workspaces and deleting your account
 - **Display configuration** — one screen per display with Behavior, Display, State texts, Branding and
-  Advertisement sections, each following its profile or holding its own values. Every option carries an
-  info tooltip explaining what happens when it is switched on
-- **Profiles** — reusable settings sets, assigned to displays in bulk from the Displays tab
+  Advertisement sections, each following its profile or holding its own values, with a live preview
+  of the tablet that follows unsaved changes. Every option has inline help
+- **Profiles** — its own page with the profiles, the displays on each and an editor with the same
+  live preview; displays are assigned in bulk from the Displays page
 - **Display diagnostics** — connection health, last sync, troubleshooting info, and a one-click reset of an errored calendar account's status so a fresh token is attempted
-- **Calendar accounts** — connect and manage Google, Microsoft, and CalDAV accounts
-- **Boards** — create and manage multi-room overview boards
+- **Calendars** — connect and manage Google, Microsoft and CalDAV accounts, choose the booking method,
+  upload a Google service account, Microsoft admin consent, and the room calendars in use
+- **Boards** — list and editor on one page, with a preview of the board on a TV frame
 - **Usage / analytics** — display activity statistics
 - **Roadmap** — public feature roadmap with community voting and status tracking
 - **Help / FAQ** — searchable help center covering setup, integrations, troubleshooting, and billing
