@@ -1,39 +1,47 @@
 <script setup>
-// The upgrade dialog. Every Pro label and every locked action in the portal opens it. A toggle at
-// the top picks the size of the office: up to 25 displays is Pro (a 14-day trial for owners and
-// admins), 25 or more is Enterprise (a demo, an SLA, invoices). Each side says what it includes.
+// The upgrade dialog. Every Pro label and every locked action in the portal opens it, on the
+// feature that was clicked: a realistic picture of that feature, then Pro and Enterprise side by
+// side so people pick for themselves. Both start with the 14-day trial; Enterprise also tells
+// sales, who get in touch about a demo, an SLA and a quote.
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { usePage } from '@inertiajs/vue3';
 import Modal from '../../DesignSystem/Modal.vue';
 import Icon from '../Icon.vue';
-import ProShowcase from './ProShowcase.vue';
+import FeatureShowcase from './FeatureShowcase.vue';
 
 const page = usePage();
 const upgrade = computed(() => page.props.upgrade);
 
+const features = [
+    { key: 'displays', label: 'Every room', caption: 'A display next to every meeting room. The free plan shows one; Pro has no limit.' },
+    { key: 'configure', label: 'Your own look', caption: 'Your background, logo, texts and buttons, with check-in and booking at the door.' },
+    { key: 'boards', label: 'Boards', caption: 'Every room on the lobby TV, grouped per floor, shared with a public link.' },
+    { key: 'profiles', label: 'Profiles', caption: 'Set up the look and rules once and every linked display follows.' },
+    { key: 'team', label: 'Your team', caption: 'Colleagues manage the same displays, boards and calendars, at no cost per person.' },
+];
 const pro = [
-    { key: 'displays', title: 'A display for every room', body: 'The free plan shows one. Pro has no limit.' },
-    { key: 'configure', title: 'Your own look and rules', body: 'Background, logo, theme and texts, check-in against no-shows, booking and extending at the door.' },
-    { key: 'boards', title: 'Boards on the lobby TV', body: 'Every room at once, shared with a public link.' },
-    { key: 'profiles', title: 'Profiles', body: 'Set up many displays at once and keep them in step.' },
-    { key: 'team', title: 'Your team', body: 'Invite colleagues as admin or member, at no cost per person.' },
+    'A display for every room',
+    'Your own background, logo, theme and texts',
+    'Check-in, booking and extending at the door',
+    'Boards for the lobby and the hallway',
+    'Profiles to set up many displays at once',
+    'Colleagues as admin or member',
 ];
 const enterprise = [
-    { title: 'Everything in Pro', body: 'For every office, building and floor.' },
-    { title: 'A demo with your own rooms', body: 'We set up Spacepad with your calendar and walk your team through it.' },
-    { title: 'An SLA', body: 'Agreed response times and support you can count on.' },
-    { title: 'Help with the rollout', body: 'Connecting the calendars and setting up the rooms, together with your IT.' },
-    { title: 'Pricing for your size, paid by invoice', body: 'A quote for your number of displays instead of a card payment.' },
+    'Everything in Pro',
+    'A demo with your own rooms and calendars',
+    'An SLA with agreed response times',
+    'Help with the rollout, together with your IT',
+    'A quote for your size, paid by invoice',
 ];
 
 const open = ref(false);
-const tier = ref('pro');
-const highlight = ref('displays');
+const selected = ref('displays');
+const current = computed(() => features.find((f) => f.key === selected.value) ?? features[0]);
 
 const onOpen = (e) => {
     const key = e.detail?.feature;
-    highlight.value = pro.some((f) => f.key === key) ? key : 'displays';
-    tier.value = 'pro';
+    selected.value = features.some((f) => f.key === key) ? key : 'displays';
     open.value = true;
 };
 onMounted(() => window.addEventListener('open-upgrade', onOpen));
@@ -45,98 +53,65 @@ const askList = computed(() => {
     if (!names.length) return 'an owner or admin of this workspace';
     return names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} or ${names.at(-1)}`;
 });
-const mail = (subject) => `mailto:${upgrade.value?.salesEmail}?subject=${encodeURIComponent(subject)}`;
-
-const proChip = 'rounded-md border border-info-border bg-info-bg px-1.5 py-px text-[11px] font-semibold text-info';
-const enterpriseChip = 'rounded-md border border-amber-300 bg-amber-50 px-1.5 py-px text-[11px] font-semibold text-checkin-text';
+const contact = computed(() => `mailto:${upgrade.value?.salesEmail}?subject=${encodeURIComponent('Spacepad Enterprise')}`);
+const trialLabel = computed(() => (upgrade.value?.trial ? 'Start 14-day free trial' : 'Upgrade to Pro'));
 </script>
 
 <template>
-    <Modal v-if="upgrade" :open="open" title="Get more out of Spacepad" width="960px" @close="open = false">
-        <!-- Size of the office -->
-        <div v-if="!upgrade.selfHosted" class="inline-flex self-start rounded-lg border border-line bg-surface-raised p-1" role="tablist" aria-label="Size of your office">
-            <button type="button" role="tab" :aria-selected="tier === 'pro'" @click="tier = 'pro'"
-                    class="inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-[13px] font-semibold transition-colors"
-                    :class="tier === 'pro' ? 'bg-surface text-ink shadow-sm' : 'text-muted hover:text-ink'">
-                Up to 25 displays <span :class="proChip">Pro</span>
-            </button>
-            <button type="button" role="tab" :aria-selected="tier === 'enterprise'" @click="tier = 'enterprise'"
-                    class="inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-[13px] font-semibold transition-colors"
-                    :class="tier === 'enterprise' ? 'bg-surface text-ink shadow-sm' : 'text-muted hover:text-ink'">
-                25 displays or more <span :class="enterpriseChip">Enterprise</span>
-            </button>
+    <Modal v-if="upgrade" :open="open" title="Get more out of Spacepad" width="1040px" @close="open = false">
+        <!-- What a feature looks like -->
+        <div class="flex flex-col gap-3">
+            <div class="flex flex-wrap gap-1.5" role="tablist" aria-label="Pro features">
+                <button v-for="f in features" :key="f.key" type="button" role="tab" :aria-selected="selected === f.key" @click="selected = f.key"
+                        class="rounded-full border px-3 py-1.5 text-[13px] font-semibold transition-colors"
+                        :class="selected === f.key ? 'border-navy bg-navy text-white' : 'border-line bg-surface text-ink-2 hover:border-navy-400'">
+                    {{ f.label }}
+                </button>
+            </div>
+            <FeatureShowcase :feature="current.key" />
+            <p class="text-[13px] text-ink-3">{{ current.caption }}</p>
         </div>
 
-        <div class="grid gap-6 md:grid-cols-[1.15fr_1fr]">
-            <ProShowcase :enterprise="tier === 'enterprise'" />
-
-            <!-- Pro -->
-            <div v-if="tier === 'pro'" class="flex min-w-0 flex-col gap-4">
+        <!-- Pro and Enterprise side by side -->
+        <div class="grid gap-4 md:grid-cols-2">
+            <section class="flex flex-col gap-4 rounded-xl border-2 border-info-border bg-surface p-5">
                 <div class="flex flex-col gap-1">
-                    <span :class="proChip" class="self-start">Pro</span>
-                    <h3 class="font-display text-2xl leading-tight font-bold tracking-tight">
-                        {{ upgrade.selfHosted ? 'Pro on your own server' : upgrade.trial ? 'Try 14 days for free' : 'Everything your rooms need' }}
-                    </h3>
+                    <span class="self-start rounded-md border border-info-border bg-info-bg px-1.5 py-px text-[11px] font-semibold text-info">Pro</span>
+                    <h3 class="font-display text-xl font-bold tracking-tight">{{ upgrade.selfHosted ? 'Pro on your own server' : upgrade.trial ? 'Try 14 days for free' : 'Pro' }}</h3>
                     <p class="text-[13px] text-muted">{{ upgrade.selfHosted ? 'Unlocked with a licence key.' : 'Billed per display, never per user. Cancel any time.' }}</p>
                 </div>
-                <ul class="flex flex-col gap-2.5">
-                    <li v-for="f in pro" :key="f.key" class="flex gap-2.5 rounded-lg px-2 py-1.5 -mx-2" :class="f.key === highlight ? 'bg-info-bg' : ''">
-                        <span class="mt-0.5 flex h-[18px] w-[18px] flex-none items-center justify-center rounded-full bg-available-bg text-available-text"><Icon name="check" :size="11" :stroke="3" /></span>
-                        <span class="flex flex-col"><span class="text-[13px] font-semibold">{{ f.title }}</span><span class="text-xs text-muted">{{ f.body }}</span></span>
+                <ul class="flex flex-1 flex-col gap-2 text-[13px]">
+                    <li v-for="item in pro" :key="item" class="flex items-start gap-2">
+                        <span class="mt-0.5 flex h-4 w-4 flex-none items-center justify-center rounded-full bg-info-bg text-info"><Icon name="check" :size="10" :stroke="3" /></span>{{ item }}
                     </li>
                 </ul>
-            </div>
-
-            <!-- Enterprise -->
-            <div v-else class="flex min-w-0 flex-col gap-4">
-                <div class="flex flex-col gap-1">
-                    <span :class="enterpriseChip" class="self-start">Enterprise</span>
-                    <h3 class="font-display text-2xl leading-tight font-bold tracking-tight">For 25 displays or more</h3>
-                    <p class="text-[13px] text-muted">For organisations with several offices or a large building.</p>
-                </div>
-                <ul class="flex flex-col gap-2.5">
-                    <li v-for="f in enterprise" :key="f.title" class="flex gap-2.5">
-                        <span class="mt-0.5 flex h-[18px] w-[18px] flex-none items-center justify-center rounded-full bg-amber-50 text-checkin-text"><Icon name="check" :size="11" :stroke="3" /></span>
-                        <span class="flex flex-col"><span class="text-[13px] font-semibold">{{ f.title }}</span><span class="text-xs text-muted">{{ f.body }}</span></span>
-                    </li>
-                </ul>
-            </div>
-        </div>
-
-        <!-- How to get it -->
-        <div class="flex flex-wrap items-center gap-3 rounded-xl border border-line bg-surface-raised p-4">
-            <template v-if="tier === 'enterprise'">
-                <span class="flex min-w-0 flex-1 flex-col">
-                    <span class="font-semibold">See it with your own rooms first</span>
-                    <span class="text-[13px] text-muted">We plan a demo with you and send a quote for your number of displays.</span>
-                </span>
-                <a :href="mail('Spacepad Enterprise: question')" class="sp-btn sp-btn-ghost sp-btn-md">Ask a question</a>
-                <a :href="mail('Spacepad Enterprise: book a demo')" class="sp-btn sp-btn-primary sp-btn-md">Book a demo</a>
-            </template>
-            <template v-else-if="upgrade.selfHosted">
-                <span class="flex min-w-0 flex-1 flex-col">
-                    <span class="font-semibold">Enter your licence key</span>
-                    <span class="text-[13px] text-muted">It unlocks every Pro feature on this instance.</span>
-                </span>
-                <a :href="upgrade.urls.billing" class="sp-btn sp-btn-accent sp-btn-md">Enter licence key</a>
-            </template>
-            <template v-else-if="upgrade.canManage">
-                <span class="flex min-w-0 flex-1 flex-col">
-                    <span class="font-semibold">{{ upgrade.trial ? '14 days free, then billed per display' : 'Upgrade this workspace to Pro' }}</span>
-                    <span class="text-[13px] text-muted">{{ upgrade.trial ? 'Cancel any time during the trial and you pay nothing.' : 'Billed per display, never per user.' }}</span>
-                </span>
-                <a :href="upgrade.urls.billing" class="sp-btn sp-btn-ghost sp-btn-md">See billing</a>
-                <form method="POST" :action="upgrade.urls.checkout">
+                <a v-if="upgrade.selfHosted" :href="upgrade.urls.billing" class="sp-btn sp-btn-primary sp-btn-md justify-center">Enter licence key</a>
+                <form v-else-if="upgrade.canManage" method="POST" :action="upgrade.urls.checkout">
                     <input type="hidden" name="_token" :value="csrf()">
-                    <button type="submit" class="sp-btn sp-btn-accent sp-btn-md">{{ upgrade.trial ? 'Start 14-day free trial' : 'Upgrade to Pro' }}</button>
+                    <button type="submit" class="sp-btn sp-btn-primary sp-btn-md w-full justify-center">{{ trialLabel }}</button>
                 </form>
-            </template>
-            <template v-else>
-                <span class="flex min-w-0 flex-1 flex-col">
-                    <span class="font-semibold">Ask {{ askList }} to start Pro</span>
-                    <span class="text-[13px] text-muted">Only owners and admins can upgrade a workspace.</span>
-                </span>
-            </template>
+                <p v-else class="text-[13px] text-muted">Ask {{ askList }} to start Pro. Only owners and admins can upgrade.</p>
+            </section>
+
+            <section class="flex flex-col gap-4 rounded-xl border border-line bg-surface-raised p-5">
+                <div class="flex flex-col gap-1">
+                    <span class="sp-chip sp-chip-amber self-start !text-[11px]">Enterprise</span>
+                    <h3 class="font-display text-xl font-bold tracking-tight">Pro, with us by your side</h3>
+                    <p class="text-[13px] text-muted">{{ upgrade.selfHosted ? 'For larger organisations on their own servers.' : 'Start with the same trial. We get in touch to plan the rest.' }}</p>
+                </div>
+                <ul class="flex flex-1 flex-col gap-2 text-[13px]">
+                    <li v-for="item in enterprise" :key="item" class="flex items-start gap-2">
+                        <span class="mt-0.5 flex h-4 w-4 flex-none items-center justify-center rounded-full bg-navy-50 text-navy"><Icon name="check" :size="10" :stroke="3" /></span>{{ item }}
+                    </li>
+                </ul>
+                <div class="flex flex-col gap-2">
+                    <form v-if="upgrade.canManage && !upgrade.selfHosted" method="POST" :action="upgrade.urls.enterprise">
+                        <input type="hidden" name="_token" :value="csrf()">
+                        <button type="submit" class="sp-btn sp-btn-secondary sp-btn-md w-full justify-center">{{ upgrade.trial ? 'Start the trial, and contact me' : 'Contact me about Enterprise' }}</button>
+                    </form>
+                    <a v-if="upgrade.salesEmail" :href="contact" class="self-center text-[13px] font-semibold text-navy hover:underline">Or email us first</a>
+                </div>
+            </section>
         </div>
     </Modal>
 </template>

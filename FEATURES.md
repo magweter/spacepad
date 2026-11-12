@@ -324,6 +324,9 @@ a separate account with its own invisible set of displays.
 - **Team** — invite colleagues, manage roles, pending invitations and join requests
 - **Billing** — plan, usage per display, checkout, billing portal, monthly or yearly, cancel with a
   reason, licence key on self-hosted
+- **Upgrade dialog** — every Pro label and locked action opens it on the feature that was clicked,
+  with a picture of that feature and Pro and Enterprise side by side. Both start with the 14-day
+  trial; choosing Enterprise also emails sales so they can reach out about a demo, an SLA and a quote
 - **Settings** — rename, create another workspace, leave or delete a workspace
 - **Account** — your details, your workspaces and deleting your account
 - **Display configuration** — one screen per display with Behavior, Display, State texts, Branding and

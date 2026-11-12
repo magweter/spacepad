@@ -13,6 +13,7 @@ use App\Http\Controllers\BoardController;
 use App\Http\Controllers\CalDAVAccountsController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\DisplayController;
+use App\Http\Controllers\EnterpriseInterestController;
 use App\Http\Controllers\DisplayDiagnosticsController;
 use App\Http\Controllers\DisplaySettingsController;
 use App\Http\Controllers\FirstDisplayController;
@@ -199,6 +200,7 @@ Route::middleware(['auth', 'user.update-last-activity'])->group(function () {
     Route::delete('/workspaces/{workspace}', [WorkspaceController::class, 'destroy'])->name('workspaces.destroy');
 
     Route::post('/billing/checkout', [BillingController::class, 'checkout'])->name('billing.checkout');
+    Route::post('/billing/enterprise', EnterpriseInterestController::class)->name('billing.enterprise');
     Route::post('/billing/portal', [BillingController::class, 'portal'])->name('billing.portal');
     Route::post('/billing/switch-yearly', [BillingController::class, 'switchToYearly'])->name('billing.switch-yearly');
     Route::post('/billing/switch-monthly', [BillingController::class, 'switchToMonthly'])->name('billing.switch-monthly');

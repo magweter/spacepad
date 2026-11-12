@@ -25,4 +25,5 @@ enum FunnelStep: string
     case JOIN_REQUESTED = 'join_requested';
     case JOIN_DECLINED_BY_USER = 'join_separate_workspace';
     case JOIN_APPROVED = 'join_approved';
+    case ENTERPRISE_INTEREST = 'enterprise_interest';
 }

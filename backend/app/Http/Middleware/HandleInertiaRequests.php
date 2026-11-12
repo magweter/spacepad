@@ -76,6 +76,7 @@ class HandleInertiaRequests extends Middleware
             'salesEmail' => config('settings.sales_email'),
             'urls' => [
                 'checkout' => route('billing.checkout'),
+                'enterprise' => route('billing.enterprise'),
                 'billing' => route('billing.index'),
             ],
         ];
