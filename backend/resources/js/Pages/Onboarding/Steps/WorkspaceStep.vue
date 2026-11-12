@@ -42,7 +42,7 @@ function skip() {
 
 <template>
     <StepHeading :eyebrow="eyebrow" title="Welcome! How will you use Spacepad?">
-        We tailor the setup to your situation.
+        Your answer decides which instructions and examples we show you, so you get the best onboarding experience.
     </StepHeading>
 
     <form class="flex flex-col gap-6" @submit.prevent="submit">

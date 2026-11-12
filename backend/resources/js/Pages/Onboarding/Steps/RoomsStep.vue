@@ -18,7 +18,7 @@ const form = useForm({
     locations: props.answers.locations,
 });
 
-const switching = computed(() => ['joan', 'teams_panels', 'robin_or_suite'].includes(form.previous_solution));
+const switching = computed(() => ['joan', 'robin', 'teams_panels', 'pronestor', 'appspace', 'eptura'].includes(form.previous_solution));
 const toolLabel = computed(() => props.options.previous_solution.find((o) => o.value === form.previous_solution)?.label);
 const multiSite = computed(() => ['several_buildings', 'several_countries'].includes(form.locations));
 
@@ -29,7 +29,7 @@ function submit() {
 
 <template>
     <StepHeading :eyebrow="eyebrow" title="Tell us about your rooms.">
-        This decides the plan we suggest, how we group your displays and whether we show a migration guide.
+        Your answers decide which instructions we show you, so you get the best onboarding experience.
     </StepHeading>
 
     <form class="flex flex-col gap-6" @submit.prevent="submit">

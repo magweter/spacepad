@@ -221,6 +221,13 @@ a separate account with its own invisible set of displays.
 - Someone signed in under a different address is told so, instead of silently joining the wrong account
 - Removing a member takes away their access only — everything they created stays in the workspace
 
+### Joining your company's workspace
+- Someone signing up with a company address whose domain already has a workspace is offered to join it
+  instead of starting a new one (free email providers never match)
+- Asking to join emails the owners and admins, who approve or decline from a link; approving follows
+  the same Pro rule as inviting. Approved: the requester lands in the workspace and their empty sign-up
+  workspace is removed. Declined, or "set up a separate workspace": they continue with their own
+
 ### Bringing existing data along
 - While accepting an invitation, an invitee can move their own displays, boards, devices and calendar
   accounts into the workspace they are joining
@@ -280,10 +287,13 @@ a separate account with its own invisible set of displays.
 
 - **Sign in and create an account** on one page: Microsoft, Google or a magic link by email. Creating an
   account asks only for the email address
-- **Onboarding wizard** — workspace, about you, products, calendar, room, tablet, ready. Every step can
-  be skipped and the wizard resumes where it was left. Connecting a calendar returns to the wizard,
-  the first display is created from a room picker, and the tablet step updates the moment a tablet
-  pairs. It ends on a "first display live" screen with the next steps
+- **Onboarding** — four questions up front (workspace, rooms, tablets and features, start), each step
+  skippable except the last. The workspace name is suggested from the company domain. Without tablets
+  you can ask for the hardware guide. It ends with a choice: set up the first display or look around
+- **Display setup** — calendar, room, tablet, done, from the end of onboarding or the portal. Connecting
+  a calendar returns to the setup, the display is created from a room picker, the tablet step updates
+  the moment a tablet pairs, and someone without admin rights can email a request to their IT admin.
+  It ends on a "first display live" screen with the next steps
 - **Dashboard** — overview of all connected displays and their current status
 - **Team** — invite colleagues, manage roles, and switch between workspaces
 - **Display configuration** — one screen per display with Behavior, Display, State texts, Branding and

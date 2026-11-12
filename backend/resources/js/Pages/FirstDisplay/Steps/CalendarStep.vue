@@ -48,7 +48,7 @@ function sendItRequest() {
 
     <template v-else>
         <StepHeading :eyebrow="eyebrow" title="Where do your room calendars live?">
-            Pick your calendar, then what Spacepad may do with it.
+            Pick your calendar and what we are allowed to do with it.
         </StepHeading>
 
         <!-- Calendar -->
@@ -97,11 +97,10 @@ function sendItRequest() {
             </span>
             <div class="flex flex-col gap-1.5 text-[13px]">
                 <span class="font-semibold text-ink">Your calendar stays yours</span>
-                <ul class="flex flex-col gap-1 text-ink-3">
-                    <li>Spacepad only reads the calendars you pick for a display.</li>
-                    <li>It keeps today's bookings so the display stays fast, and deletes them when the day is over.</li>
-                    <li>It never changes your calendar, unless you choose read and book.</li>
-                </ul>
+                <p class="text-ink-3">
+                    Spacepad only reads the calendars you pick for a display. It keeps today's bookings so the display stays fast, and deletes them when the day is over.
+                    It never changes your calendar, unless you choose read and book.
+                </p>
                 <span class="text-muted">Rather not connect yet? <a :href="urls.dashboard" class="font-semibold text-navy hover:underline">Look around first</a>.</span>
             </div>
         </div>
@@ -130,7 +129,6 @@ function sendItRequest() {
             <input type="hidden" name="_token" :value="csrf">
             <input type="hidden" name="onboarding" value="1">
             <input type="hidden" name="permission_type" :value="permission">
-            <Button variant="ghost" size="lg" @click="flow.skipAndGo('calendar', 'room')">Skip this step</Button>
             <Button type="submit" size="lg">Sign in with {{ chosen.label }}</Button>
         </form>
     </template>

@@ -19,7 +19,7 @@ const calendars = ref([]);
 const search = ref('');
 const picked = ref(null);
 
-const form = useForm({ name: '', displayName: '', account: '', provider: '', room: null, calendar: null, from_onboarding: 1 });
+const form = useForm({ name: '', displayName: '', account: '', provider: '', from_onboarding: 1 });
 
 // Room calendars when the account has them, otherwise the account's own calendars.
 const usingRooms = computed(() => rooms.value.length > 0);
@@ -32,7 +32,7 @@ const intro = computed(() => {
     if (!account.value) return '';
     const count = (usingRooms.value ? rooms.value : calendars.value).length;
     return usingRooms.value
-        ? `We found ${count} room ${count === 1 ? 'calendar' : 'calendars'} in ${account.value.providerLabel}. Pick one; add the rest later.`
+        ? `We found ${count} room ${count === 1 ? 'calendar' : 'calendars'} in ${account.value.providerLabel}.`
         : `No room calendars in ${account.value.providerLabel}, so these are your own calendars. Pick the one this display shows.`;
 });
 
@@ -67,8 +67,8 @@ function submit() {
         name: data.displayName || picked.value.name,
         account: account.value.id,
         provider: account.value.provider,
-        room: usingRooms.value ? `${picked.value.id},${picked.value.name}` : null,
-        calendar: usingRooms.value ? null : `${picked.value.id},${picked.value.name}`,
+        // Only the key that applies: the store rules expect a string when a key is sent.
+        [usingRooms.value ? 'room' : 'calendar']: `${picked.value.id},${picked.value.name}`,
     })).post(props.urls.displaysStore, { preserveScroll: true });
 }
 
@@ -137,10 +137,7 @@ onMounted(() => {
         <div class="flex items-center justify-between">
             <button type="button" class="text-[13px] font-semibold text-muted hover:text-navy" @click="flow.goTo('calendar')">← Back</button>
             <div class="flex items-center gap-2">
-                <Button variant="ghost" size="lg" :href="urls.dashboard" external>Do this later</Button>
-                <Button size="lg" :disabled="!picked || form.processing" @click="submit">
-                    {{ picked ? `Create display for ${form.displayName || picked.name}` : 'Create display' }}
-                </Button>
+                <Button size="lg" :disabled="!picked || form.processing" @click="submit">Create display</Button>
             </div>
         </div>
     </template>

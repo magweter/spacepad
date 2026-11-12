@@ -12,6 +12,7 @@ const props = defineProps({ answers: Object, options: Object, urls: Object, eyeb
 const form = useForm({
     tablets: props.answers.tablets,
     features: props.answers.features?.length ? [...props.answers.features] : [],
+    hardware_guide: props.answers.hardware_guide === 'yes',
 });
 
 function toggle(value) {
@@ -25,7 +26,7 @@ function submit() {
 
 <template>
     <StepHeading :eyebrow="eyebrow" title="What will the displays run on?">
-        This picks the pairing route we show. No tablets yet is fine; most teams start with the one in a drawer.
+        This decides which pairing instructions we show you, so you get the best onboarding experience. No tablets yet is fine.
     </StepHeading>
 
     <form class="flex flex-col gap-6" @submit.prevent="submit">
@@ -36,7 +37,12 @@ function submit() {
                     <span class="flex flex-col gap-0.5"><span class="text-[15px] font-bold">{{ option.label }}</span><span class="text-xs text-muted">{{ option.description }}</span></span>
                 </ChoiceCard>
             </div>
-            <Notice v-if="form.tablets === 'none'" tone="neutral" title="Any iPad from iOS 15 or Android tablet from Android 8 works. Set up the display now and pair a tablet when it arrives." />
+            <template v-if="form.tablets === 'none'">
+                <Notice tone="neutral" title="Any iPad on iPadOS 15 or newer and any Android tablet on Android 7 or newer works. Set up the display now and pair a tablet when it arrives." />
+                <ChoiceCard type="checkbox" :selected="form.hardware_guide" @select="form.hardware_guide = !form.hardware_guide">
+                    <span class="flex min-w-0 flex-col gap-px"><span class="text-[13px] font-semibold">Send me the hardware guide</span><span class="text-xs text-muted">The tablets and wall mounts we suggest, by email.</span></span>
+                </ChoiceCard>
+            </template>
         </div>
 
         <div class="flex flex-col gap-2.5">

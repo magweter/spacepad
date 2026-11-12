@@ -238,6 +238,7 @@ class FirstDisplayController extends Controller
             'plan' => $workspace->hasPro() ? 'Pro workspace' : 'Free workspace',
             'user' => $user->name,
             'role' => $role ? ucfirst(is_string($role) ? $role : $role->value) : null,
+            'logout' => route('logout'),
             'nav' => [
                 ['label' => 'Overview', 'href' => route('dashboard'), 'active' => false],
                 ['label' => 'Displays', 'href' => route('dashboard'), 'active' => true],

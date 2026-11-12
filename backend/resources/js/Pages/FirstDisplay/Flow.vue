@@ -25,8 +25,8 @@ const flow = useOnboarding(props.urls);
 
 const meta = {
     calendar: { name: 'Calendar', tip: null },
-    room: { name: 'Room', tip: ['Just one for now', 'Add the other rooms once the first display is on the wall.'] },
-    tablet: { name: 'Tablet', tip: ['Any tablet', 'iPad from iOS 15, Android from 8.'] },
+    room: { name: 'Room', tip: null },
+    tablet: { name: 'Tablet', tip: ['Any tablet', 'iPad on iPadOS 15 or newer, Android 7 or newer.'] },
     done: { name: 'Done', tip: ['Add more any time', 'The other rooms follow the same steps, with the calendar already connected.'] },
 };
 const components = { calendar: CalendarStep, room: RoomStep, tablet: TabletStep, done: DoneStep };

@@ -19,6 +19,7 @@ use App\Http\Controllers\DisplaySettingsController;
 use App\Http\Controllers\FirstDisplayController;
 use App\Http\Controllers\GoogleAccountsController;
 use App\Http\Controllers\Invitations\AcceptInvitationController;
+use App\Http\Controllers\JoinRequestController;
 use App\Http\Controllers\LicenseController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\OutlookAccountsController;
@@ -96,6 +97,11 @@ Route::middleware(['auth', 'user.update-last-activity'])->group(function () {
     Route::post('/onboarding/usage-type', [OnboardingController::class, 'updateUsageType'])->name('onboarding.usage-type');
     Route::post('/onboarding/terms', [OnboardingController::class, 'acceptTerms'])->name('onboarding.terms');
     Route::post('/onboarding/skip', [OnboardingController::class, 'skip'])->name('onboarding.skip');
+    Route::post('/onboarding/join', [OnboardingController::class, 'requestJoin'])->name('onboarding.join');
+    Route::post('/onboarding/separate', [OnboardingController::class, 'separateWorkspace'])->name('onboarding.separate');
+    Route::get('/join-requests/{joinRequest}', [JoinRequestController::class, 'show'])->name('join-requests.show');
+    Route::post('/join-requests/{joinRequest}/approve', [JoinRequestController::class, 'approve'])->name('join-requests.approve');
+    Route::post('/join-requests/{joinRequest}/decline', [JoinRequestController::class, 'decline'])->name('join-requests.decline');
 
     Route::get('/setup/first-display', [FirstDisplayController::class, 'index'])->name('setup.first-display');
     Route::get('/setup/first-display/resources', [FirstDisplayController::class, 'resources'])->name('setup.first-display.resources');

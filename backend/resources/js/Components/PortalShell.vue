@@ -1,6 +1,7 @@
 <script setup>
 // The portal shell from the design: a navy sidebar that never changes, the page beside it. Only
 // the display setup uses it so far; its nav links to the existing (Blade) pages.
+import { router } from '@inertiajs/vue3';
 import Logo from './Logo.vue';
 
 defineProps({ shell: { type: Object, required: true } });
@@ -29,11 +30,12 @@ const initials = (name) => (name || '?').split(' ').map((p) => p[0]).slice(0, 2)
             </nav>
             <div class="flex-1"></div>
             <div class="flex items-center gap-2.5 px-1.5 py-1">
-                <span class="flex h-8 w-8 items-center justify-center rounded-full bg-on-navy-muted text-[13px] font-semibold text-navy">{{ initials(shell.user) }}</span>
-                <span class="flex min-w-0 flex-col">
+                <span class="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-on-navy-muted text-[13px] font-semibold text-navy">{{ initials(shell.user) }}</span>
+                <span class="flex min-w-0 flex-1 flex-col">
                     <span class="truncate text-[13px] font-medium text-white">{{ shell.user }}</span>
                     <span v-if="shell.role" class="text-xs text-on-navy-muted">{{ shell.role }}</span>
                 </span>
+                <button type="button" class="rounded-md px-2 py-1 text-xs font-semibold text-on-navy-2 hover:bg-navy-800 hover:text-white" @click="router.post(shell.logout)">Log out</button>
             </div>
         </aside>
 

@@ -42,7 +42,7 @@ function start(choice) {
             </span>
             <span class="flex flex-1 flex-col gap-[3px]">
                 <span class="text-[17px] font-bold">Set up my first display</span>
-                <span class="text-[13px] text-on-navy-2">Connect your calendar, pick a room, pair a tablet. Four steps, about four minutes.</span>
+                <span class="text-[13px] text-on-navy-2">Connect your calendar, pick a room, pair a tablet.</span>
             </span>
             <span class="rounded-full bg-amber px-[9px] py-[3px] text-[11px] font-bold whitespace-nowrap text-navy">Recommended</span>
         </button>

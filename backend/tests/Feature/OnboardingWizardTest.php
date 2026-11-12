@@ -8,7 +8,9 @@ use App\Models\FunnelEvent;
 use App\Models\OnboardingAnswer;
 use App\Models\OutlookAccount;
 use App\Models\User;
+use App\Models\WorkspaceJoinRequest;
 use App\Notifications\ItAdminCalendarRequest;
+use App\Notifications\WorkspaceJoinRequested;
 use App\Support\OnboardingReturn;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
@@ -306,4 +308,93 @@ test('someone without admin rights can mail a request to IT', function () {
 
     $this->actingAs($user)->post(route('setup.first-display.it-request'), ['email' => 'not-an-email'])
         ->assertSessionHasErrors('email');
+});
+
+test('the workspace name is suggested from the company domain', function () {
+    $user = User::factory()->create(['name' => 'jan jansen', 'email' => 'jan@cbyte.nl', 'usage_type' => null, 'terms_accepted_at' => now()]);
+    $user->primaryWorkspace()->update(['name' => "jan jansen's Workspace"]);
+
+    $this->actingAs($user)->get(route('onboarding'))
+        ->assertInertia(fn (Assert $page) => $page->component('Onboarding/Wizard')->where('workspace.name', 'Cbyte'));
+});
+
+test('a personal address gets its own name in title case', function () {
+    $user = User::factory()->create(['name' => 'jan jansen', 'email' => 'jan@gmail.com', 'usage_type' => null, 'terms_accepted_at' => now()]);
+    $user->primaryWorkspace()->update(['name' => "jan jansen's Workspace"]);
+
+    $this->actingAs($user)->get(route('onboarding'))
+        ->assertInertia(fn (Assert $page) => $page->where('workspace.name', "Jan Jansen's Workspace"));
+});
+
+test('without tablets the hardware guide question is stored', function () {
+    $user = newcomer();
+
+    $this->actingAs($user)->post(route('onboarding.tablets'), ['tablets' => 'none', 'hardware_guide' => true]);
+
+    expect($user->primaryWorkspace()->latestAnswer(OnboardingQuestion::HARDWARE_GUIDE)->value)->toBe('yes');
+});
+
+test('looking around leaves the inertia pages with a full page visit', function () {
+    $user = newcomer();
+    $user->update(['usage_type' => UsageType::BUSINESS]);
+
+    $this->actingAs($user)->post(route('onboarding.start'), ['choice' => 'look_around'], ['X-Inertia' => 'true'])
+        ->assertStatus(409)
+        ->assertHeader('X-Inertia-Location', route('dashboard'));
+});
+
+test('a colleague is offered the workspace of their company', function () {
+    Notification::fake();
+    $owner = User::factory()->active()->create(['email' => 'owner@acme.test']);
+    $colleague = newcomer();
+
+    $this->actingAs($colleague)->get(route('onboarding'))
+        ->assertInertia(fn (Assert $page) => $page->component('Onboarding/JoinExisting')
+            ->where('sent', false)
+            ->where('workspace.name', $owner->primaryWorkspace()->name));
+
+    $this->actingAs($colleague)->post(route('onboarding.join'))->assertRedirect(route('onboarding'));
+
+    Notification::assertSentTo($owner, WorkspaceJoinRequested::class);
+    $this->actingAs($colleague)->get(route('onboarding'))
+        ->assertInertia(fn (Assert $page) => $page->component('Onboarding/JoinExisting')->where('sent', true));
+});
+
+test('a colleague can set up a separate workspace instead', function () {
+    User::factory()->active()->create(['email' => 'owner@acme.test']);
+    $colleague = newcomer();
+
+    $this->actingAs($colleague)->post(route('onboarding.separate'))->assertRedirect(route('onboarding', ['step' => 'workspace']));
+
+    $this->actingAs($colleague)->get(route('onboarding'))
+        ->assertInertia(fn (Assert $page) => $page->component('Onboarding/Wizard'));
+});
+
+test('a free email address is never matched to a workspace', function () {
+    User::factory()->active()->create(['email' => 'someone@gmail.com']);
+    $user = User::factory()->create(['email' => 'other@gmail.com', 'usage_type' => null, 'terms_accepted_at' => now()]);
+
+    $this->actingAs($user)->get(route('onboarding'))
+        ->assertInertia(fn (Assert $page) => $page->component('Onboarding/Wizard'));
+});
+
+test('declining a join request sends them back to their own setup', function () {
+    $owner = User::factory()->active()->create(['email' => 'owner@acme.test']);
+    $colleague = newcomer();
+    $joinRequest = WorkspaceJoinRequest::create(['workspace_id' => $owner->primaryWorkspace()->id, 'user_id' => $colleague->id]);
+
+    $this->actingAs($owner)->post(route('join-requests.decline', $joinRequest))->assertRedirect(route('join-requests.show', $joinRequest));
+
+    expect($joinRequest->fresh()->status)->toBe(WorkspaceJoinRequest::DECLINED);
+    $this->actingAs($colleague)->get(route('onboarding'))
+        ->assertInertia(fn (Assert $page) => $page->component('Onboarding/Wizard'));
+});
+
+test('only an owner or admin decides on a join request', function () {
+    $owner = User::factory()->active()->create(['email' => 'owner@acme.test']);
+    $stranger = User::factory()->active()->create();
+    $joinRequest = WorkspaceJoinRequest::create(['workspace_id' => $owner->primaryWorkspace()->id, 'user_id' => newcomer()->id]);
+
+    $this->actingAs($stranger)->get(route('join-requests.show', $joinRequest))->assertForbidden();
+    $this->actingAs($stranger)->post(route('join-requests.decline', $joinRequest))->assertForbidden();
 });

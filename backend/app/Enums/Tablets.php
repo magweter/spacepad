@@ -25,10 +25,10 @@ enum Tablets: string
     public function description(): string
     {
         return match ($this) {
-            self::IPAD => 'iOS 15 or newer',
-            self::ANDROID => 'Android 8 or newer',
+            self::IPAD => 'iPadOS 15 or newer',
+            self::ANDROID => 'Android 7 or newer',
             self::MIX => 'Both, or not sure yet',
-            self::NONE => 'We help you choose',
+            self::NONE => 'We can help you choose',
         };
     }
 }

@@ -50,7 +50,7 @@ test('the owner sees the card after the first display, with the options of the o
         ->assertSee('Your first display is live. Two quick questions?')
         ->assertSee('6 to 25')
         ->assertSee('Outlook or Google only')
-        ->assertSee('Robin or another suite');
+        ->assertSee('Pronestor');
 
     expect(FunnelEvent::where('workspace_id', $workspace->id)->where('event', 'profile_card_shown')->count())->toBe(1);
 

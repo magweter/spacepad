@@ -20,6 +20,7 @@ enum OnboardingQuestion: string
     case LOCATIONS = 'locations';
     case TABLETS = 'tablets';
     case FEATURES = 'features';
+    case HARDWARE_GUIDE = 'hardware_guide';
 
     /**
      * The enum that holds this question's options.
@@ -37,6 +38,7 @@ enum OnboardingQuestion: string
             self::LOCATIONS => RoomLocations::class,
             self::TABLETS => Tablets::class,
             self::FEATURES => Feature::class,
+            self::HARDWARE_GUIDE => YesNo::class,
         };
     }
 

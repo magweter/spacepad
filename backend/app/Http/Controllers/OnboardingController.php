@@ -10,18 +10,25 @@ use App\Enums\RoomLocations;
 use App\Enums\RoomsEstimate;
 use App\Enums\Tablets;
 use App\Enums\UsageType;
+use App\Enums\WorkspaceRole;
 use App\Events\UserRegistered;
 use App\Models\FunnelEvent;
 use App\Models\User;
 use App\Models\Workspace;
+use App\Models\WorkspaceJoinRequest;
+use App\Notifications\WorkspaceJoinRequested;
+use App\Services\ColleagueWorkspace;
 use App\Services\Funnel;
 use App\Services\OnboardingAnswers;
+use App\Support\EmailDomain;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 /**
  * Onboarding: four quick questions, then a choice of how to start.
@@ -47,6 +54,10 @@ class OnboardingController extends Controller
             event(new UserRegistered($user));
         }
 
+        if ($join = $this->joinPrompt($user, $workspace)) {
+            return Inertia::render('Onboarding/JoinExisting', $join);
+        }
+
         $requested = $request->query('step');
         $step = in_array($requested, self::STEPS, true) ? $requested : $this->firstOpenStep($user, $workspace);
 
@@ -60,7 +71,7 @@ class OnboardingController extends Controller
                 'termsAccepted' => $user->terms_accepted_at !== null,
             ],
             'workspace' => [
-                'name' => $workspace->name,
+                'name' => $this->suggestedName($user, $workspace),
                 'canRename' => $user->can('update', $workspace),
             ],
             'answers' => [
@@ -70,6 +81,7 @@ class OnboardingController extends Controller
                 'locations' => OnboardingAnswers::latest($workspace, OnboardingQuestion::LOCATIONS),
                 'tablets' => OnboardingAnswers::latest($workspace, OnboardingQuestion::TABLETS),
                 'features' => OnboardingAnswers::latest($workspace, OnboardingQuestion::FEATURES),
+                'hardware_guide' => OnboardingAnswers::latest($workspace, OnboardingQuestion::HARDWARE_GUIDE),
             ],
             'options' => [
                 'previous_solution' => OnboardingAnswers::options(OnboardingQuestion::PREVIOUS_SOLUTION),
@@ -168,10 +180,16 @@ class OnboardingController extends Controller
             'tablets' => ['nullable', Rule::enum(Tablets::class)],
             'features' => ['array'],
             'features.*' => [Rule::enum(Feature::class)],
+            'hardware_guide' => ['nullable', 'boolean'],
         ]);
 
         OnboardingAnswers::store($workspace, $user, OnboardingQuestion::TABLETS, $data['tablets'] ?? null, null, self::SOURCE);
         OnboardingAnswers::store($workspace, $user, OnboardingQuestion::FEATURES, $data['features'] ?? [], null, self::SOURCE);
+
+        // Only asked when there are no tablets yet: whether we may send the hardware guide.
+        if (($data['tablets'] ?? null) === Tablets::NONE->value) {
+            OnboardingAnswers::store($workspace, $user, OnboardingQuestion::HARDWARE_GUIDE, ! empty($data['hardware_guide']) ? 'yes' : 'no', null, self::SOURCE);
+        }
 
         $this->stepEvent($skipped ? FunnelStep::ONBOARDING_STEP_SKIPPED : FunnelStep::ONBOARDING_STEP_COMPLETED, 'tablets', $workspace, $user);
 
@@ -182,7 +200,7 @@ class OnboardingController extends Controller
      * The last step: set up the first display now, or look around first. Either way onboarding
      * is done; the first display flow is open from the portal at any time.
      */
-    public function start(Request $request): RedirectResponse
+    public function start(Request $request): RedirectResponse|SymfonyResponse
     {
         $data = $request->validate([
             'choice' => ['required', Rule::in(['first_display', 'look_around'])],
@@ -196,7 +214,7 @@ class OnboardingController extends Controller
 
         return $data['choice'] === 'first_display'
             ? redirect()->route('setup.first-display')
-            : redirect()->route('dashboard');
+            : $this->toBlade($request, route('dashboard'));
     }
 
     /**
@@ -221,14 +239,14 @@ class OnboardingController extends Controller
         return response()->noContent();
     }
 
-    public function skip(Request $request): RedirectResponse
+    public function skip(Request $request): RedirectResponse|SymfonyResponse
     {
         $user = $request->user();
 
         $user->update(['skipped_onboarding_at' => now()]);
         $this->finish($user, $this->currentWorkspace($request), ['step' => $request->input('step')], FunnelStep::ONBOARDING_SKIPPED);
 
-        return redirect()->route('dashboard');
+        return $this->toBlade($request, route('dashboard'));
     }
 
     /**
@@ -247,6 +265,112 @@ class OnboardingController extends Controller
         $request->user()->update(['terms_accepted_at' => now()]);
 
         return redirect()->route('onboarding');
+    }
+
+    /**
+     * Ask the owners and admins of the colleagues' workspace to let this person in.
+     */
+    public function requestJoin(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+        $colleagues = ColleagueWorkspace::for($user);
+        abort_unless($colleagues !== null, 404);
+
+        $joinRequest = WorkspaceJoinRequest::firstOrCreate(
+            ['workspace_id' => $colleagues->id, 'user_id' => $user->id],
+            ['status' => WorkspaceJoinRequest::PENDING]
+        );
+
+        if ($joinRequest->wasRecentlyCreated) {
+            $colleagues->members()
+                ->wherePivotIn('role', [WorkspaceRole::OWNER->value, WorkspaceRole::ADMIN->value])
+                ->get()
+                ->each(fn ($admin) => $admin->notify(new WorkspaceJoinRequested(
+                    requesterName: $user->name,
+                    requesterEmail: $user->email,
+                    workspaceName: $colleagues->name,
+                    reviewUrl: route('join-requests.show', $joinRequest),
+                )));
+
+            Funnel::record(FunnelStep::JOIN_REQUESTED, $this->currentWorkspace($request), $user, ['workspace' => $colleagues->id]);
+        }
+
+        return redirect()->route('onboarding');
+    }
+
+    /**
+     * Set up a workspace of their own after all.
+     */
+    public function separateWorkspace(Request $request): RedirectResponse
+    {
+        Funnel::recordOnce(FunnelStep::JOIN_DECLINED_BY_USER, $this->currentWorkspace($request), $request->user());
+
+        return redirect()->route('onboarding', ['step' => 'workspace']);
+    }
+
+    /**
+     * The "your colleagues are already on Spacepad" screen, while it applies: a colleague
+     * workspace exists and this person has not chosen a workspace of their own yet.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function joinPrompt(User $user, Workspace $workspace): ?array
+    {
+        if (Funnel::reached(FunnelStep::JOIN_DECLINED_BY_USER, $workspace)) {
+            return null;
+        }
+
+        $pending = WorkspaceJoinRequest::where('user_id', $user->id)->where('status', WorkspaceJoinRequest::PENDING)->latest()->first();
+        $colleagues = $pending?->workspace ?? ($user->usage_type === null ? ColleagueWorkspace::for($user) : null);
+
+        // Declined before: they get a workspace of their own, without asking again.
+        if (! $colleagues || WorkspaceJoinRequest::where('user_id', $user->id)->where('workspace_id', $colleagues->id)->where('status', WorkspaceJoinRequest::DECLINED)->exists()) {
+            return null;
+        }
+
+        $members = $colleagues->members()->orderBy('workspace_members.created_at')->get();
+        $owner = $colleagues->owners()->first();
+
+        return [
+            'sent' => $pending !== null,
+            'email' => $user->email,
+            'domain' => EmailDomain::of($user->email),
+            'workspace' => [
+                'name' => $colleagues->name,
+                'plan' => $colleagues->hasPro() ? 'Pro workspace' : 'Free workspace',
+                'displays' => $colleagues->displays()->count(),
+                'createdBy' => $owner ? strtok($owner->name, ' ') : null,
+                'createdAgo' => $colleagues->created_at?->diffForHumans(),
+                'members' => $members->map(fn ($m) => ['name' => strtok($m->name, ' ')])->values()->all(),
+            ],
+            'urls' => [
+                'request' => route('onboarding.join'),
+                'separate' => route('onboarding.separate'),
+                'logout' => route('logout'),
+            ],
+        ];
+    }
+
+    /**
+     * A name to start from, in title case: the company for a company address, otherwise the
+     * name the workspace got at sign-up.
+     */
+    private function suggestedName(User $user, Workspace $workspace): string
+    {
+        if (! str_ends_with($workspace->name, "'s Workspace")) {
+            return $workspace->name;
+        }
+
+        return EmailDomain::companyName($user->email) ?? Str::title($workspace->name);
+    }
+
+    /**
+     * Leave the Inertia pages for a Blade one with a full page visit; an Inertia visit would
+     * show the Blade response in a modal.
+     */
+    private function toBlade(Request $request, string $url): RedirectResponse|SymfonyResponse
+    {
+        return $request->header('X-Inertia') ? Inertia::location($url) : redirect()->to($url);
     }
 
     /**
