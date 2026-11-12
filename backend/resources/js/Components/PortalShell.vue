@@ -57,10 +57,10 @@ function switchTo(workspace) {
 
             <div class="flex items-center gap-2.5 px-1.5 py-1">
                 <span class="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-on-navy-muted text-[13px] font-semibold text-navy">{{ initials(shell.user) }}</span>
-                <span class="flex min-w-0 flex-1 flex-col">
+                <a :href="shell.account" class="flex min-w-0 flex-1 flex-col rounded-md hover:opacity-80" :aria-current="shell.accountActive ? 'page' : null" title="Your account">
                     <span class="truncate text-[13px] font-medium text-white">{{ shell.user }}</span>
                     <span v-if="shell.role" class="text-xs text-on-navy-muted">{{ shell.role }}</span>
-                </span>
+                </a>
                 <button type="button" class="rounded-md px-2 py-1 text-xs font-semibold text-on-navy-2 hover:bg-navy-800 hover:text-white" @click="router.post(shell.logout)">Log out</button>
             </div>
         </aside>

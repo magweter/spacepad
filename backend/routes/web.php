@@ -24,6 +24,7 @@ use App\Http\Controllers\LicenseController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\OutlookAccountsController;
 use App\Http\Controllers\OverviewController;
+use App\Http\Controllers\Portal;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProfilesController;
 use App\Http\Controllers\RoadmapController;
@@ -90,6 +91,13 @@ Route::get('/outlook-accounts/callback', [OutlookAccountsController::class, 'cal
 Route::middleware(['auth', 'user.update-last-activity'])->group(function () {
     Route::get('/', OverviewController::class)->name('dashboard')->middleware('user.active');
     Route::get('/manage', DashboardController::class)->name('portal.manage')->middleware('user.active');
+    Route::middleware('user.active')->group(function () {
+        Route::get('/displays', [Portal\DisplaysPageController::class, 'index'])->name('displays.index');
+        Route::get('/boards', [Portal\BoardsPageController::class, 'index'])->name('boards.index');
+        Route::get('/calendars', [Portal\CalendarsPageController::class, 'index'])->name('calendars.index');
+        Route::get('/billing', [Portal\BillingPageController::class, 'index'])->name('billing.index');
+        Route::get('/settings', [Portal\SettingsPageController::class, 'index'])->name('settings.index');
+    });
     Route::get('/onboarding', [OnboardingController::class, 'index'])->name('onboarding')->middleware('user.onboarding');
     Route::post('/onboarding/workspace', [OnboardingController::class, 'workspace'])->name('onboarding.workspace');
     Route::post('/onboarding/rooms', [OnboardingController::class, 'rooms'])->name('onboarding.rooms');

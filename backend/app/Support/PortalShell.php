@@ -23,12 +23,13 @@ class PortalShell
 
         $nav = [
             ['key' => 'overview', 'label' => 'Overview', 'icon' => 'overview', 'href' => route('dashboard')],
-            ['key' => 'displays', 'label' => 'Displays', 'icon' => 'displays', 'href' => route('portal.manage'), 'count' => $workspace->displays()->count()],
-            ['key' => 'boards', 'label' => 'Boards', 'icon' => 'boards', 'href' => route('portal.manage', ['tab' => 'boards']), 'pro' => ! $hasPro],
-            ['key' => 'calendars', 'label' => 'Calendars', 'icon' => 'calendars', 'href' => route('portal.manage').'#accounts'],
-            ['key' => 'profiles', 'label' => 'Profiles', 'icon' => 'profiles', 'href' => route('portal.manage', ['tab' => 'profiles']), 'pro' => ! $hasPro],
-            ['key' => 'team', 'label' => 'Team and billing', 'icon' => 'team', 'href' => route('workspaces.members'), 'divider' => true],
-            ['key' => 'account', 'label' => 'Account', 'icon' => 'account', 'href' => route('profile.show')],
+            ['key' => 'displays', 'label' => 'Displays', 'icon' => 'displays', 'href' => route('displays.index'), 'count' => $workspace->displays()->count()],
+            ['key' => 'boards', 'label' => 'Boards', 'icon' => 'boards', 'href' => route('boards.index'), 'pro' => ! $hasPro],
+            ['key' => 'calendars', 'label' => 'Calendars', 'icon' => 'calendars', 'href' => route('calendars.index')],
+            ['key' => 'profiles', 'label' => 'Profiles', 'icon' => 'profiles', 'href' => route('profiles.index'), 'pro' => ! $hasPro],
+            ['key' => 'team', 'label' => 'Team', 'icon' => 'team', 'href' => route('workspaces.members'), 'divider' => true],
+            ['key' => 'billing', 'label' => 'Billing', 'icon' => 'billing', 'href' => route('billing.index')],
+            ['key' => 'settings', 'label' => 'Settings', 'icon' => 'settings', 'href' => route('settings.index')],
         ];
 
         return [
@@ -41,6 +42,8 @@ class PortalShell
                 ->map(fn ($w) => ['id' => $w->id, 'name' => $w->name, 'current' => $w->id === $workspace->id])->values()->all(),
             'switchUrl' => route('workspaces.switch'),
             'logout' => route('logout'),
+            'account' => route('profile.show'),
+            'accountActive' => $active === 'account',
         ];
     }
 }

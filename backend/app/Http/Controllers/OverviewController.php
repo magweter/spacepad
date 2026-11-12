@@ -43,7 +43,7 @@ class OverviewController extends Controller
     /** A tablet that has not been heard from in this many minutes counts as offline. */
     private const ONLINE_MINUTES = 10;
 
-    /** Flashes only the classic dashboard knows how to show. */
+    /** Flashes that open a modal on the calendars page. */
     private const CLASSIC_FLASHES = [
         'open-service-account-modal',
         'open-google-booking-method-modal',
@@ -57,7 +57,13 @@ class OverviewController extends Controller
         if ($request->filled('tab') || collect(self::CLASSIC_FLASHES)->contains(fn ($key) => $request->session()->has($key))) {
             $request->session()->reflash();
 
-            return redirect()->route('portal.manage', $request->only('tab'));
+            // Old tab links go to their own page now; the modal flows end on the calendars page.
+            return match ($request->query('tab')) {
+                'boards' => redirect()->route('boards.index'),
+                'profiles' => redirect()->route('profiles.index'),
+                'displays' => redirect()->route('displays.index'),
+                default => redirect()->route('calendars.index'),
+            };
         }
 
         $user = $request->user();
@@ -114,8 +120,8 @@ class OverviewController extends Controller
             ] : null,
             'urls' => [
                 'newDisplay' => $displays->isEmpty() ? route('setup.first-display') : route('setup.first-display', ['step' => 'room', 'new' => 1]),
-                'displays' => route('portal.manage'),
-                'calendars' => route('portal.manage').'#accounts',
+                'displays' => route('displays.index'),
+                'calendars' => route('calendars.index'),
                 'team' => route('workspaces.members'),
                 'boardsCreate' => route('boards.create'),
                 'pairing' => route('setup.first-display', ['step' => 'tablet']),
@@ -131,7 +137,7 @@ class OverviewController extends Controller
     private function notices(Request $request, Workspace $workspace, Collection $displays): array
     {
         $notices = [];
-        $manage = fn (array $query) => route('portal.manage', $query);
+        $manage = fn (array $query) => route('calendars.index', $query);
 
         foreach (OutlookAccount::where('workspace_id', $workspace->id)->get() as $account) {
             if ($account->permission_type === PermissionType::WRITE && $account->isBusiness() && $account->booking_method === null) {

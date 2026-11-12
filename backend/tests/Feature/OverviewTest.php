@@ -69,19 +69,19 @@ test('only what blocks the product shows as a notice', function () {
         ->assertInertia(fn (Assert $page) => $page->where('notices', fn ($notices) => collect($notices)->pluck('tag')->contains('Paused')));
 });
 
-test('links to a tab of the old dashboard open the classic page', function () {
+test('links to a tab of the old dashboard open that page', function () {
     $user = User::factory()->active()->create();
 
-    $this->actingAs($user)->get(route('dashboard', ['tab' => 'boards']))->assertRedirect(route('portal.manage', ['tab' => 'boards']));
-    $this->actingAs($user)->get(route('portal.manage'))->assertOk()->assertViewIs('pages.dashboard');
+    $this->actingAs($user)->get(route('dashboard', ['tab' => 'boards']))->assertRedirect(route('boards.index'));
+    $this->actingAs($user)->get(route('dashboard', ['tab' => 'displays']))->assertRedirect(route('displays.index'));
 });
 
-test('a flow that ends in a modal still lands on the classic page', function () {
+test('a flow that ends in a modal lands on the calendars page', function () {
     $user = User::factory()->active()->create();
 
     $this->actingAs($user)->withSession(['open-google-booking-method-modal' => 'abc'])
         ->get(route('dashboard'))
-        ->assertRedirect(route('portal.manage'));
+        ->assertRedirect(route('calendars.index'));
 });
 
 test('with caching off the events are fetched on the spot', function () {
