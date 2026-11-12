@@ -134,11 +134,11 @@ class DisplayController extends Controller
             FunnelTracking::displayCreated($workspace);
         }
 
-        // Created from the onboarding wizard: carry on with pairing the tablet.
+        // Created from the display setup: carry on with pairing the tablet.
         if ($display && $request->boolean('from_onboarding')) {
             Funnel::record(FunnelStep::ONBOARDING_STEP_COMPLETED, $workspace, $request->user(), ['step' => 'room']);
 
-            return redirect()->route('onboarding', ['step' => 'tablet']);
+            return redirect()->route('setup.first-display', ['step' => 'tablet', 'display' => $display->id]);
         }
 
         return redirect()->route('dashboard')->with($display ? 'success' : 'error', $display ?

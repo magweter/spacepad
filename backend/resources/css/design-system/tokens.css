@@ -1,0 +1,158 @@
+/* Spacepad Design System tokens, copied verbatim from the design system (tokens.json). Do not edit by hand. */
+/* Spacepad Design System — generated from tokens.json */
+:root, [data-theme="light"] {
+  --brand-navy: #14213D;
+  --brand-navy-800: #1C2D52;
+  --brand-navy-700: #2A3D66;
+  --brand-navy-600: #3B4F7A;
+  --brand-navy-400: #6B7FA3;
+  --brand-navy-100: #DCE3EF;
+  --brand-navy-50: #EEF2F8;
+  --brand-amber: #FDA312;
+  --brand-amber-text: #B45309;
+  --brand-amber-100: #FEF3C7;
+  --brand-amber-50: #FFFBEB;
+  --brand-amber-300: #FCD34D;
+  --ground: #F5F7FA;
+  --surface: #FFFFFF;
+  --surface-raised: #F8FAFC;
+  --border: #E2E8F0;
+  --border-soft: #F1F5F9;
+  --text: #0F172A;
+  --text-2: #334155;
+  --text-3: #475569;
+  --text-muted: #64748B;
+  --on-navy: #FFFFFF;
+  --on-navy-2: #C7D0E0;
+  --on-navy-muted: #93A1BD;
+  --status-available: #16A34A;
+  --status-available-bg: #DCFCE7;
+  --status-available-text: #166534;
+  --status-available-border: #86EFAC;
+  --status-reserved: #DC2626;
+  --status-reserved-bg: #FEE2E2;
+  --status-reserved-text: #991B1B;
+  --status-reserved-border: #FCA5A5;
+  --status-checkin: #D97706;
+  --status-checkin-bg: #FEF3C7;
+  --status-checkin-text: #92400E;
+  --status-checkin-border: #FCD34D;
+  --status-offline: #94A3B8;
+  --status-offline-bg: #F1F5F9;
+  --status-offline-border: #CBD5E1;
+  --info: #1D4ED8;
+  --info-bg: #EFF6FF;
+  --info-border: #93C5FD;
+  --scrim: rgba(15, 23, 42, 0.6);
+  --glass: rgba(15, 23, 42, 0.05);
+  --glass-border: rgba(15, 23, 42, 0.14);
+  --now-line: #0F172A;
+  --console-ground: #15181E;
+  --console-surface: #1E2229;
+  --console-muted: #A8A29E;
+  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-panel: -16px 0 48px rgba(15, 23, 42, 0.12);
+  --shadow-dialog: 0 24px 64px rgba(15, 23, 42, 0.28);
+  --shadow-device: 0 24px 48px rgba(15, 23, 42, 0.25);
+  --shadow-glow-available: 0 0 0 6px rgba(22, 163, 74, 0.2);
+}
+[data-theme="dark"] {
+  --brand-navy: #14213D;
+  --brand-navy-800: #1C2D52;
+  --brand-navy-700: #2A3D66;
+  --brand-navy-600: #3B4F7A;
+  --brand-navy-400: #93A1BD;
+  --brand-navy-100: #2A3D66;
+  --brand-navy-50: #1C2D52;
+  --brand-amber: #FDA312;
+  --brand-amber-text: #FDA312;
+  --brand-amber-100: #3A2305;
+  --brand-amber-50: #2A1A05;
+  --brand-amber-300: #B45309;
+  --ground: #0B1220;
+  --surface: #111827;
+  --surface-raised: #1E293B;
+  --border: #1E293B;
+  --border-soft: #162033;
+  --text: #F8FAFC;
+  --text-2: #CBD5E1;
+  --text-3: #94A3B8;
+  --text-muted: #94A3B8;
+  --on-navy: #FFFFFF;
+  --on-navy-2: #C7D0E0;
+  --on-navy-muted: #93A1BD;
+  --status-available: #4ADE80;
+  --status-available-bg: #0B3D2E;
+  --status-available-text: #86EFAC;
+  --status-available-border: #166534;
+  --status-reserved: #F87171;
+  --status-reserved-bg: #3B0A0F;
+  --status-reserved-text: #FCA5A5;
+  --status-reserved-border: #991B1B;
+  --status-checkin: #FBBF24;
+  --status-checkin-bg: #3A2305;
+  --status-checkin-text: #FDE68A;
+  --status-checkin-border: #92400E;
+  --status-offline: #64748B;
+  --status-offline-bg: #1E293B;
+  --status-offline-border: #334155;
+  --info: #60A5FA;
+  --info-bg: #172554;
+  --info-border: #1E40AF;
+  --scrim: rgba(2, 6, 23, 0.7);
+  --glass: rgba(255, 255, 255, 0.10);
+  --glass-border: rgba(255, 255, 255, 0.22);
+  --now-line: #F8FAFC;
+  --console-ground: #15181E;
+  --console-surface: #1E2229;
+  --console-muted: #A8A29E;
+  --shadow-card: none;
+  --shadow-panel: -16px 0 48px rgba(0, 0, 0, 0.4);
+  --shadow-dialog: 0 24px 64px rgba(0, 0, 0, 0.6);
+  --shadow-device: 0 24px 48px rgba(0, 0, 0, 0.5);
+  --shadow-glow-available: 0 0 0 6px rgba(74, 222, 128, 0.25);
+}
+:root {
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-24: 96px;
+  --sidebar: 248px;
+  --content-max: 1200px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
+  --radius-pill: 999px;
+  --radius-device: 28px;
+  --radius-tile: 120px;
+  --font-sans: Inter, system-ui, -apple-system, sans-serif;
+  --font-display: "Space Grotesk", Inter, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", Menlo, monospace;
+}
+.display-hero { font-family: var(--font-display); font-size: 60px; line-height: 1.05; font-weight: 700; letter-spacing: -0.03em; }
+.display-section { font-family: var(--font-display); font-size: 42px; line-height: 1.1; font-weight: 700; letter-spacing: -0.02em; }
+.display-card { font-family: var(--font-display); font-size: 28px; line-height: 1.15; font-weight: 700; letter-spacing: -0.02em; }
+.portal-title { font-family: var(--font-display); font-size: 22px; line-height: 1.2; font-weight: 700; letter-spacing: -0.02em; }
+.portal-kpi { font-family: var(--font-display); font-size: 30px; line-height: 1; font-weight: 700; letter-spacing: -0.03em; }
+.device-clock { font-family: var(--font-display); font-size: 56px; line-height: 1; font-weight: 700; letter-spacing: -0.03em; }
+.device-status { font-family: var(--font-display); font-size: 136px; line-height: 0.95; font-weight: 700; letter-spacing: -0.04em; }
+.title { font-family: var(--font-sans); font-size: 18px; line-height: 26px; font-weight: 600; }
+.heading { font-family: var(--font-sans); font-size: 15px; line-height: 22px; font-weight: 600; }
+.body { font-family: var(--font-sans); font-size: 14px; line-height: 21px; font-weight: 400; }
+.body-strong { font-family: var(--font-sans); font-size: 14px; line-height: 21px; font-weight: 600; }
+.small { font-family: var(--font-sans); font-size: 13px; line-height: 19px; font-weight: 400; }
+.caption { font-family: var(--font-sans); font-size: 12px; line-height: 17px; font-weight: 400; }
+.eyebrow { font-family: var(--font-sans); font-size: 11px; line-height: 16px; font-weight: 600; letter-spacing: 0.04em; }
+.kpi { font-family: var(--font-sans); font-size: 28px; line-height: 34px; font-weight: 700; letter-spacing: -0.02em; }
+.lead { font-family: var(--font-sans); font-size: 20px; line-height: 30px; font-weight: 400; }
+.web-body { font-family: var(--font-sans); font-size: 16px; line-height: 26px; font-weight: 400; }
+.web-nav { font-family: var(--font-sans); font-size: 15px; line-height: 22px; font-weight: 500; }
+.code { font-family: var(--font-mono); font-size: 13px; line-height: 20px; font-weight: 500; }

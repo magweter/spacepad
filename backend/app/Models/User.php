@@ -278,6 +278,12 @@ class User extends Authenticatable
 
     public function isOnboarded(): bool
     {
+        // Finishing the wizard is onboarding, with or without a calendar: "Just look around"
+        // ends on the overview, and sending that person back to the wizard would loop.
+        if ($this->onboarding_completed_at !== null) {
+            return true;
+        }
+
         // Check if user has accounts OR if any workspace they're a member of has accounts
         $hasAccounts = $this->hasAnyAccount();
 

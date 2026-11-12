@@ -48,7 +48,7 @@ test('the owner sees the card after the first display, with the options of the o
     $this->actingAs($owner)->get(route('dashboard'))
         ->assertOk()
         ->assertSee('Your first display is live. Two quick questions?')
-        ->assertSee('16–50')
+        ->assertSee('6 to 25')
         ->assertSee('Outlook or Google only')
         ->assertSee('Robin or another suite');
 
@@ -82,13 +82,13 @@ test('a member, a personal user and a self-hosted instance are not asked', funct
 test('each click is stored as its own answer, with who gave it and where', function () {
     [$workspace, $owner] = businessWorkspaceWithDisplay();
 
-    answerProfile($owner, ['question' => 'rooms', 'value' => '16-50'])->assertNoContent();
+    answerProfile($owner, ['question' => 'rooms', 'value' => '6-25'])->assertNoContent();
 
     $answer = OnboardingAnswer::sole();
     expect($answer->workspace_id)->toBe($workspace->id)
         ->and($answer->user_id)->toBe($owner->id)
         ->and($answer->question)->toBe('rooms')
-        ->and($answer->value)->toBe('16-50')
+        ->and($answer->value)->toBe('6-25')
         ->and($answer->source)->toBe('dashboard_card')
         ->and($workspace->shouldAskProfile($owner))->toBeTrue();
 });
@@ -96,12 +96,12 @@ test('each click is stored as its own answer, with who gave it and where', funct
 test('a changed answer keeps the earlier one as history', function () {
     [$workspace, $owner] = businessWorkspaceWithDisplay();
 
-    answerProfile($owner, ['question' => 'rooms', 'value' => '1-3']);
+    answerProfile($owner, ['question' => 'rooms', 'value' => '1']);
     $this->travel(1)->minutes();
-    answerProfile($owner, ['question' => 'rooms', 'value' => '50+']);
+    answerProfile($owner, ['question' => 'rooms', 'value' => '25+']);
 
     expect(OnboardingAnswer::count())->toBe(2)
-        ->and($workspace->latestAnswer(OnboardingQuestion::ROOMS)->value)->toBe('50+');
+        ->and($workspace->latestAnswer(OnboardingQuestion::ROOMS)->value)->toBe('25+');
 });
 
 test('answering the second question ends the card', function () {
@@ -133,7 +133,7 @@ test('an unknown question or option is refused', function () {
     [, $owner] = businessWorkspaceWithDisplay();
 
     answerProfile($owner, ['question' => 'shoe_size', 'value' => '42'])->assertUnprocessable();
-    answerProfile($owner, ['question' => 'rooms', 'value' => '2-5'])->assertUnprocessable();
+    answerProfile($owner, ['question' => 'rooms', 'value' => '500'])->assertUnprocessable();
 
     expect(OnboardingAnswer::count())->toBe(0);
 });
@@ -148,11 +148,11 @@ test('a question can be skipped explicitly', function () {
 
 test('closing the card keeps earlier answers and hides it for good', function () {
     [$workspace, $owner] = businessWorkspaceWithDisplay();
-    answerProfile($owner, ['question' => 'rooms', 'value' => '4-15']);
+    answerProfile($owner, ['question' => 'rooms', 'value' => '2-5']);
 
     $this->actingAs($owner)->postJson(route('workspace.profile.dismiss'))->assertNoContent();
 
-    expect($workspace->latestAnswer(OnboardingQuestion::ROOMS)->value)->toBe('4-15')
+    expect($workspace->latestAnswer(OnboardingQuestion::ROOMS)->value)->toBe('2-5')
         ->and(FunnelEvent::where('event', FunnelStep::PROFILE_CARD_DISMISSED->value)->count())->toBe(1)
         ->and($workspace->shouldAskProfile($owner))->toBeFalse();
 
@@ -166,7 +166,7 @@ test('a member cannot answer for the workspace', function () {
 
     $this->actingAs($member)
         ->withSession(['selected_workspace_id' => $workspace->id])
-        ->postJson(route('workspace.profile.update'), ['question' => 'rooms', 'value' => '1-3'])
+        ->postJson(route('workspace.profile.update'), ['question' => 'rooms', 'value' => '1'])
         ->assertForbidden();
 
     expect(OnboardingAnswer::count())->toBe(0);
@@ -186,14 +186,14 @@ test('the latest answers reach the analytics snapshot, with the room range as nu
     }
 
     [$workspace, $owner] = businessWorkspaceWithDisplay();
-    answerProfile($owner, ['question' => 'rooms', 'value' => '50+']);
+    answerProfile($owner, ['question' => 'rooms', 'value' => '25+']);
     answerProfile($owner, ['question' => 'previous_solution', 'value' => 'other', 'text' => 'Meetio']);
 
     $this->artisan('app:refresh-analytics')->assertSuccessful();
 
     $row = DB::table('analytics_workspaces')->where('workspace_id', $workspace->id)->first();
-    expect($row->rooms_estimate)->toBe('50+')
-        ->and((int) $row->rooms_min)->toBe(50)
+    expect($row->rooms_estimate)->toBe('25+')
+        ->and((int) $row->rooms_min)->toBe(26)
         ->and($row->rooms_max)->toBeNull()
         ->and($row->previous_solution)->toBe('other')
         ->and($row->previous_solution_other)->toBe('Meetio');

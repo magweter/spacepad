@@ -16,6 +16,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DisplayController;
 use App\Http\Controllers\DisplayDiagnosticsController;
 use App\Http\Controllers\DisplaySettingsController;
+use App\Http\Controllers\FirstDisplayController;
 use App\Http\Controllers\GoogleAccountsController;
 use App\Http\Controllers\Invitations\AcceptInvitationController;
 use App\Http\Controllers\LicenseController;
@@ -88,16 +89,18 @@ Route::middleware(['auth', 'user.update-last-activity'])->group(function () {
     Route::get('/', DashboardController::class)->name('dashboard')->middleware('user.active');
     Route::get('/onboarding', [OnboardingController::class, 'index'])->name('onboarding')->middleware('user.onboarding');
     Route::post('/onboarding/workspace', [OnboardingController::class, 'workspace'])->name('onboarding.workspace');
-    Route::post('/onboarding/about', [OnboardingController::class, 'about'])->name('onboarding.about');
-    Route::post('/onboarding/products', [OnboardingController::class, 'products'])->name('onboarding.products');
+    Route::post('/onboarding/rooms', [OnboardingController::class, 'rooms'])->name('onboarding.rooms');
+    Route::post('/onboarding/tablets', [OnboardingController::class, 'tablets'])->name('onboarding.tablets');
+    Route::post('/onboarding/start', [OnboardingController::class, 'start'])->name('onboarding.start');
     Route::post('/onboarding/events', [OnboardingController::class, 'events'])->name('onboarding.events');
-    Route::get('/onboarding/resources', [OnboardingController::class, 'resources'])->name('onboarding.resources');
-    Route::get('/onboarding/device-status', [OnboardingController::class, 'deviceStatus'])->name('onboarding.device-status');
-    Route::post('/onboarding/complete', [OnboardingController::class, 'complete'])->name('onboarding.complete');
-    Route::get('/onboarding/done', [OnboardingController::class, 'done'])->name('onboarding.done');
     Route::post('/onboarding/usage-type', [OnboardingController::class, 'updateUsageType'])->name('onboarding.usage-type');
     Route::post('/onboarding/terms', [OnboardingController::class, 'acceptTerms'])->name('onboarding.terms');
     Route::post('/onboarding/skip', [OnboardingController::class, 'skip'])->name('onboarding.skip');
+
+    Route::get('/setup/first-display', [FirstDisplayController::class, 'index'])->name('setup.first-display');
+    Route::get('/setup/first-display/resources', [FirstDisplayController::class, 'resources'])->name('setup.first-display.resources');
+    Route::get('/setup/first-display/device-status', [FirstDisplayController::class, 'deviceStatus'])->name('setup.first-display.device-status');
+    Route::get('/setup/first-display/live', [FirstDisplayController::class, 'live'])->name('setup.first-display.live');
 
     Route::post('/outlook-accounts/auth', [OutlookAccountsController::class, 'auth'])->name('outlook-accounts.auth');
     Route::post('/outlook-accounts/booking-method', [OutlookAccountsController::class, 'setBookingMethod'])->name('outlook-accounts.set-booking-method');

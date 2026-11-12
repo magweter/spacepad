@@ -6,10 +6,10 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
 /**
- * Brings someone back to the onboarding wizard after a detour through a calendar provider.
+ * Brings someone back to the display setup after a detour through a calendar provider.
  *
  * The OAuth callbacks and the CalDAV form end on the dashboard. When they were started from
- * the wizard, they return to the step that comes next instead.
+ * the setup, they return to the step that comes next instead.
  */
 final class OnboardingReturn
 {
@@ -25,12 +25,12 @@ final class OnboardingReturn
     }
 
     /**
-     * The wizard at the given step when the flow started there, otherwise the fallback route.
+     * The setup at the given step when the flow started there, otherwise the fallback route.
      */
     public static function redirect(string $step, string $fallbackRoute = 'dashboard'): RedirectResponse
     {
         if (session()->pull(self::KEY)) {
-            return redirect()->route('onboarding', ['step' => $step]);
+            return redirect()->route('setup.first-display', ['step' => $step]);
         }
 
         return redirect()->route($fallbackRoute);

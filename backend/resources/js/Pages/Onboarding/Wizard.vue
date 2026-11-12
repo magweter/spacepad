@@ -1,16 +1,13 @@
 <script setup>
 import { computed, watch } from 'vue';
-import { Head, router, usePage } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
 import Logo from '../../Components/Logo.vue';
 import FlashMessage from '../../Components/FlashMessage.vue';
 import { useOnboarding } from '../../Composables/useOnboarding';
 import WorkspaceStep from './Steps/WorkspaceStep.vue';
-import AboutStep from './Steps/AboutStep.vue';
-import ProductsStep from './Steps/ProductsStep.vue';
-import CalendarStep from './Steps/CalendarStep.vue';
-import RoomStep from './Steps/RoomStep.vue';
-import TabletStep from './Steps/TabletStep.vue';
-import ReadyStep from './Steps/ReadyStep.vue';
+import RoomsStep from './Steps/RoomsStep.vue';
+import TabletsStep from './Steps/TabletsStep.vue';
+import StartStep from './Steps/StartStep.vue';
 
 const props = defineProps({
     step: { type: String, required: true },
@@ -19,106 +16,62 @@ const props = defineProps({
     workspace: { type: Object, required: true },
     answers: { type: Object, required: true },
     options: { type: Object, required: true },
-    accounts: { type: Array, required: true },
-    display: { type: Object, default: null },
-    canCreateDisplay: { type: Boolean, default: true },
-    device: { type: Object, default: null },
-    connectCode: { type: String, default: null },
     urls: { type: Object, required: true },
 });
 
-const page = usePage();
 const onboarding = useOnboarding(props.urls);
 
 const meta = {
-    workspace: { name: 'Workspace', sub: 'Organisation or personal, name', tip: ['One question', 'Business or personal decides the plan and the copy. You can change it later.'] },
-    about: { name: 'About you', sub: 'Role, current setup, size', tip: ['Why we ask', 'It tells us which setup to show you, and helps us when you switch from another product.'] },
-    products: { name: 'Products', sub: 'Display, Board, Console', tip: ['No commitment', 'Picking a product only tells us what you are after. You pay per display, and the first one is free.'] },
-    calendar: { name: 'Calendar', sub: 'Connect where rooms live', tip: ['Read-only is enough', 'Displays only need to read the room calendars. Booking from the tablet can be switched on later.'] },
-    room: { name: 'Room', sub: 'Pick the first room', tip: ['Just one for now', 'Add the other rooms once the first display is on the wall.'] },
-    tablet: { name: 'Tablet', sub: 'One code on the device', tip: ['Any tablet', 'iPad from iOS 15, Android from 8. Install Spacepad from the App Store or Play Store.'] },
-    ready: { name: 'Ready', sub: 'What to do next', tip: ['Four minutes', 'Most teams see a display on the wall within four minutes of this screen.'] },
+    workspace: { name: 'Workspace', sub: 'Organisation or personal', tip: ['Just your situation', 'Organisation or personal only changes the wording and the examples. Nothing is locked in.'] },
+    rooms: { name: 'Your rooms', sub: 'Today, how many, where', tip: ['Why we ask', 'How many rooms and where they are decide the plan we suggest and how we group displays. Switching from another product gets you a migration guide.'] },
+    tablets: { name: 'Tablets and features', sub: 'What they run on, what matters', tip: ['Tablets later is fine', 'The pairing step adapts to what you have: App Store, Play Store, or a tablet you still have to pick.'] },
+    start: { name: 'Start', sub: 'First display, or look around', tip: ['No wrong answer', 'You can set up a display any time from the portal, with the same four steps.'] },
 };
-
-const components = { workspace: WorkspaceStep, about: AboutStep, products: ProductsStep, calendar: CalendarStep, room: RoomStep, tablet: TabletStep, ready: ReadyStep };
+const components = { workspace: WorkspaceStep, rooms: RoomsStep, tablets: TabletsStep, start: StartStep };
 
 const current = computed(() => props.steps.indexOf(props.step));
-const rail = computed(() => props.steps.map((key, i) => ({
-    key,
-    ...meta[key],
-    number: i + 1,
-    done: i < current.value,
-    current: i === current.value,
-})));
+const rail = computed(() => props.steps.map((key, i) => ({ key, ...meta[key], number: i + 1, done: i < current.value, current: i === current.value })));
 const tip = computed(() => meta[props.step].tip);
-
-function next() {
-    return props.steps[current.value + 1] ?? 'ready';
-}
-
-function previous() {
-    return props.steps[current.value - 1] ?? null;
-}
-
-function skipSetup() {
-    router.post(props.urls.skip, { step: props.step });
-}
-
-function logout() {
-    router.post(props.urls.logout);
-}
+const eyebrow = computed(() => `${current.value + 1} of ${props.steps.length}, ${meta[props.step].name}`);
 
 watch(() => props.step, (step) => onboarding.track(step, 'viewed'), { immediate: true });
 </script>
 
 <template>
-    <Head :title="`Set up · ${meta[step].name}`" />
+    <Head :title="`Welcome · ${meta[step].name}`" />
 
-    <div class="flex min-h-screen flex-col bg-white text-sm leading-normal text-ink lg:flex-row">
+    <div class="flex min-h-screen flex-wrap bg-ground text-sm leading-normal text-ink">
         <!-- Rail -->
-        <aside class="flex flex-none flex-col gap-8 bg-navy px-6 py-8 text-white lg:w-[360px] lg:px-10 lg:py-10">
+        <aside class="flex flex-[0_0_100%] flex-col gap-8 bg-navy px-6 py-7 text-on-navy-2 md:flex-[0_0_340px] md:p-9">
             <Logo dark />
-            <div class="hidden flex-col gap-2 lg:flex">
-                <h2 class="text-[22px] leading-tight font-bold tracking-tight">Your first room display in about four minutes</h2>
-                <p class="text-on-navy-2">{{ steps.length }} short steps. Skip any of them; nothing here is final.</p>
+            <div class="flex flex-col gap-1.5">
+                <h1 class="text-2xl leading-[1.2] font-bold tracking-tight text-white">Four quick questions, then it's yours</h1>
+                <p class="text-[13px] text-on-navy-muted">About a minute. Setting up a display comes after, only if you want to.</p>
             </div>
-
-            <ol class="flex gap-2 overflow-x-auto lg:flex-col lg:gap-1">
-                <li v-for="item in rail" :key="item.key" class="flex flex-none items-center gap-3 rounded-lg lg:px-2 lg:py-2"
-                    :class="item.current ? 'lg:bg-navy-800' : ''">
-                    <span class="flex h-7 w-7 flex-none items-center justify-center rounded-full border text-xs font-bold"
+            <ol class="flex flex-col gap-1">
+                <li v-for="item in rail" :key="item.key" class="flex items-start gap-3 py-2.5">
+                    <span class="flex h-[26px] w-[26px] flex-none items-center justify-center rounded-full border-2 text-xs font-bold"
                           :class="item.done ? 'border-amber bg-amber text-navy' : item.current ? 'border-white bg-white text-navy' : 'border-navy-600 text-on-navy-muted'">
                         {{ item.done ? '✓' : item.number }}
                     </span>
-                    <span class="hidden flex-col lg:flex">
+                    <span class="flex flex-col gap-px">
                         <span class="font-semibold" :class="item.current || item.done ? 'text-white' : 'text-on-navy-muted'">{{ item.name }}</span>
                         <span class="text-xs text-on-navy-muted">{{ item.sub }}</span>
                     </span>
                 </li>
             </ol>
-
-            <div class="mt-auto hidden flex-col gap-1.5 rounded-xl bg-navy-800 p-4 lg:flex">
-                <span class="text-xs font-semibold tracking-[0.06em] text-amber uppercase">{{ tip[0] }}</span>
-                <span class="text-[13px] text-on-navy-2">{{ tip[1] }}</span>
+            <div class="flex-1"></div>
+            <div class="hidden flex-col gap-1 rounded-lg bg-navy-800 p-3.5 text-[13px] md:flex">
+                <span class="font-semibold text-white">{{ tip[0] }}</span>
+                <span class="text-on-navy-muted">{{ tip[1] }}</span>
             </div>
         </aside>
 
         <!-- Step -->
-        <main class="flex min-w-0 flex-1 flex-col bg-ground px-6 py-8 lg:px-16 lg:py-12">
-            <div class="flex items-center justify-end gap-3 text-xs text-muted">
-                <span>Signed in as {{ user.email }}</span>
-                <button type="button" class="font-semibold text-navy hover:underline" @click="logout">Log out</button>
-            </div>
-
-            <div class="mx-auto flex w-full max-w-[680px] flex-1 flex-col gap-6 pt-8 lg:pt-12">
-                <span class="text-xs font-semibold tracking-[0.06em] text-muted uppercase">
-                    Step {{ current + 1 }} of {{ steps.length }} · {{ meta[step].name }}
-                </span>
-
+        <main class="flex min-w-0 flex-[999_1_560px] flex-col items-center px-6 py-10 md:px-10 md:py-14">
+            <div class="flex w-full max-w-[720px] flex-col gap-6">
                 <FlashMessage />
-
-                <component :is="components[step]" v-bind="$props" :next="next()" :previous="previous()"
-                           :onboarding="onboarding" @skip-setup="skipSetup" />
+                <component :is="components[step]" v-bind="$props" :eyebrow="eyebrow" :onboarding="onboarding" />
             </div>
         </main>
     </div>

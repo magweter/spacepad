@@ -203,7 +203,15 @@
                     <h3 class="text-base font-semibold text-gray-900">Getting started</h3>
                     <p class="text-sm text-gray-500 mt-0.5">{{ $doneCount }} of 3 steps completed</p>
                 </div>
-                <span class="text-2xl font-bold text-gray-200 select-none">{{ $progressPct }}%</span>
+                <div class="flex items-center gap-4">
+                    @if(! $hasDisplay)
+                        {{-- The guided setup does all three steps in one go. --}}
+                        <a href="{{ route('setup.first-display') }}" class="inline-flex items-center rounded-md bg-oxford px-3 py-2 text-sm font-semibold text-white hover:opacity-90">
+                            Set up your first display
+                        </a>
+                    @endif
+                    <span class="text-2xl font-bold text-gray-200 select-none">{{ $progressPct }}%</span>
+                </div>
             </div>
 
             {{-- Progress bar --}}

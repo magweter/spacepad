@@ -2,8 +2,9 @@
 import { computed, ref } from 'vue';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import Logo from '../../Components/Logo.vue';
-import TabletPreview from '../../Components/TabletPreview.vue';
+import DevicePreview from '../../Components/DevicePreview.vue';
 import FlashMessage from '../../Components/FlashMessage.vue';
+import Button from '../../DesignSystem/Button.vue';
 import { useRecaptcha } from '../../Composables/useRecaptcha';
 
 const props = defineProps({
@@ -92,7 +93,7 @@ function useDifferentEmail() {
                             <h1 class="text-[28px] font-bold tracking-tight">Check your inbox</h1>
                             <p class="text-muted">
                                 We sent a sign-in link to <strong class="font-semibold text-ink">{{ sentTo }}</strong>.
-                                Open it on this device to continue. It works for 24 hours.
+                                It works once, for 15 minutes, on this device.
                             </p>
                         </div>
                         <div class="flex flex-col gap-1 rounded-xl border border-line bg-surface-raised p-4">
@@ -127,7 +128,7 @@ function useDifferentEmail() {
                         </div>
 
                         <template v-if="app.emailLogin">
-                            <div v-if="app.providers.microsoft || app.providers.google" class="flex items-center gap-3 text-xs text-slate-400">
+                            <div v-if="app.providers.microsoft || app.providers.google" class="flex items-center gap-3 text-xs text-offline">
                                 <span class="h-px flex-1 bg-line"></span>or use your email<span class="h-px flex-1 bg-line"></span>
                             </div>
 
@@ -135,17 +136,14 @@ function useDifferentEmail() {
                                 <div class="flex flex-col gap-1.5">
                                     <label for="email" class="text-[13px] font-medium">Work email</label>
                                     <input id="email" v-model="form.email" type="email" required autocomplete="email" placeholder="you@company.com"
-                                           class="rounded-[10px] border border-slate-300 px-3.5 py-3 text-sm text-ink placeholder:text-slate-400 focus:border-navy focus:outline-none"
+                                           class="rounded-[10px] border border-offline-border px-3.5 py-3 text-sm text-ink placeholder:text-offline focus:border-navy focus:outline-none"
                                            :class="form.errors.email ? 'border-red-400' : ''">
-                                    <span v-if="form.errors.email" class="text-xs text-red-700">{{ form.errors.email }}</span>
+                                    <span v-if="form.errors.email" class="text-xs text-reserved-text">{{ form.errors.email }}</span>
                                     <span v-else-if="isRegister && domain" class="text-xs text-muted">
                                         We create a workspace for <strong class="font-semibold text-ink">{{ domain }}</strong>.
                                     </span>
                                 </div>
-                                <button type="submit" :disabled="form.processing"
-                                        class="rounded-[10px] bg-navy px-4 py-3 text-sm font-semibold text-white hover:bg-navy-800 disabled:opacity-60">
-                                    {{ copy.cta }}
-                                </button>
+                                <Button type="submit" size="lg" :disabled="form.processing">{{ copy.cta }}</Button>
                                 <span class="text-center text-xs text-muted">No password needed. We email you a link that signs you in on this device.</span>
                             </form>
                         </template>
@@ -174,15 +172,13 @@ function useDifferentEmail() {
                 <span class="text-xs font-semibold tracking-[0.08em] text-amber uppercase">Room displays, done simply</span>
                 <h2 class="text-4xl leading-[1.15] font-bold tracking-tight">Your first room display is live in four minutes.</h2>
                 <p class="text-[15px] text-on-navy-2">
-                    Connect Microsoft 365, Google or CalDAV, pick a room, pair a tablet. The first display is free, forever.
-                    Self-host it if you'd rather keep everything in your own network.
+                    Connect Microsoft 365, Google or CalDAV, pick a room, pair a tablet. Self-host it if you'd rather keep everything in your own network.
                 </p>
             </div>
-            <TabletPreview class="max-w-[460px]" />
+            <DevicePreview class="max-w-[560px]" />
             <div class="flex flex-wrap gap-7 text-[13px] text-on-navy-2">
                 <span class="flex flex-col"><strong class="text-lg font-bold text-white">Open source</strong>Auditable, self-hostable</span>
                 <span class="flex flex-col"><strong class="text-lg font-bold text-white">Privacy-first</strong>Hide titles, EU hosting</span>
-                <span class="flex flex-col"><strong class="text-lg font-bold text-white">First display free</strong>Members are free</span>
             </div>
         </aside>
     </div>

@@ -8,8 +8,14 @@ function csrf() {
  * Small helpers the wizard steps share: moving between steps and recording step events.
  */
 export function useOnboarding(urls) {
+    // Keeps the display the setup is about (and "add another") when moving between steps.
     function goTo(step) {
-        router.get(urls.step, { step }, { preserveScroll: false });
+        const current = new URLSearchParams(window.location.search);
+        const params = { step };
+        for (const key of ['display', 'new']) {
+            if (current.has(key)) params[key] = current.get(key);
+        }
+        router.get(urls.step, params, { preserveScroll: false });
     }
 
     function track(step, event) {

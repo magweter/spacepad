@@ -19,19 +19,21 @@ beforeEach(function () {
 });
 
 /**
- * The onboarding wizard: workspace, about you, products, calendar, room, tablet, ready. Every
- * step saves on its own, can be skipped, and the wizard resumes at the first open step.
+ * Onboarding is four quick questions and a choice of how to start. Setting up a display is a
+ * separate flow, offered at the end and from the portal.
  */
 function newcomer(): User
 {
     return User::factory()->create([
+        'name' => 'sanne.de.vries',
+        'email' => 'sanne.de.vries@acme.test',
         'usage_type' => null,
         'email_verified_at' => now(),
         'terms_accepted_at' => now(),
     ]);
 }
 
-function wizardSteps(User $user): array
+function stepsRecorded(User $user): array
 {
     return FunnelEvent::where('workspace_id', $user->primaryWorkspace()->id)
         ->whereIn('event', ['onboarding_step_completed', 'onboarding_step_skipped'])
@@ -41,7 +43,7 @@ function wizardSteps(User $user): array
         ->all();
 }
 
-test('a newcomer lands on the first step of the wizard', function () {
+test('a newcomer lands on the first of four steps', function () {
     $user = newcomer();
 
     $this->actingAs($user)->get(route('dashboard'))->assertRedirect(route('onboarding'));
@@ -50,194 +52,205 @@ test('a newcomer lands on the first step of the wizard', function () {
         ->assertInertia(fn (Assert $page) => $page
             ->component('Onboarding/Wizard')
             ->where('step', 'workspace')
-            ->where('steps', ['workspace', 'about', 'products', 'calendar', 'room', 'tablet', 'ready'])
-            ->has('options.role', 4)
-            ->has('options.rooms', 4));
+            ->where('steps', ['workspace', 'rooms', 'tablets', 'start'])
+            ->where('user.firstName', 'Sanne')
+            ->has('options.rooms', 4)
+            ->has('options.locations', 3)
+            ->has('options.tablets', 4)
+            ->has('options.features', 6));
 });
 
-test('the workspace step saves the name, usage and workspace name', function () {
+test('the workspace step saves the usage and the workspace name', function () {
     $user = newcomer();
 
     $this->actingAs($user)
-        ->post(route('onboarding.workspace'), ['usage_type' => 'business', 'name' => 'Sanne de Vries', 'workspace_name' => 'Acme HQ'])
-        ->assertRedirect(route('onboarding', ['step' => 'about']));
+        ->post(route('onboarding.workspace'), ['usage_type' => 'business', 'workspace_name' => 'Acme HQ, Amsterdam'])
+        ->assertRedirect(route('onboarding', ['step' => 'rooms']));
 
-    $user->refresh();
-    expect($user->name)->toBe('Sanne de Vries')
-        ->and($user->usage_type)->toBe(UsageType::BUSINESS)
-        ->and($user->primaryWorkspace()->name)->toBe('Acme HQ')
-        ->and(wizardSteps($user))->toBe(['onboarding_step_completed:workspace']);
+    expect($user->fresh()->usage_type)->toBe(UsageType::BUSINESS)
+        ->and($user->primaryWorkspace()->name)->toBe('Acme HQ, Amsterdam')
+        ->and(stepsRecorded($user))->toBe(['onboarding_step_completed:workspace']);
 });
 
-test('personal use skips the questions about the organisation', function () {
-    $user = newcomer();
-
-    $this->actingAs($user)
-        ->post(route('onboarding.workspace'), ['usage_type' => 'personal', 'name' => 'Sam'])
-        ->assertRedirect(route('onboarding', ['step' => 'calendar']));
-
-    $this->actingAs($user)->get(route('onboarding'))
-        ->assertInertia(fn (Assert $page) => $page->where('steps', ['workspace', 'calendar', 'room', 'tablet', 'ready']));
-});
-
-test('a self-hosted instance asks to accept the terms', function () {
+test('a self-hosted instance asks to accept the licence terms', function () {
     config(['settings.is_self_hosted' => true]);
     $user = newcomer();
     $user->update(['terms_accepted_at' => null]);
 
-    $this->actingAs($user)
-        ->post(route('onboarding.workspace'), ['usage_type' => 'business', 'name' => 'Sam'])
+    $this->actingAs($user)->post(route('onboarding.workspace'), ['usage_type' => 'business'])
         ->assertSessionHasErrors('accept_terms');
 
-    $this->actingAs($user)
-        ->post(route('onboarding.workspace'), ['usage_type' => 'business', 'name' => 'Sam', 'accept_terms' => true])
+    $this->actingAs($user)->post(route('onboarding.workspace'), ['usage_type' => 'business', 'accept_terms' => true])
         ->assertSessionHasNoErrors();
 
     expect($user->fresh()->terms_accepted_at)->not->toBeNull();
 });
 
-test('the about step stores every answer, and open questions as skipped', function () {
+test('the rooms step stores what they use, how many rooms and where', function () {
     $user = newcomer();
     $user->update(['usage_type' => UsageType::BUSINESS]);
     $workspace = $user->primaryWorkspace();
 
     $this->actingAs($user)
-        ->post(route('onboarding.about'), ['role' => 'office_manager', 'previous_solution' => 'other', 'previous_solution_text' => 'Meetio', 'rooms' => '4-15'])
-        ->assertRedirect(route('onboarding', ['step' => 'products']));
+        ->post(route('onboarding.rooms'), ['previous_solution' => 'other', 'previous_solution_text' => 'Meetio', 'rooms' => '6-25'])
+        ->assertRedirect(route('onboarding', ['step' => 'tablets']));
 
-    $answers = OnboardingAnswer::where('workspace_id', $workspace->id)->pluck('value', 'question')->all();
-    expect($answers)->toEqualCanonicalizing([
-        'role' => 'office_manager',
-        'previous_solution' => 'other',
-        'rooms' => '4-15',
-        'calendar_provider' => 'skipped',
-    ])->and($answers['calendar_provider'])->toBe('skipped')
-        ->and($workspace->latestAnswer(OnboardingQuestion::PREVIOUS_SOLUTION)->text)->toBe('Meetio')
+    expect($workspace->latestAnswer(OnboardingQuestion::PREVIOUS_SOLUTION)->text)->toBe('Meetio')
+        ->and($workspace->latestAnswer(OnboardingQuestion::ROOMS)->value)->toBe('6-25')
+        ->and($workspace->latestAnswer(OnboardingQuestion::LOCATIONS)->value)->toBe('skipped')
         ->and(OnboardingAnswer::first()->source)->toBe('onboarding');
 });
 
 test('something else needs a name', function () {
     $user = newcomer();
-    $user->update(['usage_type' => UsageType::BUSINESS]);
 
-    $this->actingAs($user)
-        ->post(route('onboarding.about'), ['previous_solution' => 'other'])
+    $this->actingAs($user)->post(route('onboarding.rooms'), ['previous_solution' => 'other'])
         ->assertSessionHasErrors('previous_solution_text');
 });
 
-test('skipping a step stores every question as skipped', function () {
+test('skipping a step stores its questions as skipped', function () {
     $user = newcomer();
-    $user->update(['usage_type' => UsageType::BUSINESS]);
 
-    $this->actingAs($user)->post(route('onboarding.about'), ['skip' => true]);
+    $this->actingAs($user)->post(route('onboarding.rooms'), ['skip' => true]);
 
     expect(OnboardingAnswer::pluck('value')->unique()->all())->toBe(['skipped'])
-        ->and(wizardSteps($user))->toBe(['onboarding_step_skipped:about']);
+        ->and(stepsRecorded($user))->toBe(['onboarding_step_skipped:rooms']);
 });
 
-test('several products are one answer of several rows', function () {
+test('the tablets step stores the tablets and every picked feature', function () {
     $user = newcomer();
-    $user->update(['usage_type' => UsageType::BUSINESS]);
+    $workspace = $user->primaryWorkspace();
 
     $this->actingAs($user)
-        ->post(route('onboarding.products'), ['products' => ['display', 'board']])
-        ->assertRedirect(route('onboarding', ['step' => 'calendar']));
+        ->post(route('onboarding.tablets'), ['tablets' => 'ipad', 'features' => ['check_in', 'board']])
+        ->assertRedirect(route('onboarding', ['step' => 'start']));
 
-    expect(OnboardingAnswer::where('question', 'products')->pluck('value')->all())->toEqualCanonicalizing(['display', 'board']);
+    expect($workspace->latestAnswer(OnboardingQuestion::TABLETS)->value)->toBe('ipad')
+        ->and(OnboardingAnswer::where('question', 'features')->pluck('value')->all())->toEqualCanonicalizing(['check_in', 'board']);
 });
 
-test('the wizard resumes at the first step that is not done', function () {
+test('the wizard resumes at the first question that is not answered', function () {
     $user = newcomer();
     $user->update(['usage_type' => UsageType::BUSINESS]);
-    $workspace = $user->primaryWorkspace();
-    $this->actingAs($user)->post(route('onboarding.about'), ['skip' => true]);
-    $this->actingAs($user)->post(route('onboarding.products'), ['skip' => true]);
-    OutlookAccount::factory()->create(['user_id' => $user->id, 'workspace_id' => $workspace->id]);
+    $this->actingAs($user)->post(route('onboarding.rooms'), ['skip' => true]);
 
     $this->actingAs($user)->get(route('onboarding'))
-        ->assertInertia(fn (Assert $page) => $page->where('step', 'room')->has('accounts', 1));
+        ->assertInertia(fn (Assert $page) => $page->where('step', 'tablets'));
 });
 
-test('connecting a calendar from the wizard returns to the room step', function () {
+test('choosing the first display finishes onboarding and opens the display setup', function () {
+    $user = newcomer();
+    $user->update(['usage_type' => UsageType::BUSINESS]);
+
+    $this->actingAs($user)->post(route('onboarding.start'), ['choice' => 'first_display'])
+        ->assertRedirect(route('setup.first-display'));
+
+    expect($user->fresh()->onboarding_completed_at)->not->toBeNull()
+        ->and(FunnelEvent::where('event', 'onboarding_completed')->first()->properties)->toBe(['start' => 'first_display']);
+
+    $this->actingAs($user)->get(route('onboarding'))->assertRedirect(route('dashboard'));
+});
+
+test('looking around ends on the dashboard, even without a calendar', function () {
+    $user = newcomer();
+    $user->update(['usage_type' => UsageType::BUSINESS]);
+
+    $this->actingAs($user)->post(route('onboarding.start'), ['choice' => 'look_around'])
+        ->assertRedirect(route('dashboard'));
+
+    $this->actingAs($user)->get(route('dashboard'))->assertOk()->assertSee('Set up your first display');
+});
+
+test('skipping setup goes to the dashboard and ends onboarding', function () {
     $user = newcomer();
 
-    $this->actingAs($user)
-        ->post(route('outlook-accounts.auth'), ['permission_type' => 'read', 'onboarding' => 1]);
+    $this->actingAs($user)->post(route('onboarding.skip'), ['step' => 'rooms'])->assertRedirect(route('dashboard'));
 
-    expect(session('onboarding_return'))->toBeTrue()
-        ->and(OnboardingReturn::redirect('room')->getTargetUrl())->toBe(route('onboarding', ['step' => 'room']))
-        ->and(OnboardingReturn::redirect('room')->getTargetUrl())->toBe(route('dashboard'));
-});
-
-test('creating the display from the wizard continues with the tablet', function () {
-    $user = User::factory()->active()->create(['usage_type' => UsageType::BUSINESS, 'onboarding_completed_at' => null]);
-    $account = OutlookAccount::where('user_id', $user->id)->first();
-
-    $this->actingAs($user)
-        ->post(route('displays.store'), [
-            'name' => 'Boardroom',
-            'displayName' => 'Boardroom',
-            'provider' => 'outlook',
-            'account' => $account->id,
-            'room' => 'boardroom@example.com,Boardroom',
-            'from_onboarding' => 1,
-        ])
-        ->assertRedirect(route('onboarding', ['step' => 'tablet']));
-
-    expect(Display::count())->toBe(1)
-        ->and(wizardSteps($user))->toBe(['onboarding_step_completed:room']);
-});
-
-test('the tablet step sees a paired tablet', function () {
-    $user = User::factory()->active()->create();
-    $workspace = $user->primaryWorkspace();
-
-    $this->actingAs($user)->getJson(route('onboarding.device-status'))->assertJson(['paired' => false]);
-
-    Device::factory()->create(['user_id' => $user->id, 'workspace_id' => $workspace->id, 'name' => 'Lobby iPad']);
-
-    $this->actingAs($user)->getJson(route('onboarding.device-status'))->assertJson(['paired' => true, 'name' => 'Lobby iPad']);
+    expect($user->fresh()->onboarding_completed_at)->not->toBeNull()
+        ->and(FunnelEvent::where('event', 'onboarding_skipped')->first()->properties)->toBe(['step' => 'rooms']);
 });
 
 test('a step is recorded as viewed once', function () {
     $user = newcomer();
 
-    $this->actingAs($user)->postJson(route('onboarding.events'), ['step' => 'calendar', 'event' => 'viewed'])->assertNoContent();
-    $this->actingAs($user)->postJson(route('onboarding.events'), ['step' => 'calendar', 'event' => 'viewed'])->assertNoContent();
+    $this->actingAs($user)->postJson(route('onboarding.events'), ['step' => 'rooms', 'event' => 'viewed'])->assertNoContent();
+    $this->actingAs($user)->postJson(route('onboarding.events'), ['step' => 'rooms', 'event' => 'viewed'])->assertNoContent();
     $this->actingAs($user)->postJson(route('onboarding.events'), ['step' => 'nowhere', 'event' => 'viewed'])->assertUnprocessable();
 
     expect(FunnelEvent::where('event', 'onboarding_step_viewed')->count())->toBe(1);
 });
 
-test('finishing ends the wizard and shows the done screen', function () {
+test('the display setup starts at the calendar without an account', function () {
     $user = newcomer();
-    $user->update(['usage_type' => UsageType::BUSINESS]);
+    $user->update(['usage_type' => UsageType::BUSINESS, 'onboarding_completed_at' => now()]);
 
-    $this->actingAs($user)->post(route('onboarding.complete'))->assertRedirect(route('onboarding.done'));
-
-    expect($user->fresh()->onboarding_completed_at)->not->toBeNull()
-        ->and(FunnelEvent::where('event', 'onboarding_completed')->count())->toBe(1);
-
-    $this->actingAs($user)->get(route('onboarding.done'))
-        ->assertInertia(fn (Assert $page) => $page->component('Onboarding/Done'));
-
-    $this->actingAs($user)->get(route('onboarding'))->assertRedirect(route('dashboard'));
+    $this->actingAs($user)->get(route('setup.first-display'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('FirstDisplay/Flow')
+            ->where('step', 'calendar')
+            ->where('steps', ['calendar', 'room', 'tablet', 'done'])
+            ->has('shell.nav'));
 });
 
-test('skipping setup goes to the dashboard and ends the wizard', function () {
+test('connecting a calendar from the setup returns to the room step', function () {
     $user = newcomer();
 
-    $this->actingAs($user)->post(route('onboarding.skip'), ['step' => 'about'])->assertRedirect(route('dashboard'));
+    $this->actingAs($user)->post(route('outlook-accounts.auth'), ['permission_type' => 'read', 'onboarding' => 1]);
 
-    $user->refresh();
-    expect($user->skipped_onboarding_at)->not->toBeNull()
-        ->and($user->onboarding_completed_at)->not->toBeNull()
-        ->and(FunnelEvent::where('event', 'onboarding_skipped')->first()->properties)->toBe(['step' => 'about']);
+    expect(session('onboarding_return'))->toBeTrue()
+        ->and(OnboardingReturn::redirect('room')->getTargetUrl())->toBe(route('setup.first-display', ['step' => 'room']))
+        ->and(OnboardingReturn::redirect('room')->getTargetUrl())->toBe(route('dashboard'));
+});
+
+test('creating the display from the setup continues with the tablet for that display', function () {
+    $user = User::factory()->active()->create(['usage_type' => UsageType::BUSINESS]);
+    $account = OutlookAccount::where('user_id', $user->id)->first();
+
+    $response = $this->actingAs($user)->post(route('displays.store'), [
+        'name' => 'Boardroom',
+        'displayName' => 'Boardroom',
+        'provider' => 'outlook',
+        'account' => $account->id,
+        'room' => 'boardroom@example.com,Boardroom',
+        'from_onboarding' => 1,
+    ]);
+
+    $display = Display::sole();
+    $response->assertRedirect(route('setup.first-display', ['step' => 'tablet', 'display' => $display->id]));
+    expect(stepsRecorded($user))->toBe(['onboarding_step_completed:room']);
+});
+
+test('the setup opens where it was left and sees a paired tablet', function () {
+    $user = User::factory()->active()->create();
+    $workspace = $user->primaryWorkspace();
+    $display = Display::factory()->create(['user_id' => $user->id, 'workspace_id' => $workspace->id]);
+
+    $this->actingAs($user)->get(route('setup.first-display'))
+        ->assertInertia(fn (Assert $page) => $page->where('step', 'tablet')->where('display.id', $display->id)->whereNot('connectCode', null));
+
+    $this->actingAs($user)->getJson(route('setup.first-display.device-status'))->assertJson(['paired' => false]);
+
+    Device::factory()->create(['user_id' => $user->id, 'workspace_id' => $workspace->id, 'display_id' => $display->id, 'name' => 'Lobby iPad']);
+
+    $this->actingAs($user)->getJson(route('setup.first-display.device-status'))->assertJson(['paired' => true, 'name' => 'Lobby iPad']);
+    $this->actingAs($user)->get(route('setup.first-display'))->assertInertia(fn (Assert $page) => $page->where('step', 'done'));
+});
+
+test('the live screen shows the display and the tablet', function () {
+    $user = User::factory()->active()->create();
+    $workspace = $user->primaryWorkspace();
+    $display = Display::factory()->create(['user_id' => $user->id, 'workspace_id' => $workspace->id, 'display_name' => 'Boardroom']);
+    Device::factory()->create(['user_id' => $user->id, 'workspace_id' => $workspace->id, 'display_id' => $display->id, 'name' => 'Lobby iPad']);
+
+    $this->actingAs($user)->get(route('setup.first-display.live', ['display' => $display->id]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('FirstDisplay/Live')
+            ->where('display.name', 'Boardroom')
+            ->where('device.name', 'Lobby iPad'));
 });
 
 test('registering needs only an email address', function () {
-    $this->post(route('register.store'), ['email' => 'lisa@acme.test'])
-        ->assertSessionHas('registered', true);
+    $this->post(route('register.store'), ['email' => 'lisa@acme.test'])->assertSessionHas('registered', true);
 
     expect(User::where('email', 'lisa@acme.test')->first()->name)->toBe('lisa');
 
@@ -248,8 +261,7 @@ test('registering needs only an email address', function () {
 test('a sign-in link shows the inbox state', function () {
     User::factory()->active()->create(['email' => 'tom@acme.test']);
 
-    $this->from(route('login'))->post(route('login.store'), ['email' => 'tom@acme.test'])
-        ->assertRedirect(route('login'));
+    $this->from(route('login'))->post(route('login.store'), ['email' => 'tom@acme.test'])->assertRedirect(route('login'));
 
     $this->get(route('login'))
         ->assertInertia(fn (Assert $page) => $page->component('Auth/Login')->where('sentTo', 'tom@acme.test'));

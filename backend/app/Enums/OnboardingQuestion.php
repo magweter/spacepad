@@ -17,6 +17,9 @@ enum OnboardingQuestion: string
     case ROLE = 'role';
     case CALENDAR_LOCATION = 'calendar_provider';
     case PRODUCTS = 'products';
+    case LOCATIONS = 'locations';
+    case TABLETS = 'tablets';
+    case FEATURES = 'features';
 
     /**
      * The enum that holds this question's options.
@@ -31,6 +34,9 @@ enum OnboardingQuestion: string
             self::ROLE => Role::class,
             self::CALENDAR_LOCATION => CalendarLocation::class,
             self::PRODUCTS => Product::class,
+            self::LOCATIONS => RoomLocations::class,
+            self::TABLETS => Tablets::class,
+            self::FEATURES => Feature::class,
         };
     }
 
@@ -39,7 +45,7 @@ enum OnboardingQuestion: string
      */
     public function isMultiple(): bool
     {
-        return $this === self::PRODUCTS;
+        return in_array($this, [self::PRODUCTS, self::FEATURES], true);
     }
 
     /**
