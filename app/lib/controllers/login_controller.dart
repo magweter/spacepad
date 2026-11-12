@@ -8,6 +8,7 @@ import 'package:spacepad/services/auth_service.dart';
 import 'package:spacepad/components/toast.dart';
 import 'package:spacepad/services/server_service.dart';
 import 'package:spacepad/services/api_service.dart';
+import 'package:spacepad/exceptions/api_exception.dart';
 
 class LoginController extends GetxController {
   final AuthService _authService = AuthService.instance;
@@ -69,6 +70,15 @@ class LoginController extends GetxController {
     return null;
   }
 
+  /// The translation key for what went wrong while pairing. The server rate limits the
+  /// pairing endpoint, so a 429 means "wait a minute", not "wrong code": telling the person
+  /// at the tablet to re-check the code would only make them hit the limit again.
+  static String errorMessageKey(Object error) {
+    if (error is HandshakeException) return 'ssl_error';
+    if (error is ApiException && error.code == 429) return 'login_throttled';
+    return 'login_failed';
+  }
+
   Future<void> submit() async {
     if (loading.value) return;
 
@@ -80,7 +90,9 @@ class LoginController extends GetxController {
           return;
         }
 
-        var trimmedUrl = url.value.endsWith('/') ? url.value.substring(0, url.value.length - 1) : url.value;
+        var trimmedUrl = url.value.endsWith('/')
+            ? url.value.substring(0, url.value.length - 1)
+            : url.value;
         if (!await _serverService.isServerReachable(trimmedUrl)) {
           Toast.showError('server_unreachable_self_hosted'.tr);
           return;
@@ -95,10 +107,8 @@ class LoginController extends GetxController {
       final deviceId = await getDeviceId() ?? 'Unknown device';
       final deviceName = await getDeviceName() ?? 'Unknown model';
       await _authService.login(code.value, deviceId, deviceName);
-    } on HandshakeException {
-      Toast.showError('ssl_error'.tr);
     } catch (e) {
-      Toast.showError('login_failed'.tr);
+      Toast.showError(errorMessageKey(e).tr);
     } finally {
       loading.value = false;
     }

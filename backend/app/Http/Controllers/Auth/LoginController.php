@@ -7,14 +7,13 @@ use App\Http\Requests\Auth\LoginRequest;
 use App\Models\User;
 use App\Notifications\MagicLoginNotification;
 use App\Support\AuthPageUrls;
+use App\Support\MagicLoginLink;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
-use MagicLink\Actions\LoginAction;
-use MagicLink\MagicLink;
 
 class LoginController extends Controller
 {
@@ -56,7 +55,7 @@ class LoginController extends Controller
             ]);
         }
 
-        $loginUrl = MagicLink::create(new LoginAction($user), 60 * 24)->url;
+        $loginUrl = MagicLoginLink::create($user);
         $user->notify(new MagicLoginNotification($loginUrl));
 
         return redirect()

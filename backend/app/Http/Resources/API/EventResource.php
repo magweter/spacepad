@@ -5,7 +5,6 @@ namespace App\Http\Resources\API;
 use App\Models\Event;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-use Illuminate\Support\Carbon;
 
 class EventResource extends JsonResource
 {
@@ -17,6 +16,7 @@ class EventResource extends JsonResource
     public function toArray($request): array
     {
         $timezone = $this['timezone'] ?? config('app.timezone');
+
         // Convert from UTC (database) to the event's timezone
         // setTimezone() properly converts the time, unlike shiftTimezone() which only changes the label
         return [
@@ -34,6 +34,7 @@ class EventResource extends JsonResource
             'isTabletBooking' => $this->isTabletBooking(),
             'joinUrl' => $this['join_url'] ?? null,
             'organizerName' => $this['organizer_name'] ?? null,
+            'isAllDay' => $this->isAllDay(),
         ];
     }
 }

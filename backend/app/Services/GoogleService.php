@@ -115,8 +115,12 @@ class GoogleService
     /**
      * Generate Google OAuth URL for authentication.
      */
-    public function getAuthUrl(PermissionType $permissionType = PermissionType::READ): string
+    public function getAuthUrl(PermissionType $permissionType = PermissionType::READ, ?string $state = null): string
     {
+        if ($state !== null) {
+            $this->client->setState($state);
+        }
+
         $scopes = [
             Oauth2::USERINFO_EMAIL,
             Oauth2::USERINFO_PROFILE,

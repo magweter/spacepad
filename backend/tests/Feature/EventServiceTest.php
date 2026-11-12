@@ -36,6 +36,12 @@ function outlookApiEvent(string $id, Carbon $start, Carbon $end, string $subject
 }
 
 beforeEach(function () {
+    // Events in these tests start at now()->addHour(). The event service clamps results to
+    // the server's day, so in the last hour before UTC midnight that start is tomorrow and
+    // the event disappears. Pin the clock to mid-morning so the result does not depend on
+    // the time of day the suite happens to run.
+    Carbon::setTestNow(Carbon::parse('2026-11-05 10:00:00', 'UTC'));
+
     $this->user = User::factory()->create();
     $this->workspace = $this->user->primaryWorkspace();
 
@@ -268,6 +274,12 @@ it('marks pure external event as released in redis when cancelled without write 
 
     $externalId = 'read-only-external-id';
 
+    // The event has to be on the room's calendar; an id the display does not show is refused.
+    $outlookService = Mockery::mock(OutlookService::class);
+    $outlookService->shouldReceive('fetchEventsByUser')
+        ->andReturn([outlookApiEvent($externalId, now()->addHour(), now()->addHours(2))]);
+    $this->app->instance(OutlookService::class, $outlookService);
+
     app(EventService::class)->cancelEvent($externalId, $this->display->id);
 
     expect(cache()->has("released:{$this->display->id}:{$externalId}"))->toBeTrue();
@@ -310,8 +322,10 @@ it('returns the extended end time while the provider still reports the old end',
     $outlookService = Mockery::mock(OutlookService::class);
     $outlookService->shouldReceive('patchEventEndTime')->once();
     // Graph is eventually consistent: the read right after the write still has the old end.
+    // Two reads: extendEvent first confirms the id is on this room (cold cache), then the
+    // status fetch after the write.
     $outlookService->shouldReceive('fetchEventsByUser')
-        ->once()
+        ->twice()
         ->andReturn([outlookApiEvent($extId, $start, $end)]);
     $this->app->instance(OutlookService::class, $outlookService);
 

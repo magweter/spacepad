@@ -6,6 +6,7 @@ use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use LemonSqueezy\Laravel\Subscription;
 
 /**
  * Pushing billable usage to Lemon Squeezy.
@@ -31,6 +32,71 @@ class LemonSqueezyUsageService
             now()->addDay(),
             fn () => $this->fetchSubscriptionItemId($subscriptionId)
         );
+    }
+
+    /**
+     * Drop the cached item id, for when a variant swap may have replaced the item.
+     */
+    public function forgetSubscriptionItemId(string $subscriptionId): void
+    {
+        cache()->forget("lemonsqueezy:subscription:{$subscriptionId}:item-id");
+    }
+
+    /**
+     * The quantity a subscription item is billed for right now, or null if it cannot be read.
+     */
+    public function getQuantity(string $subscriptionItemId): ?int
+    {
+        $response = $this->request()->get(self::BASE."/subscription-items/{$subscriptionItemId}");
+
+        if (! $response->successful()) {
+            Log::warning('Could not read Lemon Squeezy subscription item', [
+                'subscription_item_id' => $subscriptionItemId,
+                'status' => $response->status(),
+                'error' => $this->errorDetail($response),
+            ]);
+
+            return null;
+        }
+
+        $quantity = $response->json('data.attributes.quantity');
+
+        return $quantity === null ? null : (int) $quantity;
+    }
+
+    /**
+     * Set the quantity with an explicit choice about proration.
+     *
+     * For a yearly subscription the default (prorate onto the next invoice, which is the
+     * renewal) is never what we want: an increase is invoiced now, and the quantity the
+     * renewal bills for is set without any proration so a decrease does not become a credit.
+     */
+    public function updateQuantity(string $subscriptionItemId, int $quantity, bool $invoiceImmediately = false, bool $disableProrations = false): bool
+    {
+        $attributes = array_filter([
+            'quantity' => $quantity,
+            'invoice_immediately' => $invoiceImmediately ?: null,
+            'disable_prorations' => $disableProrations ?: null,
+        ], fn ($value) => $value !== null);
+
+        $response = $this->request()->patch(self::BASE."/subscription-items/{$subscriptionItemId}", [
+            'data' => [
+                'type' => 'subscription-items',
+                'id' => $subscriptionItemId,
+                'attributes' => $attributes,
+            ],
+        ]);
+
+        if (! $response->successful()) {
+            Log::warning('Lemon Squeezy refused a quantity update', [
+                'subscription_item_id' => $subscriptionItemId,
+                'attributes' => $attributes,
+                'status' => $response->status(),
+                'error' => $this->errorDetail($response),
+            ]);
+        }
+
+        return $response->successful();
     }
 
     /**
@@ -138,6 +204,42 @@ class LemonSqueezyUsageService
         ]);
 
         return true;
+    }
+
+    /**
+     * Overwrite the local subscription row with what Lemon Squeezy currently says.
+     *
+     * Webhooks are the normal way status reaches us, but one can be missed: a subscription
+     * sat locally as past_due for eight months after it had expired at Lemon Squeezy, and
+     * was pushed, and refused, every hour of it. Called when a push is refused, so a
+     * subscription that is no longer live stops being treated as one.
+     *
+     * Returns the remote attributes, because the caller also needs what the local row
+     * does not keep: the payment processor. Lemon Squeezy cannot change a PayPal
+     * subscription through the API at all (the customer has to, in the portal), and
+     * answers a quantity update on one with a bare 500.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function refreshSubscription(Subscription $subscription): ?array
+    {
+        $response = $this->request()->get(self::BASE.'/subscriptions/'.$subscription->lemon_squeezy_id);
+
+        $attributes = $response->json('data.attributes');
+
+        if (! $response->successful() || ! is_array($attributes) || ! isset($attributes['status'])) {
+            Log::warning('Could not refresh Lemon Squeezy subscription', [
+                'subscription_id' => $subscription->lemon_squeezy_id,
+                'status' => $response->status(),
+                'error' => $this->errorDetail($response),
+            ]);
+
+            return null;
+        }
+
+        $subscription->sync($attributes);
+
+        return $attributes;
     }
 
     public function hasApiKey(): bool

@@ -3,6 +3,7 @@
 namespace App\Listeners;
 
 use App\Events\WorkspaceUsageChanged;
+use App\Services\BillingPlans;
 use App\Services\LemonSqueezyUsageService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 
@@ -34,7 +35,10 @@ class PushWorkspaceUsageToLemonSqueezy implements ShouldQueue
 
         $subscription = $workspace->liveSubscription();
 
-        if (! $subscription) {
+        // Paid a year ahead. Its quantity only moves on the monthly anniversary, with an
+        // immediate invoice (app:process-yearly-subscriptions): pushed here, the increase would
+        // wait for the renewal and a decrease would turn into a credit.
+        if (! $subscription || BillingPlans::isYearly($subscription)) {
             return;
         }
 

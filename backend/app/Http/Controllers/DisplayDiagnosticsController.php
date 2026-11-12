@@ -7,6 +7,7 @@ use App\Enums\DisplayStatus;
 use App\Enums\GoogleBookingMethod;
 use App\Enums\OutlookBookingMethod;
 use App\Enums\PermissionType;
+use App\Helpers\DisplaySettings;
 use App\Models\Display;
 use App\Services\CalDAVService;
 use App\Services\EventService;
@@ -224,6 +225,7 @@ class DisplayDiagnosticsController extends Controller
                         'start' => $e['start']['dateTime'] ?? '-',
                         'end' => $e['end']['dateTime'] ?? '-',
                         'all_day' => ($e['isAllDay'] ?? false) ? 'Yes' : 'No',
+                        'free' => ($e['showAs'] ?? null) === 'free' ? 'Yes' : 'No',
                         'status' => '-',
                     ];
                 }
@@ -241,6 +243,7 @@ class DisplayDiagnosticsController extends Controller
                         'start' => $e->getStart()->getDateTime() ?? $e->getStart()->getDate() ?? '-',
                         'end' => $e->getEnd()->getDateTime() ?? $e->getEnd()->getDate() ?? '-',
                         'all_day' => ($e->getStart()->getDate() !== null) ? 'Yes' : 'No',
+                        'free' => $e->getTransparency() === 'transparent' ? 'Yes' : 'No',
                         'status' => $e->getStatus() ?? '-',
                     ];
                 }
@@ -258,6 +261,7 @@ class DisplayDiagnosticsController extends Controller
                         'start' => $e['start'] ?? '-',
                         'end' => $e['end'] ?? '-',
                         'all_day' => ($e['isAllDay'] ?? false) ? 'Yes' : 'No',
+                        'free' => ($e['isFree'] ?? false) ? 'Yes' : 'No',
                         'status' => '-',
                     ];
                 }
@@ -277,10 +281,17 @@ class DisplayDiagnosticsController extends Controller
 
         $rawCount = count($rawNorm);
         $allDayCount = count(array_filter($rawNorm, fn ($e) => $e['all_day'] === 'Yes'));
+        $freeCount = count(array_filter($rawNorm, fn ($e) => $e['free'] === 'Yes'));
+        // Free events are dropped first; of what remains, all-day events only go when the display
+        // is set to ignore them.
+        $busyAllDayCount = count(array_filter($rawNorm, fn ($e) => $e['all_day'] === 'Yes' && $e['free'] === 'No'));
+        $allDayBlocks = DisplaySettings::isAllDayEventsBlocking($display);
+        $allDayRemoved = $allDayBlocks ? 0 : $busyAllDayCount;
+        $expectedCount = $rawCount - $freeCount - $allDayRemoved;
 
         $rawMessage = $rawCount === 0
             ? 'No events returned by the calendar API for today'
-            : "$rawCount event(s) returned by the API ($allDayCount all-day will be filtered)";
+            : "$rawCount event(s) returned by the API ($freeCount marked free, $allDayCount all-day)";
 
         $steps[] = $this->step(4, 'Fetch events from calendar API',
             $rawCount === 0 ? 'warning' : 'ok',
@@ -288,7 +299,8 @@ class DisplayDiagnosticsController extends Controller
             [
                 'Time window' => $start->toDateTimeString().' → '.$end->toDateTimeString().' (UTC)',
                 'Total events returned' => $rawCount,
-                'All-day events (always filtered)' => $allDayCount,
+                'Marked free (never block the room)' => $freeCount,
+                'All-day events' => $allDayCount.($allDayBlocks ? ' (block the room)' : ' (ignored on this display)'),
                 'Timed events' => $rawCount - $allDayCount,
                 'events' => array_slice($rawNorm, 0, 10),
             ]
@@ -297,7 +309,7 @@ class DisplayDiagnosticsController extends Controller
         if ($rawCount === 0) {
             $steps[] = $this->step(5, 'Apply server-side filters', 'warning',
                 'Nothing to filter: no events came from the API.',
-                ['Note' => 'No timed events were returned so no filtering was applied.']
+                ['Note' => 'No events were returned so no filtering was applied.']
             );
             $steps[] = $this->step(6, 'Events delivered to tablet', 'warning',
                 'Tablet receives 0 events for today.',
@@ -321,18 +333,18 @@ class DisplayDiagnosticsController extends Controller
         }
 
         $deliveredCount = $deliveredEvents->count();
-        $timedRaw = $rawCount - $allDayCount;
-        $filteredOut = $timedRaw - $deliveredCount;
+        $filteredOut = $expectedCount - $deliveredCount;
 
         $filterDetails = [
-            'All-day removed' => $allDayCount,
+            'Marked free removed' => $freeCount,
+            'All-day removed' => $allDayRemoved,
             'Released (missed check-in) removed' => max(0, $filteredOut),
             'Remaining after filters' => $deliveredCount,
         ];
 
         $steps[] = $this->step(5, 'Apply server-side filters',
-            $deliveredCount > 0 || $timedRaw === 0 ? 'ok' : 'warning',
-            "$timedRaw timed event(s) in → $deliveredCount event(s) out",
+            $deliveredCount > 0 || $expectedCount === 0 ? 'ok' : 'warning',
+            "$rawCount event(s) in → $deliveredCount event(s) out",
             $filterDetails
         );
 
@@ -340,6 +352,7 @@ class DisplayDiagnosticsController extends Controller
             'title' => $e->summary ?? '(no title)',
             'start' => $e->start?->toDateTimeString() ?? '-',
             'end' => $e->end?->toDateTimeString() ?? '-',
+            'all_day' => $e->isAllDay() ? 'Yes' : 'No',
         ])->values()->toArray();
 
         $cacheKey = $display->getEventsCacheKey();

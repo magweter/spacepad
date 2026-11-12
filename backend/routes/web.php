@@ -181,6 +181,9 @@ Route::middleware(['auth', 'user.update-last-activity'])->group(function () {
 
     Route::post('/billing/checkout', [BillingController::class, 'checkout'])->name('billing.checkout');
     Route::post('/billing/portal', [BillingController::class, 'portal'])->name('billing.portal');
+    Route::post('/billing/switch-yearly', [BillingController::class, 'switchToYearly'])->name('billing.switch-yearly');
+    Route::post('/billing/switch-monthly', [BillingController::class, 'switchToMonthly'])->name('billing.switch-monthly');
+    Route::delete('/billing/switch-monthly', [BillingController::class, 'cancelSwitchToMonthly'])->name('billing.switch-monthly.cancel');
     Route::get('/billing/thanks', [BillingController::class, 'thanks'])->name('billing.thanks');
     Route::post('/billing/cancel', [BillingController::class, 'cancel'])->name('billing.cancel');
     Route::post('/billing/cancellations/{cancellation}/feedback', [BillingController::class, 'feedback'])->name('billing.cancellations.feedback');

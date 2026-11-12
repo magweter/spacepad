@@ -164,7 +164,7 @@ class ActionPanel extends StatelessWidget {
         // Show cancel/extend/reserve buttons when reserved (meeting is active)
         Obx(() {
           final showActions = controller.isReserved && !controller.isCheckInActive &&
-              (controller.bookingEnabled || controller.extendEnabled);
+              (controller.bookingEnabled || controller.canExtendCurrentEvent);
           if (!showActions) return SizedBox.shrink();
 
           final isCancelling = controller.isCancelling.value;
@@ -172,7 +172,7 @@ class ActionPanel extends StatelessWidget {
           final isBooking = controller.isBooking.value;
 
           // Extend options expanded
-          if (controller.extendEnabled && controller.showExtendOptions.value) {
+          if (controller.canExtendCurrentEvent && controller.showExtendOptions.value) {
             return Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -216,7 +216,7 @@ class ActionPanel extends StatelessWidget {
                   cornerRadius: cornerRadius,
                   isLoading: isCancelling,
                 ),
-              if (controller.extendEnabled)
+              if (controller.canExtendCurrentEvent)
                 ActionButton(
                   text: 'extend',
                   onPressed: isExtending ? null : () => controller.toggleExtendOptions(),

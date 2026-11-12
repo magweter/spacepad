@@ -29,6 +29,12 @@ class DisplaySettingsResource extends JsonResource
             'logo_url' => $this->getLogoUrl(),
             'background_image_url' => $this->getBackgroundImageUrl(),
             'font_family' => $this->getFontFamily(),
+            'font_size_room_name' => $this->getFontSize('room_name'),
+            'font_size_clock' => $this->getFontSize('clock'),
+            'font_size_title' => $this->getFontSize('title'),
+            'font_size_details' => $this->getFontSize('details'),
+            'font_size_toolbar' => $this->getFontSize('toolbar'),
+            'font_size_calendar' => $this->getFontSize('calendar'),
             'cancel_permission' => $this->getCancelPermission(),
             'border_thickness' => $this->getBorderThickness(),
 
@@ -53,6 +59,9 @@ class DisplaySettingsResource extends JsonResource
 
             // The location line of each meeting in the day schedule
             'show_meeting_location' => $this->getShowMeetingLocation(),
+
+            // LED strips on the display's housing (Philips SICP) follow the room state
+            'led_enabled' => $this->isLedEnabled(),
         ];
     }
 }

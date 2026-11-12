@@ -19,7 +19,7 @@ importers:
         version: 2.3.29(vue@3.5.45)
       '@tailwindcss/vite':
         specifier: ^4.3.3
-        version: 4.3.3(vite@6.4.4(jiti@2.7.0)(lightningcss@1.32.0))
+        version: 4.3.3(vite@6.4.6(jiti@2.7.0)(lightningcss@1.32.0))
       alpinejs:
         specifier: ^3.17.4
         version: 3.17.4
@@ -28,7 +28,7 @@ importers:
         version: 1.9.12
       laravel-vite-plugin:
         specifier: ^1.3.0
-        version: 1.3.0(vite@6.4.4(jiti@2.7.0)(lightningcss@1.32.0))
+        version: 1.3.0(vite@6.4.6(jiti@2.7.0)(lightningcss@1.32.0))
       tailwindcss:
         specifier: ^4.3.3
         version: 4.3.3
@@ -38,22 +38,22 @@ importers:
     devDependencies:
       '@vitejs/plugin-vue':
         specifier: ^5.2.4
-        version: 5.2.4(vite@6.4.4(jiti@2.7.0)(lightningcss@1.32.0))(vue@3.5.45)
+        version: 5.2.4(vite@6.4.6(jiti@2.7.0)(lightningcss@1.32.0))(vue@3.5.45)
       autoprefixer:
         specifier: ^10.6.1
         version: 10.6.1(postcss@8.5.32)
       axios:
-        specifier: ^1.20.0
-        version: 1.20.0
+        specifier: ^1.21.1
+        version: 1.21.1
       concurrently:
-        specifier: ^9.2.4
-        version: 9.2.4
+        specifier: ^9.2.5
+        version: 9.2.5
       laravel-echo:
         specifier: ^1.19.0
         version: 1.19.0
       vite:
-        specifier: ^6.4.4
-        version: 6.4.4(jiti@2.7.0)(lightningcss@1.32.0)
+        specifier: ^6.4.6
+        version: 6.4.6(jiti@2.7.0)(lightningcss@1.32.0)
 
 packages:
 
@@ -574,8 +574,8 @@ packages:
     peerDependencies:
       postcss: ^8.1.0
 
-  axios@1.20.0:
-    resolution: {integrity: sha512-r8aOh8j9cGKpgQAqpzrUHnSIc6a59Y3Xf/cv8sy1DrHCkZHzQGEuoq1tARk6qSyDdtQGSDgpb9kFlruzPvrgwg==}
+  axios@1.21.1:
+    resolution: {integrity: sha512-6eI5Q/Y4u/Um9dDlsRoq5pY2rxnUTv+L4PpLitnbk/i4jb3MxLZ5CsN5Ih3IysbeRYK4pR+P7qfMsOQl9fwwFQ==}
 
   baseline-browser-mapping@2.11.27:
     resolution: {integrity: sha512-ElY12DaROGuan+lMmZ8Cvo/ZUbXPe7Enc/9VU/b1T3Kp4dwytRcNdR8DoSJN5SNJT/CuvcCA0DHDVmMOCePdRQ==}
@@ -617,8 +617,8 @@ packages:
     resolution: {integrity: sha512-FQN4MRfuJeHf7cBbBMJFXhKSDq+2kAArBlmRBvcvFE5BB1HZKXtSFASDhdlz9zOYwxh8lDdnvmMOe/+5cdoEdg==}
     engines: {node: '>= 0.8'}
 
-  concurrently@9.2.4:
-    resolution: {integrity: sha512-TZ0CEhyzvFjgtAvHTusDMgj7wNdihCh7LLLrzdUOXIhdlnL2JBBGA9eJxR24rtqgmdjh3OA3hrN1rCHj6HM8qA==}
+  concurrently@9.2.5:
+    resolution: {integrity: sha512-YMZlvWrTPQEhjKp60XSmMGt60+pffbv6DyRnOMvVO98+J7aF8w8Ui9FhdcOwvSixc/kyR6SoVvmejcn/2lZBqg==}
     engines: {node: '>=18'}
     hasBin: true
 
@@ -697,8 +697,8 @@ packages:
       picomatch:
         optional: true
 
-  follow-redirects@1.16.1:
-    resolution: {integrity: sha512-FNvFGzoMLWmE6Yj9spb/zjd7yiNCHiAW9/Tg9CXrQ8wuu32HtlJOwWO11OJafl5FfY3DxTdQ0vj42zU1kvv5jg==}
+  follow-redirects@1.16.3:
+    resolution: {integrity: sha512-toOSoqN6d51Wjf1aOFJYcoVv1aND9rj/CwjLU0Vz40oDuSpWDayCeKe4JpL5NL0WdFvoOOCI3BRo69HahjbR1A==}
     engines: {node: '>=4.0'}
     peerDependencies:
       debug: '*'
@@ -935,8 +935,8 @@ packages:
   rxjs@7.8.2:
     resolution: {integrity: sha512-dhKf903U/PQZY6boNNtAGdWbG85WAbjT/1xYoZIC7FAY0yWapOBQVsVrDl58W86//e1VpMNBtRV4MaXfdMySFA==}
 
-  shell-quote@1.9.0:
-    resolution: {integrity: sha512-Iov+JwFv/2HcTpcwNMKd8+IWNb8tboQJNQTkAY/LLVK7gGH9jy+LGkVqPxfekHl+yMmiqXszdGWXgkfml7hjqA==}
+  shell-quote@1.12.0:
+    resolution: {integrity: sha512-PcByqNyT/38F2kDNi006HAMRJaULuBzq/FOsw3qdZvX/GA9W/jamDaRskgHjubHiftXK5sIFxLNkvrXUwcof6Q==}
     engines: {node: '>= 0.4'}
 
   side-channel-list@1.0.1:
@@ -1002,8 +1002,8 @@ packages:
   vite-plugin-full-reload@1.2.0:
     resolution: {integrity: sha512-kz18NW79x0IHbxRSHm0jttP4zoO9P9gXh+n6UTwlNKnviTTEpOlum6oS9SmecrTtSr+muHEn5TUuC75UovQzcA==}
 
-  vite@6.4.4:
-    resolution: {integrity: sha512-xGjU/SyjeNyb0E4KxXBvYz/1C+3JXuujvf2hXNOtnlcE+58o5ajd9N2/n2VhkiJvpCP2qQasnUpx5PXNeI+p1Q==}
+  vite@6.4.6:
+    resolution: {integrity: sha512-RtsraAwEG68idOA6iUOoIpOlcSKROnf815aIq9qHTSrDNpLoBrBa12suyfcEd8qn0xwOVQI1Yhm1GbmTjF600A==}
     engines: {node: ^18.0.0 || ^20.0.0 || >=22.0.0}
     hasBin: true
     peerDependencies:
@@ -1166,7 +1166,7 @@ snapshots:
   '@inertiajs/core@2.3.29':
     dependencies:
       '@types/lodash-es': 4.17.12
-      axios: 1.20.0
+      axios: 1.21.1
       laravel-precognition: 1.0.2
       lodash-es: 4.18.1
       qs: 6.17.1
@@ -1343,12 +1343,12 @@ snapshots:
       '@tailwindcss/oxide-win32-arm64-msvc': 4.3.3
       '@tailwindcss/oxide-win32-x64-msvc': 4.3.3
 
-  '@tailwindcss/vite@4.3.3(vite@6.4.4(jiti@2.7.0)(lightningcss@1.32.0))':
+  '@tailwindcss/vite@4.3.3(vite@6.4.6(jiti@2.7.0)(lightningcss@1.32.0))':
     dependencies:
       '@tailwindcss/node': 4.3.3
       '@tailwindcss/oxide': 4.3.3
       tailwindcss: 4.3.3
-      vite: 6.4.4(jiti@2.7.0)(lightningcss@1.32.0)
+      vite: 6.4.6(jiti@2.7.0)(lightningcss@1.32.0)
 
   '@types/estree@1.0.9': {}
 
@@ -1358,9 +1358,9 @@ snapshots:
 
   '@types/lodash@4.17.27': {}
 
-  '@vitejs/plugin-vue@5.2.4(vite@6.4.4(jiti@2.7.0)(lightningcss@1.32.0))(vue@3.5.45)':
+  '@vitejs/plugin-vue@5.2.4(vite@6.4.6(jiti@2.7.0)(lightningcss@1.32.0))(vue@3.5.45)':
     dependencies:
-      vite: 6.4.4(jiti@2.7.0)(lightningcss@1.32.0)
+      vite: 6.4.6(jiti@2.7.0)(lightningcss@1.32.0)
       vue: 3.5.45
 
   '@vue/compiler-core@3.5.45':
@@ -1450,9 +1450,9 @@ snapshots:
       postcss: 8.5.32
       postcss-value-parser: 4.2.0
 
-  axios@1.20.0:
+  axios@1.21.1:
     dependencies:
-      follow-redirects: 1.16.1
+      follow-redirects: 1.16.3
       form-data: 4.0.6
       https-proxy-agent: 5.0.1
       proxy-from-env: 2.1.0
@@ -1503,11 +1503,11 @@ snapshots:
     dependencies:
       delayed-stream: 1.0.0
 
-  concurrently@9.2.4:
+  concurrently@9.2.5:
     dependencies:
       chalk: 4.1.2
       rxjs: 7.8.2
-      shell-quote: 1.9.0
+      shell-quote: 1.12.0
       supports-color: 8.1.1
       tree-kill: 1.2.2
       yargs: 17.7.2
@@ -1591,7 +1591,7 @@ snapshots:
     optionalDependencies:
       picomatch: 4.0.7
 
-  follow-redirects@1.16.1: {}
+  follow-redirects@1.16.3: {}
 
   form-data@4.0.6:
     dependencies:
@@ -1661,16 +1661,16 @@ snapshots:
 
   laravel-precognition@1.0.2:
     dependencies:
-      axios: 1.20.0
+      axios: 1.21.1
       lodash-es: 4.18.1
     transitivePeerDependencies:
       - debug
       - supports-color
 
-  laravel-vite-plugin@1.3.0(vite@6.4.4(jiti@2.7.0)(lightningcss@1.32.0)):
+  laravel-vite-plugin@1.3.0(vite@6.4.6(jiti@2.7.0)(lightningcss@1.32.0)):
     dependencies:
       picocolors: 1.1.1
-      vite: 6.4.4(jiti@2.7.0)(lightningcss@1.32.0)
+      vite: 6.4.6(jiti@2.7.0)(lightningcss@1.32.0)
       vite-plugin-full-reload: 1.2.0
 
   lightningcss-android-arm64@1.32.0:
@@ -1809,7 +1809,7 @@ snapshots:
     dependencies:
       tslib: 2.8.1
 
-  shell-quote@1.9.0: {}
+  shell-quote@1.12.0: {}
 
   side-channel-list@1.0.1:
     dependencies:
@@ -1883,7 +1883,7 @@ snapshots:
       picocolors: 1.1.1
       picomatch: 2.3.2
 
-  vite@6.4.4(jiti@2.7.0)(lightningcss@1.32.0):
+  vite@6.4.6(jiti@2.7.0)(lightningcss@1.32.0):
     dependencies:
       esbuild: 0.25.12
       fdir: 6.5.0(picomatch@4.0.7)

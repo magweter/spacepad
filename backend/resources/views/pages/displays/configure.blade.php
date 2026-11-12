@@ -306,6 +306,28 @@
                         </div>
                     </label>
 
+                    <label class="flex items-start gap-3 cursor-pointer">
+                        <input type="checkbox" name="all_day_events_block" value="1" class="mt-0.5 {{ $checkClass }}"
+                               {{ $ds::isAllDayEventsBlocking($display) ? 'checked' : '' }}>
+                        <div>
+                            <span class="flex items-center gap-1.5 text-sm font-medium text-gray-900">All-day events block the room
+                                <x-info-tip text="An all-day event on the room's calendar, such as a training day or a closed room, shows the room as in use for the whole day. Events marked as free in the calendar never block the room, all-day or not." />
+                            </span>
+                            <p class="text-xs text-gray-500">On by default. Turn off when the calendar holds all-day notes that are not bookings.</p>
+                        </div>
+                    </label>
+
+                    <label class="flex items-start gap-3 cursor-pointer">
+                        <input type="checkbox" name="led_enabled" value="1" class="mt-0.5 {{ $checkClass }}"
+                               {{ $ds::isLedEnabled($display) ? 'checked' : '' }}>
+                        <div>
+                            <span class="flex items-center gap-1.5 text-sm font-medium text-gray-900">LED strips follow the room state
+                                <x-info-tip text="For Philips signage displays with LED strips on the housing. The strips turn green when the room is free, orange when a meeting is about to start or end, and red while it is reserved. Network SICP must be enabled on the display. Has no effect on other devices." />
+                            </span>
+                            <p class="text-xs text-gray-500">Philips SICP displays only. Off by default.</p>
+                        </div>
+                    </label>
+
                     <div class="pt-4 border-t border-gray-100">
                         <p class="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-2">Border thickness
                             <x-info-tip text="Thickness of the coloured status border around the screen. Large reads clearly from a corridor; small suits a tablet you stand right in front of." />
@@ -362,6 +384,25 @@
                                 <option value="{{ $font }}" {{ old('font_family', $ds::getFontFamily($display)) === $font ? 'selected' : '' }}>{{ $font }}</option>
                             @endforeach
                         </select>
+                    </div>
+
+                    {{-- Text sizes --}}
+                    <div class="pt-4 border-t border-gray-100">
+                        <p class="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-2">Text sizes
+                            <x-info-tip text="Make a text larger to read it from further away. A larger size uses more room, so a long meeting title is shortened sooner." />
+                        </p>
+                        <div class="grid grid-cols-2 gap-4">
+                            @foreach($ds::FONT_SIZE_ELEMENTS as $element => $elementLabel)
+                                <div>
+                                    <label for="font_size_{{ $element }}" class="block text-xs text-gray-500 mb-1">{{ $elementLabel }}</label>
+                                    <select name="font_size_{{ $element }}" id="font_size_{{ $element }}" class="{{ $selectClass }}">
+                                        @foreach($ds::FONT_SIZES as $size => $sizeLabel)
+                                            <option value="{{ $size }}" {{ old("font_size_{$element}", $ds::getFontSize($display, $element)) === $size ? 'selected' : '' }}>{{ $sizeLabel }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            @endforeach
+                        </div>
                     </div>
 
                     {{-- Logo --}}

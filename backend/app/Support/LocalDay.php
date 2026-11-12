@@ -20,9 +20,14 @@ use Illuminate\Support\Carbon;
  */
 final readonly class LocalDay
 {
+    /**
+     * @param  int  $offsetMinutes  The day's offset from UTC, kept so a date without a time (an
+     *                              all-day event) can be placed on this day's own midnight.
+     */
     public function __construct(
         public Carbon $start,
         public Carbon $end,
+        public int $offsetMinutes = 0,
     ) {}
 
     /**
@@ -53,7 +58,7 @@ final readonly class LocalDay
         $start = Carbon::createFromFormat('Y-m-d H:i:s', $date.' 00:00:00', 'UTC')
             ->subMinutes($offsetMinutes);
 
-        return new self($start, $start->copy()->addDay()->subSecond());
+        return new self($start, $start->copy()->addDay()->subSecond(), $offsetMinutes);
     }
 
     /**
@@ -61,7 +66,22 @@ final readonly class LocalDay
      */
     public static function serverDay(Carbon $date): self
     {
-        return new self($date->copy()->startOfDay(), $date->copy()->endOfDay());
+        $start = $date->copy()->startOfDay();
+
+        return new self($start, $date->copy()->endOfDay(), $start->utcOffset());
+    }
+
+    /**
+     * A calendar date as an instant: that date's midnight on this day's clock.
+     *
+     * All-day events carry dates, not times, and "the 10th" starts at a different instant in every
+     * timezone. Placing it with the tablet's own offset is what makes an all-day event start at the
+     * tablet's midnight instead of the server's.
+     */
+    public function midnightOf(string $date): Carbon
+    {
+        return Carbon::createFromFormat('Y-m-d H:i:s', $date.' 00:00:00', 'UTC')
+            ->subMinutes($this->offsetMinutes);
     }
 
     /**

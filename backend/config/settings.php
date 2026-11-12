@@ -21,6 +21,19 @@ return [
 
     'cloud_hosted_pro_plan_id' => env('CLOUD_HOSTED_PRO_PLAN_ID'),
 
+    // Switching an existing subscription between monthly and yearly. Every switch goes
+    // through a separate Lemon Squeezy product without a trial (the product behind
+    // cloud_hosted_pro_plan_id has one and is only for a first checkout), in both
+    // directions. Leave any of the three empty and the switch buttons stay hidden.
+    'pro_switch_product_id' => env('CLOUD_HOSTED_PRO_SWITCH_PRODUCT_ID'),
+    'pro_switch_monthly_variant_id' => env('CLOUD_HOSTED_PRO_SWITCH_MONTHLY_VARIANT_ID'),
+    'pro_switch_yearly_variant_id' => env('CLOUD_HOSTED_PRO_SWITCH_YEARLY_VARIANT_ID'),
+
+    // Every other yearly variant, comma-separated: the yearly variant new customers can pick
+    // in the first checkout, and any older one. A subscription on one of these is billed a
+    // year ahead, so its quantity must not follow usage day by day.
+    'pro_yearly_variant_ids' => array_values(array_filter(array_map('trim', explode(',', (string) env('CLOUD_HOSTED_PRO_YEARLY_VARIANT_IDS', ''))))),
+
     // The standard monthly list price per billable unit (display = 1 unit, board = 2 units).
     //
     // One number with two readers, deliberately not two settings: they would be the same

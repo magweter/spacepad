@@ -310,6 +310,9 @@ window.__diagCsrf      = @json(csrf_token());
                                                             <template x-if="ev.all_day === 'Yes'">
                                                                 <span class="flex-shrink-0 rounded bg-amber-100 text-amber-700 px-1.5 py-0.5 text-[10px] font-medium">all-day</span>
                                                             </template>
+                                                            <template x-if="ev.free === 'Yes'">
+                                                                <span class="flex-shrink-0 rounded bg-gray-200 text-gray-600 px-1.5 py-0.5 text-[10px] font-medium">free</span>
+                                                            </template>
                                                         </div>
                                                     </template>
                                                 </div>

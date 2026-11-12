@@ -126,7 +126,7 @@ class ImageService
             if ($imagePath && isset(self::DEFAULT_BACKGROUNDS[$imagePath])) {
                 $publicPath = public_path(self::DEFAULT_BACKGROUNDS[$imagePath]);
                 if (file_exists($publicPath)) {
-                    return response()->file($publicPath);
+                    return $this->fileResponse($publicPath);
                 }
             }
         } elseif ($type === 'advertisement') {
@@ -139,7 +139,7 @@ class ImageService
             abort(404, 'Image not found');
         }
 
-        return response()->file(Storage::disk('public')->path($imagePath));
+        return $this->fileResponse(Storage::disk('public')->path($imagePath));
     }
 
     /**
@@ -148,7 +148,7 @@ class ImageService
     public function storeLogoFile($file, Display $display): ?string
     {
         try {
-            $filename = 'logo_'.$display->id.'_'.time().'.'.$file->getClientOriginalExtension();
+            $filename = 'logo_'.$display->id.'_'.time().'.'.$this->storedExtension($file);
             $path = $file->storeAs('displays/logos', $filename, 'public');
 
             return $path;
@@ -163,7 +163,7 @@ class ImageService
     public function storeBackgroundImageFile($file, Display $display): ?string
     {
         try {
-            $filename = 'background_'.$display->id.'_'.time().'.'.$file->getClientOriginalExtension();
+            $filename = 'background_'.$display->id.'_'.time().'.'.$this->storedExtension($file);
             $path = $file->storeAs('displays/backgrounds', $filename, 'public');
 
             return $path;
@@ -178,7 +178,7 @@ class ImageService
     public function storeAdvertisementFile($file, Display $display): ?string
     {
         try {
-            $filename = 'advertisement_'.$display->id.'_'.time().'.'.$file->getClientOriginalExtension();
+            $filename = 'advertisement_'.$display->id.'_'.time().'.'.$this->storedExtension($file);
             $path = $file->storeAs('displays/advertisements', $filename, 'public');
 
             return $path;
@@ -251,7 +251,7 @@ class ImageService
         }
 
         try {
-            $filename = $type.'_'.$profile->id.'_'.time().'.'.$file->getClientOriginalExtension();
+            $filename = $type.'_'.$profile->id.'_'.time().'.'.$this->storedExtension($file);
 
             return $file->storeAs($folder, $filename, 'public');
         } catch (\Exception $e) {
@@ -294,7 +294,7 @@ class ImageService
         if ($path && isset(self::DEFAULT_BACKGROUNDS[$path])) {
             $publicPath = public_path(self::DEFAULT_BACKGROUNDS[$path]);
             if (file_exists($publicPath)) {
-                return response()->file($publicPath);
+                return $this->fileResponse($publicPath);
             }
         }
 
@@ -302,7 +302,7 @@ class ImageService
             abort(404, 'Image not found');
         }
 
-        return response()->file(Storage::disk('public')->path($path));
+        return $this->fileResponse(Storage::disk('public')->path($path));
     }
 
     /**
@@ -326,7 +326,7 @@ class ImageService
     public function storeBoardLogoFile($file, Board $board): ?string
     {
         try {
-            $filename = 'logo_'.$board->id.'_'.time().'.'.$file->getClientOriginalExtension();
+            $filename = 'logo_'.$board->id.'_'.time().'.'.$this->storedExtension($file);
             $path = $file->storeAs('boards/logos', $filename, 'public');
 
             return $path;
@@ -354,6 +354,28 @@ class ImageService
             abort(404, 'Logo not found');
         }
 
-        return response()->file(Storage::disk('public')->path($board->logo));
+        return $this->fileResponse(Storage::disk('public')->path($board->logo));
+    }
+
+    /**
+     * The extension to store an upload under. Taken from the detected content type, never from
+     * the name the client sent: with a linked public/storage the web server types by
+     * extension, and a PNG called logo.html would come back as a page.
+     */
+    private function storedExtension($file): string
+    {
+        return $file->extension() ?: 'bin';
+    }
+
+    /**
+     * Serve an uploaded file so that it can only ever be a picture on our origin: no script
+     * runs in a sandboxed document, and the browser does not get to guess at the type.
+     */
+    private function fileResponse(string $path)
+    {
+        return response()->file($path, [
+            'Content-Security-Policy' => 'sandbox',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
     }
 }

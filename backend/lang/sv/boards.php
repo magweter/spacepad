@@ -9,6 +9,7 @@ return [
     'available' => 'Tillgänglig',
     'available_until' => 'Tillgänglig till :time',
     'available_until_end_of_day' => 'Tillgänglig till dagens slut',
+    'all_day' => 'Hela dagen',
     'next' => 'Nästa',
     'room' => 'Rum',
     'status' => 'Status',

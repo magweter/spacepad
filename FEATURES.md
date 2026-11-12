@@ -10,6 +10,8 @@ A privacy-focused room display app that shows real-time room availability, synce
 - **Google Workspace** — connect via OAuth or service account with domain-wide delegation; read-only or read/write
 - **CalDAV** — generic CalDAV support for self-hosted and third-party calendar servers
 - Real-time sync with webhook-based push updates
+- The calendar's own free/busy flag decides what blocks the room: events marked "free" (Outlook "Show as: Free", Google "Show as available", CalDAV `TRANSP:TRANSPARENT`) never do
+- All-day events block the room for the whole day, from midnight to midnight on the tablet's own clock, including multi-day events. Can be turned off per display
 - Manual refresh available from the tablet at any time
 
 ---
@@ -21,9 +23,10 @@ A privacy-focused room display app that shows real-time room availability, synce
 - Fully customizable state labels per display (e.g. "All yours!", "Keep it short!", "In a meeting")
 - Current meeting title (can be hidden for privacy)
 - Meeting organizer name (optional, per display)
-- Time remaining in current meeting
+- Time remaining in current meeting ("Till end of day" for an all-day event, "Until <date>" when it runs for several days)
 - Time until next meeting
 - Next upcoming event preview
+- LED strips on Philips signage displays (Network SICP) follow the same colours: green, orange and red, white on the room picker. Optional per display, off by default
 
 ### Clock & Identity
 - Real-time digital clock
@@ -40,6 +43,7 @@ A privacy-focused room display app that shows real-time room availability, synce
 
 ### Extend Meeting
 - Extend an active meeting by +15, +30, or +60 minutes directly from the tablet
+- Not offered for all-day events, which already run to the end of the day
 - Syncs the change back to the external calendar
 
 ### End Meeting
@@ -51,6 +55,7 @@ A privacy-focused room display app that shows real-time room availability, synce
 - Configurable check-in window (1–60 minutes before start)
 - Configurable grace period (1–30 minutes after start) before the room is released
 - Tablet-booked meetings are exempt from check-in automatically
+- All-day events never require a check-in and are never released
 
 ### Schedule Display
 Four modes to show today's schedule — one per display:
@@ -113,6 +118,8 @@ Neither is inherited from a profile: they belong to the display itself.
 | Show organizer | On/off |
 | Show meeting title | On/off |
 | Show meeting location | On/off (default off) |
+| All-day events block the room | On/off (default on) |
+| LED strips follow the room state | On/off (default off), Philips SICP displays only |
 | Hide admin actions | On/off |
 | Border thickness | Small / Medium / Large |
 
@@ -131,6 +138,14 @@ Part of the same **Configure display** screen, in the Branding, State texts and 
 - Upload a custom **logo** (shown on the display)
 - Upload a custom **background image** or choose from built-in backgrounds
 - Choose a **font family**: Inter, Roboto, Open Sans, Lato, Poppins, Montserrat
+- Choose a **text size** (Small / Normal / Large / Extra large) separately for the room name, the
+  clock, the meeting title or status, the meeting details under it (time, organizer, time left), the
+  bottom toolbar (next meeting and View schedule) and the calendar widget. A size multiplies the scale the display already uses for its screen, so a
+  step means the same on a phone as on a large panel. Also settable on a profile.
+
+The meeting title takes at most three lines, and fewer when the space between the header and the
+buttons cannot hold three: it shortens with an ellipsis instead of pushing the logo and the
+buttons against the header and the bottom bar, which always keep a margin to the content.
 
 ### State Text
 - Customize the label shown in each room state:
@@ -234,6 +249,18 @@ a separate account with its own invisible set of displays.
 - One button on the workspace page opens the Lemon Squeezy billing portal in a new tab, to change the
   payment method, download invoices or cancel. A manually billed workspace has no portal and is
   pointed at support instead
+- Owners and admins can switch a monthly subscription to yearly from the workspace page. That opens a
+  fresh checkout for a year of the current usage at the current price, paid on the spot (so the card
+  is checked, with 3D Secure, while the customer is there). Once it is paid the monthly subscription
+  is cancelled automatically; an abandoned checkout changes nothing
+- A yearly subscription is not resized when usage changes. Once a month, on the day the year
+  started, usage above what was paid for is invoiced for the rest of the year. Less usage is never
+  credited. The day before renewal the subscription is set to the usage at that moment, so the new
+  year is billed for what is actually used
+- A yearly workspace can ask to go back to monthly. The paid year runs out first; the day before
+  renewal it switches, so the renewal bills a month. Until then the request can be taken back
+- `app:report-yearly-subscriptions` lists yearly subscriptions whose quantity at Lemon Squeezy
+  differs from usage, without changing anything
 - Besides a Lemon Squeezy subscription, Spacepad can put a workspace on one of two arrangements:
   **manually billed** (invoiced by us, at a per-workspace unit price) or **unlimited** (Pro for free,
   for a non-profit deal or a test account: never charged and no price shown). A workspace is on

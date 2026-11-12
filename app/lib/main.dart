@@ -7,6 +7,8 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:spacepad/pages/login_page.dart';
 import 'package:spacepad/pages/splash_page.dart';
 import 'package:spacepad/theme.dart';
+import 'package:spacepad/build_flags.dart';
+import 'package:spacepad/services/api_service.dart';
 import 'package:spacepad/services/auth_service.dart';
 import 'package:spacepad/translations/translations.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
@@ -120,6 +122,15 @@ Future<void> main() async {
   await dotenv.load(fileName: ".env");
 
   await AuthService.instance.initialise();
+
+  // Stored the way a real pairing stores them, so the rest of the app cannot tell the
+  // difference and the usual start (splash, then dashboard) takes it from here.
+  if (demoMode) {
+    await ApiService.setBaseUrl(demoApiUrl);
+    await AuthService.instance.setAuthToken(demoToken);
+    await AuthService.instance.setCurrentDisplayId(demoDisplayId);
+    print('Demo mode: display $demoDisplayId on $demoApiUrl');
+  }
 
   tz.initializeTimeZones();
 

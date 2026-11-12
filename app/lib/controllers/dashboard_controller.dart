@@ -3,12 +3,15 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:get/get.dart';
+import 'package:intl/intl.dart' show DateFormat;
 import 'package:spacepad/components/toast.dart';
 import 'package:spacepad/exceptions/api_exception.dart';
 import 'package:spacepad/models/event_model.dart';
 import 'package:spacepad/models/display_data_model.dart';
 import 'package:spacepad/models/event_status.dart';
 import 'package:spacepad/services/display_service.dart';
+import 'package:spacepad/services/led_service.dart';
+import 'package:spacepad/models/led_color.dart';
 import 'package:spacepad/services/auth_service.dart';
 import 'package:spacepad/pages/display_page.dart';
 import 'package:spacepad/models/device_model.dart';
@@ -194,6 +197,33 @@ class DashboardController extends GetxController {
 
   void updateTime() {
     time.value = DateTime.now();
+    syncLed();
+  }
+
+  // Whether the strips were driven since the last sync, so switching the setting off turns them
+  // off once instead of leaving the last colour burning.
+  bool _ledDriven = false;
+
+  /// Keeps the LED strips (Philips SICP displays) in step with the room state.
+  ///
+  /// Runs on every clock tick; LedService only talks to the display when the colour changes.
+  void syncLed() {
+    final enabled = globalSettings.value?.ledEnabled ?? false;
+
+    if (!enabled) {
+      if (_ledDriven) {
+        _ledDriven = false;
+        LedService.instance.apply(LedColor.off);
+      }
+      return;
+    }
+
+    _ledDriven = true;
+    LedService.instance.apply(LedService.colorFor(
+      reserved: isReserved,
+      transitioning: isTransitioning,
+      checkInActive: isCheckInActive,
+    ));
   }
 
   String get roomName {
@@ -225,6 +255,17 @@ class DashboardController extends GetxController {
   }
 
   String get subtitle {
+    if (isReserved && !isCheckInActive && currentEvent!.isAllDay) {
+      final now = DateTime.now();
+      final endOfToday = DateTime(now.year, now.month, now.day).add(const Duration(days: 1));
+
+      // "23 hours 40 minutes left" is true but says nothing; what matters is that the room is
+      // gone for the day, or for longer when the event spans several days.
+      return currentEvent!.end.isAfter(endOfToday)
+          ? 'until_date'.trParams({'date': DateFormat('E d MMM', Get.locale?.toString()).format(currentEvent!.end.subtract(const Duration(days: 1)))})
+          : 'till_end_of_day'.tr;
+    }
+
     if (isReserved && !isCheckInActive) {
       final currentEventEnd = currentEvent!.end;
       final totalMinutesLeft = currentEventEnd.difference(DateTime.now()).inMinutes;
@@ -388,6 +429,12 @@ class DashboardController extends GetxController {
     _pollingStopped = true;
     _clock?.cancel();
     _dataTimer?.cancel();
+
+    // Neutral on the room picker: the strips no longer say anything about a room.
+    if (_ledDriven) {
+      _ledDriven = false;
+      LedService.instance.apply(LedColor.white);
+    }
 
     Get.offAll(() => const DisplayPage());
   }
@@ -561,8 +608,45 @@ class DashboardController extends GetxController {
     }
   }
 
+  /// The factor for a text size step chosen in the dashboard. It multiplies the size the screen
+  /// already scales to, so a step means the same thing on a phone as on a large panel.
+  static double _fontScale(String? size) {
+    switch (size) {
+      case 'small':
+        return 0.85;
+      case 'large':
+        return 1.25;
+      case 'xlarge':
+        return 1.5;
+      case 'normal':
+      default:
+        return 1.0;
+    }
+  }
+
+  double get roomNameScale => _fontScale(globalSettings.value?.fontSizeRoomName);
+
+  double get clockScale => _fontScale(globalSettings.value?.fontSizeClock);
+
+  /// The meeting title, or the state text when the room is free.
+  double get titleScale => _fontScale(globalSettings.value?.fontSizeTitle);
+
+  /// The time, organizer and time left under the title.
+  double get detailsScale => _fontScale(globalSettings.value?.fontSizeDetails);
+
+  /// The bottom toolbar: the next meeting and the View schedule button.
+  double get toolbarScale => _fontScale(globalSettings.value?.fontSizeToolbar);
+
+  /// The calendar widget beside or in the main panel.
+  double get calendarScale => _fontScale(globalSettings.value?.fontSizeCalendar);
+
   bool get extendEnabled {
     return globalSettings.value?.extendEnabled ?? false;
+  }
+
+  /// An all-day event already runs to midnight, so there is nothing to extend it by.
+  bool get canExtendCurrentEvent {
+    return extendEnabled && !(currentEvent?.isAllDay ?? false);
   }
 
 

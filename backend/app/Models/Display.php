@@ -242,6 +242,11 @@ class Display extends Model
         return DisplaySettings::getFontFamily($this);
     }
 
+    public function getFontSize(string $element): string
+    {
+        return DisplaySettings::getFontSize($this, $element);
+    }
+
     public function isAdminActionsHidden(): bool
     {
         return DisplaySettings::isAdminActionsHidden($this);
@@ -310,5 +315,15 @@ class Display extends Model
     public function setShowMeetingLocation(bool $show): bool
     {
         return DisplaySettings::setShowMeetingLocation($this, $show);
+    }
+
+    public function isLedEnabled(): bool
+    {
+        return DisplaySettings::isLedEnabled($this);
+    }
+
+    public function setLedEnabled(bool $enabled): bool
+    {
+        return DisplaySettings::setLedEnabled($this, $enabled);
     }
 }

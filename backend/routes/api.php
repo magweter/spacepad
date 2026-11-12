@@ -10,12 +10,12 @@ use App\Http\Controllers\OutlookWebhookController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('auth')->group(function () {
-    Route::post('login', [AuthController::class, 'login']);
+    Route::post('login', [AuthController::class, 'login'])->middleware('throttle:device_pairing');
 });
 
 Route::middleware(['auth:sanctum', 'user.update-last-activity'])->group(function () {
     Route::get('devices/me', [DeviceController::class, 'me']);
-    Route::put('devices/display', [DeviceController::class, 'changeDisplay']); # Deprecated > v1.2.0
+    Route::put('devices/display', [DeviceController::class, 'changeDisplay']); // Deprecated > v1.2.0
 
     Route::get('displays', [DisplayController::class, 'index']);
     Route::get('displays/{display}/data', [DisplayController::class, 'getData']);
@@ -25,8 +25,8 @@ Route::middleware(['auth:sanctum', 'user.update-last-activity'])->group(function
     Route::post('displays/{display}/events/{eventId}/extend', [DisplayController::class, 'extend']);
     Route::delete('displays/{display}/events/{eventId}', [DisplayController::class, 'cancel']);
 
-    Route::get('events', [EventController::class, 'index']); # Deprecated > v1.2.0
-    
+    Route::get('events', [EventController::class, 'index']); // Deprecated > v1.2.0
+
     // Display image serving for mobile app
     Route::get('displays/{display}/images/{type}', [DisplayController::class, 'serveImage']);
 });

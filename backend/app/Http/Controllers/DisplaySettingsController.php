@@ -245,6 +245,8 @@ class DisplaySettingsController extends Controller
                 'show_organizer' => 'boolean',
                 'show_meeting_title' => 'boolean',
                 'show_meeting_location' => 'boolean',
+                'all_day_events_block' => 'boolean',
+                'led_enabled' => 'boolean',
             ],
             DisplaySettingSections::TEXTS => [
                 'text_available' => 'nullable|string|max:64',
@@ -254,6 +256,7 @@ class DisplaySettingsController extends Controller
             ],
             DisplaySettingSections::BRANDING => [
                 'font_family' => 'nullable|string|in:Inter,Roboto,Open Sans,Lato,Poppins,Montserrat',
+                ...DisplaySettings::fontSizeRules(),
                 'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
                 'remove_logo' => 'boolean',
                 'background_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
@@ -295,6 +298,8 @@ class DisplaySettingsController extends Controller
         $updated = $updated && DisplaySettings::setShowOrganizerEnabled($display, $request->boolean('show_organizer'));
         $updated = $updated && DisplaySettings::setShowMeetingTitle($display, $request->boolean('show_meeting_title'));
         $updated = $updated && DisplaySettings::setShowMeetingLocation($display, $request->boolean('show_meeting_location'));
+        $updated = $updated && DisplaySettings::setAllDayEventsBlocking($display, $request->boolean('all_day_events_block'));
+        $updated = $updated && DisplaySettings::setLedEnabled($display, $request->boolean('led_enabled'));
         $updated = $updated && DisplaySettings::setBorderThickness($display, $request->input('border_thickness', 'medium'));
 
         return $updated;
@@ -332,6 +337,12 @@ class DisplaySettingsController extends Controller
 
         if ($request->has('font_family')) {
             $updated = DisplaySettings::setFontFamily($display, $request->input('font_family'));
+        }
+
+        foreach (array_keys(DisplaySettings::FONT_SIZE_ELEMENTS) as $element) {
+            if ($request->filled("font_size_{$element}")) {
+                $updated = $updated && DisplaySettings::setFontSize($display, $element, $request->input("font_size_{$element}"));
+            }
         }
 
         // Logo

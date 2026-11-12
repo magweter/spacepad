@@ -7,10 +7,10 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use Sabre\DAV\Client;
 use Sabre\DAV\Xml\Property\ResourceType;
-use Sabre\HTTP\ClientException;
-use Sabre\VObject\Reader;
+use Sabre\HTTP\ClientHttpException;
 use Sabre\VObject\Component\VCalendar;
 use Sabre\VObject\Component\VEvent;
+use Sabre\VObject\Reader;
 
 class CalDAVService
 {
@@ -27,7 +27,7 @@ class CalDAVService
 
     private function configureClient(CalDAVAccount $account): void
     {
-        $this->client = new Client([
+        $this->client = self::makeClient([
             'baseUri' => rtrim($account->url, '/'),
             'userName' => $account->username,
             'password' => $account->password,
@@ -47,13 +47,13 @@ class CalDAVService
 
             $calendars = [];
             foreach ($response as $path => $properties) {
-                if (!isset($properties['{DAV:}resourcetype'])) {
+                if (! isset($properties['{DAV:}resourcetype'])) {
                     continue;
                 }
 
                 $resourceType = $properties['{DAV:}resourcetype'];
-                if (!$resourceType instanceof ResourceType ||
-                    !$resourceType->is('{urn:ietf:params:xml:ns:caldav}calendar')) {
+                if (! $resourceType instanceof ResourceType ||
+                    ! $resourceType->is('{urn:ietf:params:xml:ns:caldav}calendar')) {
                     continue;
                 }
 
@@ -66,7 +66,7 @@ class CalDAVService
 
             return $calendars;
         } catch (\Exception $e) {
-            throw new \Exception("Failed to fetch calendars: " . $e->getMessage());
+            throw new \Exception('Failed to fetch calendars: '.$e->getMessage());
         }
     }
 
@@ -105,57 +105,88 @@ XML;
                 throw new \Exception("Unexpected status code {$response['statusCode']}");
             }
 
-            // Parse multi-status response with calendar-data entries
-            $body = $response['body'];
-            $events = [];
-
-            preg_match_all('/<(?:cal|C):calendar-data[^>]*>(.*?)<\/(?:cal|C):calendar-data>/s', $body, $matches);
-
-            foreach ($matches[1] as $icalData) {
-                $vcalendar = Reader::read($icalData);
-                foreach ($vcalendar->select('VEVENT') as $vevent) {
-                    $start = $vevent->DTSTART->getDateTime();
-                    $end = $vevent->DTEND->getDateTime();
-
-                    $organizerName = null;
-                    if (isset($vevent->ORGANIZER)) {
-                        $cn = $vevent->ORGANIZER['CN'] ?? null;
-                        $organizerName = $cn ? (string) $cn : null;
-                        if (!$organizerName) {
-                            $val = (string) $vevent->ORGANIZER;
-                            $organizerName = str_starts_with($val, 'mailto:') ? substr($val, 7) : ($val ?: null);
-                        }
-                    }
-
-                    $events[] = [
-                        'id' => (string) $vevent->UID,
-                        'summary' => (string) $vevent->SUMMARY,
-                        'description' => (string) $vevent->DESCRIPTION,
-                        'location' => (string) $vevent->LOCATION,
-                        'organizer_name' => $organizerName,
-                        'start' => $start->format('Y-m-d\TH:i:sP'),
-                        'end' => $end->format('Y-m-d\TH:i:sP'),
-                        'timezone' => $start->getTimezone()->getName() ?? $end->getTimezone()->getName() ?? 'UTC',
-                        'isAllDay' => $vevent->DTSTART->hasTime() === false,
-                    ];
-                }
-            }
-
-            return $events;
+            return $this->parseEvents($response['body']);
         } catch (\Exception $e) {
-            throw new \Exception("CalDAV request failed: " . $e->getMessage());
+            throw new \Exception('CalDAV request failed: '.$e->getMessage());
         }
+    }
+
+    /**
+     * The VEVENTs in a calendar-query multi-status response.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function parseEvents(string $body): array
+    {
+        $events = [];
+
+        preg_match_all('/<(?:cal|C):calendar-data[^>]*>(.*?)<\/(?:cal|C):calendar-data>/s', $body, $matches);
+
+        foreach ($matches[1] as $icalData) {
+            $vcalendar = Reader::read($icalData);
+            foreach ($vcalendar->select('VEVENT') as $vevent) {
+                if (! isset($vevent->DTSTART)) {
+                    continue;
+                }
+
+                $isAllDay = $vevent->DTSTART->hasTime() === false;
+                $start = $vevent->DTSTART->getDateTime();
+                $end = $this->effectiveEnd($vevent, $start, $isAllDay);
+
+                $organizerName = null;
+                if (isset($vevent->ORGANIZER)) {
+                    $cn = $vevent->ORGANIZER['CN'] ?? null;
+                    $organizerName = $cn ? (string) $cn : null;
+                    if (! $organizerName) {
+                        $val = (string) $vevent->ORGANIZER;
+                        $organizerName = str_starts_with($val, 'mailto:') ? substr($val, 7) : ($val ?: null);
+                    }
+                }
+
+                $events[] = [
+                    'id' => (string) $vevent->UID,
+                    'summary' => (string) $vevent->SUMMARY,
+                    'description' => (string) $vevent->DESCRIPTION,
+                    'location' => (string) $vevent->LOCATION,
+                    'organizer_name' => $organizerName,
+                    // An all-day event is a date, not an instant: it is handed on as one, so it
+                    // can be placed on the display's own midnight instead of the server's.
+                    'start' => $isAllDay ? $start->format('Y-m-d') : $start->format('Y-m-d\TH:i:sP'),
+                    'end' => $isAllDay ? $end->format('Y-m-d') : $end->format('Y-m-d\TH:i:sP'),
+                    'timezone' => $start->getTimezone()->getName() ?? $end->getTimezone()->getName() ?? 'UTC',
+                    'isAllDay' => $isAllDay,
+                    'isFree' => strtoupper((string) ($vevent->TRANSP ?? '')) === 'TRANSPARENT',
+                ];
+            }
+        }
+
+        return $events;
+    }
+
+    /**
+     * When an event ends, also for the events that do not say so with DTEND.
+     *
+     * DTEND is optional in iCalendar: an event can give a DURATION instead, or neither, in which
+     * case an all-day event lasts its one day and a timed event is a moment (RFC 5545, 3.6.1).
+     */
+    private function effectiveEnd(VEvent $vevent, \DateTimeImmutable $start, bool $isAllDay): \DateTimeImmutable
+    {
+        if (isset($vevent->DTEND)) {
+            return $vevent->DTEND->getDateTime();
+        }
+
+        if (isset($vevent->DURATION)) {
+            return $start->add($vevent->DURATION->getDateInterval());
+        }
+
+        return $isAllDay ? $start->modify('+1 day') : $start;
     }
 
     /**
      * Create an event in CalDAV calendar.
      *
-     * @param CalDAVAccount $caldavAccount
-     * @param string $calendarId
-     * @param string $summary
-     * @param Carbon $start
-     * @param Carbon $end
      * @return string|null Event UID
+     *
      * @throws \Exception
      */
     public function createEvent(
@@ -170,7 +201,7 @@ XML;
         $this->configureClient($caldavAccount);
 
         // Create VCalendar with VEvent
-        $vcalendar = new VCalendar();
+        $vcalendar = new VCalendar;
         $vevent = $vcalendar->createComponent('VEVENT');
 
         $uid = Str::uuid()->toString();
@@ -185,17 +216,17 @@ XML;
             $vevent->DESCRIPTION = $description;
         }
         foreach ($attendees as $email) {
-            $vevent->add('ATTENDEE', 'mailto:' . $email, ['RSVP' => 'TRUE', 'ROLE' => 'REQ-PARTICIPANT']);
+            $vevent->add('ATTENDEE', 'mailto:'.$email, ['RSVP' => 'TRUE', 'ROLE' => 'REQ-PARTICIPANT']);
         }
-        
+
         $vcalendar->add($vevent);
 
         // Generate event filename
-        $filename = $uid . '.ics';
+        $filename = $uid.'.ics';
 
         try {
             // PUT the event to the calendar - trim trailing slash from calendarId to avoid double slashes
-            $path = rtrim($calendarId, '/') . '/' . $filename;
+            $path = rtrim($calendarId, '/').'/'.$filename;
             $response = $this->client->request('PUT', $path, $vcalendar->serialize(), [
                 'Content-Type' => 'text/calendar; charset=utf-8',
             ]);
@@ -206,17 +237,13 @@ XML;
 
             throw new \Exception("Failed to create CalDAV event: Status code {$response['statusCode']}");
         } catch (\Exception $e) {
-            throw new \Exception('Failed to create CalDAV event: ' . $e->getMessage());
+            throw new \Exception('Failed to create CalDAV event: '.$e->getMessage());
         }
     }
 
     /**
      * Delete an event from CalDAV calendar.
      *
-     * @param CalDAVAccount $caldavAccount
-     * @param string $calendarId
-     * @param string $eventId
-     * @return void
      * @throws \Exception
      */
     public function deleteEvent(
@@ -227,27 +254,27 @@ XML;
         $this->configureClient($caldavAccount);
 
         // Generate event filename (assuming .ics extension)
-        $filename = $eventId . '.ics';
+        $filename = $eventId.'.ics';
 
         try {
             // DELETE the event from the calendar - trim trailing slash from calendarId to avoid double slashes
-            $path = rtrim($calendarId, '/') . '/' . $filename;
+            $path = rtrim($calendarId, '/').'/'.$filename;
             $response = $this->client->request('DELETE', $path);
 
             if ($response['statusCode'] < 200 || $response['statusCode'] >= 300) {
                 throw new \Exception("Failed to delete CalDAV event: Status code {$response['statusCode']}");
             }
         } catch (\Exception $e) {
-            throw new \Exception('Failed to delete CalDAV event: ' . $e->getMessage());
+            throw new \Exception('Failed to delete CalDAV event: '.$e->getMessage());
         }
     }
 
     /**
      * Check if the CalDAV server is accessible and credentials are valid
      *
-     * @param string $url The CalDAV server URL
-     * @param string $username The username for authentication
-     * @param string $password The password for authentication
+     * @param  string  $url  The CalDAV server URL
+     * @param  string  $username  The username for authentication
+     * @param  string  $password  The password for authentication
      * @return array{success: bool, message: string} Connection test result
      */
     public function checkConnection(string $url, string $username, string $password): array
@@ -259,30 +286,57 @@ XML;
                 'password' => $password,
             ];
 
-            $client = new Client($settings);
+            $client = self::makeClient($settings);
 
             // Try to fetch the principal URL to verify connection
             $response = $client->propFind('', [
-                '{DAV:}current-user-principal'
+                '{DAV:}current-user-principal',
             ], 0);
 
             if (isset($response['{DAV:}current-user-principal'])) {
                 return [
                     'success' => true,
-                    'message' => 'Successfully connected to CalDAV server'
+                    'message' => 'Successfully connected to CalDAV server',
                 ];
             }
 
             return [
                 'success' => false,
-                'message' => 'Failed to connect to CalDAV server: Could not find principal URL'
+                'message' => 'Failed to connect to CalDAV server: Could not find principal URL',
             ];
 
         } catch (\Exception $e) {
+            // The server was named by the customer. Its status line or the transport error
+            // would turn this check into a port scanner, so only the outcome goes back.
+            logger()->warning('CalDAV connection check failed', [
+                'host' => parse_url($url, PHP_URL_HOST),
+                'error' => $e->getMessage(),
+            ]);
+
+            $status = $e instanceof ClientHttpException ? $e->getHttpStatus() : null;
+
             return [
                 'success' => false,
-                'message' => 'Failed to connect to CalDAV server: ' . $e->getMessage()
+                'message' => in_array($status, [401, 403], true)
+                    ? 'The CalDAV server did not accept the user name and password.'
+                    : 'Could not connect to the CalDAV server. Check the address and try again.',
             ];
         }
+    }
+
+    /**
+     * On the hosted service the address was checked against our own network before it was
+     * saved; a redirect would be a way around that check, so none are followed there.
+     */
+    private static function makeClient(array $settings): Client
+    {
+        if (config('settings.is_self_hosted')) {
+            return new Client($settings);
+        }
+
+        return new class($settings) extends Client
+        {
+            protected $maxRedirects = 0;
+        };
     }
 }

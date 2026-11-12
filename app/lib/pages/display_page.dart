@@ -1,9 +1,11 @@
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:spacepad/build_flags.dart';
 import 'package:spacepad/components/spinner.dart';
 import 'package:spacepad/controllers/display_controller.dart';
 import 'package:spacepad/models/display_model.dart';
+import 'package:spacepad/pages/led_test_page.dart';
 import 'package:spacepad/services/auth_service.dart';
 import 'package:spacepad/theme.dart';
 import 'package:tailwind_components/tailwind_components.dart';
@@ -49,6 +51,33 @@ class DisplayPage extends StatelessWidget {
                   ),
                 ),
               ),
+              // LED test entry, only in a LED test build (see build_flags.dart)
+              if (ledTestEnabled)
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: TWColors.gray_500.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: TWColors.gray_500.withValues(alpha: 0.3)),
+                      ),
+                      child: TextButton(
+                        onPressed: () => Get.to(() => const LedTestPage()),
+                        child: Text(
+                          'led_test'.tr,
+                          style: const TextStyle(
+                            color: TWColors.gray_700,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               Container(
               padding: const EdgeInsets.fromLTRB(20, 20, 20, 60),
               alignment: Alignment.center,

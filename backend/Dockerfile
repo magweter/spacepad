@@ -5,6 +5,8 @@ WORKDIR /app
 # Copy dependency manifests first — composer install is cached until lock file changes
 COPY composer.json composer.lock ./
 RUN composer install --no-cache --no-dev --no-scripts --no-autoloader --ansi --no-interaction --ignore-platform-reqs
+# --no-scripts skips pre-autoload-dump, so strip the unused Google API services explicitly
+RUN composer run-script pre-autoload-dump --ansi --no-interaction
 
 # Only the PSR-4 autoload paths are needed to generate the optimised classmap
 # (composer.json defines: App\ => app/, Database\Factories\ => database/factories/, Database\Seeders\ => database/seeders/)
@@ -41,6 +43,11 @@ RUN echo "apt refresh: ${APT_REFRESH}" \
     && apt-get upgrade -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 RUN install-php-extensions opentelemetry protobuf
+# The base image ships a full compiler toolchain (gcc, g++, make, binutils, libc6-dev,
+# linux-libc-dev). Nothing needs it at runtime, and linux-libc-dev alone adds some fifty
+# kernel CVEs to every weekly image scan. Drop it once the extensions above are built.
+RUN apt-get purge -y --auto-remove gcc g++ make linux-libc-dev libc6-dev binutils cpp pkg-config \
+    && rm -rf /var/lib/apt/lists/*
 
 # CVE-2026-109618 / CVE-2026-109619 (php2shell) are fixed in PHP 8.4.27. The tag above floats,
 # so fail the build rather than ship an older PHP from a stale registry mirror or layer cache.

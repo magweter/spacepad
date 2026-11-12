@@ -1,4 +1,6 @@
 import 'package:get/get.dart';
+import 'package:spacepad/build_flags.dart';
+import 'package:spacepad/translations/led_test_translations.dart';
 
 class AppTranslations extends Translations {
   @override
@@ -20,6 +22,8 @@ class AppTranslations extends Translations {
       'available': 'All yours!',
       'to_be_reserved': 'Make it quick!',
       'till_end_of_day': 'Till end of day',
+      'all_day': 'All day',
+      'until_date': 'Until @date',
       'x_minutes_left': '@minutes min left',
       'x_hours_x_minutes_left': '@hours h @minutes min left',
       'for_x_minutes': 'for @minutes min',
@@ -50,6 +54,7 @@ class AppTranslations extends Translations {
       'server_unreachable_self_hosted': 'Could not connect to the server. Please check if the URL is correct and the server is running.',
       'ssl_error': 'Could not establish a secure connection. This can happen on older Android devices. Please ensure you have the latest version of the app installed.',
       'login_failed': 'Your connect code is incorrect. Please try again.',
+      'login_throttled': 'Too many attempts. Please wait a minute and try again.',
       'reserved': 'Reserved',
       'reserve': 'Reserve',
       'check_in_now': 'Check-in for meeting',
@@ -90,6 +95,7 @@ class AppTranslations extends Translations {
       'end_time_adjusted': 'End time was adjusted because it was not after the start time',
       'end_time_must_be_after_start': 'End time must be after the start time',
       'organizer': 'Organizer',
+      if (ledTestEnabled) ...ledTestTranslations['en_US']!,
     },
     'nl_NL': {
       'introduction_title': 'Welkom bij Spacepad!',
@@ -108,6 +114,8 @@ class AppTranslations extends Translations {
       'available': 'Helemaal van jou!',
       'to_be_reserved': 'Houd het kort!',
       'till_end_of_day': 'Tot het einde van de dag',
+      'all_day': 'Hele dag',
+      'until_date': 'Tot @date',
       'x_minutes_left': 'nog @minutes min',
       'x_hours_x_minutes_left': 'nog @hours uur @minutes min',
       'for_x_minutes': 'voor @minutes min',
@@ -138,6 +146,7 @@ class AppTranslations extends Translations {
       'server_unreachable_self_hosted': 'Kon geen verbinding maken met de server. Controleer of de URL correct is en de server draait.',
       'ssl_error': 'Kon geen beveiligde verbinding tot stand brengen. Dit kan voorkomen op oudere Android-apparaten. Zorg ervoor dat je de nieuwste versie van de app hebt geïnstalleerd.',
       'login_failed': 'Je connect code is incorrect. Probeer het opnieuw.',
+      'login_throttled': 'Te veel pogingen. Wacht een minuut en probeer het opnieuw.',
       'reserved': 'Gereserveerd',
       'reserve': 'Reserveer',
       'check_in_now': 'Check in voor meeting',
@@ -178,6 +187,7 @@ class AppTranslations extends Translations {
       'end_time_adjusted': 'Eindtijd is aangepast omdat deze niet na de starttijd lag',
       'end_time_must_be_after_start': 'Eindtijd moet na de starttijd liggen',
       'organizer': 'Organisator',
+      if (ledTestEnabled) ...ledTestTranslations['nl_NL']!,
     },
     'es_ES': {
       'introduction_title': '¡Bienvenido a Spacepad!',
@@ -196,6 +206,8 @@ class AppTranslations extends Translations {
       'available': 'Todo tuyo!',
       'to_be_reserved': 'Hazlo rápido!',
       'till_end_of_day': 'Hasta el final del día',
+      'all_day': 'Todo el día',
+      'until_date': 'Hasta el @date',
       'x_minutes_left': 'quedan @minutes min',
       'x_hours_x_minutes_left': 'quedan @hours h @minutes min',
       'for_x_minutes': 'por @minutes min',
@@ -226,6 +238,7 @@ class AppTranslations extends Translations {
       'server_unreachable_self_hosted': 'No se pudo conectar con el servidor. Por favor, verifica que la URL sea correcta y que el servidor esté en funcionamiento.',
       'ssl_error': 'No se pudo establecer una conexión segura. Esto puede ocurrir en dispositivos Android más antiguos. Por favor, asegúrate de tener la última versión de la aplicación instalada.',
       'login_failed': 'Tu código de conexión es incorrecto. Por favor, inténtalo de nuevo.',
+      'login_throttled': 'Demasiados intentos. Espera un minuto e inténtalo de nuevo.',
       'reserved': 'Reservado',
       'reserve': 'Reservar',
       'check_in_now': 'Check in para la reunión',
@@ -266,6 +279,7 @@ class AppTranslations extends Translations {
       'end_time_adjusted': 'La hora de fin fue ajustada porque no era posterior a la hora de inicio',
       'end_time_must_be_after_start': 'La hora de fin debe ser posterior a la hora de inicio',
       'organizer': 'Organizador',
+      if (ledTestEnabled) ...ledTestTranslations['es_ES']!,
     },
     'fr_FR': {
       'introduction_title': 'Bienvenue sur Spacepad !',
@@ -284,6 +298,8 @@ class AppTranslations extends Translations {
       'available': 'À vous!',
       'to_be_reserved': 'Faites vite!',
       'till_end_of_day': 'Jusqu\'à la fin de la journée',
+      'all_day': 'Toute la journée',
+      'until_date': 'Jusqu\'au @date',
       'x_minutes_left': 'il reste @minutes min',
       'x_hours_x_minutes_left': 'il reste @hours h @minutes min',
       'for_x_minutes': 'pour @minutes min',
@@ -314,6 +330,7 @@ class AppTranslations extends Translations {
       'server_unreachable_self_hosted': 'Impossible de se connecter au serveur. Veuillez vérifier que l\'URL est correcte et que le serveur fonctionne.',
       'ssl_error': 'Impossible d\'établir une connexion sécurisée. Cela peut se produire sur les anciens appareils Android. Veuillez vous assurer que vous avez la dernière version de l\'application installée.',
       'login_failed': 'Votre code de connexion est incorrect. Veuillez réessayer.',
+      'login_throttled': 'Trop de tentatives. Veuillez patienter une minute et réessayer.',
       'reserved': 'Réservé',
       'reserve': 'Réserver',
       'check_in_now': 'Enregistrez-vous pour la réunion',
@@ -354,6 +371,7 @@ class AppTranslations extends Translations {
       'end_time_adjusted': 'L\'heure de fin a été ajustée car elle n\'était pas postérieure à l\'heure de début',
       'end_time_must_be_after_start': 'L\'heure de fin doit être postérieure à l\'heure de début',
       'organizer': 'Organisateur',
+      if (ledTestEnabled) ...ledTestTranslations['fr_FR']!,
     },
     'de_DE': {
       'introduction_title': 'Willkommen bei Spacepad!',
@@ -372,6 +390,8 @@ class AppTranslations extends Translations {
       'available': 'Ganz für Sie!',
       'to_be_reserved': 'Bitte beeilen!',
       'till_end_of_day': 'Bis zum Ende des Tages',
+      'all_day': 'Ganztägig',
+      'until_date': 'Bis @date',
       'x_minutes_left': 'noch @minutes min',
       'x_hours_x_minutes_left': 'noch @hours std. @minutes min',
       'for_x_minutes': 'für @minutes min',
@@ -402,6 +422,7 @@ class AppTranslations extends Translations {
       'server_unreachable_self_hosted': 'Verbindung zum server konnte nicht hergestellt werden. Bitte überprüfen sie, ob die URL korrekt ist und der server läuft.',
       'ssl_error': 'Konnte keine sichere Verbindung herstellen. Dies kann auf älteren Android-Geräten auftreten. Bitte stellen Sie sicher, dass Sie die neueste Version der App installiert haben.',
       'login_failed': 'Ihr verbindungscode ist falsch. Bitte versuchen sie es erneut.',
+      'login_throttled': 'Zu viele Versuche. Bitte warten Sie eine Minute und versuchen Sie es erneut.',
       'reserved': 'Reserviert',
       'reserve': 'Reservieren',
       'check_in_now': 'Check-in für meeting',
@@ -442,6 +463,7 @@ class AppTranslations extends Translations {
       'end_time_adjusted': 'Endzeit wurde angepasst, da sie nicht nach der Startzeit lag',
       'end_time_must_be_after_start': 'Endzeit muss nach der Startzeit liegen',
       'organizer': 'Organisator',
+      if (ledTestEnabled) ...ledTestTranslations['de_DE']!,
     },
     'sv_SE': {
       'introduction_title': 'Välkommen till Spacepad!',
@@ -460,6 +482,8 @@ class AppTranslations extends Translations {
       'available': 'Helt ditt!',
       'to_be_reserved': 'Gör det snabbt!',
       'till_end_of_day': 'Till slutet av dagen',
+      'all_day': 'Hela dagen',
+      'until_date': 'Till @date',
       'x_minutes_left': '@minutes min kvar',
       'x_hours_x_minutes_left': '@hours tim @minutes min kvar',
       'for_x_minutes': 'i @minutes min',
@@ -490,6 +514,7 @@ class AppTranslations extends Translations {
       'server_unreachable_self_hosted': 'Kunde inte ansluta till servern. Vänligen kontrollera att URL:en är korrekt och att servern körs.',
       'ssl_error': 'Kunde inte upprätta en säker anslutning. Detta kan inträffa på äldre Android-enheter. Se till att du har den senaste versionen av appen installerad.',
       'login_failed': 'Din anslutningskod är felaktig. Vänligen försök igen.',
+      'login_throttled': 'För många försök. Vänta en minut och försök igen.',
       'reserved': 'Reserverad',
       'reserve': 'Reservera',
       'check_in_now': 'Checka in för möte',
@@ -530,6 +555,7 @@ class AppTranslations extends Translations {
       'end_time_adjusted': 'Sluttiden justerades eftersom den inte var efter starttiden',
       'end_time_must_be_after_start': 'Sluttiden måste vara efter starttiden',
       'organizer': 'Organisatör',
+      if (ledTestEnabled) ...ledTestTranslations['sv_SE']!,
     },
   };
 }

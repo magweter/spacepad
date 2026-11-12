@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Event extends Model
 {
-    use HasUlid, HasFactory;
+    use HasFactory, HasUlid;
 
     protected $fillable = [
         'display_id',
@@ -77,11 +77,23 @@ class Event extends Model
     }
 
     /**
+     * Whether this event fills whole days rather than a time range.
+     *
+     * Only events read from a calendar provider can be all-day, and those are never stored: the
+     * flag lives on the transient model getAllEvents() builds, not in a column.
+     */
+    public function isAllDay(): bool
+    {
+        return (bool) ($this->attributes['is_all_day'] ?? false);
+    }
+
+    /**
      * Check if event is currently active
      */
     public function isActive(): bool
     {
         $now = now();
+
         return $this->start <= $now && $this->end > $now;
     }
 
@@ -92,6 +104,7 @@ class Event extends Model
     {
         $now = now();
         $nextHour = $now->copy()->addHour();
+
         return $this->start > $now && $this->start <= $nextHour;
     }
 
@@ -120,6 +133,12 @@ class Event extends Model
     {
         // Never require check-in for any tablet booking
         if ($this->isTabletBooking()) {
+            return false;
+        }
+
+        // An all-day event has no moment anyone walks in: asking for a check-in at midnight would
+        // only ever release the room before the day starts.
+        if ($this->isAllDay()) {
             return false;
         }
 

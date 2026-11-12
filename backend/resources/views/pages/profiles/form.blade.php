@@ -206,6 +206,20 @@
                             <x-info-tip text="The location line of the calendar event, under each meeting in the day schedule. Google and Microsoft put the booked room and the address on that same line, so it can read as a full street and postcode followed by a room name. Not the same as the room name above, which is this display's own name." />
                         </div>
 
+                        <div class="flex items-start gap-3">
+                            <input type="hidden" name="all_day_events_block" value="0">
+                            <input id="all_day_events_block" name="all_day_events_block" type="checkbox" value="1" class="mt-0.5 {{ $checkClass }}" {{ $bool('all_day_events_block', true) ? 'checked' : '' }}>
+                            <label for="all_day_events_block" class="text-sm text-gray-900">All-day events block the room</label>
+                            <x-info-tip text="An all-day event on the room's calendar, such as a training day or a closed room, shows the room as in use for the whole day. Events marked as free in the calendar never block the room, all-day or not." />
+                        </div>
+
+                        <div class="flex items-start gap-3">
+                            <input type="hidden" name="led_enabled" value="0">
+                            <input id="led_enabled" name="led_enabled" type="checkbox" value="1" class="mt-0.5 {{ $checkClass }}" {{ $bool('led_enabled') ? 'checked' : '' }}>
+                            <label for="led_enabled" class="text-sm text-gray-900">LED strips follow the room state</label>
+                            <x-info-tip text="For Philips signage displays with LED strips on the housing. The strips turn green when the room is free, orange when a meeting is about to start or end, and red while it is reserved. Network SICP must be enabled on the display. Has no effect on other devices." />
+                        </div>
+
                         <div class="pt-4 border-t border-gray-100">
                             <p class="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-2">
                                 Border thickness
@@ -249,7 +263,7 @@
                 {{-- Branding --}}
                 <div class="border border-gray-200 rounded-lg p-6">
                     <h3 class="text-base font-semibold text-gray-900">Branding</h3>
-                    <p class="mt-1 text-sm text-gray-500 mb-4">Font, logo and background for every display that follows this profile.</p>
+                    <p class="mt-1 text-sm text-gray-500 mb-4">Font, text sizes, logo and background for every display that follows this profile.</p>
 
                     <div class="space-y-6">
                         <div>
@@ -259,6 +273,25 @@
                                     <option value="{{ $font }}" {{ $val('font_family', 'Inter') === $font ? 'selected' : '' }}>{{ $font }}</option>
                                 @endforeach
                             </select>
+                        </div>
+
+                        {{-- Text sizes --}}
+                        <div class="pt-4 border-t border-gray-100">
+                            <p class="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-2">Text sizes
+                                <x-info-tip text="Make a text larger to read it from further away. A larger size uses more room, so a long meeting title is shortened sooner." />
+                            </p>
+                            <div class="grid grid-cols-2 gap-4">
+                                @foreach(\App\Helpers\DisplaySettings::FONT_SIZE_ELEMENTS as $element => $elementLabel)
+                                    <div>
+                                        <label for="font_size_{{ $element }}" class="block text-xs text-gray-500 mb-1">{{ $elementLabel }}</label>
+                                        <select name="font_size_{{ $element }}" id="font_size_{{ $element }}" class="{{ $selectClass }}">
+                                            @foreach(\App\Helpers\DisplaySettings::FONT_SIZES as $size => $sizeLabel)
+                                                <option value="{{ $size }}" {{ $val("font_size_{$element}", 'normal') === $size ? 'selected' : '' }}>{{ $sizeLabel }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                @endforeach
+                            </div>
                         </div>
 
                         {{-- Logo --}}

@@ -69,6 +69,8 @@ class DisplaySettingSections
                     'show_organizer' => 'boolean',
                     'show_meeting_title' => 'boolean',
                     'show_meeting_location' => 'boolean',
+                    'all_day_events_block' => 'boolean',
+                    'led_enabled' => 'boolean',
                 ],
                 'display_only_keys' => [],
                 // 'view_schedule' used to be 'calendar_enabled'; see DisplaySettings::isCalendarEnabled().
@@ -88,9 +90,10 @@ class DisplaySettingSections
             ],
             self::BRANDING => [
                 'label' => 'Branding',
-                'description' => 'Font, logo and background.',
+                'description' => 'Font, text sizes, logo and background.',
                 'profile_keys' => [
                     'font_family' => 'string',
+                    ...array_map(fn () => 'string', DisplaySettings::fontSizeRules()),
                     'logo' => 'string',
                     'background_image' => 'string',
                 ],

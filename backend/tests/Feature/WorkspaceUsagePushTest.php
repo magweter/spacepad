@@ -142,3 +142,14 @@ test('a self-hosted instance pushes nothing', function () {
 
     Http::assertNothingSent();
 });
+
+test('a yearly subscription is not resized when usage changes', function () {
+    config(['settings.pro_yearly_variant_ids' => ['1']]);
+    $workspace = pushWorkspace();
+
+    // Paid a year ahead: the quantity only moves on the monthly anniversary, with an
+    // immediate invoice, so a push here would leave nothing to bill and credit a decrease.
+    Display::factory()->count(2)->create(['workspace_id' => $workspace->id]);
+
+    Http::assertNothingSent();
+});

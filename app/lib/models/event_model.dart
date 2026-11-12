@@ -14,6 +14,8 @@ class EventModel {
   String? source;
   bool isTabletBooking;
   String? organizerName;
+  // Fills whole days: start and end are midnights on this device's clock.
+  bool isAllDay;
 
   EventModel({
     required this.id,
@@ -29,6 +31,7 @@ class EventModel {
     this.source,
     this.isTabletBooking = false,
     this.organizerName,
+    this.isAllDay = false,
   });
 
   factory EventModel.fromJson(Map<String, dynamic> data) {
@@ -46,6 +49,7 @@ class EventModel {
       source: data['source'],
       isTabletBooking: data['isTabletBooking'] ?? false,
       organizerName: data['organizerName'],
+      isAllDay: data['isAllDay'] ?? false,
     );
   }
 
@@ -62,6 +66,7 @@ class EventModel {
       'isCheckedIn': isCheckedIn,
       'checkInRequired': checkInRequired,
       'organizerName': organizerName,
+      'isAllDay': isAllDay,
     };
   }
 }
