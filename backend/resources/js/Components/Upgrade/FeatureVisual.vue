@@ -18,10 +18,8 @@ const rooms = [
 <template>
     <div class="flex aspect-[16/10] items-center justify-center overflow-hidden rounded-xl p-6" :style="{ background: ground }">
         <!-- Every room its own display -->
-        <div v-if="feature === 'displays'" class="grid grid-cols-3 gap-3">
-            <div v-for="(t, i) in ['reserved', 'available', 'checkin', 'available', 'available', 'reserved']" :key="i" class="scale-[1.6] p-2">
-                <DisplayGlyph :tone="t" />
-            </div>
+        <div v-if="feature === 'displays'" class="grid grid-cols-3 gap-4">
+            <DisplayGlyph v-for="(t, i) in ['reserved', 'available', 'checkin', 'available', 'available', 'reserved']" :key="i" :tone="t" :width="96" />
         </div>
 
         <!-- One display, made yours -->
@@ -56,9 +54,9 @@ const rooms = [
                 <path d="M2 35h12M14 35 32 8M14 35h18M14 35l18 27" />
             </svg>
             <div class="flex flex-col gap-2">
-                <DisplayGlyph tone="available" class="scale-[1.3]" />
-                <DisplayGlyph tone="reserved" class="scale-[1.3]" />
-                <DisplayGlyph tone="available" class="scale-[1.3]" />
+                <DisplayGlyph tone="available" :width="64" />
+                <DisplayGlyph tone="reserved" :width="64" />
+                <DisplayGlyph tone="available" :width="64" />
             </div>
         </div>
 
