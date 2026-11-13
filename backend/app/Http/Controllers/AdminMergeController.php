@@ -15,11 +15,14 @@ use App\Models\WorkspaceInvitation;
 use App\Models\WorkspaceMember;
 use App\Services\FreePlanDisplayLimit;
 use App\Services\WorkspaceTransferService;
-use Illuminate\Contracts\View\View;
+use App\Support\AdminPage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Inertia\Inertia;
+use Inertia\Response;
 
 /**
  * Consolidating two workspaces that should have been one.
@@ -40,13 +43,14 @@ class AdminMergeController extends Controller
         protected FreePlanDisplayLimit $freePlan,
     ) {}
 
-    public function index(Request $request): View
+    public function index(Request $request): Response
     {
         $this->checkAdminAccess();
 
-        return view('pages.admin.merge', [
+        return $this->render($request, [
             'source' => $this->resolveWorkspace($request->input('source')),
             'target' => $this->resolveWorkspace($request->input('target')),
+            'options' => self::DEFAULT_OPTIONS,
             'preview' => null,
         ]);
     }
@@ -55,7 +59,7 @@ class AdminMergeController extends Controller
      * Show what the merge would do. Must have no side effects — it is a POST only because
      * it takes the form body.
      */
-    public function preview(Request $request): View
+    public function preview(Request $request): Response
     {
         $this->checkAdminAccess();
 
@@ -64,7 +68,7 @@ class AdminMergeController extends Controller
         $source = Workspace::findOrFail($validated['source_workspace_id']);
         $target = Workspace::findOrFail($validated['target_workspace_id']);
 
-        return view('pages.admin.merge', [
+        return $this->render($request, [
             'source' => $source,
             'target' => $target,
             'options' => $this->options($request),
@@ -134,6 +138,49 @@ class AdminMergeController extends Controller
 
         return redirect()->route('admin.merge.index')
             ->with('success', "Merged \"{$sourceName}\" into \"{$target->name}\".");
+    }
+
+    /**
+     * What the form starts with before anything was previewed.
+     */
+    private const DEFAULT_OPTIONS = [
+        'move_members' => true,
+        'rename_collisions' => true,
+        'delete_source' => true,
+        'adopt_orphans' => false,
+    ];
+
+    /**
+     * @param  array{source: ?Workspace, target: ?Workspace, options: array<string, bool>, preview: ?array<string, mixed>}  $data
+     */
+    private function render(Request $request, array $data): Response
+    {
+        $workspace = fn (?Workspace $w) => $w ? ['id' => $w->id, 'name' => $w->name] : null;
+        $preview = $data['preview'];
+
+        if ($preview) {
+            // Labels as the screen shows them; the transfer service keys its counts by table.
+            $preview['counts'] = collect($preview['counts'])
+                ->map(fn ($count, $label) => ['label' => Str::headline($label), 'count' => $count])
+                ->values()->all();
+            foreach (['nameCollisions', 'duplicateAccounts'] as $key) {
+                $preview[$key] = collect($preview[$key])
+                    ->map(fn ($items, $type) => ['type' => Str::headline($type), 'items' => $items])
+                    ->values()->all();
+            }
+        }
+
+        return Inertia::render('Admin/Merge', [
+            ...AdminPage::props($request),
+            'source' => $workspace($data['source']),
+            'target' => $workspace($data['target']),
+            'options' => $data['options'],
+            'preview' => $preview,
+            'urls' => [
+                'preview' => route('admin.merge.preview'),
+                'store' => route('admin.merge.store'),
+            ],
+        ]);
     }
 
     /**

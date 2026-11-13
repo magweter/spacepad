@@ -32,6 +32,12 @@ class PortalShell
             ['key' => 'settings', 'label' => 'Settings', 'icon' => 'settings', 'href' => route('settings.index')],
         ];
 
+        // The admin panel, for Spacepad admins only and never while impersonating someone (the
+        // admin controllers refuse that too, see ChecksAdminAccess).
+        if ($user->isAdmin() && ! $request->session()->get('impersonating') && ! config('settings.is_self_hosted')) {
+            $nav[] = ['key' => 'admin', 'label' => 'Admin', 'icon' => 'shield', 'href' => route('admin.index'), 'divider' => true];
+        }
+
         return [
             'workspace' => $workspace->name,
             'plan' => $hasPro ? 'Pro workspace' : 'Free workspace',

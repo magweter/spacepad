@@ -9,6 +9,8 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
+use Inertia\Testing\AssertableInertia;
+use Inertia\Testing\AssertableInertia as Assert;
 
 uses(RefreshDatabase::class);
 
@@ -176,11 +178,17 @@ test('the admin workspace page renders the unit price field with the effective M
     $this->actingAs($admin)
         ->get(route('admin.workspaces.show', $user->primaryWorkspace()))
         ->assertOk()
-        ->assertSee('Monthly price per unit')
-        ->assertSee('name="manual_billing_unit_price"', false)
-        ->assertSee('value="12.50"', false)
-        // 4 billable units at $12.50 (the hint wraps across lines in the template)
-        ->assertSeeInOrder(['Effective MRR: $12.50', '4 units', '$50.00'], false);
+        ->assertInertia(fn (Assert $page) => $page->component('Admin/Workspace')
+            ->where('billing.mode', 'manual')
+            ->where('billing.unitPrice', '12.50')
+            ->where('billing.globalUnitPrice', '5')
+            ->where('billing.globalUnitPriceFormatted', '$5.00')
+            // 4 billable units at $12.50.
+            ->where('billing.effectiveUnitPrice', '$12.50')
+            ->where('billing.billableUnits', 4)
+            ->where('billing.unitsLabel', 'units')
+            ->where('billing.effectiveMrr', '$50.00')
+            ->where('urls.billing', route('admin.workspaces.billing', $user->primaryWorkspace())));
 });
 
 test('the admin user page points at the workspace that carries the billing', function () {
@@ -190,8 +198,9 @@ test('the admin user page points at the workspace that carries the billing', fun
     $this->actingAs($admin)
         ->get(route('admin.users.show', $user))
         ->assertOk()
-        ->assertSee('Manage workspace billing')
-        ->assertSee(route('admin.workspaces.show', $user->primaryWorkspace()), false);
+        ->assertInertia(fn (AssertableInertia $page) => $page->component('Admin/User')
+            ->where('billingWorkspace.name', $user->primaryWorkspace()->name)
+            ->where('billingWorkspace.url', route('admin.workspaces.show', $user->primaryWorkspace())));
 });
 
 test('the billing owner must be a member of the workspace', function () {
@@ -216,8 +225,10 @@ test('the workspace list shows the billable units straight from the counters', f
     $this->actingAs($admin)
         ->get(route('admin.workspaces.index'))
         ->assertOk()
-        ->assertSee($user->primaryWorkspace()->name)
-        ->assertSee('Manually billed');
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('workspaces.data', fn ($rows) => collect($rows)->contains(fn ($row) => $row['name'] === $user->primaryWorkspace()->name
+                && $row['units'] === 4
+                && $row['plan'] === ['label' => 'Manually billed', 'tone' => 'checkin'])));
 });
 
 test('a negative unit price is rejected', function () {
@@ -292,7 +303,9 @@ test('the admin workspace page preselects the current billing mode', function ()
     $this->actingAs($admin)
         ->get(route('admin.workspaces.show', $user->primaryWorkspace()))
         ->assertOk()
-        ->assertSee('value="unlimited"', false)
-        ->assertSeeInOrder(['value="unlimited"', 'checked'], false)
-        ->assertDontSee('running Lemon Squeezy subscription');
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('billing.mode', 'unlimited')
+            ->where('workspace.plan', 'Unlimited')
+            // No running subscription, so no warning that changing the billing leaves one behind.
+            ->where('workspace.hasLiveSubscription', false));
 });
