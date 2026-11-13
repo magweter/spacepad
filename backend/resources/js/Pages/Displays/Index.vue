@@ -215,12 +215,13 @@ const fieldClass = 'rounded-lg border border-line bg-surface px-3 py-2 text-[13p
                                 </template>
                                 <span v-else class="text-muted">No tablet</span>
                             </span>
-                            <span class="min-w-0">
-                                <span v-if="d.profile" class="inline-flex max-w-full items-center gap-1.5 truncate rounded-full bg-line-soft px-2.5 py-0.5 text-xs font-medium text-ink-2"
-                                      :title="d.profile.deviates ? `Follows ${d.profile.name}, with its own settings in one or more sections` : `Follows ${d.profile.name}`">
-                                    <span class="truncate">{{ d.profile.name }}</span>
-                                    <span v-if="d.profile.deviates" class="text-checkin-text">, own settings</span>
-                                </span>
+                            <!-- The profile, and on a line of its own (like the other columns) whether it deviates. -->
+                            <span class="flex min-w-0 flex-col items-start gap-0.5"
+                                  :title="d.profile ? (d.profile.deviates ? `Follows ${d.profile.name}, with its own settings in one or more sections` : `Follows ${d.profile.name}`) : null">
+                                <template v-if="d.profile">
+                                    <span class="max-w-full truncate rounded-full bg-line-soft px-2.5 py-0.5 text-xs font-medium text-ink-2">{{ d.profile.name }}</span>
+                                    <span v-if="d.profile.deviates" class="max-w-full truncate text-xs text-checkin-text">Some own settings</span>
+                                </template>
                                 <span v-else class="text-[13px] text-muted">-</span>
                             </span>
                             <span class="cursor-default" @click.stop><RowMenu :display="d" :has-pro="hasPro" @open="open(d.id)" @toggle="actions.toggle(d)" @make-active="actions.makeActive(d)" @diagnose="actions.diagnose(d)" @remove="actions.remove(d)" /></span>
