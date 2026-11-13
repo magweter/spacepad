@@ -7,6 +7,7 @@ import FlashMessage from '../../Components/FlashMessage.vue';
 import Icon from '../../Components/Icon.vue';
 import Button from '../../DesignSystem/Button.vue';
 import { useRoomDay } from '../../Composables/useRoomDay';
+import { requestJson } from '../../Composables/http';
 import RoomsNow from './Partials/RoomsNow.vue';
 import KeyFigures from './Partials/KeyFigures.vue';
 import Occupancy from './Partials/Occupancy.vue';
@@ -21,7 +22,57 @@ const props = defineProps({
 
 const page = usePage();
 const now = ref(new Date());
-const { list, hours, figures, occupancy, nowLeft, nowLabel } = useRoomDay(toRef(props, 'rooms'), now);
+// Today's figures and occupancy come from the page; the timeline can show any other day.
+const { hours, figures, occupancy } = useRoomDay(toRef(props, 'rooms'), now);
+
+// The day on the timeline: null is today (from the page, reloaded every minute), any other day
+// is fetched from the calendars on request.
+const day = ref(null);
+const dayRooms = ref(null);
+const loading = ref(false);
+let request = 0;
+const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+async function loadDay() {
+    const ticket = ++request;
+    loading.value = true;
+    try {
+        const data = await requestJson('GET', props.urls.day, { params: { date: iso(day.value), offset: -day.value.getTimezoneOffset() } });
+        if (ticket === request) dayRooms.value = data.rooms;
+    } catch {
+        if (ticket === request) dayRooms.value = props.rooms.map((r) => ({ id: r.id, events: [], error: 'The day could not be loaded. Try again.' }));
+    } finally {
+        if (ticket === request) loading.value = false;
+    }
+}
+function showDay(date) {
+    const d = date ? new Date(date) : null;
+    d?.setHours(0, 0, 0, 0);
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    if (!d || d.getTime() === today.getTime()) {
+        request++;
+        day.value = null; dayRooms.value = null; loading.value = false;
+        return;
+    }
+    day.value = d;
+    loadDay();
+}
+// After booking or changing a meeting: fetch the day shown again.
+function refresh() {
+    if (day.value) return loadDay();
+    loading.value = true;
+    router.reload({ only: ['rooms', 'notices'], onSuccess: () => { now.value = new Date(); }, onFinish: () => { loading.value = false; } });
+}
+
+const timelineRooms = computed(() => {
+    if (!day.value || !dayRooms.value) return day.value ? props.rooms.map((r) => ({ ...r, events: [] })) : props.rooms;
+    const byId = Object.fromEntries(dayRooms.value.map((r) => [r.id, r]));
+    return props.rooms.map((r) => {
+        const d = byId[r.id];
+        return { ...r, events: d?.events ?? [], error: d?.error ?? null, hasData: !!d && d.events !== null && !d.error };
+    });
+});
+const timeline = useRoomDay(timelineRooms, now, { day, fullDay: true });
 
 const occupancyLabels = computed(() => hours.value.filter((h) => h.hour % 2 === 0).map((h) => h.label));
 const firstName = computed(() => (props.shell.user || '').split(/[\s.@]+/)[0]);
@@ -84,7 +135,9 @@ onBeforeUnmount(() => { clearInterval(tick); clearInterval(poll); });
             <div class="flex flex-wrap items-start gap-6">
                 <div class="flex min-w-0 flex-[999_1_560px] flex-col gap-4">
                     <KeyFigures v-if="rooms.length" :figures="figures" :accounts="accounts" />
-                    <RoomsNow :rooms="list" :hours="hours" :now-left="nowLeft" :now-label="nowLabel" :urls="urls" />
+                    <RoomsNow :rooms="timeline.list.value" :hours="timeline.hours.value" :now-left="timeline.nowLeft.value" :now-label="timeline.nowLabel.value"
+                              :day="timeline.dayStart.value" :is-today="timeline.isToday.value" :loading="loading" :percent="timeline.percent" :time-at="timeline.timeAt"
+                              :now="now" :urls="urls" @day="showDay" @changed="refresh" />
                     <Occupancy v-if="occupancy.length" :hours="occupancy" :labels="occupancyLabels" />
                 </div>
 

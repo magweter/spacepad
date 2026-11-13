@@ -317,7 +317,14 @@ a separate account with its own invisible set of displays.
 - **Overview** — a greeting with how things stand, key figures (displays online, rooms free, bookings
   today, calendars), only the notices that block the product, the rooms right now as a timeline or
   cards, occupancy per hour and the setup checklist. Read from the cached events, so it never calls a
-  calendar provider
+  calendar provider. The timeline is a day calendar over the whole day that scrolls sideways; a click on
+  a meeting shows its details (organiser, location, online meeting link). Other days are fetched live
+  from the calendars with a loading indicator (previous, next, today, pick a date)
+- **Managing meetings from the portal** — every workspace member can book a room (click an empty spot
+  on the timeline or "Book a room"), check in, extend by 15 or 30 minutes, end a running meeting or
+  cancel one that has not started, under the same rules as the tablet: Pro, a display that is not
+  paused, booking switched on, booking ahead only when "allow future bookings" is on, and the room's
+  extend and cancel settings
 - **Displays** — list with live status, calendar, tablet and profile, filters, bulk profile assignment,
   and a side panel per display (deep-linkable) with its tablets, calendar, today's bookings, profile,
   pairing code and actions

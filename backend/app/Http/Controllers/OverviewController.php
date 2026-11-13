@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Enums\CancellationReason;
 use App\Enums\DisplayStatus;
-use App\Enums\EventSource;
 use App\Enums\FunnelStep;
 use App\Enums\GoogleBookingMethod;
 use App\Enums\OnboardingQuestion;
@@ -20,6 +19,7 @@ use App\Models\Workspace;
 use App\Services\Funnel;
 use App\Services\FunnelTracking;
 use App\Support\PortalEvents;
+use App\Support\PortalSchedule;
 use App\Support\PortalShell;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -125,6 +125,7 @@ class OverviewController extends Controller
                 'team' => route('workspaces.members'),
                 'boardsCreate' => route('boards.create'),
                 'pairing' => route('setup.first-display', ['step' => 'tablet']),
+                'day' => route('schedule.day'),
             ],
         ]);
     }
@@ -203,20 +204,15 @@ class OverviewController extends Controller
             // Sent in UTC: the browser places them on its own day.
             'events' => collect($cached ?? [])
                 ->filter(fn ($e) => $e->end?->gt(now()->subDay()) && $e->start?->lt(now()->addDay()))
-                ->map(fn ($e) => [
-                    'start' => $e->start->toIso8601String(),
-                    'end' => $e->end->toIso8601String(),
-                    'title' => $e->summary ?: 'Booked',
-                    'tablet' => $e->calendar_id !== null || $e->source === EventSource::CUSTOM,
-                    'checkInUntil' => $grace !== null && $e->checked_in_at === null ? $e->start->copy()->addMinutes($grace)->toIso8601String() : null,
-                    // For the event details the timeline opens on a click.
-                    'organizer' => filled($e->organizer_name) ? $e->organizer_name : ($e->isTabletBooking() ? $e->user?->name : null),
-                    'location' => $e->location ?: null,
-                    'joinUrl' => $e->join_url ?: null,
-                    'checkedIn' => $e->checked_in_at !== null,
-                ])
+                ->map(fn ($e) => PortalSchedule::event($e, $grace))
                 ->sortBy('start')->values()->all(),
             'url' => route('displays.configure', $display),
+            'actions' => PortalSchedule::actions($display),
+            'urls' => [
+                'book' => route('schedule.book', $display),
+                // Base for an event's actions: {events}/{id}/check-in, /extend, and DELETE {events}/{id}.
+                'events' => url("/schedule/{$display->id}/events"),
+            ],
         ];
     }
 

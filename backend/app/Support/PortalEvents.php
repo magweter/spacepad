@@ -71,6 +71,15 @@ class PortalEvents
     }
 
     /**
+     * Drop the portal's own copy after a change made from the portal, so the next page shows it.
+     */
+    public static function forget(Display $display): void
+    {
+        Cache::forget("portal:events:{$display->id}");
+        Cache::forget("portal:events:{$display->id}:failed");
+    }
+
+    /**
      * Start a new time budget; the next page request gets its own.
      */
     public static function reset(): void

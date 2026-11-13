@@ -3,11 +3,14 @@ import { computed } from 'vue';
 const hm = (date) => date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
 
 /**
- * Today's picture of every room, in the browser's own timezone: its status right now, its
- * bookings on a shared timeline and the figures the overview shows. `rooms` and `now` are refs.
+ * One day's picture of every room, in the browser's own timezone: its status right now, its
+ * bookings on a shared timeline and the figures the overview shows. `rooms` and `now` are refs;
+ * `day` (a ref to a date, or null for today) picks another day, and `fullDay` draws all 24 hours
+ * instead of office hours.
  */
-export function useRoomDay(rooms, now) {
-    const dayStart = computed(() => { const d = new Date(now.value); d.setHours(0, 0, 0, 0); return d; });
+export function useRoomDay(rooms, now, { day = null, fullDay = false } = {}) {
+    const dayStart = computed(() => { const d = new Date(day?.value ?? now.value); d.setHours(0, 0, 0, 0); return d; });
+    const isToday = computed(() => { const d = new Date(now.value); d.setHours(0, 0, 0, 0); return d.getTime() === dayStart.value.getTime(); });
     const dayEnd = computed(() => { const d = new Date(dayStart.value); d.setDate(d.getDate() + 1); return d; });
 
     // Today's bookings per room, as dates.
@@ -20,6 +23,7 @@ export function useRoomDay(rooms, now) {
 
     // 08:00 to 18:00, wider when a booking starts earlier or ends later.
     const range = computed(() => {
+        if (fullDay) return { from: 0, to: 24 };
         let from = 8;
         let to = 18;
         for (const room of today.value) {
@@ -41,7 +45,12 @@ export function useRoomDay(rooms, now) {
         if (room.status === 'requires_pro') return { key: 'offline', label: 'Paused', detail: 'needs Pro' };
         if (room.status === 'deactivated') return { key: 'offline', label: 'Deactivated', detail: '' };
         if (room.device && !room.device.online) return { key: 'offline', label: 'Offline', detail: `last seen ${room.device.lastSeen}` };
+        if (room.error) return { key: 'offline', label: 'Not loaded', detail: room.error };
         if (!room.hasData) return { key: 'offline', label: 'No data yet', detail: room.device ? 'waiting for the tablet' : 'no tablet paired' };
+        if (!isToday.value) {
+            const n = room.bookings.length;
+            return { key: 'free', label: n ? `${n} ${n === 1 ? 'booking' : 'bookings'}` : 'No bookings', detail: '', meeting: '' };
+        }
 
         const t = now.value;
         const current = room.bookings.find((b) => b.start <= t && b.end > t);
@@ -70,6 +79,10 @@ export function useRoomDay(rooms, now) {
                     ...b,
                     room: room.name,
                     roomUrl: room.url,
+                    roomId: room.id,
+                    actions: room.actions,
+                    eventsUrl: room.urls?.events,
+                    live,
                     time: `${hm(b.start)} to ${hm(b.end)}`,
                     minutes: Math.round((b.end - b.start) / 60000),
                     left: percent(b.start),
@@ -118,5 +131,15 @@ export function useRoomDay(rooms, now) {
         return out;
     });
 
-    return { list, hours, figures, occupancy, nowLeft: computed(() => percent(now.value)), nowLabel: computed(() => hm(now.value)) };
+    // The now line only on today.
+    const nowLeft = computed(() => (isToday.value ? percent(now.value) : null));
+
+    // Where a click on the timeline lands, as a time on this day rounded down to the quarter hour.
+    const timeAt = (fraction) => {
+        const ms = at(range.value.from).getTime() + fraction * span.value;
+        const quarter = 15 * 60000;
+        return new Date(Math.floor(ms / quarter) * quarter);
+    };
+
+    return { list, hours, figures, occupancy, nowLeft, nowLabel: computed(() => hm(now.value)), isToday, dayStart, percent, timeAt };
 }
