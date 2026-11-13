@@ -1,12 +1,12 @@
 <script setup>
-import { ref } from 'vue';
+import { useRememberedRef } from '../../../Composables/useRememberedRef';
 import Card from '../../../DesignSystem/Card.vue';
 import EmptyState from '../../../DesignSystem/EmptyState.vue';
 import Button from '../../../DesignSystem/Button.vue';
 
 defineProps({ rooms: Array, hours: Array, nowLeft: Number, nowLabel: String, urls: Object });
 
-const view = ref('timeline');
+const view = useRememberedRef('overview.rooms.view', 'timeline', ['timeline', 'cards']);
 const rail = { free: 'border-l-available', busy: 'border-l-reserved', checkin: 'border-l-checkin', offline: 'border-l-offline' };
 const dot = { free: 'bg-available', busy: 'bg-reserved', checkin: 'bg-checkin', offline: 'bg-offline' };
 const text = { free: 'text-available-text', busy: 'text-reserved-text', checkin: 'text-checkin-text', offline: 'text-muted' };

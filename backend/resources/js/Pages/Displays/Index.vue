@@ -1,4 +1,5 @@
 <script setup>
+import { useRememberedRef } from '../../Composables/useRememberedRef';
 import { computed, onBeforeUnmount, onMounted, ref, toRef, watch } from 'vue';
 import { Head, router } from '@inertiajs/vue3';
 import PortalShell from '../../Components/PortalShell.vue';
@@ -40,7 +41,7 @@ const subtitle = computed(() => {
 const query = ref('');
 const statusFilter = ref('all');
 const profileFilter = ref('any');
-const view = ref('table');
+const view = useRememberedRef('displays.view', 'table', ['table', 'cards']);
 const statusOptions = [
     { value: 'all', label: 'All' },
     { value: 'available', label: 'Free' },
