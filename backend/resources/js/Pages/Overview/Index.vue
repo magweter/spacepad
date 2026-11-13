@@ -23,7 +23,7 @@ const page = usePage();
 const now = ref(new Date());
 const { list, hours, figures, occupancy, nowLeft, nowLabel } = useRoomDay(toRef(props, 'rooms'), now);
 
-const occupancyLabels = computed(() => hours.value);
+const occupancyLabels = computed(() => hours.value.filter((h) => h.hour % 2 === 0).map((h) => h.label));
 const firstName = computed(() => (props.shell.user || '').split(/[\s.@]+/)[0]);
 const greeting = computed(() => {
     const h = now.value.getHours();

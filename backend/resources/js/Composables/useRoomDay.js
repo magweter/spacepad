@@ -65,19 +65,25 @@ export function useRoomDay(rooms, now) {
             state: s,
             blocks: room.bookings.map((b) => {
                 const live = b.start <= now.value && b.end > now.value;
+                const waiting = live && s.key === 'checkin';
                 return {
-                    title: b.title,
+                    ...b,
+                    room: room.name,
+                    roomUrl: room.url,
+                    time: `${hm(b.start)} to ${hm(b.end)}`,
+                    minutes: Math.round((b.end - b.start) / 60000),
                     left: percent(b.start),
                     width: Math.max(0.6, percent(b.end) - percent(b.start)),
-                    tone: b.end <= now.value ? 'past' : live ? (s.key === 'checkin' ? 'checkin' : 'busy') : 'booked',
+                    tone: b.end <= now.value ? 'past' : live ? (waiting ? 'checkin' : 'busy') : 'booked',
                 };
             }),
         };
     }));
 
+    // Every hour of the window with its place on the timeline, for the grid lines and labels.
     const hours = computed(() => {
         const out = [];
-        for (let h = range.value.from; h <= range.value.to; h += 2) out.push(`${String(h).padStart(2, '0')}:00`);
+        for (let h = range.value.from; h <= range.value.to; h++) out.push({ label: `${String(h).padStart(2, '0')}:00`, left: percent(at(h)), hour: h });
         return out;
     });
 

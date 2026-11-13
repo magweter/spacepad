@@ -209,6 +209,11 @@ class OverviewController extends Controller
                     'title' => $e->summary ?: 'Booked',
                     'tablet' => $e->calendar_id !== null || $e->source === EventSource::CUSTOM,
                     'checkInUntil' => $grace !== null && $e->checked_in_at === null ? $e->start->copy()->addMinutes($grace)->toIso8601String() : null,
+                    // For the event details the timeline opens on a click.
+                    'organizer' => filled($e->organizer_name) ? $e->organizer_name : ($e->isTabletBooking() ? $e->user?->name : null),
+                    'location' => $e->location ?: null,
+                    'joinUrl' => $e->join_url ?: null,
+                    'checkedIn' => $e->checked_in_at !== null,
                 ])
                 ->sortBy('start')->values()->all(),
             'url' => route('displays.configure', $display),

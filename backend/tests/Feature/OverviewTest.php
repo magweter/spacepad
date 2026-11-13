@@ -139,3 +139,18 @@ test('with caching off the fetched events are kept for a minute', function () {
     $this->actingAs($user)->get(route('dashboard'));
     $this->actingAs($user)->get(route('displays.index'))->assertInertia(fn (Assert $page) => $page->where('displays.0.hasData', true));
 });
+
+test('each meeting carries its details for the timeline', function () {
+    $user = User::factory()->active()->create(['name' => 'Sanne Vos']);
+    $display = overviewDisplay($user);
+    Cache::put($display->getEventsCacheKey(), collect([
+        new Event(['summary' => 'Design review', 'start' => now()->addHour(), 'end' => now()->addHours(2), 'source' => 'outlook',
+            'location' => 'Floor 2', 'join_url' => 'https://teams.microsoft.com/l/meetup-join/abc']),
+    ]));
+
+    $this->actingAs($user)->get(route('dashboard'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('rooms.0.events.0.location', 'Floor 2')
+            ->where('rooms.0.events.0.joinUrl', 'https://teams.microsoft.com/l/meetup-join/abc')
+            ->where('rooms.0.events.0.checkedIn', false));
+});
