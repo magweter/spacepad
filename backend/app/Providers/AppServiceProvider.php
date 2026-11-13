@@ -11,7 +11,6 @@ use App\Observers\BoardObserver;
 use App\Observers\DisplayObserver;
 use App\Observers\EventObserver;
 use App\Observers\WorkspaceObserver;
-use App\Services\AdminStatsService;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Foundation\Events\DiagnosingHealth;
 use Illuminate\Http\Request;
@@ -19,7 +18,6 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Sanctum\Sanctum;
 use LemonSqueezy\Laravel\LemonSqueezy;
@@ -77,12 +75,6 @@ class AppServiceProvider extends ServiceProvider
         // walking the code space.
         RateLimiter::for('device_pairing', function (Request $request) {
             return Limit::perMinute(10)->by($request->ip());
-        });
-
-        // Every admin screen shows the same tiles, so they are filled here rather than by
-        // each admin controller remembering to pass them.
-        View::composer('components.admin.stats', function ($view) {
-            $view->with('stats', app(AdminStatsService::class)->figures());
         });
 
         EventModel::observe(EventObserver::class);

@@ -178,24 +178,30 @@ reads as lower quality even when it works perfectly.
 
 Before writing any markup, open the closest existing screen of the same kind and copy its structure:
 
-- **Find the sibling first.** A new list page copies the users table on the admin dashboard
-  (`resources/views/pages/admin.blade.php`). A new detail page copies the user detail page
-  (`resources/views/pages/admin/user.blade.php`). Match the page chrome, the card, the table classes,
-  the badge style, the empty state, the pagination and the date format exactly. Do not invent a
-  second way to draw a table.
+- **The portal is Inertia + Vue on the design system.** New portal screens are Vue pages in
+  `backend/resources/js/Pages/`, rendered inside `Components/PortalShell.vue` with
+  `App\Support\PortalShell::for(...)` from the controller. Build them from the design system
+  components in `resources/js/DesignSystem/` and its tokens; Blade is only left for the screens that
+  are not part of the portal (the board on a TV, invitations, error pages).
+- **Find the sibling first.** A new list page copies the displays table
+  (`resources/js/Pages/Displays/Index.vue`); an admin list copies `Pages/Admin/Users.vue`. A new
+  detail page copies the admin user page (`Pages/Admin/User.vue`). Match the page chrome, the card,
+  the table, the badge style, the empty state, the pagination and the date format exactly. Do not
+  invent a second way to draw a table.
 - **Same level, same chrome.** Anything reachable from a tab renders that tab bar and looks like the
-  other tabs. A drill-down reached from a list gets the narrower container and a link back up, not
-  the tab bar.
+  other tabs. A drill-down reached from a list gets a link back up, not the tab bar.
 - **Extract, don't duplicate.** When a second screen needs the same chrome, pull it into a shared
-  component (`resources/views/components/admin/tabs.blade.php`, `.../stats.blade.php`) rather than
-  copying the markup. Copies drift.
+  component (the admin screens share `Pages/Admin/Partials/AdminTabs.vue` and
+  `App\Support\AdminPage::props()`) rather than copying the markup. Copies drift.
 - **Form fields carry the full class set.** This is Tailwind v4 **without** `@tailwindcss/forms`, so
   preflight strips the native control border and `border-gray-300` only sets a colour. Every
-  `<input>`, `<select>` and `<textarea>` needs an explicit `border` plus padding, e.g.
-  `block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500`. A field
-  without `border` renders invisible.
-- **Reuse the existing components** in `resources/views/components/` (`x-cards.card`,
-  `x-alerts.alert`, `x-icons.*`) instead of hand-rolling the same thing.
+  `<input>`, `<select>` and `<textarea>` needs an explicit `border` plus padding; in the portal
+  `rounded-[10px] border border-offline-border bg-surface px-3.5 py-2.5 text-sm focus:border-navy
+  focus:outline-none`. A field without `border` renders invisible.
+- **Reuse the existing components** instead of hand-rolling the same thing: in the portal the design
+  system (`DesignSystem/Button`, `Card`, `Chip`, `Notice`, `Modal`, `StatusBadge`, `Toggle`,
+  `SettingRow`) and `Components/` (`Icon`, `FlashMessage`, `ProBadge`); in the remaining Blade
+  screens `resources/views/components/` (`x-cards.card`, `x-alerts.alert`, `x-icons.*`).
 
 The same applies in the Flutter app: match the surrounding pages and reuse `app/lib/components/`.
 
