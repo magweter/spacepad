@@ -10,6 +10,7 @@ use App\Console\Commands\RenewEventSubscriptions;
 use App\Console\Commands\SendHeartbeat;
 use App\Console\Commands\UpdateLemonSqueezySubscriptions;
 use App\Console\Commands\ValidateLicense;
+use App\Console\Commands\WarmEventCaches;
 use App\Services\InstanceService;
 use Illuminate\Support\Facades\Schedule;
 
@@ -30,6 +31,12 @@ Schedule::command(ValidateLicense::class)
     ->when(fn () => config('settings.is_self_hosted') && InstanceService::hasLicense())
     ->hourlyAt($validateMinute)
     ->withoutOverlapping(10); // Release lock after 10 minutes
+
+// Pages and boards only read the event cache; this keeps it filled for every display in use.
+Schedule::command(WarmEventCaches::class)
+    ->everyMinute()
+    ->withoutOverlapping(5)
+    ->runInBackground();
 
 Schedule::command(CleanupExpiredEvents::class)
     ->hourly()

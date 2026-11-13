@@ -2,7 +2,7 @@
 // The portal shell from the design: a navy sidebar that never changes, the page beside it. Pages
 // that pass a title get the white header bar with their actions on the right.
 import { ref } from 'vue';
-import { router, usePage } from '@inertiajs/vue3';
+import { Link, router, usePage } from '@inertiajs/vue3';
 import Logo from './Logo.vue';
 import Icon from './Icon.vue';
 import ProBadge from './Upgrade/ProBadge.vue';
@@ -56,12 +56,13 @@ function switchTo(workspace) {
             <nav aria-label="Main" class="flex flex-col gap-0.5">
                 <template v-for="item in shell.nav" :key="item.key">
                     <div v-if="item.divider" class="mx-1 my-2.5 h-px bg-navy-700"></div>
-                    <a :href="item.href" :class="['sp-nav', { 'sp-nav-active': item.active }]" :aria-current="item.active ? 'page' : null">
+                    <!-- Inertia links: switching pages swaps the page, not the whole app, and hovering loads it ahead. -->
+                    <Link :href="item.href" prefetch :cache-for="'10s'" :class="['sp-nav', { 'sp-nav-active': item.active }]" :aria-current="item.active ? 'page' : null">
                         <span class="sp-nav-icon"><Icon :name="item.icon" /></span>
                         <span class="sp-nav-label">{{ item.label }}</span>
                         <span v-if="item.count" class="sp-nav-count">{{ item.count }}</span>
                         <ProBadge v-else-if="item.pro" :feature="item.key" />
-                    </a>
+                    </Link>
                 </template>
             </nav>
 
@@ -80,10 +81,10 @@ function switchTo(workspace) {
 
             <div class="flex items-center gap-2.5 px-1.5 py-1">
                 <span class="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-on-navy-muted text-[13px] font-semibold text-navy">{{ initials(shell.user) }}</span>
-                <a :href="shell.account" class="flex min-w-0 flex-1 flex-col rounded-md hover:opacity-80" :aria-current="shell.accountActive ? 'page' : null" title="Your account">
+                <Link :href="shell.account" prefetch class="flex min-w-0 flex-1 flex-col rounded-md hover:opacity-80" :aria-current="shell.accountActive ? 'page' : null" title="Your account">
                     <span class="truncate text-[13px] font-medium text-white">{{ shell.user }}</span>
                     <span v-if="shell.role" class="text-xs text-on-navy-muted">{{ shell.role }}</span>
-                </a>
+                </Link>
                 <button type="button" class="rounded-md px-2 py-1 text-xs font-semibold text-on-navy-2 hover:bg-navy-800 hover:text-white" @click="router.post(shell.logout)">Log out</button>
             </div>
         </aside>
