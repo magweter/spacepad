@@ -4,6 +4,7 @@ use App\Models\Device;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Schema;
 
 uses(RefreshDatabase::class);
 
@@ -177,7 +178,7 @@ it('updates existing device when connecting with same uid', function () {
 it('works with different users having different codes', function () {
     $user1 = User::factory()->create();
     $user2 = User::factory()->create();
-    
+
     $code1 = $user1->getConnectCode();
     $code2 = $user2->getConnectCode();
 
@@ -208,7 +209,7 @@ it('works with different users having different codes', function () {
 
 it('returns same code when getConnectCode is called multiple times before expiration', function () {
     $user = User::factory()->create();
-    
+
     $code1 = $user->getConnectCode();
     $code2 = $user->getConnectCode();
 
@@ -257,7 +258,7 @@ it('validates required fields', function () {
 it('handles case when user associated with code no longer exists', function () {
     $user = User::factory()->create();
     $code = $user->getConnectCode();
-    
+
     // Manually set cache with a non-existent user ID
     Cache::put("connect-code:$code", 'non-existent-user-id', now()->addMinutes(30));
 
@@ -291,4 +292,16 @@ it('returns token that can be used for authenticated requests', function () {
     $this->withHeader('Authorization', "Bearer $token")
         ->getJson('/api/devices/me')
         ->assertOk();
+});
+
+it('still pairs the tablet when recording the funnel step fails', function () {
+    $user = User::factory()->create();
+    $code = $user->getConnectCode();
+    // The connect code is spent before the funnel write; a broken analytics table must not cost it.
+    Schema::drop('funnel_events');
+
+    $this->postJson('/api/auth/login', ['code' => $code, 'uid' => 'tablet-funnel-down', 'name' => 'Lobby'])
+        ->assertOk();
+
+    expect(Device::where('uid', 'tablet-funnel-down')->exists())->toBeTrue();
 });

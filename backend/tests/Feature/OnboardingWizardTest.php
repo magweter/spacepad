@@ -2,6 +2,7 @@
 
 use App\Enums\OnboardingQuestion;
 use App\Enums\UsageType;
+use App\Enums\WorkspaceRole;
 use App\Models\Device;
 use App\Models\Display;
 use App\Models\FunnelEvent;
@@ -9,6 +10,7 @@ use App\Models\OnboardingAnswer;
 use App\Models\OutlookAccount;
 use App\Models\User;
 use App\Models\WorkspaceJoinRequest;
+use App\Models\WorkspaceMember;
 use App\Notifications\ItAdminCalendarRequest;
 use App\Notifications\WorkspaceJoinRequested;
 use App\Support\OnboardingReturn;
@@ -291,6 +293,48 @@ test('the licence terms on a self-hosted instance cannot be skipped', function (
 
     $this->actingAs($user)->post(route('onboarding.workspace'), ['skip' => true, 'usage_type' => 'business'])
         ->assertSessionHasErrors('accept_terms');
+});
+
+test('skipping the whole wizard on a self-hosted instance still needs the licence terms', function () {
+    config(['settings.is_self_hosted' => true]);
+    $user = newcomer();
+    $user->update(['terms_accepted_at' => null, 'usage_type' => UsageType::BUSINESS]);
+
+    $this->actingAs($user)->post(route('onboarding.skip'), ['step' => 'rooms'])->assertRedirect(route('onboarding'));
+
+    expect($user->fresh()->onboarding_completed_at)->toBeNull();
+});
+
+test('a finished wizard does not count on a self-hosted instance until the licence is accepted', function () {
+    config(['settings.is_self_hosted' => true]);
+    $user = newcomer();
+    $user->update(['terms_accepted_at' => null, 'usage_type' => UsageType::BUSINESS, 'onboarding_completed_at' => now()]);
+
+    expect($user->fresh()->isOnboarded())->toBeFalse();
+
+    $user->update(['terms_accepted_at' => now()]);
+    expect($user->fresh()->isOnboarded())->toBeTrue();
+});
+
+test('the backfill only marks people the old onboarding let through', function () {
+    $halfway = User::factory()->create(['usage_type' => UsageType::BUSINESS, 'skipped_onboarding_at' => null]);
+    $skipped = User::factory()->create(['usage_type' => UsageType::BUSINESS, 'skipped_onboarding_at' => now()->subDay()]);
+    $connected = User::factory()->create(['usage_type' => UsageType::BUSINESS, 'skipped_onboarding_at' => null]);
+    OutlookAccount::factory()->create(['user_id' => $connected->id, 'workspace_id' => $connected->primaryWorkspace()?->id]);
+    $colleague = User::factory()->create(['usage_type' => UsageType::BUSINESS, 'skipped_onboarding_at' => null]);
+    WorkspaceMember::create(['workspace_id' => $connected->primaryWorkspace()->id, 'user_id' => $colleague->id, 'role' => WorkspaceRole::MEMBER]);
+    $nothing = User::factory()->create(['usage_type' => null, 'skipped_onboarding_at' => now()->subDay()]);
+
+    User::query()->update(['onboarding_completed_at' => null]);
+    $migration = require database_path('migrations/2026_11_08_000001_add_onboarding_completed_at_to_users_table.php');
+    $migration->down();
+    $migration->up();
+
+    expect($halfway->fresh()->onboarding_completed_at)->toBeNull()
+        ->and($skipped->fresh()->onboarding_completed_at)->not->toBeNull()
+        ->and($connected->fresh()->onboarding_completed_at)->not->toBeNull()
+        ->and($colleague->fresh()->onboarding_completed_at)->not->toBeNull()
+        ->and($nothing->fresh()->onboarding_completed_at)->toBeNull();
 });
 
 test('someone without admin rights can mail a request to IT', function () {

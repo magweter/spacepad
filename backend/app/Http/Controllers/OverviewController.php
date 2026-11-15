@@ -204,10 +204,10 @@ class OverviewController extends Controller
             // Sent in UTC: the browser places them on its own day.
             'events' => collect($cached ?? [])
                 ->filter(fn ($e) => $e->end?->gt(now()->subDay()) && $e->start?->lt(now()->addDay()))
-                ->map(fn ($e) => PortalSchedule::event($e, $grace))
+                ->map(fn ($e) => PortalSchedule::event($e, $grace, auth()->user()))
                 ->sortBy('start')->values()->all(),
             'url' => route('displays.configure', $display),
-            'actions' => PortalSchedule::actions($display),
+            'actions' => PortalSchedule::actions($display, auth()->user()),
             'urls' => [
                 'book' => route('schedule.book', $display),
                 // Base for an event's actions: {events}/{id}/check-in, /extend, and DELETE {events}/{id}.

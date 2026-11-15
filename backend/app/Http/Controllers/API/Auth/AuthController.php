@@ -86,7 +86,9 @@ class AuthController extends ApiController
             $device->update($updateData);
 
             // Recorded here, at the moment of pairing, rather than on the next dashboard visit.
-            Funnel::recordOnce(FunnelStep::DEVICE_PAIRED, $workspace, $user);
+            // The connect code is already spent at this point, so a failing analytics write must
+            // never fail the pairing itself.
+            rescue(fn () => Funnel::recordOnce(FunnelStep::DEVICE_PAIRED, $workspace, $user), report: true);
 
             logger()->info('Device authentication successful', [
                 'user_id' => $connectedUserId,

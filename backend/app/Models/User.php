@@ -278,6 +278,12 @@ class User extends Authenticatable
 
     public function isOnboarded(): bool
     {
+        // A self-hosted instance runs under its licence: nobody is onboarded before accepting it,
+        // however they left the wizard.
+        if (config('settings.is_self_hosted') && $this->terms_accepted_at === null) {
+            return false;
+        }
+
         // Finishing the wizard is onboarding, with or without a calendar: "Just look around"
         // ends on the overview, and sending that person back to the wizard would loop.
         if ($this->onboarding_completed_at !== null) {

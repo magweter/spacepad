@@ -21,7 +21,8 @@ use Throwable;
  * shows a spinner while it loads. Booking, checking in, extending and ending go through the same
  * EventService calls as the tablet at the door, under the same rules: Pro, a display that is not
  * paused, booking switched on for booking, and the display's own extend and cancel settings
- * (EventService enforces those last two). Every member of the workspace may use them.
+ * (EventService enforces those last two). Every member of the workspace may book and check in;
+ * someone else's meeting is only extended or cancelled by an owner or admin.
  */
 class PortalScheduleController extends Controller
 {
@@ -44,9 +45,10 @@ class PortalScheduleController extends Controller
         $date = Carbon::parse($data['date'])->startOfDay();
         $day = LocalDay::fromDateAndOffset($data['date'], (int) $data['offset']);
         $deadline = microtime(true) + self::DAY_BUDGET_SECONDS;
+        $viewer = $request->user();
 
         $rooms = Display::where('workspace_id', $workspace->id)->orderBy('name')->get()
-            ->map(function (Display $display) use ($date, $day, $deadline) {
+            ->map(function (Display $display) use ($date, $day, $deadline, $viewer) {
                 $usable = $display->calendar_id !== null
                     && ! in_array($display->status, [DisplayStatus::DEACTIVATED, DisplayStatus::REQUIRES_PRO], true);
 
@@ -60,7 +62,7 @@ class PortalScheduleController extends Controller
                 try {
                     $grace = $display->isCheckInEnabled() ? $display->getCheckInGracePeriod() : null;
                     $events = $this->events->getEventsForDisplay($display->id, $date, $day)
-                        ->map(fn ($e) => PortalSchedule::event($e, $grace))
+                        ->map(fn ($e) => PortalSchedule::event($e, $grace, $viewer))
                         ->sortBy('start')->values()->all();
 
                     return ['id' => $display->id, 'events' => $events, 'error' => null];
@@ -107,7 +109,10 @@ class PortalScheduleController extends Controller
     public function extend(Request $request, Display $display, string $eventId): JsonResponse
     {
         $this->authorizeRoom($request, $display, 'extend');
+        $this->authorizeChange($request, $display, $eventId);
         $data = $request->validate(['new_end' => ['required', 'date']]);
+
+        $this->audit($request, $display, 'extend', $eventId, ['new_end' => $data['new_end']]);
 
         return $this->attempt($display, fn () => $this->events->extendEvent($eventId, $display->id, Carbon::parse($data['new_end'])->utc()),
             'Extended.', 'The meeting could not be extended. The room may be booked right after it.');
@@ -116,6 +121,8 @@ class PortalScheduleController extends Controller
     public function cancel(Request $request, Display $display, string $eventId): JsonResponse
     {
         $this->authorizeRoom($request, $display, 'cancel');
+        $this->authorizeChange($request, $display, $eventId);
+        $this->audit($request, $display, 'cancel', $eventId);
 
         return $this->attempt($display, fn () => $this->events->cancelEvent($eventId, $display->id), 'Meeting cancelled.', 'This meeting could not be cancelled here.');
     }
@@ -134,6 +141,32 @@ class PortalScheduleController extends Controller
             'checkIn' => 'Check-in is switched off for this room.',
             default => 'Ending meetings is switched off for this room.',
         });
+    }
+
+    /**
+     * Someone else's meeting is only changed from the portal by an owner or admin.
+     */
+    private function authorizeChange(Request $request, Display $display, string $eventId): void
+    {
+        abort_unless(PortalSchedule::mayChange($display, $request->user(), $eventId), 403,
+            "Only owners and admins can change someone else's meeting from the portal.");
+    }
+
+    /**
+     * Changing a meeting in someone's calendar from a distance leaves a trace of who did it.
+     *
+     * @param  array<string, mixed>  $context
+     */
+    private function audit(Request $request, Display $display, string $action, string $eventId, array $context = []): void
+    {
+        logger()->info('Portal schedule action', [
+            'action' => $action,
+            'user_id' => $request->user()->id,
+            'workspace_id' => $display->workspace_id,
+            'display_id' => $display->id,
+            'event_id' => $eventId,
+            ...$context,
+        ]);
     }
 
     private function attempt(Display $display, callable $action, string $done, string $failed): JsonResponse

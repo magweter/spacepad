@@ -1,11 +1,16 @@
 <?php
 
 use App\Enums\DisplayStatus;
+use App\Enums\EventSource;
+use App\Enums\EventStatus;
+use App\Enums\WorkspaceRole;
 use App\Helpers\DisplaySettings;
 use App\Models\Display;
 use App\Models\Event;
 use App\Models\User;
+use App\Models\WorkspaceMember;
 use App\Services\EventService;
+use App\Support\PortalSchedule;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -138,6 +143,47 @@ test('extend, check in and cancel go through the same calls as the tablet', func
     $this->actingAs($user)->postJson(route('schedule.extend', [$display, 'evt-1']), ['new_end' => $newEnd->toIso8601String()])->assertOk();
     $this->actingAs($user)->postJson(route('schedule.check-in', [$display, 'evt-1']))->assertOk();
     $this->actingAs($user)->deleteJson(route('schedule.cancel', [$display, 'evt-1']))->assertOk()->assertJsonPath('message', 'Meeting cancelled.');
+});
+
+test('a member only extends or cancels a meeting they booked themselves', function () {
+    [$owner, $display] = scheduleRoom();
+    $member = User::factory()->active()->create();
+    WorkspaceMember::create(['workspace_id' => $display->workspace_id, 'user_id' => $member->id, 'role' => WorkspaceRole::MEMBER]);
+    $theirs = Event::create(['display_id' => $display->id, 'user_id' => $owner->id, 'summary' => 'Board meeting', 'start' => now()->subMinutes(10), 'end' => now()->addMinutes(20), 'source' => EventSource::CUSTOM, 'status' => EventStatus::CONFIRMED, 'timezone' => 'UTC']);
+    $mine = Event::create(['display_id' => $display->id, 'user_id' => $member->id, 'summary' => 'Interview', 'start' => now()->addHour(), 'end' => now()->addHours(2), 'source' => EventSource::CUSTOM, 'status' => EventStatus::CONFIRMED, 'timezone' => 'UTC']);
+    $mock = $this->mock(EventService::class);
+    $mock->shouldReceive('cancelEvent')->once()->with((string) $mine->id, $display->id);
+    $mock->shouldReceive('extendEvent')->never();
+
+    // Someone else's meeting, or one straight from the calendar: no.
+    $this->actingAs($member)->deleteJson(route('schedule.cancel', [$display, $theirs->id]))->assertForbidden();
+    $this->actingAs($member)->deleteJson(route('schedule.cancel', [$display, 'AAMkAGI2external']))->assertForbidden();
+    $this->actingAs($member)->postJson(route('schedule.extend', [$display, $theirs->id]), ['new_end' => now()->addHour()->toIso8601String()])->assertForbidden();
+
+    // Their own booking: yes.
+    $this->actingAs($member)->deleteJson(route('schedule.cancel', [$display, $mine->id]))->assertOk();
+});
+
+test('an owner changes anyone\'s meeting, and the overview says who may', function () {
+    [$owner, $display] = scheduleRoom();
+    $member = User::factory()->active()->create();
+    WorkspaceMember::create(['workspace_id' => $display->workspace_id, 'user_id' => $member->id, 'role' => WorkspaceRole::MEMBER]);
+    $this->mock(EventService::class)->shouldReceive('cancelEvent')->once()->with('AAMkAGI2external', $display->id);
+
+    $this->actingAs($owner)->deleteJson(route('schedule.cancel', [$display, 'AAMkAGI2external']))->assertOk();
+
+    expect(PortalSchedule::actions($display, $owner)['manage'])->toBeTrue()
+        ->and(PortalSchedule::actions($display, $member)['manage'])->toBeFalse();
+});
+
+test('the timeline cannot be used to hammer the calendars', function () {
+    [$user, $display] = scheduleRoom();
+    $this->mock(EventService::class)->shouldReceive('getEventsForDisplay')->andReturn(collect());
+
+    for ($i = 0; $i < 30; $i++) {
+        $this->actingAs($user)->getJson(route('schedule.day', ['date' => '2026-11-20', 'offset' => 0]))->assertOk();
+    }
+    $this->actingAs($user)->getJson(route('schedule.day', ['date' => '2026-11-20', 'offset' => 0]))->assertStatus(429);
 });
 
 test('a refusal from the calendar side comes back as a readable message', function () {

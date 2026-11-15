@@ -77,6 +77,18 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(10)->by($request->ip());
         });
 
+        // The portal's timeline reads every room's calendar live for another day and changes
+        // meetings at the provider. The tablets share those Graph and Google quotas, so bound it
+        // per person and per workspace. Switching days by hand stays far below these numbers.
+        RateLimiter::for('portal_schedule', function (Request $request) {
+            $user = $request->user();
+
+            return [
+                Limit::perMinute(30)->by('schedule:user:'.($user?->id ?: $request->ip())),
+                Limit::perMinute(120)->by('schedule:workspace:'.($user?->getSelectedWorkspace()?->id ?: $request->ip())),
+            ];
+        });
+
         EventModel::observe(EventObserver::class);
 
         // Billable usage is a column on the workspace, not a count. These two keep it true.

@@ -242,6 +242,11 @@ class OnboardingController extends Controller
     {
         $user = $request->user();
 
+        // The licence terms are the one step a self-hosted instance cannot skip.
+        if (config('settings.is_self_hosted') && $user->terms_accepted_at === null) {
+            return $this->toBlade($request, route('onboarding'));
+        }
+
         $user->update(['skipped_onboarding_at' => now()]);
         $this->finish($user, $this->currentWorkspace($request), ['step' => $request->input('step')], FunnelStep::ONBOARDING_SKIPPED);
 

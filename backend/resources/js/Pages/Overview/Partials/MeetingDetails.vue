@@ -18,15 +18,17 @@ const confirming = ref(false);
 watch(() => props.meeting, () => { busy.value = ''; error.value = ''; confirming.value = false; });
 
 // Same rules as the tablet: check in while it waits for one, extend while it runs, end it while it
-// runs or cancel it before it starts, each only when the room allows it.
+// runs or cancel it before it starts, each only when the room allows it. From a distance only an
+// owner or admin changes someone else's meeting; a member changes what they booked themselves.
 const can = computed(() => {
     const m = props.meeting;
     const a = m?.actions ?? {};
     if (!m || m.end <= props.now) return { checkIn: false, extend: false, cancel: false };
+    const mayChange = !!a.manage || !!m.yours;
     return {
         checkIn: !!a.checkIn && m.tone === 'checkin' && !m.checkedIn,
-        extend: !!a.extend && m.live,
-        cancel: a.cancel === 'all' || (a.cancel === 'tablet_only' && m.tablet),
+        extend: mayChange && !!a.extend && m.live,
+        cancel: mayChange && (a.cancel === 'all' || (a.cancel === 'tablet_only' && m.tablet)),
     };
 });
 

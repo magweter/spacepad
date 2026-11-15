@@ -98,11 +98,13 @@ Route::middleware(['auth', 'user.update-last-activity'])->group(function () {
         Route::get('/calendars', [Portal\CalendarsPageController::class, 'index'])->name('calendars.index');
         Route::get('/billing', [Portal\BillingPageController::class, 'index'])->name('billing.index');
         Route::get('/settings', [Portal\SettingsPageController::class, 'index'])->name('settings.index');
-        Route::get('/schedule/day', [PortalScheduleController::class, 'day'])->name('schedule.day');
-        Route::post('/schedule/{display}/book', [PortalScheduleController::class, 'book'])->name('schedule.book');
-        Route::post('/schedule/{display}/events/{eventId}/check-in', [PortalScheduleController::class, 'checkIn'])->name('schedule.check-in');
-        Route::post('/schedule/{display}/events/{eventId}/extend', [PortalScheduleController::class, 'extend'])->name('schedule.extend');
-        Route::delete('/schedule/{display}/events/{eventId}', [PortalScheduleController::class, 'cancel'])->name('schedule.cancel');
+        Route::middleware('throttle:portal_schedule')->group(function () {
+            Route::get('/schedule/day', [PortalScheduleController::class, 'day'])->name('schedule.day');
+            Route::post('/schedule/{display}/book', [PortalScheduleController::class, 'book'])->name('schedule.book');
+            Route::post('/schedule/{display}/events/{eventId}/check-in', [PortalScheduleController::class, 'checkIn'])->name('schedule.check-in');
+            Route::post('/schedule/{display}/events/{eventId}/extend', [PortalScheduleController::class, 'extend'])->name('schedule.extend');
+            Route::delete('/schedule/{display}/events/{eventId}', [PortalScheduleController::class, 'cancel'])->name('schedule.cancel');
+        });
     });
     Route::get('/onboarding', [OnboardingController::class, 'index'])->name('onboarding')->middleware('user.onboarding');
     Route::post('/onboarding/workspace', [OnboardingController::class, 'workspace'])->name('onboarding.workspace');
