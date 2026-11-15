@@ -320,8 +320,14 @@ a separate account with its own invisible set of displays.
   calendar provider. The timeline is a day calendar over the whole day that scrolls sideways; a click on
   a meeting shows its details (organiser, location, online meeting link). Other days are fetched live
   from the calendars with a loading indicator (previous, next, today, pick a date)
+- **Needs attention** — a calendar account that needs signing in again (expired token, changed
+  permissions) is an "Action required" notice on the overview and the Calendars page, with a button that
+  starts the sign-in for that account; rooms whose meetings could not be read for another reason (an
+  outage, refused access) are listed in an "Attention" notice and show as "Not loaded" in the timeline
+- **Error toasts** — server errors, a lost connection and unexpected script errors show as a toast at
+  the bottom right instead of an error page or nothing
 - **Managing meetings from the portal** — every workspace member can book a room (click an empty spot
-  on the timeline or "Book a room"), check in, extend by 15 or 30 minutes, end a running meeting or
+  on the timeline or "Book a room") with a title, description and attendees to invite, check in, extend by 15 or 30 minutes, end a running meeting or
   cancel one that has not started, under the same rules as the tablet: Pro, a display that is not
   paused, booking switched on, booking ahead only when "allow future bookings" is on, and the room's
   extend and cancel settings
@@ -329,7 +335,7 @@ a separate account with its own invisible set of displays.
   and a side panel per display (deep-linkable) with its tablets, calendar, today's bookings, profile,
   pairing code and actions
 - **Team** — invite colleagues, manage roles, pending invitations and join requests
-- **Billing** — plan, usage per display, checkout, billing portal, monthly or yearly, cancel with a
+- **Billing** — plan with how its units add up (displays once, boards double, team members free), checkout, billing portal, monthly or yearly, cancel with a
   reason, licence key on self-hosted
 - **Upgrade dialog** — every Pro label and locked action opens it on the feature that was clicked,
   with a picture of that feature and Pro and Enterprise side by side. Both start with the 14-day
@@ -344,7 +350,9 @@ a separate account with its own invisible set of displays.
 - **Display diagnostics** — connection health, last sync, troubleshooting info, and a one-click reset of an errored calendar account's status so a fresh token is attempted
 - **Calendars** — connect and manage Google, Microsoft and CalDAV accounts, choose the booking method,
   upload a Google service account, Microsoft admin consent, and the room calendars in use
-- **Boards** — list and editor on one page, with a preview of the board on a TV frame
+- **Boards** — list and editor on one page. The list draws a sketch of each board (theme, title,
+  layout, room names) instead of loading the live page, so many boards stay fast; the editor shows the
+  live board on a TV frame with a loading indicator
 - **Usage / analytics** — display activity statistics
 - **Roadmap** — public feature roadmap with community voting and status tracking
 - **Help / FAQ** — searchable help center covering setup, integrations, troubleshooting, and billing

@@ -1,6 +1,7 @@
 <script setup>
 // One workspace: what it uses, what it pays and who is in it. A drill-down from the workspace
 // list, so it offers the way back up instead of the admin tabs.
+import PlanChip from './Partials/PlanChip.vue';
 import { Head, Link } from '@inertiajs/vue3';
 import PortalShell from '../../Components/PortalShell.vue';
 import FlashMessage from '../../Components/FlashMessage.vue';
@@ -54,7 +55,7 @@ const termClass = 'text-[13px] font-medium text-muted';
                     </div>
                     <div>
                         <dt :class="termClass">Plan</dt>
-                        <dd class="mt-1">{{ workspace.plan }}</dd>
+                        <dd class="mt-1"><PlanChip :plan="workspace.plan" /></dd>
                     </div>
                 </dl>
             </Card>

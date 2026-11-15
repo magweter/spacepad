@@ -177,12 +177,9 @@ class AdminController extends Controller
             ],
             // Shown when the billing workspace has Pro or the analytics snapshot has a subscription.
             'subscription' => ($billingWorkspace?->hasPro() || $subscriptionInfo) ? [
-                'plan' => match (true) {
-                    (bool) $billingWorkspace?->is_unlimited => 'unlimited',
-                    (bool) $billingWorkspace?->is_manually_billed => 'manual',
-                    (bool) $subscriptionInfo => 'pro',
-                    default => 'free',
-                },
+                'plan' => $billingWorkspace
+                    ? AdminWorkspaceController::planBadge($billingWorkspace)
+                    : ['key' => $subscriptionInfo ? 'pro' : 'free', 'label' => $subscriptionInfo ? 'Pro' : 'Free'],
                 'info' => $subscriptionInfo ? [
                     'status' => $subscriptionInfo['status'],
                     'statusLabel' => Str::ucfirst(str_replace('_', ' ', $subscriptionInfo['status'])),

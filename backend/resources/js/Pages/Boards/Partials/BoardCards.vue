@@ -1,8 +1,8 @@
 <script setup>
-// The overview: every board as a card with a live preview of what its screen shows.
+// The overview: every board as a card with a sketch of its screen. Open shows it live.
 import Icon from '../../../Components/Icon.vue';
 import Button from '../../../DesignSystem/Button.vue';
-import BoardFrame from './BoardFrame.vue';
+import BoardThumbnail from './BoardThumbnail.vue';
 
 defineProps({
     boards: { type: Array, required: true },
@@ -22,7 +22,7 @@ const meta = (b) => [
     <section aria-label="Your boards" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         <article v-for="b in boards" :key="b.id" class="sp-card overflow-hidden">
             <a :href="b.showUrl" target="_blank" rel="noopener" class="block bg-navy-800 p-2" :aria-label="`Open ${b.name}`">
-                <BoardFrame :src="b.showUrl" :title="`Preview of ${b.name}`" :width="1024" />
+                <BoardThumbnail :title="b.title" :rooms="b.rooms" :room-count="b.roomCount" :view-mode="b.viewMode" :theme="b.theme" />
             </a>
             <div class="flex flex-col gap-3 px-4 pb-4">
                 <div class="flex flex-col gap-0.5">

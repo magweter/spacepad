@@ -7,6 +7,7 @@ import FlashMessage from '../../Components/FlashMessage.vue';
 import Icon from '../../Components/Icon.vue';
 import Button from '../../DesignSystem/Button.vue';
 import Card from '../../DesignSystem/Card.vue';
+import PlanChip from './Partials/PlanChip.vue';
 import Chip from '../../DesignSystem/Chip.vue';
 import Notice from '../../DesignSystem/Notice.vue';
 import StatusBadge from '../../DesignSystem/StatusBadge.vue';
@@ -34,12 +35,6 @@ const data = [
     { label: 'Workspaces', value: props.counts.workspaces },
 ];
 
-const plans = {
-    unlimited: { tone: 'available', label: 'Unlimited' },
-    manual: { tone: 'info', label: 'Manually billed' },
-    pro: { tone: 'navy', label: 'Pro' },
-    free: { tone: 'neutral', label: 'Free' },
-};
 // Subscription states as status colours, always with the word next to them.
 const statusTone = (s) => ({ active: 'available', on_trial: 'available', manual: 'available', past_due: 'checkin', paused: 'checkin', unpaid: 'reserved' }[s] ?? 'offline');
 
@@ -80,7 +75,7 @@ const heading = 'font-display text-base font-bold tracking-tight';
                 <dl class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div>
                         <dt class="text-xs font-medium text-muted">Plan</dt>
-                        <dd class="mt-1"><Chip :tone="plans[subscription.plan].tone">{{ plans[subscription.plan].label }}</Chip></dd>
+                        <dd class="mt-1"><PlanChip :plan="subscription.plan" /></dd>
                     </div>
                     <template v-if="subscription.info">
                         <div>

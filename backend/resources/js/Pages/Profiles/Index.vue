@@ -124,10 +124,6 @@ function destroy() {
                             <span>{{ p.displays ? customised(p) : 'Not used yet' }}</span>
                         </span>
                     </Link>
-                    <div class="flex flex-col gap-1.5 rounded-xl border border-dashed border-offline-border px-4 py-3.5 text-xs text-muted">
-                        <span class="font-semibold text-ink-2">How it adds up</span>
-                        <span>Built-in defaults, then the profile, then a section the display holds on its own. The most specific one wins, per section.</span>
-                    </div>
                 </section>
 
                 <section v-if="selected" aria-label="Selected profile" class="flex min-w-0 flex-[999_1_560px] flex-col gap-5">

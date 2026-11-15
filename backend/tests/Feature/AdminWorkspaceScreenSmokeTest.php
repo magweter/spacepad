@@ -52,7 +52,7 @@ test('the detail page renders for a workspace with no members and no usage', fun
         ->assertInertia(fn (Assert $page) => $page->component('Admin/Workspace')
             ->where('workspace.name', 'Nobody Left')
             ->where('workspace.owner', null)
-            ->where('workspace.plan', 'Free')
+            ->where('workspace.plan', ['key' => 'free', 'label' => 'Free'])
             ->where('usage.total', 0)
             ->where('billing.billableUnits', 1)
             ->where('members', [])

@@ -61,12 +61,12 @@ const columns = 'grid-cols-[1.4fr_2fr_1.1fr_0.7fr_0.7fr_0.6fr_1fr_1fr_170px]';
                             <span class="truncate text-ink-3">{{ u.usageType ?? '-' }}</span>
                             <span class="tabular-nums">{{ u.displays }}</span>
                             <span class="tabular-nums">{{ u.boards }}</span>
-                            <span><Chip :tone="u.pro ? 'navy' : 'neutral'">{{ u.pro ? 'Yes' : 'No' }}</Chip></span>
+                            <span><Chip :tone="u.pro ? 'info' : 'neutral'">{{ u.pro ? 'Yes' : 'No' }}</Chip></span>
                             <span class="text-ink-3 tabular-nums">{{ u.registered }}</span>
                             <span class="text-ink-3 tabular-nums">{{ u.lastActivity ?? 'Never' }}</span>
                             <span class="flex items-center justify-end gap-3">
-                                <Link :href="u.urls.show" class="text-xs font-semibold text-navy hover:underline">View</Link>
-                                <button type="button" class="text-xs font-semibold text-navy hover:underline" @click="impersonating = u">Impersonate</button>
+                                <Link :href="u.urls.show" class="inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-semibold border-navy bg-navy text-white hover:bg-navy-800">View</Link>
+                                <button type="button" class="inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-semibold border-amber bg-amber text-navy hover:opacity-90" @click="impersonating = u">Impersonate</button>
                             </span>
                         </div>
                         <p v-if="!users.length" class="px-4 py-8 text-center text-[13px] text-muted">

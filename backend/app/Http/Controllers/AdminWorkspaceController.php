@@ -29,6 +29,9 @@ use Inertia\Response;
  */
 class AdminWorkspaceController extends Controller
 {
+    /** Above this many displays a Pro workspace is an Enterprise customer, as on the pricing page. */
+    private const ENTERPRISE_DISPLAYS = 25;
+
     use ChecksAdminAccess;
 
     /**
@@ -75,7 +78,7 @@ class AdminWorkspaceController extends Controller
                 'displays' => (int) $workspace->displays_count,
                 'boards' => (int) $workspace->boards_count,
                 'units' => $workspace->getTotalUsageCount(),
-                'plan' => $this->planBadge($workspace->billingStatus()),
+                'plan' => self::planBadge($workspace, (int) $workspace->displays_count),
                 'mrr' => $mrr === null ? null : '$'.number_format($mrr, 2),
                 'created' => $workspace->created_at?->format('Y-m-d'),
                 'url' => route('admin.workspaces.show', $workspace),
@@ -140,12 +143,7 @@ class AdminWorkspaceController extends Controller
                     'email' => $owner->email,
                     'url' => route('admin.users.show', $owner),
                 ] : null,
-                'plan' => match (true) {
-                    (bool) $workspace->is_unlimited => 'Unlimited',
-                    (bool) $workspace->is_manually_billed => 'Manually billed',
-                    $workspace->hasPro() => 'Pro',
-                    default => 'Free',
-                },
+                'plan' => self::planBadge($workspace),
                 'hasLiveSubscription' => (bool) $workspace->liveSubscription(),
             ],
             'usage' => [
@@ -304,18 +302,24 @@ class AdminWorkspaceController extends Controller
     }
 
     /**
-     * The plan column of the list: a word and the status colour that goes with it.
+     * The plan of a workspace as a key the admin pages colour by and the word that goes with it.
+     * Enterprise is Pro above 25 displays; a subscription in any other state shows that state.
      *
-     * @return array{label: string, tone: string}
+     * @return array{key: string, label: string}
      */
-    private function planBadge(string $status): array
+    public static function planBadge(Workspace $workspace, ?int $displays = null): array
     {
+        $status = $workspace->billingStatus();
+        $displays ??= $workspace->displays()->count();
+
         return match (true) {
-            $status === 'none' => ['label' => 'Free', 'tone' => 'offline'],
-            $status === 'manual' => ['label' => 'Manually billed', 'tone' => 'checkin'],
-            $status === 'unlimited' => ['label' => 'Unlimited', 'tone' => 'available'],
-            in_array($status, ['active', 'on_trial'], true) => ['label' => self::words($status), 'tone' => 'available'],
-            default => ['label' => self::words($status), 'tone' => 'reserved'],
+            $status === 'none' => ['key' => 'free', 'label' => 'Free'],
+            $status === 'manual' => ['key' => 'manual', 'label' => 'Manually billed'],
+            $status === 'unlimited' => ['key' => 'unlimited', 'label' => 'Unlimited'],
+            $status === 'on_trial' => ['key' => 'trial', 'label' => 'Pro trial'],
+            $status === 'active' && $displays > self::ENTERPRISE_DISPLAYS => ['key' => 'enterprise', 'label' => 'Enterprise'],
+            $status === 'active' => ['key' => 'pro', 'label' => 'Pro'],
+            default => ['key' => 'attention', 'label' => self::words($status)],
         };
     }
 

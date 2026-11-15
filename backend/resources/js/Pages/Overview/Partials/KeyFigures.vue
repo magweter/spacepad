@@ -3,12 +3,21 @@ import { computed } from 'vue';
 
 const props = defineProps({ figures: Object, accounts: Array });
 
+// Every display that is not online is either offline or has no tablet, so the parts add up to the total.
+function displaysSub(f) {
+    if (f.withoutTablet === f.total) return 'No tablets paired yet';
+    const parts = [];
+    if (f.offline) parts.push(`${f.offline} offline`);
+    if (f.withoutTablet) parts.push(`${f.withoutTablet} without a tablet`);
+    return parts.length ? parts.join(', ') : 'All online';
+}
+
 const tiles = computed(() => {
     const f = props.figures;
     const readOnly = props.accounts.filter((a) => a.readOnly).length;
     return [
         { label: 'Displays online', value: f.online, of: f.total,
-          sub: f.withoutTablet === f.total ? 'No tablets paired yet' : f.offline ? `${f.offline} offline` : f.withoutTablet ? `${f.withoutTablet} without a tablet` : 'All online' },
+          sub: displaysSub(f) },
         { label: 'Rooms free now', value: f.free, of: f.live, sub: f.live ? `${f.live - f.free} in use` : 'Waiting for the tablets' },
         { label: 'Bookings today', value: f.bookings, sub: f.fromTablet ? `${f.fromTablet} from a tablet` : 'None from a tablet yet' },
         { label: 'Calendars connected', value: props.accounts.length, sub: !props.accounts.length ? 'None yet' : readOnly ? `${readOnly} read only` : 'Read and book' },

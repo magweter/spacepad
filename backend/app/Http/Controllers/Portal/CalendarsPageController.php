@@ -148,6 +148,17 @@ class CalendarsPageController extends Controller
     private function notices(Collection $accounts): array
     {
         return $accounts->flatMap(function (array $account) {
+            if ($account['status'] === 'error') {
+                return [[
+                    'tone' => 'danger', 'tag' => 'Action required',
+                    'title' => "Sign in again to {$account['email']}",
+                    'body' => 'The sign-in expired or its permissions changed, so its rooms show no meetings until it is connected again.',
+                    'cta' => 'Sign in again',
+                    'modal' => 'reconnect',
+                    'accountId' => $account['id'],
+                ]];
+            }
+
             if ($account['needsBookingMethod']) {
                 return [[
                     'title' => "Choose how {$account['email']} books rooms",
@@ -187,6 +198,13 @@ class CalendarsPageController extends Controller
                 [$type, $accountId] = [$modal, (string) $request->session()->get($flash)];
                 break;
             }
+        }
+
+        // From the overview's "Action required" notice for an account in error: sign in to that account again.
+        if ($type === null && $request->query('open') === 'reconnect') {
+            $accountId = (string) $request->query('account');
+
+            return $accounts->contains(fn ($a) => (string) $a['id'] === $accountId) ? ['type' => 'reconnect', 'accountId' => $accountId] : null;
         }
 
         if ($type === null && in_array($request->query('open'), self::MODAL_FLASHES, true)) {

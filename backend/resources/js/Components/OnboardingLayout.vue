@@ -1,5 +1,6 @@
 <script setup>
 // The onboarding chrome: a navy rail with the steps and who is signed in, the page beside it.
+import ToastHost from './Toasts/ToastHost.vue';
 import { computed } from 'vue';
 import { router } from '@inertiajs/vue3';
 import Logo from './Logo.vue';
@@ -51,5 +52,6 @@ const initials = computed(() => (props.user.name || props.user.email || '?').spl
                 <slot />
             </div>
         </main>
+        <ToastHost />
     </div>
 </template>

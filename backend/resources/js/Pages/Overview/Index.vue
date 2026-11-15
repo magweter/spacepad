@@ -125,7 +125,8 @@ onBeforeUnmount(() => { clearInterval(tick); clearInterval(poll); });
 
             <section v-if="notices.length" aria-label="Needs attention" class="flex flex-col gap-2.5">
                 <div v-for="(n, i) in notices" :key="i" class="flex flex-wrap items-center gap-4 rounded-xl border px-4 py-3 text-[13px]" :class="tone[n.tone]">
-                    <span class="flex-none rounded-lg border-[1.5px] border-current bg-surface px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap">{{ n.tag }}</span>
+                    <!-- One width for every tag, so the texts of all notices start on the same line. -->
+                    <span class="flex w-[76px] flex-none items-center justify-center rounded-lg border-[1.5px] border-current bg-surface px-2 py-0.5 text-center text-[11px] leading-tight font-semibold">{{ n.tag }}</span>
                     <span class="flex min-w-0 flex-1 flex-col"><span class="font-semibold">{{ n.title }}</span><span class="text-xs opacity-85">{{ n.body }}</span></span>
                     <button v-if="n.upgrade" type="button" class="rounded-lg bg-navy px-3 py-1.5 text-xs font-semibold whitespace-nowrap text-white hover:bg-navy-700" @click="openUpgrade(n.upgrade)">{{ n.cta }}</button>
                     <a v-else :href="n.href" class="rounded-lg bg-navy px-3 py-1.5 text-xs font-semibold whitespace-nowrap text-white hover:bg-navy-700">{{ n.cta }}</a>

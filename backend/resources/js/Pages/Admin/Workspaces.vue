@@ -6,7 +6,7 @@ import PortalShell from '../../Components/PortalShell.vue';
 import FlashMessage from '../../Components/FlashMessage.vue';
 import Icon from '../../Components/Icon.vue';
 import Card from '../../DesignSystem/Card.vue';
-import StatusBadge from '../../DesignSystem/StatusBadge.vue';
+import PlanChip from './Partials/PlanChip.vue';
 import AdminTabs from './Partials/AdminTabs.vue';
 import WorkspacePagination from './Partials/WorkspacePagination.vue';
 
@@ -18,7 +18,7 @@ const props = defineProps({
 const query = ref(props.search ?? '');
 const submit = () => router.get(props.urls.index, query.value ? { search: query.value } : {}, { preserveState: true });
 
-const columns = 'grid-cols-[2fr_2fr_0.8fr_0.8fr_0.8fr_0.7fr_1.3fr_0.9fr_1fr_1fr]';
+const columns = 'grid-cols-[2fr_2fr_0.8fr_0.8fr_0.8fr_0.7fr_1.3fr_0.9fr_1.1fr_140px]';
 const fieldClass = 'rounded-lg border border-line bg-surface px-3 py-2 text-[13px] text-ink focus:border-navy focus:outline-none';
 </script>
 
@@ -53,12 +53,12 @@ const fieldClass = 'rounded-lg border border-line bg-surface px-3 py-2 text-[13p
                         <span class="tabular-nums text-ink-3">{{ w.displays }}</span>
                         <span class="tabular-nums text-ink-3">{{ w.boards }}</span>
                         <span class="tabular-nums text-ink-3">{{ w.units }}</span>
-                        <span><StatusBadge :status="w.plan.tone">{{ w.plan.label }}</StatusBadge></span>
+                        <span><PlanChip :plan="w.plan" /></span>
                         <span class="tabular-nums text-ink-3">{{ w.mrr ?? '-' }}</span>
-                        <span class="tabular-nums text-ink-3">{{ w.created ?? '-' }}</span>
+                        <span class="whitespace-nowrap tabular-nums text-ink-3">{{ w.created ?? '-' }}</span>
                         <span class="flex items-center gap-3">
-                            <Link :href="w.url" class="font-semibold text-navy hover:underline">View</Link>
-                            <a v-if="w.owner" :href="w.owner.url" class="font-semibold text-ink-3 hover:text-ink hover:underline">Owner</a>
+                            <Link :href="w.url" class="inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-semibold border-navy bg-navy text-white hover:bg-navy-800">View</Link>
+                            <a v-if="w.owner" :href="w.owner.url" class="inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-semibold border-info-border bg-info-bg text-info hover:opacity-80">Owner</a>
                         </span>
                     </div>
                     <p v-if="!workspaces.data.length" class="px-4 py-8 text-center text-[13px] text-muted">

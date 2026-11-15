@@ -25,8 +25,16 @@ const modal = ref(null);
 const close = () => { modal.value = null; };
 const account = computed(() => props.accounts.find((a) => String(a.id) === String(modal.value?.accountId)) ?? null);
 
-const open = (type, accountId = null) => { modal.value = { type, accountId }; };
 const connect = (provider = null, permission = 'write') => { modal.value = { type: 'connect', provider, permission }; };
+const open = (type, accountId = null) => {
+    // Signing in again is connecting the same provider with the same permission.
+    if (type === 'reconnect') {
+        const a = props.accounts.find((x) => String(x.id) === String(accountId));
+        if (a) connect(a.provider, a.permission || 'write');
+        return;
+    }
+    modal.value = { type, accountId };
+};
 
 // A flow that just ended (or a link from the overview) asks for a modal; every new answer from
 // the server can ask again, so this follows the props rather than reading them once.
@@ -47,7 +55,7 @@ watch(() => props.adminConsent, (value) => { if (value) modal.value = { type: 'a
             <FlashMessage />
 
             <section v-if="notices.length" aria-label="Needs attention" class="flex flex-col gap-2.5">
-                <Notice v-for="(n, i) in notices" :key="i" shape="row" tone="warning" tag="Action needed" :title="n.title" :action="n.cta"
+                <Notice v-for="(n, i) in notices" :key="i" shape="row" :tone="n.tone ?? 'warning'" :tag="n.tag ?? 'Action required'" :title="n.title" :action="n.cta"
                         @action="open(n.modal, n.accountId)">{{ n.body }}</Notice>
             </section>
 

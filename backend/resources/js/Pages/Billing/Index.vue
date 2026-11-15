@@ -4,7 +4,6 @@ import { Head } from '@inertiajs/vue3';
 import PortalShell from '../../Components/PortalShell.vue';
 import FlashMessage from '../../Components/FlashMessage.vue';
 import PlanCard from './Partials/PlanCard.vue';
-import UsageCard from './Partials/UsageCard.vue';
 import SubscriptionCard from './Partials/SubscriptionCard.vue';
 import LicenseCard from './Partials/LicenseCard.vue';
 import CancelModal from './Partials/CancelModal.vue';
@@ -31,7 +30,6 @@ const managing = ref(false);
             <div class="flex flex-wrap items-start gap-6">
                 <section aria-label="Plan" class="flex max-w-full min-w-0 flex-[1_1_380px] flex-col gap-4 lg:max-w-[480px]">
                     <PlanCard :billing="billing" :urls="urls" @manage="managing = true" />
-                    <UsageCard :billing="billing" />
                 </section>
 
                 <section aria-label="Subscription" class="flex min-w-0 flex-[999_1_460px] flex-col gap-4">

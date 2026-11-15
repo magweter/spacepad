@@ -83,6 +83,11 @@ class PortalScheduleController extends Controller
             'start' => ['required', 'date'],
             'end' => ['required', 'date', 'after:start'],
             'summary' => ['nullable', 'string', 'max:255'],
+            'description' => ['nullable', 'string', 'max:5000'],
+            'attendees' => ['nullable', 'array', 'max:50'],
+            'attendees.*' => ['email', 'max:255'],
+        ], [
+            'attendees.*.email' => 'One of the attendees is not a valid email address.',
         ]);
 
         // Like the tablet: without "allow future bookings" a room only takes a booking that starts now.
@@ -96,6 +101,8 @@ class PortalScheduleController extends Controller
             summary: $data['summary'] ?? __('Reserved'),
             start: Carbon::parse($data['start'])->utc(),
             end: Carbon::parse($data['end'])->utc(),
+            description: $data['description'] ?? null,
+            attendees: $data['attendees'] ?? [],
         ), 'Booked.', 'The room could not be booked. It may already be taken at that time.');
     }
 

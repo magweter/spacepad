@@ -18,7 +18,7 @@ const dateOf = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDa
 const timeOf = (d) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 const toDate = (date, time) => { const [y, m, d] = date.split('-').map(Number); const [h, i] = time.split(':').map(Number); return new Date(y, m - 1, d, h, i); };
 
-const form = ref({ roomId: null, date: '', from: '', to: '', title: '' });
+const form = ref({ roomId: null, date: '', from: '', to: '', title: '', description: '', attendees: '' });
 const error = ref('');
 const busy = ref(false);
 
@@ -26,7 +26,7 @@ watch(() => props.preset, (p) => {
     if (!p) return;
     const start = p.start ?? nextQuarter(props.now);
     const end = new Date(start.getTime() + 30 * 60000);
-    form.value = { roomId: p.roomId ?? props.rooms[0]?.id ?? null, date: dateOf(start), from: timeOf(start), to: timeOf(end), title: '' };
+    form.value = { roomId: p.roomId ?? props.rooms[0]?.id ?? null, date: dateOf(start), from: timeOf(start), to: timeOf(end), title: '', description: '', attendees: '' };
     error.value = '';
 });
 
@@ -40,8 +40,13 @@ const end = computed(() => (form.value.date && form.value.to ? toDate(form.value
 const minutes = computed(() => (start.value && end.value ? Math.round((end.value - start.value) / 60000) : 0));
 const room = computed(() => props.rooms.find((r) => r.id === form.value.roomId));
 
+// Attendees as in the app: email addresses separated by commas, spaces or new lines.
+const attendees = computed(() => form.value.attendees.split(/[\s,;]+/).map((a) => a.trim()).filter(Boolean));
+const invalidAttendee = computed(() => attendees.value.find((a) => !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(a)));
+
 const problem = computed(() => {
     if (!room.value) return 'Pick a room.';
+    if (invalidAttendee.value) return `${invalidAttendee.value} is not a valid email address.`;
     if (!start.value || !end.value) return 'Pick a time.';
     if (minutes.value <= 0) return 'The end time has to be after the start time.';
     if (end.value <= props.now) return 'This time has already passed.';
@@ -61,6 +66,7 @@ async function submit() {
     try {
         await requestJson('POST', room.value.urls.book, { body: {
             start: start.value.toISOString(), end: end.value.toISOString(), summary: form.value.title.trim() || null,
+            description: form.value.description.trim() || null, attendees: attendees.value,
         } });
         emit('done', `${room.value.name} is booked from ${form.value.from} to ${form.value.to}.`);
     } catch (e) {
@@ -106,6 +112,15 @@ const field = 'block w-full rounded-lg border border-line bg-surface px-3 py-2 t
                         class="rounded-full border px-2.5 py-0.5 text-xs font-semibold"
                         :class="minutes === m ? 'border-navy bg-navy text-white' : 'border-line text-ink-3 hover:bg-surface-raised'">{{ m < 60 ? `${m} min` : m === 60 ? '1 h' : '1.5 h' }}</button>
             </div>
+            <label class="flex flex-col gap-1.5">
+                <span class="text-[13px] font-semibold">Description <span class="font-normal text-muted">(optional)</span></span>
+                <textarea v-model="form.description" rows="3" maxlength="5000" placeholder="What is the meeting about?" :class="field"></textarea>
+            </label>
+            <label class="flex flex-col gap-1.5">
+                <span class="text-[13px] font-semibold">Invite attendees <span class="font-normal text-muted">(optional)</span></span>
+                <input v-model="form.attendees" type="text" autocomplete="off" placeholder="jan@company.com, sarah@company.com" :class="field" />
+                <span class="text-xs text-muted">Email addresses, separated by commas. They get the calendar invite.</span>
+            </label>
             <p v-if="error" role="alert" class="rounded-lg bg-reserved-bg px-3 py-2 text-[13px] text-reserved-text">{{ error }}</p>
             <p class="text-xs text-muted">The booking goes into the room's calendar, the same as booking on the tablet at the door.</p>
         </form>

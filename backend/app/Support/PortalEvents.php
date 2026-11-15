@@ -62,12 +62,31 @@ class PortalEvents
             return $events;
         } catch (Throwable $e) {
             report($e);
-            Cache::put("{$key}:failed", true, now()->addMinutes(5));
+            self::markFailed($display);
 
             return null;
         } finally {
             Http::globalOptions([]);
         }
+    }
+
+    /**
+     * Whether the last attempt to read this room's calendar failed (an outage, missing permissions,
+     * an expired token). Set here and by the cache warmer, kept five minutes, cleared on success.
+     */
+    public static function failed(Display $display): bool
+    {
+        return Cache::has("portal:events:{$display->id}:failed");
+    }
+
+    public static function markFailed(Display $display): void
+    {
+        Cache::put("portal:events:{$display->id}:failed", true, now()->addMinutes(5));
+    }
+
+    public static function clearFailed(Display $display): void
+    {
+        Cache::forget("portal:events:{$display->id}:failed");
     }
 
     /**

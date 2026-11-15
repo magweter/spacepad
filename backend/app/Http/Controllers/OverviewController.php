@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\AccountStatus;
 use App\Enums\CancellationReason;
 use App\Enums\DisplayStatus;
 use App\Enums\FunnelStep;
@@ -88,8 +89,9 @@ class OverviewController extends Controller
 
         return Inertia::render('Overview/Index', [
             'shell' => PortalShell::for($request, $workspace, 'overview'),
-            'notices' => $this->notices($request, $workspace, $displays),
+            // Rooms first: reading them records which calendars failed, which the notices report.
             'rooms' => $displays->map(fn (Display $display) => $this->room($display, $devices))->values()->all(),
+            'notices' => $this->notices($request, $workspace, $displays),
             'accounts' => $accounts,
             'checklist' => [
                 'calendar' => $accounts !== [],
@@ -143,7 +145,7 @@ class OverviewController extends Controller
         foreach (OutlookAccount::where('workspace_id', $workspace->id)->get() as $account) {
             if ($account->permission_type === PermissionType::WRITE && $account->isBusiness() && $account->booking_method === null) {
                 $notices[] = [
-                    'tone' => 'warning', 'tag' => 'Action needed',
+                    'tone' => 'warning', 'tag' => 'Action required',
                     'title' => "Choose how {$account->email} books rooms",
                     'body' => 'Booking from a display waits for this choice.',
                     'cta' => 'Choose', 'href' => $manage(['open' => 'microsoft-booking-method', 'account' => $account->id]),
@@ -154,20 +156,22 @@ class OverviewController extends Controller
         foreach (GoogleAccount::where('workspace_id', $workspace->id)->get() as $account) {
             if ($account->permission_type === PermissionType::WRITE && $account->isBusiness() && $account->booking_method === null) {
                 $notices[] = [
-                    'tone' => 'warning', 'tag' => 'Action needed',
+                    'tone' => 'warning', 'tag' => 'Action required',
                     'title' => "Choose how {$account->email} books rooms",
                     'body' => 'Booking from a display waits for this choice.',
                     'cta' => 'Choose', 'href' => $manage(['open' => 'google-booking-method', 'account' => $account->id]),
                 ];
             } elseif ($account->isBusiness() && $account->booking_method === GoogleBookingMethod::SERVICE_ACCOUNT && ! $account->service_account_file_path) {
                 $notices[] = [
-                    'tone' => 'warning', 'tag' => 'Action needed',
+                    'tone' => 'warning', 'tag' => 'Action required',
                     'title' => "Upload the service account for {$account->email}",
                     'body' => 'Booking from a display needs the service account key.',
                     'cta' => 'Upload', 'href' => $manage(['open' => 'service-account', 'account' => $account->id]),
                 ];
             }
         }
+
+        array_push($notices, ...$this->calendarNotices($workspace, $displays));
 
         $paused = $displays->filter(fn (Display $d) => $d->status === DisplayStatus::REQUIRES_PRO)->count();
         if ($paused > 0) {
@@ -176,6 +180,50 @@ class OverviewController extends Controller
                 'title' => $paused === 1 ? '1 display is paused' : "{$paused} displays are paused",
                 'body' => 'The free plan shows one display. Upgrade to Pro to bring the others back.',
                 'cta' => 'See Pro', 'href' => route('billing.index'), 'upgrade' => 'displays',
+            ];
+        }
+
+        return $notices;
+    }
+
+    /**
+     * Calendars that cannot be read: an account that needs signing in again, and rooms whose
+     * meetings did not load for another reason (an outage, missing permissions). Rooms on an
+     * account in error are counted under that account, not twice.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function calendarNotices(Workspace $workspace, Collection $displays): array
+    {
+        $notices = [];
+        $inError = collect()
+            ->merge(OutlookAccount::where('workspace_id', $workspace->id)->where('status', AccountStatus::ERROR)->get()->map(fn ($a) => ['outlook_account_id', $a]))
+            ->merge(GoogleAccount::where('workspace_id', $workspace->id)->where('status', AccountStatus::ERROR)->get()->map(fn ($a) => ['google_account_id', $a]))
+            ->merge(CalDAVAccount::where('workspace_id', $workspace->id)->where('status', AccountStatus::ERROR)->get()->map(fn ($a) => ['caldav_account_id', $a]));
+
+        $covered = collect();
+        foreach ($inError as [$column, $account]) {
+            $rooms = $displays->filter(fn (Display $d) => $d->calendar && $d->calendar->{$column} === $account->id);
+            $covered = $covered->merge($rooms->pluck('id'));
+            $count = $rooms->count();
+            $notices[] = [
+                'tone' => 'danger', 'tag' => 'Action required',
+                'title' => 'Sign in again to '.($account->email ?: $account->name),
+                'body' => $count
+                    ? ($count === 1 ? '1 room shows no meetings' : "{$count} rooms show no meetings").' until the calendar is connected again. The sign-in expired or its permissions changed.'
+                    : 'The sign-in expired or its permissions changed. No room uses this calendar yet.',
+                'cta' => 'Sign in again', 'href' => route('calendars.index', ['open' => 'reconnect', 'account' => $account->id]),
+            ];
+        }
+
+        $failed = $displays->filter(fn (Display $d) => ! $covered->contains($d->id) && $d->calendar_id !== null && PortalEvents::failed($d));
+        if ($failed->isNotEmpty()) {
+            $names = $failed->take(3)->map(fn (Display $d) => $d->display_name ?: $d->name)->join(', ').($failed->count() > 3 ? ' and '.($failed->count() - 3).' more' : '');
+            $notices[] = [
+                'tone' => 'warning', 'tag' => 'Attention',
+                'title' => $failed->count() === 1 ? "The meetings of {$names} could not be loaded" : "{$failed->count()} rooms could not load their meetings",
+                'body' => ($failed->count() === 1 ? '' : "{$names}. ").'The calendar did not answer or refused access. Spacepad tries again in a few minutes; check the calendar if this stays.',
+                'cta' => 'Check calendars', 'href' => route('calendars.index'),
             ];
         }
 
@@ -201,6 +249,7 @@ class OverviewController extends Controller
                 'lastSeen' => $device->last_activity_at?->diffForHumans(),
             ] : null,
             'hasData' => $cached !== null,
+            'error' => $cached === null && PortalEvents::failed($display) ? 'the calendar could not be read' : null,
             // Sent in UTC: the browser places them on its own day.
             'events' => collect($cached ?? [])
                 ->filter(fn ($e) => $e->end?->gt(now()->subDay()) && $e->start?->lt(now()->addDay()))

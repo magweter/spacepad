@@ -6,6 +6,7 @@ use App\Enums\DisplayStatus;
 use App\Models\Board;
 use App\Models\Display;
 use App\Services\EventService;
+use App\Support\PortalEvents;
 use Illuminate\Console\Command;
 use Illuminate\Database\Eloquent\Builder;
 use Throwable;
@@ -44,8 +45,13 @@ class WarmEventCaches extends Command
             }
 
             try {
-                $warmed += $events->warmCache($display) ? 1 : 0;
+                if ($events->warmCache($display)) {
+                    $warmed++;
+                    PortalEvents::clearFailed($display);
+                }
             } catch (Throwable $e) {
+                // The portal shows this room as not loaded and lists it under "Needs attention".
+                PortalEvents::markFailed($display);
                 $failed++;
                 report($e);
             }

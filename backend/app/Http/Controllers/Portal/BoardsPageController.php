@@ -92,10 +92,15 @@ class BoardsPageController extends Controller
     private function listItem(Request $request, Board $board): array
     {
         $user = $request->user();
+        // The card draws a sketch of the board instead of loading the live page: twenty live
+        // boards in iframes would each fetch every room's calendar. A dozen names is enough to sketch.
+        $rooms = $board->getDisplaysToShowQuery()->orderBy('name')->limit(12)->get(['displays.id', 'name', 'display_name']);
 
         return [
             'id' => $board->id,
             'name' => $board->name,
+            'title' => $board->show_title ? ($board->title ?: $board->name) : null,
+            'rooms' => $rooms->map(fn (Display $display) => $display->display_name ?: $display->name)->values()->all(),
             'viewMode' => $board->view_mode ?? 'card',
             'theme' => $board->theme ?? 'dark',
             'showAll' => $board->show_all_displays,

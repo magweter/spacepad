@@ -115,6 +115,9 @@
 .sp-notice-info.sp-notice-row { background: var(--info-bg); border-color: var(--info-border); color: var(--info); }
 .sp-notice-neutral.sp-notice-row { background: var(--surface-raised); border-color: var(--border); color: var(--text-2); }
 .sp-notice-row .sp-notice-tag { border-color: inherit; color: inherit; }
+/* One width for every tag, so the text of every notice in a list starts on the same line. Longer
+   words wrap inside it ("Action required" on two lines). */
+.sp-notice-row .sp-notice-tag { width: 76px; justify-content: center; text-align: center; white-space: normal; }
 .sp-notice-danger.sp-notice-banner { background: var(--status-reserved-bg); border-color: var(--status-reserved-border); color: var(--status-reserved-text); }
 .sp-notice-warning.sp-notice-banner { background: var(--brand-amber-50); border-color: var(--brand-amber-300); color: var(--status-checkin-text); }
 .sp-notice-success.sp-notice-banner { background: var(--status-available-bg); border-color: var(--status-available-border); color: var(--status-available-text); }

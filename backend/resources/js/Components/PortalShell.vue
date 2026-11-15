@@ -8,6 +8,7 @@ import Icon from './Icon.vue';
 import ProBadge from './Upgrade/ProBadge.vue';
 import UpgradeModal from './Upgrade/UpgradeModal.vue';
 import HelpPanel from './Help/HelpPanel.vue';
+import ToastHost from './Toasts/ToastHost.vue';
 import HelpIcon from './Help/HelpIcon.vue';
 import { openHelp } from './Help/helpPanel.js';
 
@@ -99,5 +100,6 @@ function switchTo(workspace) {
 
         <HelpPanel v-if="!page.props.app?.selfHosted" />
         <UpgradeModal />
+        <ToastHost />
     </div>
 </template>

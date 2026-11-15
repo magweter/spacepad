@@ -228,7 +228,7 @@ test('the workspace list shows the billable units straight from the counters', f
         ->assertInertia(fn (Assert $page) => $page
             ->where('workspaces.data', fn ($rows) => collect($rows)->contains(fn ($row) => $row['name'] === $user->primaryWorkspace()->name
                 && $row['units'] === 4
-                && $row['plan'] === ['label' => 'Manually billed', 'tone' => 'checkin'])));
+                && $row['plan'] === ['key' => 'manual', 'label' => 'Manually billed'])));
 });
 
 test('a negative unit price is rejected', function () {
@@ -305,7 +305,7 @@ test('the admin workspace page preselects the current billing mode', function ()
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->where('billing.mode', 'unlimited')
-            ->where('workspace.plan', 'Unlimited')
+            ->where('workspace.plan', ['key' => 'unlimited', 'label' => 'Unlimited'])
             // No running subscription, so no warning that changing the billing leaves one behind.
             ->where('workspace.hasLiveSubscription', false));
 });

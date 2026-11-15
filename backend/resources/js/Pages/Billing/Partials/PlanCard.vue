@@ -41,9 +41,11 @@ const trialTitle = computed(() => {
         </div>
 
         <div class="flex flex-col gap-2 text-[13px]">
-            <div class="flex justify-between"><span class="text-on-navy-2">Displays</span><span class="font-semibold">{{ billing.usage.displays }}</span></div>
-            <div class="flex justify-between"><span class="text-on-navy-2">Boards</span><span class="font-semibold">{{ billing.usage.boards }}</span></div>
-            <div class="flex justify-between"><span class="text-on-navy-2">Total units</span><span class="font-semibold">{{ billing.usage.total }}</span></div>
+            <!-- How the units are counted: a display is one unit, a board two, team members nothing. -->
+            <div class="flex justify-between gap-3"><span class="text-on-navy-2">{{ plural(billing.usage.displays, 'display') }}</span><span class="font-semibold">{{ plural(billing.usage.displays, 'unit') }}</span></div>
+            <div class="flex justify-between gap-3"><span class="text-on-navy-2">{{ plural(billing.usage.boards, 'board') }} <span class="text-on-navy-muted">(count double)</span></span><span class="font-semibold">{{ plural(billing.usage.boards * 2, 'unit') }}</span></div>
+            <div class="flex justify-between gap-3"><span class="text-on-navy-2">Team members</span><span class="font-semibold">No charge</span></div>
+            <div class="flex justify-between gap-3 border-t border-navy-700 pt-2"><span class="text-on-navy-2">Total</span><span class="font-semibold">{{ plural(billing.usage.total, 'unit') }}</span></div>
             <span v-if="billing.monthlyCost !== null" class="text-xs text-on-navy-muted">
                 {{ plural(billing.usage.total, 'unit') }} at {{ money(billing.unitPrice) }} =
                 <strong class="font-semibold text-white">{{ money(billing.monthlyCost) }} per month</strong>
