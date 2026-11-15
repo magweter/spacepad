@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AdminAlertController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AdminMergeController;
 use App\Http\Controllers\AdminRoadmapController;
@@ -274,6 +275,12 @@ Route::middleware(['auth', 'user.update-last-activity'])->group(function () {
     Route::post('/roadmap/suggest', [RoadmapController::class, 'suggest'])->name('roadmap.suggest');
 
     // Admin — Roadmap
+    Route::get('/admin/alerts', [AdminAlertController::class, 'index'])->name('admin.alerts.index');
+    Route::get('/admin/alerts/create', [AdminAlertController::class, 'create'])->name('admin.alerts.create');
+    Route::post('/admin/alerts', [AdminAlertController::class, 'store'])->name('admin.alerts.store');
+    Route::get('/admin/alerts/{portalAlert}/edit', [AdminAlertController::class, 'edit'])->name('admin.alerts.edit');
+    Route::put('/admin/alerts/{portalAlert}', [AdminAlertController::class, 'update'])->name('admin.alerts.update');
+    Route::post('/admin/alerts/{portalAlert}/end', [AdminAlertController::class, 'end'])->name('admin.alerts.end');
     Route::get('/admin/roadmap', [AdminRoadmapController::class, 'index'])->name('admin.roadmap.index');
     Route::get('/admin/roadmap/create', [AdminRoadmapController::class, 'create'])->name('admin.roadmap.create');
     Route::post('/admin/roadmap', [AdminRoadmapController::class, 'store'])->name('admin.roadmap.store');

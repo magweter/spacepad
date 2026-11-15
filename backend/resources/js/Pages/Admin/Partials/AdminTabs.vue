@@ -7,6 +7,7 @@ const tabs = [
     { key: 'workspaces', label: 'Workspaces', href: '/admin/workspaces' },
     { key: 'merge', label: 'Merge workspaces', href: '/admin/merge' },
     { key: 'roadmap', label: 'Roadmap', href: '/admin/roadmap' },
+    { key: 'alerts', label: 'Alerts', href: '/admin/alerts' },
 ];
 const figures = (s) => [
     { label: 'Total users', value: s.total_users },
