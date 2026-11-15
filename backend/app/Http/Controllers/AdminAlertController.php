@@ -51,7 +51,7 @@ class AdminAlertController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        PortalAlert::create([...$this->validated($request), 'created_by' => $request->user()->id]);
+        PortalAlert::create([...$this->validated($request, creating: true), 'created_by' => $request->user()->id]);
         PortalAlert::forgetCache();
 
         return redirect()->route('admin.alerts.index')->with('success', 'Alert saved.');
@@ -79,28 +79,52 @@ class AdminAlertController extends Controller
     }
 
     /**
+     * The form sends times as ISO 8601 with the browser's offset, so the moment the admin typed
+     * in their own time zone is stored as that moment.
+     *
+     * A new alert has to end in the future and after its start. An existing one may already have
+     * ended (or been cancelled before it started), so then only a future end is checked against the start.
+     *
      * @return array<string, mixed>
      */
-    private function validated(Request $request): array
+    private function validated(Request $request, bool $creating = false): array
     {
+        $endsInFuture = $request->filled('ends_at') && strtotime((string) $request->input('ends_at')) > time();
+        $endRules = ['nullable', 'date'];
+        if ($creating) {
+            $endRules[] = 'after:now';
+        }
+        if ($request->filled('starts_at') && ($creating || $endsInFuture)) {
+            $endRules[] = 'after:starts_at';
+        }
+
         $data = $request->validate([
             'title' => ['required', 'string', 'max:120'],
             'body' => ['nullable', 'string', 'max:500'],
             'tone' => ['required', Rule::in(PortalAlert::TONES)],
             'provider' => ['nullable', Rule::in(PortalAlert::PROVIDERS)],
             'starts_at' => ['nullable', 'date'],
-            'ends_at' => ['nullable', 'date', $request->filled('starts_at') ? 'after:starts_at' : 'after:now'],
+            'ends_at' => $endRules,
         ], [
-            'ends_at.after' => 'The end has to be after the start.',
+            'ends_at.after' => $request->filled('starts_at') && ! $this->isPast((string) $request->input('ends_at'))
+                ? 'The end has to be after the start.'
+                : 'The end has to be in the future.',
         ]);
 
         return [
             ...$data,
             'body' => $data['body'] ?? null,
             'provider' => $data['provider'] ?? null,
-            'starts_at' => isset($data['starts_at']) ? Carbon::parse($data['starts_at']) : null,
-            'ends_at' => isset($data['ends_at']) ? Carbon::parse($data['ends_at']) : null,
+            'starts_at' => isset($data['starts_at']) ? Carbon::parse($data['starts_at'])->utc() : null,
+            'ends_at' => isset($data['ends_at']) ? Carbon::parse($data['ends_at'])->utc() : null,
         ];
+    }
+
+    private function isPast(string $value): bool
+    {
+        $time = strtotime($value);
+
+        return $time !== false && $time <= time();
     }
 
     /**
@@ -114,8 +138,8 @@ class AdminAlertController extends Controller
             'body' => $alert->body,
             'tone' => $alert->tone,
             'provider' => $alert->provider,
-            'startsAt' => ($alert->starts_at ?? $alert->created_at)?->format('Y-m-d H:i'),
-            'endsAt' => $alert->ends_at?->format('Y-m-d H:i'),
+            'startsAt' => ($alert->starts_at ?? $alert->created_at)?->toIso8601String(),
+            'endsAt' => $alert->ends_at?->toIso8601String(),
             'status' => $alert->status(),
             'editUrl' => route('admin.alerts.edit', $alert),
             'endUrl' => route('admin.alerts.end', $alert),
@@ -132,8 +156,8 @@ class AdminAlertController extends Controller
                 'body' => $alert->body ?? '',
                 'tone' => $alert->tone,
                 'provider' => $alert->provider ?? '',
-                'starts_at' => $alert->starts_at?->format('Y-m-d\TH:i') ?? '',
-                'ends_at' => $alert->ends_at?->format('Y-m-d\TH:i') ?? '',
+                'starts_at' => $alert->starts_at?->toIso8601String() ?? '',
+                'ends_at' => $alert->ends_at?->toIso8601String() ?? '',
             ] : null,
             'urls' => [
                 'index' => route('admin.alerts.index'),

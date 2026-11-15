@@ -10,17 +10,30 @@ import Card from '../../DesignSystem/Card.vue';
 
 const props = defineProps({ shell: Object, stats: Object, pendingRoadmap: Number, alert: { type: Object, default: null }, urls: Object });
 
+// The server sends and expects ISO 8601 times; the inputs show them in the admin's own time zone.
+const pad = (n) => String(n).padStart(2, '0');
+const toLocalInput = (iso) => {
+    if (!iso) return '';
+    const d = new Date(iso);
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
+const toIso = (local) => (local ? new Date(local).toISOString() : null);
+
 const form = useForm({
     title: props.alert?.title ?? '',
     body: props.alert?.body ?? '',
     tone: props.alert?.tone ?? 'attention',
     provider: props.alert?.provider ?? '',
-    starts_at: props.alert?.starts_at ?? '',
-    ends_at: props.alert?.ends_at ?? '',
+    starts_at: toLocalInput(props.alert?.starts_at),
+    ends_at: toLocalInput(props.alert?.ends_at),
 });
 
 // Empty fields go out as null: no provider means every workspace, no start means now.
-const payload = (data) => Object.fromEntries(Object.entries(data).map(([k, v]) => [k, v === '' ? null : v]));
+const payload = (data) => ({
+    ...Object.fromEntries(Object.entries(data).map(([k, v]) => [k, v === '' ? null : v])),
+    starts_at: toIso(data.starts_at),
+    ends_at: toIso(data.ends_at),
+});
 const submit = () => form.transform(payload)[props.alert ? 'put' : 'post'](props.urls.submit);
 
 const title = props.alert ? 'Edit alert' : 'New alert';
