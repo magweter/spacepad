@@ -9,6 +9,7 @@ import ProBadge from './Upgrade/ProBadge.vue';
 import UpgradeModal from './Upgrade/UpgradeModal.vue';
 import HelpPanel from './Help/HelpPanel.vue';
 import ToastHost from './Toasts/ToastHost.vue';
+import AlertRow from './AlertRow.vue';
 import HelpIcon from './Help/HelpIcon.vue';
 import { openHelp } from './Help/helpPanel.js';
 
@@ -95,6 +96,10 @@ function switchTo(workspace) {
                 <h1 class="flex items-center gap-2 font-display text-[22px] font-bold tracking-tight">{{ title }}<ProBadge v-if="pro" :feature="proFeature" /></h1>
                 <div class="ml-auto flex flex-wrap items-center gap-3"><slot name="actions" /></div>
             </header>
+            <!-- Alerts an admin set by hand, such as a calendar provider outage, on every page. -->
+            <section v-if="page.props.alerts?.length" aria-label="Alerts from Spacepad" class="flex flex-col gap-2.5 px-6 pt-5 md:px-8">
+                <AlertRow v-for="a in page.props.alerts" :key="a.id" :tone="a.tone" :title="a.title" :body="a.body" />
+            </section>
             <slot />
         </main>
 

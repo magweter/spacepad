@@ -26,7 +26,7 @@ const sections = [
 ];
 const providers = { microsoft: 'Microsoft 365', google: 'Google', caldav: 'CalDAV' };
 const toneChip = { attention: { tone: 'amber', label: 'Attention' }, action_required: { tone: 'reserved', label: 'Action required' } };
-const when = (a) => [a.startsAt ? `From ${a.startsAt}` : 'From the start', a.endsAt ? `until ${a.endsAt}` : 'until ended'].join(' ');
+const when = (a) => [`From ${a.startsAt}`, a.endsAt ? `until ${a.endsAt}` : 'until ended'].join(' ');
 
 const headClass = 'border-b border-line px-4 py-2.5 text-left text-[11px] font-semibold tracking-[0.04em] text-muted uppercase';
 const smallBtn = 'inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-semibold';

@@ -114,7 +114,7 @@ class AdminAlertController extends Controller
             'body' => $alert->body,
             'tone' => $alert->tone,
             'provider' => $alert->provider,
-            'startsAt' => $alert->starts_at?->format('Y-m-d H:i'),
+            'startsAt' => ($alert->starts_at ?? $alert->created_at)?->format('Y-m-d H:i'),
             'endsAt' => $alert->ends_at?->format('Y-m-d H:i'),
             'status' => $alert->status(),
             'editUrl' => route('admin.alerts.edit', $alert),

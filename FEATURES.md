@@ -324,6 +324,10 @@ a separate account with its own invisible set of displays.
   permissions) is an "Action required" notice on the overview and the Calendars page, with a button that
   starts the sign-in for that account; rooms whose meetings could not be read for another reason (an
   outage, refused access) are listed in an "Attention" notice and show as "Not loaded" in the timeline
+- **Alerts from Spacepad** — an alert an admin sets by hand (for example a Microsoft 365 outage) shows
+  at the top of every portal page while it runs, for every workspace or only for workspaces with a
+  calendar account of that provider. Admins create, schedule, edit and end alerts in the "Alerts" tab
+  of the admin panel, with a preview of the row
 - **Error toasts** — server errors, a lost connection and unexpected script errors show as a toast at
   the bottom right instead of an error page or nothing
 - **Managing meetings from the portal** — every workspace member can book a room (click an empty spot

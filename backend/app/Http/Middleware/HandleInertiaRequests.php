@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Enums\WorkspaceRole;
+use App\Models\PortalAlert;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -34,6 +35,8 @@ class HandleInertiaRequests extends Middleware
             // What the upgrade dialog needs, on every page with a workspace: whether this person
             // can buy Pro, or whom they should ask.
             'upgrade' => fn () => $this->upgrade($request),
+            // Alerts an admin set by hand (a provider outage), drawn by the portal shell.
+            'alerts' => fn () => $user ? PortalAlert::forWorkspace($user->getSelectedWorkspace()) : [],
             'app' => [
                 'selfHosted' => (bool) config('settings.is_self_hosted'),
                 'recaptchaSiteKey' => config('recaptchav3.sitekey') ?: null,
