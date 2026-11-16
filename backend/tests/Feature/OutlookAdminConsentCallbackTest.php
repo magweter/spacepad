@@ -19,7 +19,7 @@ function consentNonceFor(OutlookAccount $account): string
             'outlook_account_id' => $account->id,
             'booking_method' => OutlookBookingMethod::ADMIN_CONSENT->value,
         ])
-        ->assertRedirect(route('dashboard'))
+        ->assertRedirect(route('calendars.index'))
         ->assertSessionHas('admin_consent_url');
 
     parse_str(parse_url(session('admin_consent_url'), PHP_URL_QUERY), $query);

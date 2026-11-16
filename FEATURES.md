@@ -105,7 +105,18 @@ Configure display screen (they used to be settable only while creating the displ
 | **Display name** | Dashboard only, to tell displays apart. Listed by the tablet's setup wizard and under **Used by** on a profile, so it should be unique per display. |
 | **Room name** | Printed in the top right corner of the tablet. Several displays may share it on purpose — a building or floor name, for instance. |
 
-Neither is inherited from a profile: they belong to the display itself.
+The same block holds an optional **location** (up to 64 characters, e.g. "Floor 1") and **seat count**
+(1 to 999). The tablet prints them in small text under the room name as one line, "Floor 1, 12 seats",
+or whichever of the two is set; with neither, the room name stands alone. Emptying a field clears it.
+
+For a display on a **Google Workspace** or **Microsoft 365** room, both come from the directory:
+the floor (a number becomes "Floor 2", a Google floor section is added after a comma) and the
+capacity. A new display gets them from the room list the room picker fetched, without a second
+call. On Configure display, empty fields are filled in from the room and marked "Filled in from
+your calendar", and stored only on Save. The room list is kept for an hour per calendar account.
+A value someone typed is never replaced. CalDAV and personal calendars have no such data.
+
+Neither the names nor these two are inherited from a profile: they belong to the display itself.
 
 | Setting | Options |
 |---|---|
@@ -135,6 +146,15 @@ Neither is inherited from a profile: they belong to the display itself.
 Part of the same **Configure display** screen, in the Branding, State texts and Advertisement sections.
 
 ### Branding
+- Choose a **theme** for the whole screen. Also settable on a profile.
+  - **Classic** (default): the screen framed in the status colour on black.
+  - **Glass**: a dark navy screen with a soft glow in the status colour from the corners, a thick
+    status border, frosted translucent buttons, chips, bottom bar and timeline (the schedule and booking popups too,
+    on a dark backdrop so the screen behind them does not read through), and the clock and the
+    title in a bolder display font (Space Grotesk). Border and glow are green when free, red in use,
+    amber when a meeting is about to start or end or check-in is due, and grey while the tablet is
+    offline or cannot reach the server; the status always comes with a word on screen. A status change
+    crossfades instead of jumping. A background image still works and sits under the glow.
 - Upload a custom **logo** (shown on the display)
 - Upload a custom **background image** or choose from built-in backgrounds
 - Choose a **font family**: Inter, Roboto, Open Sans, Lato, Poppins, Montserrat
@@ -221,6 +241,13 @@ a separate account with its own invisible set of displays.
 - Someone signed in under a different address is told so, instead of silently joining the wrong account
 - Removing a member takes away their access only — everything they created stays in the workspace
 
+### Joining your company's workspace
+- Someone signing up with a company address whose domain already has a workspace is offered to join it
+  instead of starting a new one (free email providers never match)
+- Asking to join emails the owners and admins, who approve or decline from a link; approving follows
+  the same Pro rule as inviting. Approved: the requester lands in the workspace and their empty sign-up
+  workspace is removed. Declined, or "set up a separate workspace": they continue with their own
+
 ### Bringing existing data along
 - While accepting an invitation, an invitee can move their own displays, boards, devices and calendar
   accounts into the workspace they are joining
@@ -265,23 +292,77 @@ a separate account with its own invisible set of displays.
   **manually billed** (invoiced by us, at a per-workspace unit price) or **unlimited** (Pro for free,
   for a non-profit deal or a test account: never charged and no price shown). A workspace is on
   exactly one of the three
+- **Cancel from the workspace page**: owners and admins cancel the subscription right there, after one
+  short question about why. Pro stays active until the end of the paid period, and the page shows that
+  date. A subscription cancelled through the billing portal or a Lemon Squeezy email gets the same
+  question on the dashboard, once; taking the cancellation back removes it
+- **Back to the free plan**: when a subscription has definitively ended, the oldest display stays active
+  and the others show "Requires Pro" until the workspace upgrades again, at which point they come back
+  on their own. A failed payment that is still being retried changes nothing. On the dashboard you can
+  pick which display is the active one
 
 ---
 
 ## Web Portal
 
-- **Dashboard** — overview of all connected displays and their current status
-- **Team** — invite colleagues, manage roles, and switch between workspaces
+- **Sign in and create an account** on one page: Microsoft, Google or a magic link by email. Creating an
+  account asks only for the email address
+- **Onboarding** — four questions up front (workspace, rooms, tablets and features, start), each step
+  skippable except the last. The workspace name is suggested from the company domain. Without tablets
+  you can ask for the hardware guide. It ends with a choice: set up the first display or look around
+- **Display setup** — calendar, room, tablet, done, from the end of onboarding or the portal. Connecting
+  a calendar returns to the setup, the display is created from a room picker, the tablet step updates
+  the moment a tablet pairs, and someone without admin rights can email a request to their IT admin.
+  It ends on a "first display live" screen with the next steps
+- **Overview** — a greeting with how things stand, key figures (displays online, rooms free, bookings
+  today, calendars), only the notices that block the product, the rooms right now as a timeline or
+  cards, occupancy per hour and the setup checklist. Read from the cached events, so it never calls a
+  calendar provider. The timeline is a day calendar over the whole day that scrolls sideways; a click on
+  a meeting shows its details (organiser, location, online meeting link). Other days are fetched live
+  from the calendars with a loading indicator (previous, next, today, pick a date)
+- **Needs attention** — a calendar account that needs signing in again (expired token, changed
+  permissions) is an "Action required" notice on the overview and the Calendars page, with a button that
+  starts the sign-in for that account; rooms whose meetings could not be read for another reason (an
+  outage, refused access) are listed in an "Attention" notice and show as "Not loaded" in the timeline
+- **Alerts from Spacepad** — an alert an admin sets by hand (for example a Microsoft 365 outage) shows
+  at the top of every portal page while it runs, for every workspace or only for workspaces with a
+  calendar account of that provider. Admins create, schedule, edit and end alerts in the "Alerts" tab
+  of the admin panel, with a preview of the row
+- **Error toasts** — server errors, a lost connection and unexpected script errors show as a toast at
+  the bottom right instead of an error page or nothing
+- **Managing meetings from the portal** — every workspace member can book a room (click an empty spot
+  on the timeline or "Book a room") with a title, description and attendees to invite, check in, extend by 15 or 30 minutes, end a running meeting or
+  cancel one that has not started, under the same rules as the tablet: Pro, a display that is not
+  paused, booking switched on, booking ahead only when "allow future bookings" is on, and the room's
+  extend and cancel settings
+- **Displays** — list with live status, calendar, tablet and profile, filters, bulk profile assignment,
+  and a side panel per display (deep-linkable) with its tablets, calendar, today's bookings, profile,
+  pairing code and actions
+- **Team** — invite colleagues, manage roles, pending invitations and join requests
+- **Billing** — plan with how its units add up (displays once, boards double, team members free), checkout, billing portal, monthly or yearly, cancel with a
+  reason, licence key on self-hosted
+- **Upgrade dialog** — every Pro label and locked action opens it on the feature that was clicked,
+  with a picture of that feature and Pro and Enterprise side by side. Both start with the 14-day
+  trial; choosing Enterprise also emails sales so they can reach out about a demo, an SLA and a quote
+- **Settings** — rename, create another workspace, leave or delete a workspace
+- **Account** — your details, your workspaces and deleting your account
 - **Display configuration** — one screen per display with Behavior, Display, State texts, Branding and
-  Advertisement sections, each following its profile or holding its own values. Every option carries an
-  info tooltip explaining what happens when it is switched on
-- **Profiles** — reusable settings sets, assigned to displays in bulk from the Displays tab
+  Advertisement sections, each following its profile or holding its own values, with a live preview
+  of the tablet that follows unsaved changes. Every option has inline help
+- **Profiles** — its own page with the profiles, the displays on each and an editor with the same
+  live preview; displays are assigned in bulk from the Displays page
 - **Display diagnostics** — connection health, last sync, troubleshooting info, and a one-click reset of an errored calendar account's status so a fresh token is attempted
-- **Calendar accounts** — connect and manage Google, Microsoft, and CalDAV accounts
-- **Boards** — create and manage multi-room overview boards
+- **Calendars** — connect and manage Google, Microsoft and CalDAV accounts, choose the booking method,
+  upload a Google service account, Microsoft admin consent, and the room calendars in use
+- **Boards** — list and editor on one page. The list draws a sketch of each board (theme, title,
+  layout, room names) instead of loading the live page, so many boards stay fast; the editor shows the
+  live board on a TV frame with a loading indicator
 - **Usage / analytics** — display activity statistics
 - **Roadmap** — public feature roadmap with community voting and status tracking
 - **Help / FAQ** — searchable help center covering setup, integrations, troubleshooting, and billing
+- **Workspace profile** — after the first display, owners and admins of a business workspace see two
+  optional one-click questions on the dashboard: how many rooms they want to show, and what they used
+  before. Every answer is saved on its own, and the card goes away once answered or closed
 
 ---
 
@@ -313,7 +394,7 @@ Plans apply per workspace. Usage is measured in units: a display counts as 1, a 
 no charge per team member.
 
 ### Free
-- 1 display
+- 1 active display (more displays need Pro; see Billing for what happens after a subscription ends)
 - Real-time calendar sync
 - Basic event viewing
 - Single user — inviting colleagues requires Pro

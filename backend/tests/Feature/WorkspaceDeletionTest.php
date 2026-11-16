@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Models\Workspace;
 use App\Models\WorkspaceMember;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia as Assert;
 
 uses(RefreshDatabase::class);
 
@@ -181,9 +182,13 @@ test('the delete button only appears when deletion is actually possible', functi
     [$user, $spare] = ownerOfSpareEmptyWorkspace();
 
     actingInWorkspace($user, $spare);
-    $this->get(route('workspaces.members'))->assertSee('Delete workspace');
+    $this->get(route('settings.index'))->assertInertia(fn (Assert $page) => $page->component('Settings/Index')
+        ->where('can.delete', true)
+        ->where('deleteBlocked', null));
 
-    // Add a display: the option disappears.
+    // Add a display: the option disappears, and the page says why.
     Display::factory()->create(['workspace_id' => $spare->id]);
-    $this->get(route('workspaces.members'))->assertDontSee('Delete workspace');
+    $this->get(route('settings.index'))->assertInertia(fn (Assert $page) => $page
+        ->where('can.delete', false)
+        ->where('deleteBlocked', fn ($reason) => str_contains($reason, 'empty workspace')));
 });

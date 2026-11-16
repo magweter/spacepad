@@ -6,12 +6,15 @@ use App\Http\Controllers\Concerns\ChecksAdminAccess;
 use App\Models\BillingChange;
 use App\Models\User;
 use App\Models\Workspace;
-use Illuminate\Contracts\View\View;
+use App\Support\AdminPage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Inertia\Inertia;
+use Inertia\Response;
 
 /**
  * Managing workspaces from the admin panel.
@@ -26,16 +29,19 @@ use Illuminate\Validation\Rule;
  */
 class AdminWorkspaceController extends Controller
 {
+    /** Above this many displays a Pro workspace is an Enterprise customer, as on the pricing page. */
+    private const ENTERPRISE_DISPLAYS = 25;
+
     use ChecksAdminAccess;
 
     /**
      * Every workspace, with what it costs.
      */
-    public function index(): View
+    public function index(Request $request): Response
     {
         $this->checkAdminAccess();
 
-        $search = request()->get('search');
+        $search = $request->get('search');
 
         // Usage comes off the counter columns, so no per-row counting: the list stays one
         // query however many workspaces there are.
@@ -58,16 +64,39 @@ class AdminWorkspaceController extends Controller
             ->paginate(50)
             ->withQueryString();
 
-        return view('pages.admin.workspaces.index', [
+        $mrrByWorkspace = $this->mrrFor($workspaces->pluck('id')->all());
+
+        $workspaces->through(function (Workspace $workspace) use ($mrrByWorkspace) {
+            $owner = $workspace->billingOwner();
+            $mrr = $mrrByWorkspace[$workspace->id] ?? null;
+
+            return [
+                'id' => $workspace->id,
+                'name' => $workspace->name,
+                'owner' => $owner ? ['email' => $owner->email, 'url' => route('admin.users.show', $owner)] : null,
+                'members' => (int) $workspace->members_count,
+                'displays' => (int) $workspace->displays_count,
+                'boards' => (int) $workspace->boards_count,
+                'units' => $workspace->getTotalUsageCount(),
+                'plan' => self::planBadge($workspace, (int) $workspace->displays_count),
+                'mrr' => $mrr === null ? null : '$'.number_format($mrr, 2),
+                'created' => $workspace->created_at?->format('Y-m-d'),
+                'url' => route('admin.workspaces.show', $workspace),
+            ];
+        });
+
+        return Inertia::render('Admin/Workspaces', [
+            ...AdminPage::props($request),
             'workspaces' => $workspaces,
-            'mrrByWorkspace' => $this->mrrFor($workspaces->pluck('id')->all()),
+            'search' => $search ?? '',
+            'urls' => ['index' => route('admin.workspaces.index')],
         ]);
     }
 
     /**
      * One workspace: what it uses, what it pays, and who is in it.
      */
-    public function show(Workspace $workspace): View
+    public function show(Request $request, Workspace $workspace): Response
     {
         $this->checkAdminAccess();
 
@@ -95,17 +124,77 @@ class AdminWorkspaceController extends Controller
         }
 
         $usage = $workspace->getUsageBreakdown();
+        // Floored at one unit, the same as the invoice: a workspace with nothing in it
+        // still pays for one.
+        $billableUnits = max(1, $usage['total']);
+        $unitPrice = $workspace->getManualBillingUnitPrice();
+        $globalUnitPrice = config('settings.unit_price');
+        $owner = $workspace->billingOwner();
 
-        return view('pages.admin.workspaces.show', [
-            'workspace' => $workspace,
-            'usage' => $usage,
-            // Floored at one unit, the same as the invoice: a workspace with nothing in it
-            // still pays for one.
-            'billableUnits' => max(1, $usage['total']),
-            'unitPrice' => $workspace->getManualBillingUnitPrice(),
-            'globalUnitPrice' => config('settings.unit_price'),
-            'analyticsRow' => $analyticsRow,
-            'billingChanges' => $billingChanges,
+        return Inertia::render('Admin/Workspace', [
+            ...AdminPage::props($request),
+            'workspace' => [
+                'id' => $workspace->id,
+                'name' => $workspace->name,
+                'created' => $workspace->created_at?->format('d M Y H:i'),
+                'owner' => $owner ? [
+                    'id' => $owner->id,
+                    'name' => $owner->name,
+                    'email' => $owner->email,
+                    'url' => route('admin.users.show', $owner),
+                ] : null,
+                'plan' => self::planBadge($workspace),
+                'hasLiveSubscription' => (bool) $workspace->liveSubscription(),
+            ],
+            'usage' => [
+                'displays' => $usage['displays'],
+                'boards' => $usage['boards'],
+                'total' => $usage['total'],
+            ],
+            'subscription' => $analyticsRow ? [
+                'status' => self::words((string) $analyticsRow->subscription_status),
+                'mrr' => '$'.number_format((float) $analyticsRow->mrr_current, 2),
+                'interval' => $analyticsRow->billing_interval ?? null,
+                'endsAt' => $analyticsRow->subscription_ends_at ?? null,
+            ] : null,
+            'billing' => [
+                'mode' => $workspace->is_manually_billed ? 'manual' : ($workspace->is_unlimited ? 'unlimited' : 'lemon_squeezy'),
+                'unitPrice' => $workspace->manual_billing_unit_price === null ? '' : (string) $workspace->manual_billing_unit_price,
+                'ownerId' => $owner?->id,
+                'globalUnitPrice' => $globalUnitPrice === null ? null : (string) $globalUnitPrice,
+                'globalUnitPriceFormatted' => '$'.number_format((float) ($globalUnitPrice ?? 0), 2),
+                'effectiveUnitPrice' => '$'.number_format($unitPrice, 2),
+                'billableUnits' => $billableUnits,
+                'unitsLabel' => Str::plural('unit', $billableUnits),
+                'effectiveMrr' => '$'.number_format($unitPrice * $billableUnits, 2),
+            ],
+            'billingChanges' => $billingChanges->map(fn (BillingChange $change) => [
+                'id' => $change->id,
+                'when' => $change->detected_at?->format('d M Y H:i'),
+                'increase' => $change->change_type === 'increase',
+                'delta' => ($change->license_delta > 0 ? '+' : '').$change->license_delta,
+                'units' => [$change->previous_license_count, $change->new_license_count],
+                'displays' => [$change->previous_displays_count, $change->new_displays_count],
+                'boards' => [$change->previous_boards_count, $change->new_boards_count],
+                'mrr' => $change->mrr_delta === null
+                    ? null
+                    : ($change->mrr_delta > 0 ? '+' : '').'$'.number_format((float) $change->mrr_delta, 2),
+            ])->values()->all(),
+            'members' => $workspace->members->map(function (User $member) {
+                $role = $member->pivot->role;
+
+                return [
+                    'id' => $member->id,
+                    'name' => $member->name,
+                    'email' => $member->email,
+                    'role' => self::words((string) ($role instanceof \BackedEnum ? $role->value : $role)),
+                    'url' => route('admin.users.show', $member),
+                ];
+            })->values()->all(),
+            'urls' => [
+                'index' => route('admin.workspaces.index'),
+                'billing' => route('admin.workspaces.billing', $workspace),
+            ],
         ]);
     }
 
@@ -202,6 +291,36 @@ class AdminWorkspaceController extends Controller
         } catch (\Exception $e) {
             // Analytics table isn't present (e.g. self-hosted) — the scheduled refresh will catch up.
         }
+    }
+
+    /**
+     * A stored value such as on_trial as sentence-case words: "On trial".
+     */
+    private static function words(string $value): string
+    {
+        return Str::ucfirst(Str::lower(Str::headline($value)));
+    }
+
+    /**
+     * The plan of a workspace as a key the admin pages colour by and the word that goes with it.
+     * Enterprise is Pro above 25 displays; a subscription in any other state shows that state.
+     *
+     * @return array{key: string, label: string}
+     */
+    public static function planBadge(Workspace $workspace, ?int $displays = null): array
+    {
+        $status = $workspace->billingStatus();
+        $displays ??= $workspace->displays()->count();
+
+        return match (true) {
+            $status === 'none' => ['key' => 'free', 'label' => 'Free'],
+            $status === 'manual' => ['key' => 'manual', 'label' => 'Manually billed'],
+            $status === 'unlimited' => ['key' => 'unlimited', 'label' => 'Unlimited'],
+            $status === 'on_trial' => ['key' => 'trial', 'label' => 'Pro trial'],
+            $status === 'active' && $displays > self::ENTERPRISE_DISPLAYS => ['key' => 'enterprise', 'label' => 'Enterprise'],
+            $status === 'active' => ['key' => 'pro', 'label' => 'Pro'],
+            default => ['key' => 'attention', 'label' => self::words($status)],
+        };
     }
 
     /**

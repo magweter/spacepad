@@ -13,12 +13,20 @@ class DisplayModel {
   /// the setup wizard — needs this one instead.
   String? dashboardName;
 
+  /// Where the room is, e.g. "Floor 1". Printed under the room name with the seat count.
+  String? location;
+
+  /// How many people the room seats.
+  int? capacity;
+
   DisplaySettingsModel settings;
 
   DisplayModel({
     required this.id,
     required this.name,
     this.dashboardName,
+    this.location,
+    this.capacity,
     required this.settings,
   });
 
@@ -27,6 +35,8 @@ class DisplayModel {
       id: data['id'],
       name: data['name'],
       dashboardName: data['dashboard_name'],
+      location: data['location'],
+      capacity: data['capacity'],
       settings: DisplaySettingsModel.fromJson(data['settings'] ?? {}),
     );
   }
@@ -39,6 +49,8 @@ class DisplayModel {
       'id': id,
       'name': name,
       'dashboard_name': dashboardName,
+      'location': location,
+      'capacity': capacity,
       'settings': settings.toJson(),
     };
   }

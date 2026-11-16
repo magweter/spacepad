@@ -14,8 +14,9 @@
 <body class="h-full">
     <div class="flex min-h-full flex-col justify-center py-12 sm:px-6 lg:px-8">
         <div class="sm:mx-auto sm:w-full sm:max-w-md">
-            <div class="flex justify-center">
-                <img class="h-12 w-auto" src="/images/logo-black.svg" alt="Logo">
+            <div class="flex items-center justify-center">
+                <img class="h-9 w-9 me-2.5" src="/images/spacepad-logo.svg" alt="">
+                <span class="text-lg leading-none font-bold tracking-tight text-oxford">Spacepad</span>
             </div>
             @yield('content')
         </div>

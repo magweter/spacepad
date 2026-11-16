@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers\API\Auth;
 
+use App\Enums\FunnelStep;
 use App\Http\Controllers\API\ApiController;
 use App\Http\Requests\API\Auth\LoginRequest;
 use App\Http\Resources\API\DeviceResource;
 use App\Models\Device;
 use App\Models\User;
 use App\Models\Workspace;
+use App\Services\Funnel;
 use App\Services\OutlookService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Validation\ValidationException;
@@ -82,6 +84,11 @@ class AuthController extends ApiController
                 $updateData['workspace_id'] = $workspace->id;
             }
             $device->update($updateData);
+
+            // Recorded here, at the moment of pairing, rather than on the next dashboard visit.
+            // The connect code is already spent at this point, so a failing analytics write must
+            // never fail the pairing itself.
+            rescue(fn () => Funnel::recordOnce(FunnelStep::DEVICE_PAIRED, $workspace, $user), report: true);
 
             logger()->info('Device authentication successful', [
                 'user_id' => $connectedUserId,

@@ -2,8 +2,11 @@
 
 namespace App\Models;
 
+use App\Enums\FunnelStep;
+use App\Enums\OnboardingQuestion;
 use App\Enums\UsageType;
 use App\Enums\WorkspaceRole;
+use App\Services\Funnel;
 use App\Services\BillingPlans;
 use App\Services\InstanceService;
 use App\Traits\HasUlid;
@@ -13,6 +16,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Facades\DB;
 use LemonSqueezy\Laravel\Billable;
 use LemonSqueezy\Laravel\Checkout;
@@ -52,6 +56,87 @@ class Workspace extends Model
         return $this->belongsToMany(User::class, 'workspace_members')
             ->withPivot('id', 'role')
             ->withTimestamps();
+    }
+
+    public function cancellations(): HasMany
+    {
+        return $this->hasMany(SubscriptionCancellation::class);
+    }
+
+    public function latestCancellation(): HasOne
+    {
+        return $this->hasOne(SubscriptionCancellation::class)->latestOfMany();
+    }
+
+    /**
+     * A cancellation made outside the app that still waits for its reason, if any.
+     */
+    public function pendingCancellationFeedback(): ?SubscriptionCancellation
+    {
+        if (config('settings.is_self_hosted')) {
+            return null;
+        }
+
+        return $this->cancellations()
+            ->whereNull('reason')
+            ->whereNull('dismissed_at')
+            ->latest()
+            ->first();
+    }
+
+    /**
+     * The subscription this workspace can cancel from the app, if any.
+     *
+     * Running or trialling, and not already cancelled. A subscription with a failed payment
+     * is left to the billing portal, where the payment method can be fixed instead.
+     */
+    public function cancellableSubscription()
+    {
+        if (config('settings.is_self_hosted') || $this->is_manually_billed || $this->is_unlimited) {
+            return null;
+        }
+
+        $subscription = $this->subscription();
+
+        if (! $subscription || $subscription->cancelled() || $subscription->onGracePeriod()) {
+            return null;
+        }
+
+        return $subscription->active() || $subscription->onTrial() ? $subscription : null;
+    }
+
+    public function onboardingAnswers(): HasMany
+    {
+        return $this->hasMany(OnboardingAnswer::class);
+    }
+
+    /**
+     * The most recent answer this workspace gave to a question, skipped or not.
+     */
+    public function latestAnswer(OnboardingQuestion $question): ?OnboardingAnswer
+    {
+        return $this->onboardingAnswers()
+            ->where('question', $question->value)
+            ->latest('answered_at')
+            ->orderByDesc('id')
+            ->first();
+    }
+
+    /**
+     * Whether to ask this person the two workspace questions on the dashboard.
+     *
+     * Only after the first display, so nothing stands between signing up and getting a
+     * display running. Owners and admins of a business workspace, once: answering the last
+     * question or closing the card ends it.
+     */
+    public function shouldAskProfile(User $user): bool
+    {
+        return ! config('settings.is_self_hosted')
+            && ! $user->isPersonalUser()
+            && $user->can('update', $this)
+            && $this->displays()->exists()
+            && $this->latestAnswer(OnboardingQuestion::PREVIOUS_SOLUTION) === null
+            && ! Funnel::reached(FunnelStep::PROFILE_CARD_DISMISSED, $this);
     }
 
     /**

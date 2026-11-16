@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\CheckUserActive;
 use App\Http\Middleware\CheckUserOnboarding;
+use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\RequireWebhookSigningSecret;
 use App\Http\Middleware\UpdateLastActivity;
 use Illuminate\Foundation\Application;
@@ -35,7 +36,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // is pushed by a guest: on the authenticated group only, it was dropped before it
         // ever reached the session. Where the scripts actually load is decided in the view,
         // by App\Services\FunnelTracking.
-        $middleware->web(append: [GoogleTagManagerMiddleware::class]);
+        $middleware->web(append: [GoogleTagManagerMiddleware::class, HandleInertiaRequests::class]);
 
         // The billing webhook route is registered by the package without a middleware group,
         // so the guard goes on the global stack.

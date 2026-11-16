@@ -1,0 +1,167 @@
+/* Spacepad Design System components, copied verbatim from components/bundle.css. Do not edit by hand. */
+/* Spacepad components. Every colour, radius and spacing is a token from tokens.css. */
+
+.sp-btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); font-family: var(--font-sans); font-weight: 600; border-radius: var(--radius-md); border: 1px solid transparent; cursor: pointer; text-decoration: none; line-height: 1; transition: background 200ms cubic-bezier(0.2, 0.8, 0.2, 1), border-color 200ms, transform 100ms; }
+.sp-btn:active { transform: translateY(1px); }
+.sp-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.sp-btn-md { font-size: 13px; padding: 9px 14px; min-height: 36px; }
+.sp-btn-lg { font-size: 16px; padding: 14px 24px; min-height: 48px; border-radius: var(--radius-lg); }
+.sp-btn-sm { font-size: 12px; padding: 6px 10px; min-height: 30px; border-radius: var(--radius-sm); }
+.sp-btn-primary { background: var(--brand-navy); color: var(--on-navy); }
+.sp-btn-primary:hover { background: var(--brand-navy-700); }
+.sp-btn-secondary { background: var(--surface); color: var(--brand-navy); border-color: var(--border); }
+.sp-btn-secondary:hover { border-color: var(--brand-navy); }
+.sp-btn-accent { background: var(--brand-amber); color: var(--brand-navy); }
+.sp-btn-accent:hover { filter: brightness(1.05); }
+.sp-btn-ghost { background: transparent; color: var(--text-2); }
+.sp-btn-ghost:hover { background: var(--surface-raised); }
+.sp-btn-danger { background: transparent; color: var(--status-reserved-text); border-color: var(--border); }
+.sp-btn-icon { display: inline-flex; width: 16px; height: 16px; }
+.sp-btn-icon svg { width: 16px; height: 16px; }
+
+.sp-dot { display: inline-block; border-radius: var(--radius-pill); flex: 0 0 auto; }
+.sp-dot-sm { width: 8px; height: 8px; }
+.sp-dot-md { width: 12px; height: 12px; }
+.sp-dot-lg { width: 16px; height: 16px; }
+.sp-dot-available { background: var(--status-available); }
+.sp-dot-reserved { background: var(--status-reserved); }
+.sp-dot-checkin { background: var(--status-checkin); }
+.sp-dot-offline { background: var(--status-offline); }
+.sp-dot-glow.sp-dot-available { box-shadow: var(--shadow-glow-available); }
+.sp-dot-glow.sp-dot-reserved { box-shadow: 0 0 0 6px rgba(220, 38, 38, 0.2); }
+.sp-dot-glow.sp-dot-checkin { box-shadow: 0 0 0 6px rgba(217, 119, 6, 0.2); }
+
+.sp-badge { display: inline-flex; align-items: center; gap: 6px; font-family: var(--font-sans); font-size: 12px; font-weight: 600; line-height: 1; padding: 4px 10px; border-radius: var(--radius-pill); white-space: nowrap; }
+.sp-badge-available { background: var(--status-available-bg); color: var(--status-available-text); }
+.sp-badge-reserved { background: var(--status-reserved-bg); color: var(--status-reserved-text); }
+.sp-badge-checkin { background: var(--status-checkin-bg); color: var(--status-checkin-text); }
+.sp-badge-offline { background: var(--status-offline-bg); color: var(--text-3); }
+
+.sp-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); font-family: var(--font-sans); color: var(--text); display: flex; flex-direction: column; gap: var(--space-3); box-sizing: border-box; }
+.sp-card-pad-sm { padding: var(--space-4); }
+.sp-card-pad-md { padding: var(--space-5); }
+.sp-card-pad-lg { padding: var(--space-8); border-radius: var(--radius-2xl); }
+.sp-card-rule { border-left-width: 3px; padding-left: calc(var(--space-5) - 2px); }
+.sp-card-rule-available { border-left-color: var(--status-available); }
+.sp-card-rule-reserved { border-left-color: var(--status-reserved); }
+.sp-card-rule-checkin { border-left-color: var(--status-checkin); }
+.sp-card-rule-offline { border-left-color: var(--status-offline); }
+.sp-card-interactive { cursor: pointer; text-decoration: none; transition: border-color 200ms cubic-bezier(0.2, 0.8, 0.2, 1), background 200ms; }
+.sp-card-interactive:hover { border-color: var(--brand-navy-400); background: var(--surface-raised); }
+.sp-card-interactive:focus-visible { outline: 2px solid var(--brand-navy); outline-offset: 2px; }
+.sp-card-navy { background: var(--brand-navy-800); border-color: var(--brand-navy-700); color: var(--on-navy); }
+.sp-card-head { display: flex; justify-content: space-between; align-items: center; gap: var(--space-3); }
+.sp-card-title { margin: 0; font-size: 15px; font-weight: 600; line-height: 22px; }
+.sp-card-action { font-size: 12px; font-weight: 600; color: var(--brand-navy); }
+.sp-card-navy .sp-card-action { color: var(--brand-amber); }
+
+.sp-kpi { gap: 6px; }
+.sp-kpi-label { font-size: 13px; font-weight: 500; color: var(--text-muted); }
+.sp-kpi-value { font-size: 28px; font-weight: 700; letter-spacing: -0.02em; line-height: 34px; font-variant-numeric: tabular-nums; }
+.sp-kpi-suffix { font-size: 15px; font-weight: 500; color: var(--text-muted); letter-spacing: 0; }
+.sp-kpi-note { font-size: 12px; color: var(--text-muted); }
+.sp-kpi-note-good { color: var(--status-available-text); font-weight: 500; }
+.sp-kpi-note-bad { color: var(--status-reserved-text); font-weight: 500; }
+.sp-kpi-note-warn { color: var(--status-checkin-text); font-weight: 500; }
+
+.sp-nav { display: flex; align-items: center; gap: var(--space-3); padding: 10px 12px; border-radius: var(--radius-md); color: var(--on-navy-2); font-family: var(--font-sans); font-size: 14px; font-weight: 500; text-decoration: none; transition: background 200ms; }
+.sp-nav:hover { background: var(--brand-navy-800); color: var(--on-navy); }
+.sp-nav-active { background: var(--brand-navy-800); color: var(--on-navy); font-weight: 600; box-shadow: inset 3px 0 0 var(--brand-amber); }
+.sp-nav-icon { display: inline-flex; width: 18px; height: 18px; }
+.sp-nav-icon svg { width: 18px; height: 18px; }
+.sp-nav-label { flex: 1 1 auto; }
+.sp-nav-count { font-size: 12px; background: var(--brand-navy-700); color: var(--on-navy); border-radius: var(--radius-pill); padding: 1px 8px; }
+
+.sp-plan { position: relative; display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-8); border-radius: var(--radius-2xl); background: var(--surface); border: 1px solid var(--border); font-family: var(--font-sans); color: var(--text); box-sizing: border-box; }
+.sp-plan-featured { background: var(--brand-navy); color: var(--on-navy); border-color: var(--brand-navy); box-shadow: 0 30px 60px rgba(20, 33, 61, 0.25); }
+.sp-plan-badge { position: absolute; top: -14px; left: var(--space-8); background: var(--brand-amber); color: var(--brand-navy); font-size: 12px; font-weight: 700; border-radius: var(--radius-pill); padding: 4px 12px; }
+.sp-plan-name { font-size: 18px; font-weight: 700; }
+.sp-plan-price { font-family: var(--font-display); font-size: 44px; font-weight: 700; letter-spacing: -0.03em; line-height: 1; }
+.sp-plan-period { font-family: var(--font-sans); font-size: 15px; font-weight: 500; letter-spacing: 0; color: var(--text-muted); }
+.sp-plan-featured .sp-plan-period { color: var(--on-navy-2); }
+.sp-plan-desc { font-size: 15px; color: var(--text-3); line-height: 1.5; }
+.sp-plan-featured .sp-plan-desc { color: var(--on-navy-2); }
+.sp-plan-cta { margin-top: auto; }
+
+/* Chip: outlined, sentence case, never a filled pill. Plan and feature labels. */
+.sp-chip { display: inline-flex; align-items: center; gap: 6px; font-family: var(--font-sans); font-size: 12px; font-weight: 600; line-height: 1.3; padding: 2px 8px; border-radius: var(--radius-md); border: 1.5px solid; white-space: nowrap; }
+.sp-chip-info { color: var(--info); background: var(--info-bg); border-color: var(--info-border); }
+.sp-chip-amber { color: var(--status-checkin-text); background: var(--brand-amber-50); border-color: var(--brand-amber-300); }
+.sp-chip-neutral { color: var(--text-3); background: var(--status-offline-bg); border-color: var(--status-offline-border); }
+.sp-chip-available { color: var(--status-available-text); background: var(--status-available-bg); border-color: var(--status-available-border); }
+.sp-chip-reserved { color: var(--status-reserved-text); background: var(--status-reserved-bg); border-color: var(--status-reserved-border); }
+.sp-chip-navy { color: var(--brand-navy); background: var(--brand-navy-50); border-color: var(--brand-navy-100); }
+
+/* Notice: the one component for telling someone something. Three shapes, one voice. */
+.sp-notice { font-family: var(--font-sans); font-size: 13px; color: var(--text); box-sizing: border-box; }
+.sp-notice-title { font-weight: 600; }
+.sp-notice-body { font-size: 12px; color: var(--text-muted); }
+.sp-notice-text { display: flex; flex-direction: column; flex: 1 1 auto; min-width: 0; gap: 1px; }
+.sp-notice-row { display: flex; align-items: center; gap: var(--space-4); padding: 12px var(--space-4); border: 1px solid; border-radius: var(--radius-lg); }
+.sp-notice-list { display: flex; flex-direction: column; gap: 10px; }
+.sp-notice-tag { display: inline-flex; align-items: center; font-size: 11px; font-weight: 600; line-height: 1.3; padding: 2px 8px; border-radius: var(--radius-md); border: 1.5px solid; background: var(--surface); white-space: nowrap; flex: 0 0 auto; }
+.sp-notice-row .sp-notice-body { color: inherit; opacity: 0.85; }
+.sp-notice-banner { display: flex; align-items: flex-start; gap: var(--space-3); padding: 12px var(--space-4); border: 1px solid; border-radius: var(--radius-lg); }
+.sp-notice-banner .sp-notice-body { color: inherit; opacity: 0.85; }
+.sp-notice-toast { display: flex; align-items: center; gap: var(--space-4); padding: 12px 16px; background: var(--brand-navy); color: var(--on-navy); border-radius: var(--radius-lg); box-shadow: var(--shadow-dialog); max-width: 480px; }
+.sp-notice-toast .sp-notice-body { color: var(--on-navy-2); }
+.sp-notice-toast .sp-notice-action { color: var(--brand-amber); }
+.sp-notice-action { font-weight: 600; font-size: 12px; color: var(--brand-navy); white-space: nowrap; }
+.sp-notice-close { border: 0; background: transparent; color: inherit; opacity: 0.7; cursor: pointer; width: 28px; height: 28px; border-radius: var(--radius-sm); display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; }
+.sp-notice-close:hover { opacity: 1; background: rgba(15, 23, 42, 0.06); }
+.sp-notice-danger.sp-notice-row { background: var(--status-reserved-bg); border-color: var(--status-reserved-border); color: var(--status-reserved-text); }
+.sp-notice-warning.sp-notice-row { background: var(--brand-amber-50); border-color: var(--brand-amber-300); color: var(--status-checkin-text); }
+.sp-notice-success.sp-notice-row { background: var(--status-available-bg); border-color: var(--status-available-border); color: var(--status-available-text); }
+.sp-notice-info.sp-notice-row { background: var(--info-bg); border-color: var(--info-border); color: var(--info); }
+.sp-notice-neutral.sp-notice-row { background: var(--surface-raised); border-color: var(--border); color: var(--text-2); }
+.sp-notice-row .sp-notice-tag { border-color: inherit; color: inherit; }
+/* One width for every tag, so the text of every notice in a list starts on the same line. Longer
+   words wrap inside it ("Action required" on two lines). */
+.sp-notice-row .sp-notice-tag { width: 76px; justify-content: center; text-align: center; white-space: normal; }
+.sp-notice-danger.sp-notice-banner { background: var(--status-reserved-bg); border-color: var(--status-reserved-border); color: var(--status-reserved-text); }
+.sp-notice-warning.sp-notice-banner { background: var(--brand-amber-50); border-color: var(--brand-amber-300); color: var(--status-checkin-text); }
+.sp-notice-success.sp-notice-banner { background: var(--status-available-bg); border-color: var(--status-available-border); color: var(--status-available-text); }
+.sp-notice-info.sp-notice-banner { background: var(--info-bg); border-color: var(--info-border); color: var(--info); }
+.sp-notice-neutral.sp-notice-banner { background: var(--surface-raised); border-color: var(--border); color: var(--text-2); }
+.sp-notice-banner .sp-notice-action { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
+
+/* KpiStrip: one card, N figures, hairlines between. Replaces four floating tiles. */
+.sp-kpistrip { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); padding: 4px 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); font-family: var(--font-sans); color: var(--text); }
+.sp-kpistrip-item { display: flex; flex-direction: column; gap: 4px; padding: var(--space-4) var(--space-5); border-right: 1px solid var(--border-soft); min-width: 0; }
+.sp-kpistrip-item:last-child { border-right: 0; }
+.sp-kpistrip-label { font-size: 13px; font-weight: 500; color: var(--text-muted); }
+.sp-kpistrip-value { font-family: var(--font-display); font-size: 30px; font-weight: 700; letter-spacing: -0.03em; line-height: 1; font-variant-numeric: tabular-nums; }
+.sp-kpistrip-unit { font-size: 16px; color: var(--text-muted); font-weight: 700; margin-left: 3px; }
+.sp-kpistrip-note { font-size: 12px; color: var(--text-muted); }
+.sp-kpistrip-note-bad { color: var(--status-reserved-text); font-weight: 500; }
+.sp-kpistrip-note-warn { color: var(--status-checkin-text); font-weight: 500; }
+@media (max-width: 720px) { .sp-kpistrip { grid-auto-flow: row; grid-template-columns: 1fr 1fr; } .sp-kpistrip-item { border-right: 0; border-bottom: 1px solid var(--border-soft); } }
+
+/* DayBar: a room's day from 08:00 to 18:00 with blocks in state colours and the now line. */
+.sp-daybar { position: relative; display: block; height: 26px; border-radius: var(--radius-sm); background: var(--border-soft); overflow: hidden; font-family: var(--font-sans); }
+.sp-daybar-block { position: absolute; top: 4px; bottom: 4px; border-radius: 4px; font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; padding: 0 8px; white-space: nowrap; overflow: hidden; }
+.sp-daybar-booked { background: var(--brand-navy); color: var(--on-navy); }
+.sp-daybar-now { background: var(--status-reserved); color: var(--on-navy); }
+.sp-daybar-checkin { background: var(--status-checkin); color: var(--brand-navy); }
+.sp-daybar-past { background: var(--status-offline-border); color: var(--text-3); }
+.sp-daybar-line { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--now-line); }
+.sp-daybar-axis { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); font-variant-numeric: tabular-nums; margin-top: 4px; }
+.sp-daybar-lg { height: 44px; } .sp-daybar-lg .sp-daybar-block { top: 6px; bottom: 6px; font-size: 13px; padding: 0 10px; border-radius: 6px; }
+
+/* EmptyState: one sentence, one action, no illustration. */
+.sp-empty { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-2); padding: var(--space-8) var(--space-5); border: 1px dashed var(--status-offline-border); border-radius: var(--radius-lg); font-family: var(--font-sans); color: var(--text); background: var(--surface); }
+.sp-empty-title { font-size: 15px; font-weight: 600; }
+.sp-empty-body { font-size: 13px; color: var(--text-muted); max-width: 48ch; }
+.sp-empty-actions { display: flex; gap: var(--space-2); margin-top: var(--space-2); }
+
+/* SettingRow: label and help on the left, one control on the right, hairline between rows. */
+.sp-setting { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); padding: 12px 0; border-bottom: 1px solid var(--border-soft); font-family: var(--font-sans); font-size: 14px; color: var(--text); }
+.sp-setting:last-child { border-bottom: 0; }
+.sp-setting-text { display: flex; flex-direction: column; min-width: 0; }
+.sp-setting-label { font-weight: 500; }
+.sp-setting-help { font-size: 12px; color: var(--text-muted); }
+.sp-setting-control { flex: 0 0 auto; display: inline-flex; align-items: center; gap: var(--space-2); }
+.sp-switch { width: 36px; height: 20px; border-radius: var(--radius-pill); background: var(--status-offline-border); display: inline-flex; align-items: center; padding: 2px; box-sizing: border-box; border: 0; cursor: pointer; transition: background 200ms; }
+.sp-switch[aria-checked="true"] { background: var(--brand-navy); justify-content: flex-end; }
+.sp-switch-knob { width: 16px; height: 16px; border-radius: var(--radius-pill); background: var(--surface); }
+.sp-switch:focus-visible { outline: 2px solid var(--brand-navy); outline-offset: 2px; }

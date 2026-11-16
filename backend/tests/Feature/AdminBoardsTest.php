@@ -6,6 +6,7 @@ use App\Models\Board;
 use App\Models\Instance;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia as Assert;
 
 uses(RefreshDatabase::class);
 
@@ -42,8 +43,8 @@ test('admin can see boards count per user in users table', function () {
         ->get(route('admin.index'));
 
     $response->assertStatus(200);
-    $response->assertSee('Boards');
-    $response->assertSee('3');
+    $response->assertInertia(fn (Assert $page) => $page->component('Admin/Users')
+        ->where('users', fn ($users) => collect($users)->firstWhere('email', $user->email)['boards'] === 3));
 });
 
 test('admin can see boards column in users table', function () {
@@ -59,7 +60,8 @@ test('admin can see boards column in users table', function () {
         ->get(route('admin.index'));
 
     $response->assertStatus(200);
-    $response->assertSee('Boards');
+    $response->assertInertia(fn (Assert $page) => $page->component('Admin/Users')
+        ->where('users', fn ($users) => collect($users)->firstWhere('email', $user->email)['boards'] === 4));
 });
 
 test('admin page loads with instances present', function () {
@@ -75,5 +77,6 @@ test('admin page loads with instances present', function () {
         ->get(route('admin.index'));
 
     $response->assertStatus(200);
-    $response->assertSee('Total Instances');
+    $response->assertInertia(fn (Assert $page) => $page->component('Admin/Users')
+        ->has('stats.total_instances'));
 });

@@ -2,13 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\WorkspaceRole;
 use App\Models\User;
 use App\Services\WorkspaceService;
+use App\Support\PortalShell;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\View\View;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class ProfileController extends Controller
 {
@@ -17,13 +20,35 @@ class ProfileController extends Controller
     /**
      * The personal account page.
      *
-     * Deliberately workspace-independent: identity and account deletion only. Subscription
-     * and usage live on the workspace they belong to (see WorkspaceMemberController), which
-     * also keeps this page meaningful for someone who is in several workspaces.
+     * Deliberately workspace-independent: identity, the workspaces you are in and account
+     * deletion. Subscription and usage live on the workspace they belong to (the billing page),
+     * which also keeps this page meaningful for someone who is in several workspaces.
      */
-    public function show(): View
+    public function show(Request $request): Response
     {
-        return view('pages.profile');
+        /** @var User $user */
+        $user = $request->user();
+        $workspace = $user->getSelectedWorkspace();
+
+        return Inertia::render('Account/Index', [
+            'shell' => $workspace ? PortalShell::for($request, $workspace, 'account') : null,
+            'account' => [
+                'name' => $user->name,
+                'email' => $user->email,
+                'memberSince' => $user->created_at?->format('j F Y'),
+            ],
+            'workspaces' => $user->workspaces()->orderBy('name')->get()
+                ->map(fn ($w) => [
+                    'id' => $w->id,
+                    'name' => $w->name,
+                    'role' => WorkspaceRole::fromPivot($w->pivot->role)->label(),
+                    'current' => $w->id === $workspace?->id,
+                ])->values()->all(),
+            'urls' => [
+                'destroy' => route('profile.destroy'),
+                'logout' => route('logout'),
+            ],
+        ]);
     }
 
     public function destroy(Request $request): RedirectResponse

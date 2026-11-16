@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AdminAlertController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AdminMergeController;
 use App\Http\Controllers\AdminRoadmapController;
@@ -12,15 +13,21 @@ use App\Http\Controllers\BillingController;
 use App\Http\Controllers\BoardController;
 use App\Http\Controllers\CalDAVAccountsController;
 use App\Http\Controllers\CalendarController;
-use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DisplayController;
 use App\Http\Controllers\DisplayDiagnosticsController;
 use App\Http\Controllers\DisplaySettingsController;
+use App\Http\Controllers\EnterpriseInterestController;
+use App\Http\Controllers\FirstDisplayController;
 use App\Http\Controllers\GoogleAccountsController;
+use App\Http\Controllers\HelpController;
 use App\Http\Controllers\Invitations\AcceptInvitationController;
+use App\Http\Controllers\JoinRequestController;
 use App\Http\Controllers\LicenseController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\OutlookAccountsController;
+use App\Http\Controllers\OverviewController;
+use App\Http\Controllers\Portal;
+use App\Http\Controllers\PortalScheduleController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProfilesController;
 use App\Http\Controllers\RoadmapController;
@@ -29,6 +36,7 @@ use App\Http\Controllers\SupportController;
 use App\Http\Controllers\WorkspaceController;
 use App\Http\Controllers\WorkspaceInvitationController;
 use App\Http\Controllers\WorkspaceMemberController;
+use App\Http\Controllers\WorkspaceProfileController;
 use Illuminate\Support\Facades\Route;
 
 // Public board routes (no authentication required)
@@ -84,11 +92,41 @@ Route::prefix('auth')->group(function () {
 Route::get('/outlook-accounts/callback', [OutlookAccountsController::class, 'callback']);
 
 Route::middleware(['auth', 'user.update-last-activity'])->group(function () {
-    Route::get('/', DashboardController::class)->name('dashboard')->middleware('user.active');
+    Route::get('/', OverviewController::class)->name('dashboard')->middleware('user.active');
+    Route::middleware('user.active')->group(function () {
+        Route::get('/displays', [Portal\DisplaysPageController::class, 'index'])->name('displays.index');
+        Route::get('/boards', [Portal\BoardsPageController::class, 'index'])->name('boards.index');
+        Route::get('/calendars', [Portal\CalendarsPageController::class, 'index'])->name('calendars.index');
+        Route::get('/billing', [Portal\BillingPageController::class, 'index'])->name('billing.index');
+        Route::get('/settings', [Portal\SettingsPageController::class, 'index'])->name('settings.index');
+        Route::middleware('throttle:portal_schedule')->group(function () {
+            Route::get('/schedule/day', [PortalScheduleController::class, 'day'])->name('schedule.day');
+            Route::post('/schedule/{display}/book', [PortalScheduleController::class, 'book'])->name('schedule.book');
+            Route::post('/schedule/{display}/events/{eventId}/check-in', [PortalScheduleController::class, 'checkIn'])->name('schedule.check-in');
+            Route::post('/schedule/{display}/events/{eventId}/extend', [PortalScheduleController::class, 'extend'])->name('schedule.extend');
+            Route::delete('/schedule/{display}/events/{eventId}', [PortalScheduleController::class, 'cancel'])->name('schedule.cancel');
+        });
+    });
     Route::get('/onboarding', [OnboardingController::class, 'index'])->name('onboarding')->middleware('user.onboarding');
+    Route::post('/onboarding/workspace', [OnboardingController::class, 'workspace'])->name('onboarding.workspace');
+    Route::post('/onboarding/rooms', [OnboardingController::class, 'rooms'])->name('onboarding.rooms');
+    Route::post('/onboarding/tablets', [OnboardingController::class, 'tablets'])->name('onboarding.tablets');
+    Route::post('/onboarding/start', [OnboardingController::class, 'start'])->name('onboarding.start');
+    Route::post('/onboarding/events', [OnboardingController::class, 'events'])->name('onboarding.events');
     Route::post('/onboarding/usage-type', [OnboardingController::class, 'updateUsageType'])->name('onboarding.usage-type');
     Route::post('/onboarding/terms', [OnboardingController::class, 'acceptTerms'])->name('onboarding.terms');
     Route::post('/onboarding/skip', [OnboardingController::class, 'skip'])->name('onboarding.skip');
+    Route::post('/onboarding/join', [OnboardingController::class, 'requestJoin'])->name('onboarding.join');
+    Route::post('/onboarding/separate', [OnboardingController::class, 'separateWorkspace'])->name('onboarding.separate');
+    Route::get('/join-requests/{joinRequest}', [JoinRequestController::class, 'show'])->name('join-requests.show');
+    Route::post('/join-requests/{joinRequest}/approve', [JoinRequestController::class, 'approve'])->name('join-requests.approve');
+    Route::post('/join-requests/{joinRequest}/decline', [JoinRequestController::class, 'decline'])->name('join-requests.decline');
+
+    Route::get('/setup/first-display', [FirstDisplayController::class, 'index'])->name('setup.first-display');
+    Route::get('/setup/first-display/resources', [FirstDisplayController::class, 'resources'])->name('setup.first-display.resources');
+    Route::get('/setup/first-display/device-status', [FirstDisplayController::class, 'deviceStatus'])->name('setup.first-display.device-status');
+    Route::get('/setup/first-display/live', [FirstDisplayController::class, 'live'])->name('setup.first-display.live');
+    Route::post('/setup/first-display/it-request', [FirstDisplayController::class, 'itRequest'])->name('setup.first-display.it-request');
 
     Route::post('/outlook-accounts/auth', [OutlookAccountsController::class, 'auth'])->name('outlook-accounts.auth');
     Route::post('/outlook-accounts/booking-method', [OutlookAccountsController::class, 'setBookingMethod'])->name('outlook-accounts.set-booking-method');
@@ -110,6 +148,11 @@ Route::middleware(['auth', 'user.update-last-activity'])->group(function () {
     Route::put('/displays/{display}', [DisplayController::class, 'update'])->name('displays.update');
     Route::patch('/displays/{display}/status', [DisplayController::class, 'updateStatus'])
         ->name('displays.updateStatus');
+    Route::post('/displays/{display}/make-active', [DisplayController::class, 'makeActive'])
+        ->name('displays.makeActive');
+
+    Route::post('/workspace/profile', [WorkspaceProfileController::class, 'update'])->name('workspace.profile.update');
+    Route::post('/workspace/profile/dismiss', [WorkspaceProfileController::class, 'dismiss'])->name('workspace.profile.dismiss');
     Route::delete('/displays/{display}', [DisplayController::class, 'delete'])->name('displays.delete');
 
     // Display configuration: one screen, saved per section
@@ -166,11 +209,15 @@ Route::middleware(['auth', 'user.update-last-activity'])->group(function () {
     Route::delete('/workspaces/{workspace}', [WorkspaceController::class, 'destroy'])->name('workspaces.destroy');
 
     Route::post('/billing/checkout', [BillingController::class, 'checkout'])->name('billing.checkout');
+    Route::post('/billing/enterprise', EnterpriseInterestController::class)->name('billing.enterprise');
     Route::post('/billing/portal', [BillingController::class, 'portal'])->name('billing.portal');
     Route::post('/billing/switch-yearly', [BillingController::class, 'switchToYearly'])->name('billing.switch-yearly');
     Route::post('/billing/switch-monthly', [BillingController::class, 'switchToMonthly'])->name('billing.switch-monthly');
     Route::delete('/billing/switch-monthly', [BillingController::class, 'cancelSwitchToMonthly'])->name('billing.switch-monthly.cancel');
     Route::get('/billing/thanks', [BillingController::class, 'thanks'])->name('billing.thanks');
+    Route::post('/billing/cancel', [BillingController::class, 'cancel'])->name('billing.cancel');
+    Route::post('/billing/cancellations/{cancellation}/feedback', [BillingController::class, 'feedback'])->name('billing.cancellations.feedback');
+    Route::post('/billing/cancellations/{cancellation}/dismiss', [BillingController::class, 'dismissFeedback'])->name('billing.cancellations.dismiss');
 
     Route::get('/account', [ProfileController::class, 'show'])->name('profile.show');
     Route::delete('/account', [ProfileController::class, 'destroy'])->name('profile.destroy');
@@ -220,6 +267,7 @@ Route::middleware(['auth', 'user.update-last-activity'])->group(function () {
     Route::get('/boards/{board}/images/logo', [BoardController::class, 'serveLogo'])->name('boards.images.logo');
 
     // Support / FAQ
+    Route::get('/help', [HelpController::class, 'index'])->name('help.data');
     Route::post('/support/ask', [SupportController::class, 'store'])->name('support.ask');
 
     // Roadmap
@@ -227,6 +275,12 @@ Route::middleware(['auth', 'user.update-last-activity'])->group(function () {
     Route::post('/roadmap/suggest', [RoadmapController::class, 'suggest'])->name('roadmap.suggest');
 
     // Admin — Roadmap
+    Route::get('/admin/alerts', [AdminAlertController::class, 'index'])->name('admin.alerts.index');
+    Route::get('/admin/alerts/create', [AdminAlertController::class, 'create'])->name('admin.alerts.create');
+    Route::post('/admin/alerts', [AdminAlertController::class, 'store'])->name('admin.alerts.store');
+    Route::get('/admin/alerts/{portalAlert}/edit', [AdminAlertController::class, 'edit'])->name('admin.alerts.edit');
+    Route::put('/admin/alerts/{portalAlert}', [AdminAlertController::class, 'update'])->name('admin.alerts.update');
+    Route::post('/admin/alerts/{portalAlert}/end', [AdminAlertController::class, 'end'])->name('admin.alerts.end');
     Route::get('/admin/roadmap', [AdminRoadmapController::class, 'index'])->name('admin.roadmap.index');
     Route::get('/admin/roadmap/create', [AdminRoadmapController::class, 'create'])->name('admin.roadmap.create');
     Route::post('/admin/roadmap', [AdminRoadmapController::class, 'store'])->name('admin.roadmap.store');

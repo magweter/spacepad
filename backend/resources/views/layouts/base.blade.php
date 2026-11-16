@@ -4,10 +4,8 @@
         <div class="mx-auto container px-4 sm:px-6">
             <div class="flex h-16 items-center justify-between px-4 sm:px-0">
                 <a href="/" class="flex items-center">
-                    <div class="flex-shrink-0 me-3">
-                        <img class="h-7 w-7" src="/images/logo-black.svg" alt="Logo">
-                    </div>
-                    <span class="text-xl font-semibold text-black">Spacepad</span>
+                    <img class="h-9 w-9 flex-shrink-0 me-2.5" src="/images/spacepad-logo.svg" alt="">
+                    <span class="text-lg leading-none font-bold tracking-tight text-oxford">Spacepad</span>
                     @if(auth()->user()->hasProForCurrentWorkspace())
                         <span class="ml-2 inline-flex items-center rounded-md bg-blue-50 px-1.5 py-0.5 text-sm font-medium text-blue-700 ring-1 ring-inset ring-blue-600">Pro</span>
                     @endif

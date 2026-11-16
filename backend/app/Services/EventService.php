@@ -158,6 +158,33 @@ class EventService
      * The extra seconds are per entry, which is what breaks the lock: each cycle spreads the fleet
      * a little further apart until the misses are distributed across the whole interval.
      */
+    /**
+     * Fill the display's event cache when it is empty, so the portal pages and boards that only
+     * read it have something to show. Uses the same key and lifetime getEventsForDisplay() would,
+     * so a tablet asking afterwards is served from it. Returns whether the calendar was asked.
+     */
+    public function warmCache(Display $display): bool
+    {
+        if (! config('services.events.cache_enabled')) {
+            return false;
+        }
+
+        $display->loadCount(['eventSubscriptions' => function ($query) {
+            $query->where('subscription_id', 'not like', 'pending_%');
+        }]);
+
+        $subscribed = $display->event_subscriptions_count > 0;
+        $key = $subscribed ? $display->getEventsCacheKey() : $display->getEventsCacheKey().':fallback';
+
+        if (Cache::has($key)) {
+            return false;
+        }
+
+        Cache::put($key, $this->getAllEvents($display), $this->jitteredCacheTtl($subscribed ? 15 : 2));
+
+        return true;
+    }
+
     private function jitteredCacheTtl(int $minutes): Carbon
     {
         $spread = (int) ceil($minutes * 60 * 0.2);

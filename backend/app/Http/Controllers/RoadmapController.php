@@ -35,7 +35,7 @@ class RoadmapController extends Controller
         return response()->json(['voted' => $voted, 'votes_count' => $votesCount]);
     }
 
-    public function suggest(Request $request): RedirectResponse
+    public function suggest(Request $request): JsonResponse|RedirectResponse
     {
         abort_if(config('settings.is_self_hosted'), 404);
 
@@ -69,6 +69,10 @@ class RoadmapController extends Controller
                 'user_id' => $user->id,
                 'error' => $e->getMessage(),
             ]);
+        }
+
+        if ($request->wantsJson()) {
+            return response()->json(['sent' => true]);
         }
 
         return back()->with('suggestion_sent', true);

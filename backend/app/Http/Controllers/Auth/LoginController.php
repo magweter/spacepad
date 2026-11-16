@@ -6,21 +6,27 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Models\User;
 use App\Notifications\MagicLoginNotification;
+use App\Support\AuthPageUrls;
 use App\Support\MagicLoginLink;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
-use Illuminate\View\View;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class LoginController extends Controller
 {
     /**
      * Display the login view.
      */
-    public function create(): View
+    public function create(): Response
     {
-        return view('auth.login');
+        return Inertia::render('Auth/Login', [
+            'mode' => 'signin',
+            'sentTo' => session('sent_to'),
+            'urls' => AuthPageUrls::all(),
+        ]);
     }
 
     /**
@@ -54,6 +60,7 @@ class LoginController extends Controller
 
         return redirect()
             ->back()
+            ->with('sent_to', $data['email'])
             ->with('success', 'Check your e-mail. You should receive an e-mail with a login link shortly.');
     }
 

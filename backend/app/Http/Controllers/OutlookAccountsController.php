@@ -8,6 +8,7 @@ use App\Http\Controllers\Concerns\VerifiesOAuthState;
 use App\Models\OutlookAccount;
 use App\Services\FunnelTracking;
 use App\Services\OutlookService;
+use App\Support\OnboardingReturn;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -35,6 +36,7 @@ class OutlookAccountsController extends Controller
 
         // Store permission type in session before redirecting to OAuth
         session(['outlook_permission_type' => $request->permission_type]);
+        OnboardingReturn::remember($request);
 
         $permissionType = PermissionType::from($request->permission_type);
 
@@ -102,19 +104,19 @@ class OutlookAccountsController extends Controller
                 || ($error === 'access_denied' && str_contains(strtolower($errorDescription), 'admin'));
 
             if ($needsAdminConsent) {
-                return redirect()->route('dashboard')->with([
+                return OnboardingReturn::redirect('calendar', 'calendars.index')->with([
                     'needs_admin_consent' => true,
                     'admin_consent_url' => $this->outlookService->getAdminConsentUrl(),
                 ]);
             }
 
-            return redirect()->route('dashboard')->with('error', 'Failed to connect to Microsoft account. Please try again.');
+            return OnboardingReturn::redirect('calendar', 'calendars.index')->with('error', 'Failed to connect to Microsoft account. Please try again.');
         }
 
         if (! $this->stateMatchesSession('outlook_oauth_state')) {
             session()->forget('outlook_permission_type');
 
-            return redirect()->route('dashboard')->with('error', 'The Microsoft sign-in could not be verified. Please try connecting again.');
+            return redirect()->route('calendars.index')->with('error', 'The Microsoft sign-in could not be verified. Please try connecting again.');
         }
 
         $authCode = request('code');
@@ -133,7 +135,7 @@ class OutlookAccountsController extends Controller
 
         FunnelTracking::calendarConnected($workspace, $outlookAccount->wasRecentlyCreated);
 
-        return redirect()->route('dashboard')->with('success', 'Microsoft account "'.$outlookAccount->email.'" has been connected successfully.');
+        return OnboardingReturn::redirect('room', 'calendars.index')->with('success', 'Microsoft account "'.$outlookAccount->email.'" has been connected successfully.');
     }
 
     public function setBookingMethod(Request $request): RedirectResponse
@@ -160,7 +162,7 @@ class OutlookAccountsController extends Controller
 
             $consentUrl = $this->outlookService->getAdminConsentUrl($nonce);
 
-            return redirect()->route('dashboard')
+            return redirect()->route('calendars.index')
                 ->with('needs_admin_consent', true)
                 ->with('admin_consent_url', $consentUrl)
                 ->with('info', 'Complete the admin consent step below. The booking method will be saved once your M365 admin approves.');
@@ -170,7 +172,7 @@ class OutlookAccountsController extends Controller
             'booking_method' => OutlookBookingMethod::from($request->booking_method),
         ]);
 
-        return redirect()->route('dashboard')->with('success', 'Booking method has been set successfully.');
+        return redirect()->route('calendars.index')->with('success', 'Booking method has been set successfully.');
     }
 
     /**
@@ -231,11 +233,11 @@ class OutlookAccountsController extends Controller
         $this->authorize('delete', $outlookAccount);
 
         if ($outlookAccount->calendars()->exists()) {
-            return redirect()->route('dashboard')->with('error', 'Cannot disconnect this account because it is used by one or more displays.');
+            return redirect()->route('calendars.index')->with('error', 'Cannot disconnect this account because it is used by one or more displays.');
         }
 
         $outlookAccount->delete();
 
-        return redirect()->route('dashboard')->with('status', 'Outlook account has been removed successfully.');
+        return redirect()->route('calendars.index')->with('status', 'Outlook account has been removed successfully.');
     }
 }

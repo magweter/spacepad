@@ -4,14 +4,19 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\ChecksAdminAccess;
 use App\Models\BillingChange;
-use App\Models\RoadmapItem;
 use App\Models\User;
 use App\Models\Workspace;
 use App\Services\WorkspaceService;
+use App\Support\AdminPage;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Inertia\Inertia;
+use Inertia\Response as InertiaResponse;
+use Symfony\Component\HttpFoundation\Response;
 
 class AdminController extends Controller
 {
@@ -19,13 +24,18 @@ class AdminController extends Controller
 
     public function __construct(protected WorkspaceService $workspaces) {}
 
-    public function index()
+    public function index(Request $request): InertiaResponse|RedirectResponse
     {
         $this->checkAdminAccess();
 
-        // The tiles above the tabs are filled by AdminStatsService through a view composer,
-        // so they read the same here as on every other admin screen.
-        $search = request()->get('search');
+        // The roadmap used to be a pane of this page; old links land on its own screen now.
+        if ($request->query('tab') === 'roadmap') {
+            return redirect()->route('admin.roadmap.index');
+        }
+
+        // The figures above the tabs come from AdminStatsService (AdminPage::props), so they
+        // read the same here as on every other admin screen.
+        $search = $request->get('search');
         // Pro is a property of the workspace now, so the Pro column reads the user's owned
         // workspaces rather than a subscription hanging off the user.
         $allUsersQuery = User::query()
@@ -51,22 +61,46 @@ class AdminController extends Controller
             ->paginate(50)
             ->withQueryString();
 
-        $roadmapItems = RoadmapItem::withCount('votes')
-            ->with('submittedBy')
-            ->orderBy('is_approved')
-            ->ordered()
-            ->get();
-
-        return view('pages.admin', [
-            'allUsers' => $allUsers,
-            'roadmapItems' => $roadmapItems,
+        return Inertia::render('Admin/Users', [
+            ...AdminPage::props($request),
+            'search' => (string) $search,
+            'users' => $allUsers->getCollection()->map(fn (User $user) => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'usageType' => $user->usage_type?->label(),
+                'displays' => (int) $user->displays_count,
+                'boards' => (int) ($user->boards_count ?? 0),
+                'pro' => $user->ownedWorkspaces->contains(fn ($workspace) => $workspace->hasPro()),
+                'registered' => $user->created_at->format('Y-m-d'),
+                'lastActivity' => $user->last_activity_at?->format('Y-m-d'),
+                'urls' => [
+                    'show' => route('admin.users.show', $user),
+                    'impersonate' => route('admin.users.impersonate', $user),
+                ],
+            ])->values(),
+            'pagination' => [
+                'currentPage' => $allUsers->currentPage(),
+                'lastPage' => $allUsers->lastPage(),
+                'total' => $allUsers->total(),
+                'from' => $allUsers->firstItem(),
+                'to' => $allUsers->lastItem(),
+                'prev' => $allUsers->previousPageUrl(),
+                'next' => $allUsers->nextPageUrl(),
+                // The numbered links with the gaps, as Laravel's own pagination view draws them.
+                'links' => collect($allUsers->linkCollection())
+                    ->slice(1, -1)
+                    ->map(fn ($link) => ['url' => $link['url'], 'label' => $link['label'], 'active' => $link['active']])
+                    ->values(),
+            ],
+            'urls' => ['index' => route('admin.index')],
         ]);
     }
 
     /**
      * Show user details page
      */
-    public function showUser(User $user)
+    public function showUser(Request $request, User $user): InertiaResponse
     {
         $this->checkAdminAccess();
 
@@ -119,12 +153,65 @@ class AdminController extends Controller
             $billingChanges = collect();
         }
 
-        return view('pages.admin.user', [
-            'user' => $user,
-            'subscriptionInfo' => $subscriptionInfo,
-            'billingChanges' => $billingChanges,
-            // Billing lives on the workspace; the form on this page edits that.
-            'billingWorkspace' => $billingWorkspace,
+        $units = $billingWorkspace?->getTotalUsageCount();
+
+        return Inertia::render('Admin/User', [
+            // A drill-down: the shell only, without the tabs and figures of the overviews.
+            'shell' => AdminPage::props($request)['shell'],
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'usageType' => $user->usage_type?->label(),
+                'created' => $user->created_at->format('Y-m-d H:i:s'),
+                'lastActivity' => $user->last_activity_at?->format('Y-m-d H:i:s'),
+                'isSelf' => $user->is(Auth::user()),
+            ],
+            'counts' => [
+                'outlookAccounts' => $user->outlookAccounts->count(),
+                'googleAccounts' => $user->googleAccounts->count(),
+                'caldavAccounts' => $user->caldavAccounts->count(),
+                'displays' => $user->displays->count(),
+                'devices' => $user->devices->count(),
+                'workspaces' => $user->workspaces->count(),
+            ],
+            // Shown when the billing workspace has Pro or the analytics snapshot has a subscription.
+            'subscription' => ($billingWorkspace?->hasPro() || $subscriptionInfo) ? [
+                'plan' => $billingWorkspace
+                    ? AdminWorkspaceController::planBadge($billingWorkspace)
+                    : ['key' => $subscriptionInfo ? 'pro' : 'free', 'label' => $subscriptionInfo ? 'Pro' : 'Free'],
+                'info' => $subscriptionInfo ? [
+                    'status' => $subscriptionInfo['status'],
+                    'statusLabel' => Str::ucfirst(str_replace('_', ' ', $subscriptionInfo['status'])),
+                    'price' => number_format((float) $subscriptionInfo['price'], 2),
+                    'mrr' => number_format((float) $subscriptionInfo['mrr'], 2),
+                    'endsAt' => $subscriptionInfo['ends_at'] ? Carbon::parse($subscriptionInfo['ends_at'])->format('Y-m-d') : null,
+                ] : null,
+            ] : null,
+            'billingChanges' => $billingChanges->map(fn (BillingChange $change) => [
+                'id' => $change->id,
+                'detectedAt' => $change->detected_at->format('Y-m-d H:i'),
+                'increase' => $change->change_type === 'increase',
+                'delta' => $change->license_delta,
+                'licenses' => [$change->previous_license_count, $change->new_license_count],
+                'displays' => [$change->previous_displays_count, $change->new_displays_count],
+                'boards' => [$change->previous_boards_count, $change->new_boards_count],
+                'mrr' => [number_format((float) $change->previous_mrr, 2), number_format((float) $change->new_mrr, 2)],
+            ])->values(),
+            // Billing lives on the workspace; its own admin page edits that.
+            'billingWorkspace' => $billingWorkspace ? [
+                'name' => $billingWorkspace->name,
+                'units' => $units,
+                'unitsLabel' => Str::plural('unit', $units),
+                'displays' => (int) $billingWorkspace->displays_count,
+                'boards' => (int) $billingWorkspace->boards_count,
+                'url' => route('admin.workspaces.show', $billingWorkspace),
+            ] : null,
+            'urls' => [
+                'back' => route('admin.index'),
+                'delete' => route('admin.users.delete', $user),
+                'impersonate' => route('admin.users.impersonate', $user),
+            ],
         ]);
     }
 
@@ -199,7 +286,7 @@ class AdminController extends Controller
     /**
      * Impersonate a user
      */
-    public function impersonate(User $user): RedirectResponse
+    public function impersonate(User $user): Response
     {
         $this->checkAdminAccess();
 
@@ -230,8 +317,11 @@ class AdminController extends Controller
             'impersonated_user_id' => $user->id,
         ]);
 
-        return redirect()->route('dashboard')
-            ->with('success', "You are now impersonating {$user->email}");
+        // A full page load, not an Inertia visit: the impersonation banner is part of the root
+        // view, which an Inertia visit does not draw again.
+        session()->flash('success', "You are now impersonating {$user->email}");
+
+        return Inertia::location(route('dashboard'));
     }
 
     /**

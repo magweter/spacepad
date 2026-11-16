@@ -6,6 +6,7 @@ use App\Models\Display;
 use App\Models\DisplayProfile;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia as Assert;
 
 uses(RefreshDatabase::class);
 
@@ -90,6 +91,6 @@ test('the used-by list on a profile names the display, not the shared room', fun
     $this->actingAs($this->user)
         ->get(route('profiles.edit', $profile))
         ->assertOk()
-        ->assertSee('Boardroom tablet')
-        ->assertDontSee('Willemsplein 3');
+        ->assertInertia(fn (Assert $page) => $page->component('Profiles/Edit')
+            ->where('displays.0.name', 'Boardroom tablet'));
 });

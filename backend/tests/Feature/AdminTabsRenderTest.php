@@ -2,6 +2,7 @@
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia as Assert;
 
 uses(RefreshDatabase::class);
 
@@ -11,67 +12,67 @@ beforeEach(function () {
 });
 
 test('every top-level admin screen carries the same tiles and tab bar', function () {
+    // The Inertia screens get the figures and the pending roadmap count for AdminTabs, with the
+    // Admin item active in the shell.
     foreach ([
-        route('admin.index'),
-        route('admin.workspaces.index'),
-        route('admin.merge.index'),
-    ] as $url) {
+        route('admin.index') => ['Admin/Users'],
+        route('admin.workspaces.index') => ['Admin/Workspaces'],
+        route('admin.merge.index') => ['Admin/Merge'],
+        route('admin.roadmap.index') => ['Admin/Roadmap'],
+    ] as $url => [$component]) {
         $this->actingAs($this->admin)->get($url)->assertOk()
-            // The tiles.
-            ->assertSee('Total Users')
-            ->assertSee('Active Workspaces')
-            ->assertSee('Active Instances')
-            ->assertSee('Total Instances')
-            // The tabs.
-            ->assertSee('Workspaces')
-            ->assertSee('Merge workspaces')
-            ->assertSee('Roadmap');
+            ->assertInertia(fn (Assert $page) => $page->component($component)
+                ->has('shell')
+                ->has('stats.total_users')
+                ->has('stats.active_workspaces')
+                ->has('stats.active_instances')
+                ->has('stats.total_instances')
+                ->has('pendingRoadmap'));
     }
 });
 
 test('a detail page is laid out as a drill-down, like the user page it mirrors', function () {
     $workspace = $this->admin->primaryWorkspace();
 
-    // No tab bar and no tiles: it is reached from a list, and offers the way back up that
-    // the user detail page does.
+    // No tab bar: it is reached from a list, and offers the way back up that the user detail
+    // page does.
     $this->actingAs($this->admin)
         ->get(route('admin.workspaces.show', $workspace))
         ->assertOk()
-        ->assertDontSee('Merge workspaces')
-        ->assertDontSee('Total Instances')
-        ->assertSee('Back to Workspaces');
+        ->assertInertia(fn (Assert $page) => $page->component('Admin/Workspace')
+            ->has('shell')
+            ->where('urls.index', route('admin.workspaces.index')));
 
+    expect(file_get_contents(resource_path('js/Pages/Admin/Workspace.vue')))
+        ->toContain('Back to Workspaces')
+        ->not->toContain('<AdminTabs');
+
+    // The user page gets the shell only, no figures or tab counts, and the way back up.
     $this->actingAs($this->admin)
         ->get(route('admin.users.show', $this->admin))
         ->assertOk()
-        ->assertDontSee('Merge workspaces')
-        ->assertSee('Back to Admin');
+        ->assertInertia(fn (Assert $page) => $page->component('Admin/User')
+            ->has('shell')
+            ->missing('stats')
+            ->missing('pendingRoadmap')
+            ->where('urls.back', route('admin.index')));
 });
 
 test('the workspace pages mark the Workspaces tab as the active one', function () {
-    $html = $this->actingAs($this->admin)
-        ->get(route('admin.workspaces.index'))
-        ->assertOk()
-        ->getContent();
-
-    preg_match('/<a[^>]*admin\/workspaces"[^>]*>/', $html, $link);
-
-    expect($link[0])->toContain('border-blue-500 text-blue-600');
+    expect(file_get_contents(resource_path('js/Pages/Admin/Workspaces.vue')))
+        ->toContain('<AdminTabs active="workspaces"');
 });
 
 test('the billing fields are drawn with a visible border', function () {
-    $workspace = $this->admin->primaryWorkspace();
-
-    $html = $this->actingAs($this->admin)
-        ->get(route('admin.workspaces.show', $workspace))
-        ->assertOk()
-        ->getContent();
-
     // Tailwind v4 without the forms plugin strips the native control border, so a colour
     // alone renders nothing. Both fields must ask for a border width too.
-    preg_match('/<input[^>]*name="manual_billing_unit_price"[^>]*>/', $html, $input);
-    preg_match('/<select[^>]*name="billing_owner_user_id"[^>]*>/', $html, $select);
+    $form = file_get_contents(resource_path('js/Pages/Admin/Partials/WorkspaceBillingForm.vue'));
 
-    expect($input[0])->toContain('border border-gray-300');
-    expect($select[0])->toContain('border border-gray-300');
+    preg_match("/const fieldClass = '([^']*)'/", $form, $fieldClass);
+    preg_match('/<input[^>]*name="manual_billing_unit_price"[^>]*>/', $form, $input);
+    preg_match('/<select[^>]*name="billing_owner_user_id"[^>]*>/', $form, $select);
+
+    expect($fieldClass[1])->toContain('border border-line')
+        ->and($input[0])->toContain(':class="[fieldClass')
+        ->and($select[0])->toContain(':class="[fieldClass');
 });

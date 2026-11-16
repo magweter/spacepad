@@ -60,6 +60,12 @@ class DisplayService
             return new PermissionResult(false, 'Display is deactivated', 400);
         }
 
+        // A 400 like the one above, never a 401: the tablet signs out on a 401 and would lose
+        // its pairing, while this display comes back by itself once the workspace has Pro.
+        if ($display->requiresPro()) {
+            return new PermissionResult(false, 'This display needs Pro. Upgrade to activate it.', 400);
+        }
+
         // Pro feature check: check if any workspace owner has Pro
         if (! empty($options['pro'])) {
             if (! $display->workspace->hasPro()) {

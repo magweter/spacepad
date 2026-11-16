@@ -82,6 +82,7 @@ class User extends Authenticatable
         'dpa_accepted_at',
         'is_admin',
         'skipped_onboarding_at',
+        'onboarding_completed_at',
     ];
 
     /**
@@ -107,6 +108,7 @@ class User extends Authenticatable
         'terms_accepted_at' => 'datetime',
         'dpa_accepted_at' => 'datetime',
         'skipped_onboarding_at' => 'datetime',
+        'onboarding_completed_at' => 'datetime',
         'is_admin' => 'boolean',
     ];
 
@@ -256,6 +258,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Whether the onboarding wizard is behind this person, finished or skipped.
+     */
+    public function hasFinishedOnboarding(): bool
+    {
+        return $this->onboarding_completed_at !== null || $this->skipped_onboarding_at !== null;
+    }
+
+    /**
      * @deprecated Use Workspace::pullConnectCode(), which also resolves the workspace the
      *             code was generated for.
      *
@@ -268,6 +278,18 @@ class User extends Authenticatable
 
     public function isOnboarded(): bool
     {
+        // A self-hosted instance runs under its licence: nobody is onboarded before accepting it,
+        // however they left the wizard.
+        if (config('settings.is_self_hosted') && $this->terms_accepted_at === null) {
+            return false;
+        }
+
+        // Finishing the wizard is onboarding, with or without a calendar: "Just look around"
+        // ends on the overview, and sending that person back to the wizard would loop.
+        if ($this->onboarding_completed_at !== null) {
+            return true;
+        }
+
         // Check if user has accounts OR if any workspace they're a member of has accounts
         $hasAccounts = $this->hasAnyAccount();
 

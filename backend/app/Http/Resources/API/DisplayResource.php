@@ -24,6 +24,9 @@ class DisplayResource extends JsonResource
             // The setup wizard lists this one, since room names are shared on purpose in setups
             // that put a building name there.
             'dashboard_name' => $this->name,
+            // Printed under the room name, e.g. "Floor 1, 12 seats". Both may be null.
+            'location' => $this->location,
+            'capacity' => $this->capacity,
             'settings' => DisplaySettingsResource::make($this),
         ];
     }

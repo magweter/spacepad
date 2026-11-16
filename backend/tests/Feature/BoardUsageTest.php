@@ -7,6 +7,7 @@ use App\Models\Board;
 use App\Models\Display;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia as Assert;
 
 uses(RefreshDatabase::class);
 
@@ -29,16 +30,11 @@ test('the manage workspace page shows the usage breakdown for that workspace', f
     ]);
 
     $response = $this->actingAs($user)
-        ->get(route('workspaces.members'));
+        ->get(route('billing.index'));
 
     $response->assertStatus(200);
-    $response->assertViewIs('pages.workspaces.members');
-    $response->assertViewHas('usageBreakdown', function ($breakdown) {
-        return $breakdown['displays'] === 3
-            && $breakdown['boards'] === 2
-            && $breakdown['board_usage'] === 4
-            && $breakdown['total'] === 7;
-    });
+    $response->assertInertia(fn (Assert $page) => $page->component('Billing/Index')
+        ->where('billing.usage', ['displays' => 3, 'boards' => 2, 'total' => 7]));
 });
 
 test('the usage breakdown is passed even without Pro', function () {
@@ -56,10 +52,10 @@ test('the usage breakdown is passed even without Pro', function () {
     ]);
 
     $response = $this->actingAs($user)
-        ->get(route('workspaces.members'));
+        ->get(route('billing.index'));
 
     $response->assertStatus(200);
-    $response->assertViewHas('usageBreakdown');
+    $response->assertInertia(fn (Assert $page) => $page->where('billing.usage.total', 3));
 });
 
 test('the account page no longer carries workspace billing', function () {
@@ -74,7 +70,5 @@ test('the account page no longer carries workspace billing', function () {
     $response = $this->actingAs($user)->get(route('profile.show'));
 
     $response->assertStatus(200);
-    $response->assertViewIs('pages.profile');
-    $response->assertViewMissing('usageBreakdown');
-    $response->assertDontSee('Total units');
+    $response->assertInertia(fn (Assert $page) => $page->component('Account/Index')->missing('billing'));
 });

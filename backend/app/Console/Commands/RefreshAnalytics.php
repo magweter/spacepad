@@ -2,8 +2,11 @@
 
 namespace App\Console\Commands;
 
+use App\Enums\OnboardingQuestion;
+use App\Enums\RoomsEstimate;
 use App\Enums\WorkspaceRole;
 use App\Models\Instance;
+use App\Models\OnboardingAnswer;
 use App\Models\User;
 use App\Models\Workspace;
 use Illuminate\Console\Command;
@@ -77,16 +80,18 @@ class RefreshAnalytics extends Command
             ->with([
                 'members' => fn ($q) => $q->whereNull('users.deleted_at')->orderByPivot('created_at'),
                 'billingOwnerUser',
+                'latestCancellation',
                 'subscriptions' => fn ($q) => $q
                     ->where(fn ($sub) => $sub->whereNull('ends_at')->orWhere('ends_at', '>', $now))
                     ->orderByDesc('created_at'),
             ])
             ->chunkById(200, function ($workspaces) use (&$rowCount, $withMrr, $now, $previous) {
                 $rows = [];
+                $answers = $this->latestAnswers($workspaces->modelKeys());
 
                 foreach ($workspaces as $workspace) {
                     $billing = $this->resolveBilling($workspace, $withMrr, $previous->get($workspace->id));
-                    $rows[] = $this->workspaceRow($workspace, $billing, $now);
+                    $rows[] = $this->workspaceRow($workspace, $billing, $now, $answers[$workspace->id] ?? []);
 
                     if ($withMrr) {
                         $this->priceOutstandingChanges($workspace, $billing);
@@ -217,9 +222,12 @@ class RefreshAnalytics extends Command
      * @param  array<string, mixed>  $billing
      * @return array<string, mixed>
      */
-    private function workspaceRow(Workspace $workspace, array $billing, Carbon $now): array
+    private function workspaceRow(Workspace $workspace, array $billing, Carbon $now, array $answers = []): array
     {
+        $rooms = RoomsEstimate::tryFrom($answers[OnboardingQuestion::ROOMS->value]->value ?? '');
+        $previousSolution = $answers[OnboardingQuestion::PREVIOUS_SOLUTION->value] ?? null;
         $contact = $this->resolveBillingUser($workspace);
+        $cancellation = $workspace->latestCancellation;
 
         return [
             'workspace_id' => $workspace->id,
@@ -243,6 +251,14 @@ class RefreshAnalytics extends Command
             'lemon_squeezy_id' => $billing['lemon_squeezy_id'],
             'mrr_current' => $billing['mrr_current'],
             'mrr_expected' => $billing['mrr_expected'],
+            'rooms_estimate' => $rooms?->value,
+            'rooms_min' => $rooms?->min(),
+            'rooms_max' => $rooms?->max(),
+            'previous_solution' => $previousSolution?->value,
+            'previous_solution_other' => $previousSolution?->text,
+            'last_cancellation_reason' => $cancellation?->reason?->value,
+            'last_cancellation_details' => $cancellation?->details,
+            'last_cancelled_at' => $cancellation?->created_at,
             'workspace_created_at' => $workspace->created_at,
             'last_member_activity_at' => $workspace->members_max_last_activity_at,
             'last_device_activity_at' => $workspace->devices_max_last_activity_at,
@@ -250,6 +266,29 @@ class RefreshAnalytics extends Command
             'created_at' => $now,
             'updated_at' => $now,
         ];
+    }
+
+    /**
+     * The latest answer per question for a chunk of workspaces, in one query.
+     *
+     * @param  array<int, string>  $workspaceIds
+     * @return array<string, array<string, OnboardingAnswer>> by workspace id, then question
+     */
+    private function latestAnswers(array $workspaceIds): array
+    {
+        $latest = [];
+
+        OnboardingAnswer::query()
+            ->whereIn('workspace_id', $workspaceIds)
+            ->whereIn('question', [OnboardingQuestion::ROOMS->value, OnboardingQuestion::PREVIOUS_SOLUTION->value])
+            ->orderBy('answered_at')
+            ->orderBy('id')
+            ->get()
+            ->each(function (OnboardingAnswer $answer) use (&$latest) {
+                $latest[$answer->workspace_id][$answer->question] = $answer;
+            });
+
+        return $latest;
     }
 
     /**
@@ -265,7 +304,8 @@ class RefreshAnalytics extends Command
                     'displays_count', 'boards_count', 'rooms_count', 'units', 'is_unlimited', 'is_manually_billed',
                     'manual_billing_unit_price', 'subscription_status', 'billing_interval', 'trial_ends_at',
                     'subscription_ends_at', 'subscription_renews_at', 'lemon_squeezy_id', 'mrr_current',
-                    'mrr_expected', 'workspace_created_at', 'last_member_activity_at', 'last_device_activity_at',
+                    'mrr_expected', 'rooms_estimate', 'rooms_min', 'rooms_max', 'previous_solution', 'previous_solution_other', 'last_cancellation_reason',
+                    'last_cancellation_details', 'last_cancelled_at', 'workspace_created_at', 'last_member_activity_at', 'last_device_activity_at',
                     'refreshed_at', 'updated_at']
             );
         }
