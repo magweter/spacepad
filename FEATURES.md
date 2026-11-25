@@ -316,7 +316,9 @@ a separate account with its own invisible set of displays.
   It ends on a "first display live" screen with the next steps
 - **Overview** — a greeting with how things stand, key figures (displays online, rooms free, bookings
   today, calendars), only the notices that block the product, the rooms right now as a timeline or
-  cards, occupancy per hour and the setup checklist. Read from the cached events, so it never calls a
+  cards ("Room overview"), quick actions (book a room, pair a tablet, display settings, connect a
+  calendar, invite a teammate, create a board) and the setup checklist. The calendars figure is a health
+  check: all connected and reachable, or what needs fixing. Read from the cached events, so it never calls a
   calendar provider. The timeline is a day calendar over the whole day that scrolls sideways; a click on
   a meeting shows its details (organiser, location, online meeting link). Other days are fetched live
   from the calendars with a loading indicator (previous, next, today, pick a date)
@@ -325,9 +327,11 @@ a separate account with its own invisible set of displays.
   starts the sign-in for that account; rooms whose meetings could not be read for another reason (an
   outage, refused access) are listed in an "Attention" notice and show as "Not loaded" in the timeline
 - **Alerts from Spacepad** — an alert an admin sets by hand (for example a Microsoft 365 outage) shows
-  at the top of every portal page while it runs, for every workspace or only for workspaces with a
-  calendar account of that provider. Admins create, schedule, edit and end alerts in the "Alerts" tab
-  of the admin panel, with a preview of the row
+  at the top of every portal page while it runs (on the overview, in its "needs attention" list), for
+  every workspace or only for workspaces with a calendar account of that provider. Seven types, each
+  with its own label and colour: Info, New, Maintenance, Attention, Service degradation, Action
+  required and Resolved. An alert can also open as a popup, once for every user. Admins create,
+  schedule, edit and end alerts in the "Alerts" tab of the admin panel, with a preview of the row
 - **Error toasts** — server errors, a lost connection and unexpected script errors show as a toast at
   the bottom right instead of an error page or nothing
 - **Managing meetings from the portal** — every workspace member can book a room (click an empty spot

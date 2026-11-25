@@ -80,7 +80,7 @@ function destroy() {
 <template>
     <Head title="Profiles" />
 
-    <PortalShell :shell="shell" title="Profiles" pro pro-feature="profiles">
+    <PortalShell :shell="shell" title="Profiles">
         <template #actions>
             <Button v-if="hasPro" :href="urls.create"><template #icon><Icon name="plus" :size="16" :stroke="2.5" /></template>New profile</Button>
         </template>
@@ -106,10 +106,13 @@ function destroy() {
                 <div><Button variant="accent" @click="openUpgrade('profiles')">See what Pro adds</Button></div>
             </div>
 
-            <div v-else-if="!profiles.length" class="sp-card max-w-[640px] px-6 py-6">
+            <!-- The same empty card as on the Boards page. -->
+            <div v-else-if="!profiles.length" class="sp-card">
                 <EmptyState title="No profiles yet">
                     Create a profile to manage the settings of many displays at once, then assign it to displays on the Displays page.
-                    <template #actions><Button :href="urls.create">New profile</Button></template>
+                    <template #actions>
+                        <Button :href="urls.create"><template #icon><Icon name="plus" :size="16" :stroke="2.5" /></template>Create a profile</Button>
+                    </template>
                 </EmptyState>
             </div>
 

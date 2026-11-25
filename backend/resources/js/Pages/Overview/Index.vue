@@ -10,10 +10,12 @@ import { useRoomDay } from '../../Composables/useRoomDay';
 import { requestJson } from '../../Composables/http';
 import RoomsNow from './Partials/RoomsNow.vue';
 import KeyFigures from './Partials/KeyFigures.vue';
-import Occupancy from './Partials/Occupancy.vue';
+import QuickActions from './Partials/QuickActions.vue';
 import FinishSetup from './Partials/FinishSetup.vue';
 import ProfileCard from './Partials/ProfileCard.vue';
 import CancellationCard from './Partials/CancellationCard.vue';
+import AlertRow from '../../Components/AlertRow.vue';
+import { toneOf } from '../../Components/alertTones.js';
 
 const props = defineProps({
     shell: Object, notices: Array, rooms: Array, accounts: Array, checklist: Object, hasPro: Boolean,
@@ -21,9 +23,10 @@ const props = defineProps({
 });
 
 const page = usePage();
+const roomsNow = ref(null);
 const now = ref(new Date());
-// Today's figures and occupancy come from the page; the timeline can show any other day.
-const { hours, figures, occupancy } = useRoomDay(toRef(props, 'rooms'), now);
+// Today's figures come from the page; the timeline can show any other day.
+const { figures } = useRoomDay(toRef(props, 'rooms'), now);
 
 // The day on the timeline: null is today (from the page, reloaded every minute), any other day
 // is fetched from the calendars on request.
@@ -61,7 +64,7 @@ function showDay(date) {
 function refresh() {
     if (day.value) return loadDay();
     loading.value = true;
-    router.reload({ only: ['rooms', 'notices'], onSuccess: () => { now.value = new Date(); }, onFinish: () => { loading.value = false; } });
+    router.reload({ only: ['rooms', 'notices', 'alerts'], onSuccess: () => { now.value = new Date(); }, onFinish: () => { loading.value = false; } });
 }
 
 const timelineRooms = computed(() => {
@@ -74,18 +77,20 @@ const timelineRooms = computed(() => {
 });
 const timeline = useRoomDay(timelineRooms, now, { day, fullDay: true });
 
-const occupancyLabels = computed(() => hours.value.filter((h) => h.hour % 2 === 0).map((h) => h.label));
 const firstName = computed(() => (props.shell.user || '').split(/[\s.@]+/)[0]);
 const greeting = computed(() => {
     const h = now.value.getHours();
     const part = h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
     return firstName.value ? `${part}, ${firstName.value.charAt(0).toUpperCase()}${firstName.value.slice(1)}!` : `${part}!`;
 });
+// Alerts set by an admin join the notices here; an info, new or resolved alert is not counted.
+const alerts = computed(() => page.props.alerts ?? []);
+const needsAttention = computed(() => props.notices.length + alerts.value.filter((a) => toneOf(a.tone).attention).length);
 // One sentence on how things stand.
 const summary = computed(() => {
     const f = figures.value;
     if (!props.rooms.length) return 'Welcome to Spacepad. Set up your first display and its room shows up here, live.';
-    if (props.notices.length) return `${props.notices.length === 1 ? 'One thing needs' : `${props.notices.length} things need`} your attention. The rest runs as it should.`;
+    if (needsAttention.value) return `${needsAttention.value === 1 ? 'One thing needs' : `${needsAttention.value} things need`} your attention. The rest runs as it should.`;
     if (!f.live) return 'Welcome back. Your rooms show up here as soon as their tablets are online.';
     return `Welcome back. ${f.free} of ${f.live} ${f.live === 1 ? 'room is' : 'rooms are'} free right now, with ${f.bookings} ${f.bookings === 1 ? 'booking' : 'bookings'} today.`;
 });
@@ -101,7 +106,7 @@ let tick;
 let poll;
 onMounted(() => {
     tick = setInterval(() => { now.value = new Date(); }, 20000);
-    poll = setInterval(() => router.reload({ only: ['rooms', 'notices'], onSuccess: () => { now.value = new Date(); } }), 60000);
+    poll = setInterval(() => router.reload({ only: ['rooms', 'notices', 'alerts'], onSuccess: () => { now.value = new Date(); } }), 60000);
 });
 onBeforeUnmount(() => { clearInterval(tick); clearInterval(poll); });
 </script>
@@ -109,7 +114,7 @@ onBeforeUnmount(() => { clearInterval(tick); clearInterval(poll); });
 <template>
     <Head title="Overview" />
 
-    <PortalShell :shell="shell" title="Overview">
+    <PortalShell :shell="shell" title="Overview" inline-alerts>
         <template #actions>
             <Button v-if="page.props.upgrade?.mustUpgradeForDisplay" @click="openUpgrade('displays')"><template #icon><Icon name="plus" :size="16" :stroke="2.5" /></template>New display</Button>
             <Button v-else :href="urls.newDisplay"><template #icon><Icon name="plus" :size="16" :stroke="2.5" /></template>New display</Button>
@@ -123,10 +128,11 @@ onBeforeUnmount(() => { clearInterval(tick); clearInterval(poll); });
 
             <FlashMessage />
 
-            <section v-if="notices.length" aria-label="Needs attention" class="flex flex-col gap-2.5">
+            <section v-if="notices.length || alerts.length" aria-label="Needs attention" class="flex flex-col gap-2.5">
+                <AlertRow v-for="a in alerts" :key="a.id" :tone="a.tone" :title="a.title" :body="a.body" />
                 <div v-for="(n, i) in notices" :key="i" class="flex flex-wrap items-center gap-4 rounded-xl border px-4 py-3 text-[13px]" :class="tone[n.tone]">
                     <!-- One width for every tag, so the texts of all notices start on the same line. -->
-                    <span class="flex w-[76px] flex-none items-center justify-center rounded-lg border-[1.5px] border-current bg-surface px-2 py-0.5 text-center text-[11px] leading-tight font-semibold">{{ n.tag }}</span>
+                    <span class="flex w-[96px] flex-none items-center justify-center rounded-lg border-[1.5px] border-current bg-surface px-2 py-0.5 text-center text-[11px] leading-tight font-semibold">{{ n.tag }}</span>
                     <span class="flex min-w-0 flex-1 flex-col"><span class="font-semibold">{{ n.title }}</span><span class="text-xs opacity-85">{{ n.body }}</span></span>
                     <button v-if="n.upgrade" type="button" class="rounded-lg bg-navy px-3 py-1.5 text-xs font-semibold whitespace-nowrap text-white hover:bg-navy-700" @click="openUpgrade(n.upgrade)">{{ n.cta }}</button>
                     <a v-else :href="n.href" class="rounded-lg bg-navy px-3 py-1.5 text-xs font-semibold whitespace-nowrap text-white hover:bg-navy-700">{{ n.cta }}</a>
@@ -136,15 +142,15 @@ onBeforeUnmount(() => { clearInterval(tick); clearInterval(poll); });
             <div class="flex flex-wrap items-start gap-6">
                 <div class="flex min-w-0 flex-[999_1_560px] flex-col gap-4">
                     <KeyFigures v-if="rooms.length" :figures="figures" :accounts="accounts" />
-                    <RoomsNow :rooms="timeline.list.value" :hours="timeline.hours.value" :now-left="timeline.nowLeft.value" :now-label="timeline.nowLabel.value"
+                    <RoomsNow ref="roomsNow" :rooms="timeline.list.value" :hours="timeline.hours.value" :now-left="timeline.nowLeft.value" :now-label="timeline.nowLabel.value"
                               :day="timeline.dayStart.value" :is-today="timeline.isToday.value" :loading="loading" :percent="timeline.percent" :time-at="timeline.timeAt"
                               :now="now" :urls="urls" @day="showDay" @changed="refresh" />
-                    <Occupancy v-if="occupancy.length" :hours="occupancy" :labels="occupancyLabels" />
                 </div>
 
                 <aside aria-label="Setup" class="flex max-w-full min-w-0 flex-[1_1_320px] flex-col gap-4 lg:max-w-[380px]">
                     <CancellationCard v-if="cancellation" :card="cancellation" />
                     <ProfileCard v-if="profileCard" :card="profileCard" />
+                    <QuickActions v-if="rooms.length" :has-pro="hasPro" :can-book="!!roomsNow?.canBook" :urls="urls" @book="roomsNow?.book()" />
                     <FinishSetup :checklist="checklist" :has-pro="hasPro" :urls="urls" />
 
                     <div v-if="code" class="sp-card flex flex-col gap-2 px-5 py-[18px]">

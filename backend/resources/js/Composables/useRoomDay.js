@@ -110,6 +110,9 @@ export function useRoomDay(rooms, now, { day = null, fullDay = false } = {}) {
             online, total: rooms.length, offline: withDevice.length - online, withoutTablet: rooms.length - withDevice.length,
             free: live.filter((r) => r.state.key === 'free').length, live: live.length,
             bookings: bookings.length, fromTablet: bookings.filter((b) => b.tablet).length,
+            upcoming: bookings.filter((b) => b.start > now.value).length,
+            next: bookings.filter((b) => b.start > now.value).sort((a, b) => a.start - b.start)[0]?.start ?? null,
+            unreadable: rooms.filter((r) => r.error).length,
         };
     });
 

@@ -274,6 +274,7 @@ class OverviewController extends Controller
             'provider' => $label,
             'email' => $account->email ?? $account->username ?? $account->name,
             'readOnly' => ($account->permission_type ?? null) === PermissionType::READ,
+            'error' => ($account->status ?? null) === AccountStatus::ERROR,
         ];
 
         return collect()

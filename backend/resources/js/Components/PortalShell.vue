@@ -10,15 +10,16 @@ import UpgradeModal from './Upgrade/UpgradeModal.vue';
 import HelpPanel from './Help/HelpPanel.vue';
 import ToastHost from './Toasts/ToastHost.vue';
 import AlertRow from './AlertRow.vue';
+import AlertPopup from './AlertPopup.vue';
 import HelpIcon from './Help/HelpIcon.vue';
 import { openHelp } from './Help/helpPanel.js';
 
-// `pro` puts the Pro chip right next to the title, for pages that are part of Pro.
+// Pro is marked in the sidebar only, and only for a workspace without Pro.
 const props = defineProps({
     shell: { type: Object, required: true },
     title: { type: String, default: null },
-    pro: { type: Boolean, default: false },
-    proFeature: { type: String, default: 'displays' },
+    // The overview shows the alerts in its own "needs attention" list instead.
+    inlineAlerts: { type: Boolean, default: false },
 });
 
 const switching = ref(false);
@@ -93,11 +94,11 @@ function switchTo(workspace) {
 
         <main class="flex min-w-0 flex-[999_1_560px] flex-col">
             <header v-if="title" class="flex flex-wrap items-center gap-4 border-b border-line bg-surface px-6 py-3.5 md:px-8">
-                <h1 class="flex items-center gap-2 font-display text-[22px] font-bold tracking-tight">{{ title }}<ProBadge v-if="pro" :feature="proFeature" /></h1>
+                <h1 class="flex items-center gap-2 font-display text-[22px] font-bold tracking-tight">{{ title }}</h1>
                 <div class="ml-auto flex flex-wrap items-center gap-3"><slot name="actions" /></div>
             </header>
             <!-- Alerts an admin set by hand, such as a calendar provider outage, on every page. -->
-            <section v-if="page.props.alerts?.length" aria-label="Alerts from Spacepad" class="flex flex-col gap-2.5 px-6 pt-5 md:px-8">
+            <section v-if="!inlineAlerts && page.props.alerts?.length" aria-label="Alerts from Spacepad" class="flex flex-col gap-2.5 px-6 pt-5 md:px-8">
                 <AlertRow v-for="a in page.props.alerts" :key="a.id" :tone="a.tone" :title="a.title" :body="a.body" />
             </section>
             <slot />
@@ -106,5 +107,6 @@ function switchTo(workspace) {
         <HelpPanel v-if="!page.props.app?.selfHosted" />
         <UpgradeModal />
         <ToastHost />
+        <AlertPopup />
     </div>
 </template>

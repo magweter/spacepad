@@ -53,7 +53,7 @@ onBeforeUnmount(() => clearTimeout(toastTimer));
 const pad = (n) => String(n).padStart(2, '0');
 const dayValue = computed(() => (props.day ? `${props.day.getFullYear()}-${pad(props.day.getMonth() + 1)}-${pad(props.day.getDate())}` : ''));
 const heading = computed(() => {
-    if (props.isToday) return 'Rooms right now';
+    if (props.isToday) return 'Room overview';
     const today = new Date(props.now); today.setHours(0, 0, 0, 0);
     const diff = Math.round((props.day - today) / 86400000);
     if (diff === 1) return 'Tomorrow';
@@ -74,6 +74,8 @@ function pickDate(e) {
 // Booking: a click on an empty spot of a room's row opens the form with that room and time. While
 // hovering, a faint half-hour block shows where the booking would go.
 const bookable = computed(() => props.rooms.filter((r) => r.actions?.book && r.urls?.book));
+// The overview's quick actions open the same booking dialog.
+defineExpose({ book: () => { booking.value = { roomId: null, start: props.isToday ? null : new Date(props.day.getTime() + 9 * 3600000) }; }, canBook: computed(() => bookable.value.length > 0) });
 const hover = ref(null);
 function slotAt(room, e) {
     if (!room.actions?.book) return null;
@@ -109,7 +111,7 @@ function done(message) {
 <template>
     <section aria-label="Live room status" class="flex flex-col gap-3.5">
         <div class="flex flex-wrap items-center gap-3">
-            <h2 class="font-display text-base font-bold tracking-tight">{{ view === 'timeline' ? heading : 'Rooms right now' }}</h2>
+            <h2 class="font-display text-base font-bold tracking-tight">{{ view === 'timeline' ? heading : 'Room overview' }}</h2>
             <div v-if="rooms.length && view === 'timeline'" class="flex items-center gap-1">
                 <button type="button" aria-label="Previous day" class="grid h-7 w-7 place-items-center rounded-lg border border-line bg-surface text-ink-3 hover:bg-surface-raised" @click="step(-1)">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg>
@@ -133,7 +135,6 @@ function done(message) {
                 <button v-for="v in ['timeline', 'cards']" :key="v" type="button" :aria-pressed="view === v" @click="view = v"
                         class="px-3 py-1.5 text-xs font-semibold capitalize" :class="view === v ? 'bg-navy text-white' : 'text-ink-3 hover:bg-surface-raised'">{{ v }}</button>
             </div>
-            <a :href="urls.displays" class="text-[13px] font-semibold text-navy hover:underline">All displays →</a>
         </div>
 
         <div v-if="toast" role="status" class="flex items-center gap-2 rounded-lg border border-available-border bg-available-bg px-3.5 py-2 text-[13px] font-medium text-available-text">

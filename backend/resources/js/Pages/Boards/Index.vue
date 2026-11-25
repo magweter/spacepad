@@ -33,7 +33,7 @@ async function copy() {
 <template>
     <Head :title="creating ? 'New board' : board ? `${board.name}, boards` : 'Boards'" />
 
-    <PortalShell :shell="shell" title="Boards" pro pro-feature="boards">
+    <PortalShell :shell="shell" title="Boards">
         <template #actions>
             <Button v-if="canCreate && !creating" :href="urls.create"><template #icon><Icon name="plus" :size="16" :stroke="2.5" /></template>New board</Button>
         </template>
