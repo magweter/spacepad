@@ -5,6 +5,7 @@ import PortalShell from '../../Components/PortalShell.vue';
 import FlashMessage from '../../Components/FlashMessage.vue';
 import Icon from '../../Components/Icon.vue';
 import AlertRow from '../../Components/AlertRow.vue';
+import { alertTones } from '../../Components/alertTones.js';
 import Button from '../../DesignSystem/Button.vue';
 import Card from '../../DesignSystem/Card.vue';
 
@@ -24,6 +25,7 @@ const form = useForm({
     body: props.alert?.body ?? '',
     tone: props.alert?.tone ?? 'attention',
     provider: props.alert?.provider ?? '',
+    popup: props.alert?.popup ?? false,
     starts_at: toLocalInput(props.alert?.starts_at),
     ends_at: toLocalInput(props.alert?.ends_at),
 });
@@ -79,8 +81,7 @@ const fieldClass = 'block w-full rounded-lg border border-line bg-surface px-3 p
                             <div>
                                 <label for="tone" :class="labelClass">Type</label>
                                 <select id="tone" v-model="form.tone" :class="fieldClass">
-                                    <option value="attention">Attention</option>
-                                    <option value="action_required">Action required</option>
+                                    <option v-for="(t, key) in alertTones" :key="key" :value="key">{{ t.label }}</option>
                                 </select>
                                 <span v-if="form.errors.tone" class="mt-1 block text-xs text-reserved-text">{{ form.errors.tone }}</span>
                             </div>
@@ -107,6 +108,14 @@ const fieldClass = 'block w-full rounded-lg border border-line bg-surface px-3 p
                                 <span v-if="form.errors.ends_at" class="mt-1 block text-xs text-reserved-text">{{ form.errors.ends_at }}</span>
                             </div>
                         </div>
+
+                        <label class="flex items-start gap-3 text-[13px]">
+                            <input v-model="form.popup" type="checkbox" class="mt-0.5 size-4 rounded border border-line accent-navy">
+                            <span>
+                                <span class="block font-semibold">Show as a popup</span>
+                                <span class="block text-xs text-muted">Every user sees it once as a popup in the portal, then as a row like the preview.</span>
+                            </span>
+                        </label>
                     </div>
                 </Card>
 

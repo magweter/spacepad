@@ -27,6 +27,7 @@ use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\OutlookAccountsController;
 use App\Http\Controllers\OverviewController;
 use App\Http\Controllers\Portal;
+use App\Http\Controllers\PortalAlertController;
 use App\Http\Controllers\PortalScheduleController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProfilesController;
@@ -153,6 +154,7 @@ Route::middleware(['auth', 'user.update-last-activity'])->group(function () {
 
     Route::post('/workspace/profile', [WorkspaceProfileController::class, 'update'])->name('workspace.profile.update');
     Route::post('/workspace/profile/dismiss', [WorkspaceProfileController::class, 'dismiss'])->name('workspace.profile.dismiss');
+    Route::post('/alerts/{portalAlert}/dismiss', [PortalAlertController::class, 'dismiss'])->name('alerts.dismiss');
     Route::delete('/displays/{display}', [DisplayController::class, 'delete'])->name('displays.delete');
 
     // Display configuration: one screen, saved per section

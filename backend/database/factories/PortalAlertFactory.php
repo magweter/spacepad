@@ -19,6 +19,7 @@ class PortalAlertFactory extends Factory
             'body' => 'Meetings may load slowly or not at all. We are keeping an eye on it.',
             'tone' => 'attention',
             'provider' => null,
+            'popup' => false,
             'starts_at' => null,
             'ends_at' => null,
         ];

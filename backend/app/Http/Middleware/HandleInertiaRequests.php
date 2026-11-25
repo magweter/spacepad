@@ -36,7 +36,7 @@ class HandleInertiaRequests extends Middleware
             // can buy Pro, or whom they should ask.
             'upgrade' => fn () => $this->upgrade($request),
             // Alerts an admin set by hand (a provider outage), drawn by the portal shell.
-            'alerts' => fn () => $user ? PortalAlert::forWorkspace($user->getSelectedWorkspace()) : [],
+            'alerts' => fn () => $user ? PortalAlert::forUser($user) : [],
             'app' => [
                 'selfHosted' => (bool) config('settings.is_self_hosted'),
                 'recaptchaSiteKey' => config('recaptchav3.sitekey') ?: null,

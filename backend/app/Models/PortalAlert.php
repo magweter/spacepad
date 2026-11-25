@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 /**
  * An alert an admin sets by hand, such as "Microsoft 365 has an outage", shown at the top of every
@@ -22,15 +23,17 @@ class PortalAlert extends Model
 
     public const CACHE_KEY = 'portal-alerts';
 
-    public const TONES = ['attention', 'action_required'];
+    /** The label in the portal and its colour live in resources/js/Components/alertTones.js. */
+    public const TONES = ['info', 'new', 'maintenance', 'attention', 'service_degradation', 'action_required', 'resolved'];
 
     public const PROVIDERS = ['microsoft', 'google', 'caldav'];
 
-    protected $fillable = ['title', 'body', 'tone', 'provider', 'starts_at', 'ends_at', 'created_by'];
+    protected $fillable = ['title', 'body', 'tone', 'provider', 'popup', 'starts_at', 'ends_at', 'created_by'];
 
     protected $casts = [
         'starts_at' => 'datetime',
         'ends_at' => 'datetime',
+        'popup' => 'boolean',
     ];
 
     public function creator(): BelongsTo
@@ -63,7 +66,7 @@ class PortalAlert extends Model
      * The alerts that have not ended (scheduled ones too) are cached for a minute; the time window
      * and the provider are checked on every call, so an alert starts and ends on time.
      *
-     * @return array<int, array{id: string, tone: string, title: string, body: ?string}>
+     * @return array<int, array{id: string, tone: string, title: string, body: ?string, popup: bool}>
      */
     public static function forWorkspace(?Workspace $workspace): array
     {
@@ -91,9 +94,47 @@ class PortalAlert extends Model
                 'tone' => $alert->tone,
                 'title' => $alert->title,
                 'body' => $alert->body,
+                'popup' => $alert->popup,
             ])
             ->values()
             ->all();
+    }
+
+    /**
+     * The alerts of the user's selected workspace. `popup` is true only while this user has not
+     * closed the popup yet; `dismissUrl` closes it.
+     *
+     * @return array<int, array{id: string, tone: string, title: string, body: ?string, popup: bool, dismissUrl: string}>
+     */
+    public static function forUser(User $user): array
+    {
+        $alerts = self::forWorkspace($user->getSelectedWorkspace());
+
+        $popups = array_column(array_filter($alerts, fn (array $alert) => $alert['popup']), 'id');
+        $dismissed = $popups === [] ? [] : DB::table('portal_alert_dismissals')
+            ->where('user_id', $user->id)
+            ->whereIn('portal_alert_id', $popups)
+            ->pluck('portal_alert_id')
+            ->all();
+
+        return array_map(fn (array $alert) => [
+            ...$alert,
+            'popup' => $alert['popup'] && ! in_array($alert['id'], $dismissed, true),
+            'dismissUrl' => route('alerts.dismiss', $alert['id']),
+        ], $alerts);
+    }
+
+    /**
+     * The user closed the popup; it stays a row in the portal while the alert runs.
+     */
+    public function dismissFor(User $user): void
+    {
+        DB::table('portal_alert_dismissals')->insertOrIgnore([
+            'portal_alert_id' => $this->id,
+            'user_id' => $user->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
     }
 
     public static function forgetCache(): void

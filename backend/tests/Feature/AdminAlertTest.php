@@ -136,3 +136,26 @@ test('a non-admin gets 403', function () {
     $this->actingAs($user)->post(route('admin.alerts.store'), ['title' => 'x', 'tone' => 'attention'])->assertForbidden();
     expect(PortalAlert::count())->toBe(0);
 });
+
+test('every tone from the list can be saved', function () {
+    foreach (['info', 'new', 'maintenance', 'attention', 'service_degradation', 'action_required', 'resolved'] as $tone) {
+        $this->actingAs($this->admin)
+            ->post(route('admin.alerts.store'), ['title' => "A {$tone} alert", 'tone' => $tone])
+            ->assertSessionHasNoErrors();
+    }
+
+    expect(PortalAlert::count())->toBe(7);
+});
+
+test('an alert can be saved as a popup', function () {
+    $this->actingAs($this->admin)
+        ->post(route('admin.alerts.store'), ['title' => 'Price change', 'tone' => 'info', 'popup' => true])
+        ->assertSessionHasNoErrors();
+    $alert = PortalAlert::first();
+    expect($alert->popup)->toBeTrue();
+
+    $this->actingAs($this->admin)
+        ->put(route('admin.alerts.update', $alert), ['title' => 'Price change', 'tone' => 'info'])
+        ->assertSessionHasNoErrors();
+    expect($alert->fresh()->popup)->toBeFalse();
+});

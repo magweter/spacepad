@@ -103,6 +103,7 @@ class AdminAlertController extends Controller
             'body' => ['nullable', 'string', 'max:500'],
             'tone' => ['required', Rule::in(PortalAlert::TONES)],
             'provider' => ['nullable', Rule::in(PortalAlert::PROVIDERS)],
+            'popup' => ['nullable', 'boolean'],
             'starts_at' => ['nullable', 'date'],
             'ends_at' => $endRules,
         ], [
@@ -115,6 +116,7 @@ class AdminAlertController extends Controller
             ...$data,
             'body' => $data['body'] ?? null,
             'provider' => $data['provider'] ?? null,
+            'popup' => (bool) ($data['popup'] ?? false),
             'starts_at' => isset($data['starts_at']) ? Carbon::parse($data['starts_at'])->utc() : null,
             'ends_at' => isset($data['ends_at']) ? Carbon::parse($data['ends_at'])->utc() : null,
         ];
@@ -138,6 +140,7 @@ class AdminAlertController extends Controller
             'body' => $alert->body,
             'tone' => $alert->tone,
             'provider' => $alert->provider,
+            'popup' => $alert->popup,
             'startsAt' => ($alert->starts_at ?? $alert->created_at)?->toIso8601String(),
             'endsAt' => $alert->ends_at?->toIso8601String(),
             'status' => $alert->status(),
@@ -156,6 +159,7 @@ class AdminAlertController extends Controller
                 'body' => $alert->body ?? '',
                 'tone' => $alert->tone,
                 'provider' => $alert->provider ?? '',
+                'popup' => $alert->popup,
                 'starts_at' => $alert->starts_at?->toIso8601String() ?? '',
                 'ends_at' => $alert->ends_at?->toIso8601String() ?? '',
             ] : null,

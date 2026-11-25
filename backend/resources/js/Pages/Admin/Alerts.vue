@@ -9,6 +9,7 @@ import Icon from '../../Components/Icon.vue';
 import Button from '../../DesignSystem/Button.vue';
 import Card from '../../DesignSystem/Card.vue';
 import Chip from '../../DesignSystem/Chip.vue';
+import { toneOf } from '../../Components/alertTones.js';
 import AdminTabs from './Partials/AdminTabs.vue';
 
 defineProps({ shell: Object, stats: Object, pendingRoadmap: Number, alerts: Object, urls: Object });
@@ -25,7 +26,7 @@ const sections = [
     { key: 'ended', title: 'Ended', empty: null },
 ];
 const providers = { microsoft: 'Microsoft 365', google: 'Google', caldav: 'CalDAV' };
-const toneChip = { attention: { tone: 'amber', label: 'Attention' }, action_required: { tone: 'reserved', label: 'Action required' } };
+
 // Times come as ISO 8601 and are shown in the admin's own time zone.
 const pad = (n) => String(n).padStart(2, '0');
 const local = (iso) => { const d = new Date(iso); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`; };
@@ -76,7 +77,7 @@ const smallBtn = 'inline-flex items-center rounded-md border px-2.5 py-1 text-xs
                                         <p class="font-semibold">{{ a.title }}</p>
                                         <p v-if="a.body" class="mt-0.5 truncate text-xs text-muted">{{ a.body }}</p>
                                     </td>
-                                    <td class="px-4 py-3"><Chip :tone="toneChip[a.tone]?.tone ?? 'neutral'">{{ toneChip[a.tone]?.label ?? a.tone }}</Chip></td>
+                                    <td class="px-4 py-3"><span class="flex flex-wrap items-center gap-1.5"><Chip :tone="toneOf(a.tone).chip">{{ toneOf(a.tone).label }}</Chip><Chip v-if="a.popup" tone="navy">Popup</Chip></span></td>
                                     <td class="px-4 py-3 whitespace-nowrap text-ink-3">{{ a.provider ? `${providers[a.provider]} workspaces` : 'All workspaces' }}</td>
                                     <td class="px-4 py-3 whitespace-nowrap text-ink-3 tabular-nums">{{ when(a) }}</td>
                                     <td class="px-4 py-3">
