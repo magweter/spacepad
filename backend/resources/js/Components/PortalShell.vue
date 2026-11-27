@@ -34,12 +34,12 @@ function switchTo(workspace) {
 
 <template>
     <div class="flex min-h-screen flex-wrap bg-ground text-sm leading-normal text-ink">
-        <aside class="flex flex-[0_0_100%] flex-col gap-6 bg-navy px-3.5 py-5 text-on-navy-2 md:sticky md:top-0 md:h-screen md:w-[248px] md:flex-[0_0_248px] md:overflow-y-auto">
+        <aside class="flex flex-[0_0_100%] flex-col gap-6 bg-navy-800 px-3.5 py-5 text-on-navy-2 md:sticky md:top-0 md:h-screen md:w-[248px] md:flex-[0_0_248px] md:overflow-y-auto">
             <Logo :href="shell.nav[0].href" dark class="px-1.5 pt-0.5 pb-1.5" />
 
             <div class="relative">
                 <button type="button" aria-label="Switch workspace" :aria-expanded="switching" @click="switching = !switching"
-                        class="flex w-full items-center gap-2.5 rounded-[10px] border border-navy-700 bg-navy-800 px-3 py-2.5 text-left text-white">
+                        class="flex w-full items-center gap-2.5 rounded-[10px] border border-navy-600 bg-navy-700 px-3 py-2.5 text-left text-white">
                     <span class="flex h-8 w-8 flex-none items-center justify-center rounded-md bg-amber text-[15px] font-bold text-navy">{{ initials(shell.workspace) }}</span>
                     <span class="flex min-w-0 flex-1 flex-col">
                         <span class="truncate font-semibold">{{ shell.workspace }}</span>
@@ -58,7 +58,7 @@ function switchTo(workspace) {
 
             <nav aria-label="Main" class="flex flex-col gap-0.5">
                 <template v-for="item in shell.nav" :key="item.key">
-                    <div v-if="item.divider" class="mx-1 my-2.5 h-px bg-navy-700"></div>
+                    <div v-if="item.divider" class="mx-1 my-2.5 h-px bg-navy-600"></div>
                     <!-- Inertia links: switching pages swaps the page, not the whole app, and hovering loads it ahead. -->
                     <Link :href="item.href" prefetch :cache-for="'10s'" :class="['sp-nav', { 'sp-nav-active': item.active }]" :aria-current="item.active ? 'page' : null">
                         <span class="sp-nav-icon"><Icon :name="item.icon" /></span>
@@ -88,7 +88,7 @@ function switchTo(workspace) {
                     <span class="truncate text-[13px] font-medium text-white">{{ shell.user }}</span>
                     <span v-if="shell.role" class="text-xs text-on-navy-muted">{{ shell.role }}</span>
                 </Link>
-                <button type="button" class="rounded-md px-2 py-1 text-xs font-semibold text-on-navy-2 hover:bg-navy-800 hover:text-white" @click="router.post(shell.logout)">Log out</button>
+                <button type="button" class="rounded-md px-2 py-1 text-xs font-semibold text-on-navy-2 hover:bg-navy-700 hover:text-white" @click="router.post(shell.logout)">Log out</button>
             </div>
         </aside>
 
