@@ -1,4 +1,6 @@
 <script setup>
+import Button from '../../../DesignSystem/Button.vue';
+import Icon from '../../../Components/Icon.vue';
 import { onMounted, ref } from 'vue';
 import { router } from '@inertiajs/vue3';
 import confetti from 'canvas-confetti';
@@ -44,7 +46,7 @@ function start(choice) {
                 <span class="text-[17px] font-bold">Set up my first display</span>
                 <span class="text-[13px] text-on-navy-2">Connect your calendar, pick a room, pair a tablet.</span>
             </span>
-            <span class="rounded-full bg-amber px-[9px] py-[3px] text-[11px] font-bold whitespace-nowrap text-navy">Recommended</span>
+            <span class="rounded-md bg-amber px-[9px] py-[3px] text-[11px] font-bold whitespace-nowrap text-navy">Recommended</span>
         </button>
 
         <button type="button" :disabled="processing" @click="start('look_around')"
@@ -60,6 +62,6 @@ function start(choice) {
     </div>
 
     <div>
-        <button type="button" class="text-[13px] font-semibold text-muted hover:text-navy" @click="onboarding.goTo('tablets')">← Back</button>
+        <Button variant="ghost" @click="onboarding.goTo('tablets')"><template #icon><Icon name="arrowLeft" :size="16" /></template>Back</Button>
     </div>
 </template>

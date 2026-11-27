@@ -73,6 +73,10 @@ class OnboardingAnswers
             'label' => $case->label(),
             'description' => method_exists($case, 'description') ? $case->description() : null,
             'tag' => method_exists($case, 'tag') ? $case->tag() : null,
-        ], $question->options()::cases());
+        ], array_values(array_filter(
+            $question->options()::cases(),
+            // A case can stay for earlier answers without being offered any more.
+            fn ($case) => ! method_exists($case, 'offered') || $case->offered(),
+        )));
     }
 }

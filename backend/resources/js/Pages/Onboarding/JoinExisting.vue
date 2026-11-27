@@ -12,8 +12,8 @@ const props = defineProps({ sent: Boolean, user: Object, domain: String, workspa
 const rail = [
     { key: 'team', name: 'Your team', sub: 'Join your colleagues', number: 1, current: true },
     { key: 'workspace', name: 'Workspace', sub: 'Organisation or personal', number: 2 },
-    { key: 'rooms', name: 'Your rooms', sub: 'Today, how many, where', number: 3 },
-    { key: 'tablets', name: 'Tablets and features', sub: 'What they run on, what matters', number: 4 },
+    { key: 'rooms', name: 'Your organisation', sub: 'Rooms, places, what you need', number: 3 },
+    { key: 'tablets', name: 'Your current setup', sub: 'Tablets, what you use now', number: 4 },
     { key: 'start', name: 'Start', sub: 'First display, or look around', number: 5 },
 ];
 

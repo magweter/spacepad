@@ -28,6 +28,8 @@ export function useOnboarding(urls) {
                 'X-CSRF-TOKEN': csrf(),
             },
             body: JSON.stringify({ step, event }),
+            // Sent on the way out too (a click on a link), so leaving the page must not cancel it.
+            keepalive: true,
         }).catch(() => {});
     }
 

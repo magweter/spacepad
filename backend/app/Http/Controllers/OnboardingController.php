@@ -110,18 +110,7 @@ class OnboardingController extends Controller
         $workspace = $this->currentWorkspace($request);
         $selfHosted = config('settings.is_self_hosted');
 
-        // On a self-hosted instance the licence terms cannot be skipped.
-        if ($selfHosted && ! $user->terms_accepted_at) {
-            $request->merge(['skip' => false]);
-        }
-
-        if ($request->boolean('skip')) {
-            $user->update(['usage_type' => $user->usage_type ?? UsageType::BUSINESS]);
-            $this->stepEvent(FunnelStep::ONBOARDING_STEP_SKIPPED, 'workspace', $workspace, $user);
-
-            return redirect()->route('onboarding', ['step' => 'rooms']);
-        }
-
+        // The first step cannot be skipped: how someone uses Spacepad shapes the rest of the setup.
         $data = $request->validate([
             'usage_type' => ['required', Rule::enum(UsageType::class)],
             'workspace_name' => ['nullable', 'string', 'max:255'],
@@ -151,18 +140,18 @@ class OnboardingController extends Controller
         $workspace = $this->currentWorkspace($request);
         $skipped = $request->boolean('skip');
 
+        // Step 2, the organisation: how many rooms, where, and what they need. It shapes the
+        // plan and setup we suggest.
         $data = $skipped ? [] : $request->validate([
-            'previous_solution' => ['nullable', Rule::enum(PreviousSolution::class)],
-            'previous_solution_text' => ['nullable', 'required_if:previous_solution,other', 'string', 'max:255'],
             'rooms' => ['nullable', Rule::enum(RoomsEstimate::class)],
             'locations' => ['nullable', Rule::enum(RoomLocations::class)],
-        ], [
-            'previous_solution_text.required_if' => 'Enter the name of the product.',
+            'features' => ['array'],
+            'features.*' => [Rule::enum(Feature::class)],
         ]);
 
-        OnboardingAnswers::store($workspace, $user, OnboardingQuestion::PREVIOUS_SOLUTION, $data['previous_solution'] ?? null, $data['previous_solution_text'] ?? null, self::SOURCE);
         OnboardingAnswers::store($workspace, $user, OnboardingQuestion::ROOMS, $data['rooms'] ?? null, null, self::SOURCE);
         OnboardingAnswers::store($workspace, $user, OnboardingQuestion::LOCATIONS, $data['locations'] ?? null, null, self::SOURCE);
+        OnboardingAnswers::store($workspace, $user, OnboardingQuestion::FEATURES, $data['features'] ?? [], null, self::SOURCE);
 
         $this->stepEvent($skipped ? FunnelStep::ONBOARDING_STEP_SKIPPED : FunnelStep::ONBOARDING_STEP_COMPLETED, 'rooms', $workspace, $user);
 
@@ -175,15 +164,19 @@ class OnboardingController extends Controller
         $workspace = $this->currentWorkspace($request);
         $skipped = $request->boolean('skip');
 
+        // Step 3, the current setup: the tablets (for the pairing steps) and what they use now (so we
+        // can help them move over).
         $data = $skipped ? [] : $request->validate([
             'tablets' => ['nullable', Rule::enum(Tablets::class)],
-            'features' => ['array'],
-            'features.*' => [Rule::enum(Feature::class)],
             'hardware_guide' => ['nullable', 'boolean'],
+            'previous_solution' => ['nullable', Rule::enum(PreviousSolution::class)],
+            'previous_solution_text' => ['nullable', 'required_if:previous_solution,other', 'string', 'max:255'],
+        ], [
+            'previous_solution_text.required_if' => 'Enter the name of the product.',
         ]);
 
         OnboardingAnswers::store($workspace, $user, OnboardingQuestion::TABLETS, $data['tablets'] ?? null, null, self::SOURCE);
-        OnboardingAnswers::store($workspace, $user, OnboardingQuestion::FEATURES, $data['features'] ?? [], null, self::SOURCE);
+        OnboardingAnswers::store($workspace, $user, OnboardingQuestion::PREVIOUS_SOLUTION, $data['previous_solution'] ?? null, $data['previous_solution_text'] ?? null, self::SOURCE);
 
         // Only asked when there are no tablets yet: whether we may send the hardware guide.
         if (($data['tablets'] ?? null) === Tablets::NONE->value) {

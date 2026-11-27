@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from 'vue';
-import { router, useForm, usePage } from '@inertiajs/vue3';
+import { useForm, usePage } from '@inertiajs/vue3';
 import ChoiceCard from '../../../Components/ChoiceCard.vue';
 import StepHeading from '../../../Components/StepHeading.vue';
 import Button from '../../../DesignSystem/Button.vue';
@@ -22,9 +22,6 @@ function submit() {
     form.post(props.urls.workspace, { preserveScroll: true });
 }
 
-function skip() {
-    router.post(props.urls.workspace, { skip: true });
-}
 </script>
 
 <template>
@@ -70,8 +67,7 @@ function skip() {
 
         <div class="flex flex-wrap items-center justify-end gap-3">
             <div class="flex items-center gap-2">
-                <Button v-if="!(selfHosted && !user.termsAccepted)" variant="ghost" size="lg" @click="skip">Skip this step</Button>
-                <Button type="submit" size="lg" :disabled="!form.usage_type || form.processing">Continue</Button>
+                <Button type="submit" :disabled="!form.usage_type || form.processing">Continue</Button>
             </div>
         </div>
     </form>

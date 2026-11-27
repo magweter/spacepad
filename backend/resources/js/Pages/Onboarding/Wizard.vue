@@ -22,8 +22,8 @@ const onboarding = useOnboarding(props.urls);
 
 const meta = {
     workspace: { name: 'Workspace', sub: 'Organisation or personal' },
-    rooms: { name: 'Your rooms', sub: 'Today, how many, where' },
-    tablets: { name: 'Tablets and features', sub: 'What they run on, what matters' },
+    rooms: { name: 'Your organisation', sub: 'Rooms, places, what you need' },
+    tablets: { name: 'Your current setup', sub: 'Tablets, what you use now' },
     start: { name: 'Start', sub: 'First display, or look around' },
 };
 const components = { workspace: WorkspaceStep, rooms: RoomsStep, tablets: TabletsStep, start: StartStep };
@@ -39,7 +39,7 @@ watch(() => props.step, (step) => onboarding.track(step, 'viewed'), { immediate:
 <template>
     <Head :title="`Welcome - ${meta[step].name}`" />
 
-    <OnboardingLayout title="Four steps to get you set up" subtitle="Setting up will only take 1 minute and help us provide the best experience."
+    <OnboardingLayout title="Let's get you set up" subtitle="Setting up will only take 1 minute and help us provide the best experience."
                       :items="rail" :user="user" :logout-url="urls.logout">
         <component :is="components[step]" v-bind="$props" :eyebrow="eyebrow" :onboarding="onboarding" />
     </OnboardingLayout>

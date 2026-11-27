@@ -42,7 +42,7 @@ function sendItRequest() {
             </span>
         </Card>
         <div class="flex items-center justify-end">
-            <Button size="lg" @click="flow.completeAndGo('calendar', 'room')">Pick a room</Button>
+            <Button @click="flow.completeAndGo('calendar', 'room')">Pick a room</Button>
         </div>
     </template>
 
@@ -71,7 +71,7 @@ function sendItRequest() {
                 <button type="button" :aria-pressed="permission === 'read'" @click="permission = 'read'"
                         class="flex flex-col gap-1 rounded-lg border-2 bg-surface px-4 py-3.5 text-left transition-colors hover:border-navy"
                         :class="permission === 'read' ? 'border-navy bg-surface-raised' : 'border-line'">
-                    <span class="flex items-center justify-between gap-2"><span class="font-bold">Read only</span><span class="rounded-full bg-line-soft px-2 py-0.5 text-[11px] font-bold text-ink-3">2 minutes</span></span>
+                    <span class="flex items-center justify-between gap-2"><span class="font-bold">Read only</span><span class="rounded-md bg-line-soft px-2 py-0.5 text-[11px] font-bold text-ink-3">2 minutes</span></span>
                     <span class="text-[13px] text-muted">Shows what is booked. Works without admin consent.</span>
                 </button>
                 <button type="button" :aria-pressed="permission === 'write'" @click="permission = 'write'"
@@ -129,7 +129,7 @@ function sendItRequest() {
             <input type="hidden" name="_token" :value="csrf">
             <input type="hidden" name="onboarding" value="1">
             <input type="hidden" name="permission_type" :value="permission">
-            <Button type="submit" size="lg">Sign in with {{ chosen.label }}</Button>
+            <Button type="submit">Sign in with {{ chosen.label }}</Button>
         </form>
     </template>
 </template>

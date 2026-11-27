@@ -36,7 +36,8 @@ use Throwable;
  */
 class FirstDisplayController extends Controller
 {
-    public const STEPS = ['calendar', 'room', 'tablet', 'done'];
+    // Three steps: pairing ends the setup itself, with what to do next under the connect code.
+    public const STEPS = ['calendar', 'room', 'tablet'];
 
     public function index(Request $request): Response
     {
@@ -46,10 +47,11 @@ class FirstDisplayController extends Controller
         $display = $this->display($request, $workspace);
         $device = $display ? $this->device($workspace, $display) : null;
 
-        $requested = $request->query('step');
+        // An old link to the former "done" step lands on pairing, which now shows the next steps.
+        $requested = $request->query('step') === 'done' ? 'tablet' : $request->query('step');
         $step = in_array($requested, self::STEPS, true)
             ? $requested
-            : ($accounts === [] ? 'calendar' : ($display === null ? 'room' : ($device === null ? 'tablet' : 'done')));
+            : ($accounts === [] ? 'calendar' : ($display === null ? 'room' : 'tablet'));
 
         return Inertia::render('FirstDisplay/Flow', [
             'step' => $step,
@@ -222,7 +224,10 @@ class FirstDisplayController extends Controller
     {
         return Device::query()
             ->where('workspace_id', $workspace->id)
-            ->where(fn ($query) => $query->where('display_id', $display->id)->orWhere('created_at', '>=', $display->created_at))
+            // This display's own tablet, or one paired since the display was made that has not
+            // picked a room yet. A tablet that belongs to another display never counts.
+            ->where(fn ($query) => $query->where('display_id', $display->id)
+                ->orWhere(fn ($fresh) => $fresh->whereNull('display_id')->where('created_at', '>=', $display->created_at)))
             ->latest()
             ->first();
     }

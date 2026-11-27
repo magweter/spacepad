@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\Feature;
 use App\Enums\OnboardingQuestion;
 use App\Enums\UsageType;
 use App\Enums\WorkspaceRole;
@@ -13,6 +14,7 @@ use App\Models\WorkspaceJoinRequest;
 use App\Models\WorkspaceMember;
 use App\Notifications\ItAdminCalendarRequest;
 use App\Notifications\WorkspaceJoinRequested;
+use App\Services\OnboardingAnswers;
 use App\Support\OnboardingReturn;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
@@ -92,25 +94,25 @@ test('a self-hosted instance asks to accept the licence terms', function () {
     expect($user->fresh()->terms_accepted_at)->not->toBeNull();
 });
 
-test('the rooms step stores what they use, how many rooms and where', function () {
+test('the organisation step stores how many rooms, where and every picked use', function () {
     $user = newcomer();
     $user->update(['usage_type' => UsageType::BUSINESS]);
     $workspace = $user->primaryWorkspace();
 
     $this->actingAs($user)
-        ->post(route('onboarding.rooms'), ['previous_solution' => 'other', 'previous_solution_text' => 'Meetio', 'rooms' => '6-25'])
+        ->post(route('onboarding.rooms'), ['rooms' => '6-25', 'features' => ['check_in', 'board']])
         ->assertRedirect(route('onboarding', ['step' => 'tablets']));
 
-    expect($workspace->latestAnswer(OnboardingQuestion::PREVIOUS_SOLUTION)->text)->toBe('Meetio')
-        ->and($workspace->latestAnswer(OnboardingQuestion::ROOMS)->value)->toBe('6-25')
+    expect($workspace->latestAnswer(OnboardingQuestion::ROOMS)->value)->toBe('6-25')
         ->and($workspace->latestAnswer(OnboardingQuestion::LOCATIONS)->value)->toBe('skipped')
+        ->and(OnboardingAnswer::where('question', 'features')->pluck('value')->all())->toEqualCanonicalizing(['check_in', 'board'])
         ->and(OnboardingAnswer::first()->source)->toBe('onboarding');
 });
 
 test('something else needs a name', function () {
     $user = newcomer();
 
-    $this->actingAs($user)->post(route('onboarding.rooms'), ['previous_solution' => 'other'])
+    $this->actingAs($user)->post(route('onboarding.tablets'), ['previous_solution' => 'other'])
         ->assertSessionHasErrors('previous_solution_text');
 });
 
@@ -123,16 +125,17 @@ test('skipping a step stores its questions as skipped', function () {
         ->and(stepsRecorded($user))->toBe(['onboarding_step_skipped:rooms']);
 });
 
-test('the tablets step stores the tablets and every picked feature', function () {
+test('the current setup step stores the tablets and what they use now', function () {
     $user = newcomer();
     $workspace = $user->primaryWorkspace();
 
     $this->actingAs($user)
-        ->post(route('onboarding.tablets'), ['tablets' => 'ipad', 'features' => ['check_in', 'board']])
+        ->post(route('onboarding.tablets'), ['tablets' => 'ipad', 'previous_solution' => 'other', 'previous_solution_text' => 'Meetio'])
         ->assertRedirect(route('onboarding', ['step' => 'start']));
 
     expect($workspace->latestAnswer(OnboardingQuestion::TABLETS)->value)->toBe('ipad')
-        ->and(OnboardingAnswer::where('question', 'features')->pluck('value')->all())->toEqualCanonicalizing(['check_in', 'board']);
+        ->and($workspace->latestAnswer(OnboardingQuestion::PREVIOUS_SOLUTION)->value)->toBe('other')
+        ->and($workspace->latestAnswer(OnboardingQuestion::PREVIOUS_SOLUTION)->text)->toBe('Meetio');
 });
 
 test('the wizard resumes at the first question that is not answered', function () {
@@ -195,7 +198,7 @@ test('the display setup starts at the calendar without an account', function () 
         ->assertInertia(fn (Assert $page) => $page
             ->component('FirstDisplay/Flow')
             ->where('step', 'calendar')
-            ->where('steps', ['calendar', 'room', 'tablet', 'done'])
+            ->where('steps', ['calendar', 'room', 'tablet'])
             ->has('shell.nav'));
 });
 
@@ -240,7 +243,11 @@ test('the setup opens where it was left and sees a paired tablet', function () {
     Device::factory()->create(['user_id' => $user->id, 'workspace_id' => $workspace->id, 'display_id' => $display->id, 'name' => 'Lobby iPad']);
 
     $this->actingAs($user)->getJson(route('setup.first-display.device-status'))->assertJson(['paired' => true, 'name' => 'Lobby iPad']);
-    $this->actingAs($user)->get(route('setup.first-display'))->assertInertia(fn (Assert $page) => $page->where('step', 'done'));
+    // Paired: the pairing step itself shows it, with the next steps; there is no "done" screen.
+    $this->actingAs($user)->get(route('setup.first-display'))
+        ->assertInertia(fn (Assert $page) => $page->where('step', 'tablet')->where('device.name', 'Lobby iPad'));
+    $this->actingAs($user)->get(route('setup.first-display', ['step' => 'done']))
+        ->assertInertia(fn (Assert $page) => $page->where('step', 'tablet'));
 });
 
 test('the live screen shows the display and the tablet', function () {
@@ -276,14 +283,13 @@ test('a sign-in link shows the inbox state', function () {
         ->assertInertia(fn (Assert $page) => $page->component('Auth/Login')->where('sentTo', 'tom@acme.test'));
 });
 
-test('skipping the first step still gives the workspace a usage type', function () {
+test('the first step cannot be skipped', function () {
     $user = newcomer();
 
     $this->actingAs($user)->post(route('onboarding.workspace'), ['skip' => true])
-        ->assertRedirect(route('onboarding', ['step' => 'rooms']));
+        ->assertSessionHasErrors('usage_type');
 
-    expect($user->fresh()->usage_type)->toBe(UsageType::BUSINESS)
-        ->and(stepsRecorded($user))->toBe(['onboarding_step_skipped:workspace']);
+    expect(stepsRecorded($user))->not->toContain('onboarding_step_skipped:workspace');
 });
 
 test('the licence terms on a self-hosted instance cannot be skipped', function () {
@@ -445,4 +451,30 @@ test('only an owner or admin decides on a join request', function () {
 
     $this->actingAs($stranger)->get(route('join-requests.show', $joinRequest))->assertForbidden();
     $this->actingAs($stranger)->post(route('join-requests.decline', $joinRequest))->assertForbidden();
+});
+
+test('the organisation step offers six needs at most, without room displays', function () {
+    $values = collect(OnboardingAnswers::options(OnboardingQuestion::FEATURES))->pluck('value');
+
+    expect($values->all())->toBe(['booking', 'check_in', 'board', 'live_view', 'find_a_room', 'branding'])
+        // An earlier answer of room displays still reads as one.
+        ->and(Feature::from('room_displays')->label())->toBe('Room displays');
+});
+
+test('a tablet of another display does not count as paired to this one', function () {
+    $user = User::factory()->active()->create();
+    $workspace = $user->primaryWorkspace();
+    $other = Display::factory()->create(['workspace_id' => $workspace->id, 'user_id' => $user->id]);
+    $display = Display::factory()->create(['workspace_id' => $workspace->id, 'user_id' => $user->id, 'created_at' => now()->subDay()]);
+    Device::factory()->create(['user_id' => $user->id, 'workspace_id' => $workspace->id, 'display_id' => $other->id, 'name' => 'Other room iPad']);
+
+    $this->actingAs($user)
+        ->getJson(route('setup.first-display.device-status', ['display' => $display->id]))
+        ->assertJson(['paired' => false]);
+
+    // A tablet paired since, that has not picked a room yet, does count.
+    Device::factory()->create(['user_id' => $user->id, 'workspace_id' => $workspace->id, 'display_id' => null, 'name' => 'New iPad']);
+    $this->actingAs($user)
+        ->getJson(route('setup.first-display.device-status', ['display' => $display->id]))
+        ->assertJson(['paired' => true, 'name' => 'New iPad']);
 });

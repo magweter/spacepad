@@ -1,4 +1,5 @@
 <script setup>
+import Icon from '../../../Components/Icon.vue';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import StepHeading from '../../../Components/StepHeading.vue';
@@ -82,7 +83,7 @@ onMounted(() => {
     <template v-if="display">
         <StepHeading :eyebrow="eyebrow" title="The display is created">Next, put it on a tablet.</StepHeading>
         <Card rule="available"><span class="font-semibold">{{ display.name }}</span></Card>
-        <div class="flex justify-end"><Button size="lg" @click="flow.completeAndGo('room', 'tablet')">Pair a tablet</Button></div>
+        <div class="flex justify-end"><Button @click="flow.completeAndGo('room', 'tablet')">Pair a tablet</Button></div>
     </template>
 
     <template v-else>
@@ -135,9 +136,9 @@ onMounted(() => {
         </div>
 
         <div class="flex items-center justify-between">
-            <button type="button" class="text-[13px] font-semibold text-muted hover:text-navy" @click="flow.goTo('calendar')">← Back</button>
+            <Button variant="ghost" @click="flow.goTo('calendar')"><template #icon><Icon name="arrowLeft" :size="16" /></template>Back</Button>
             <div class="flex items-center gap-2">
-                <Button size="lg" :disabled="!picked || form.processing" @click="submit">Create display</Button>
+                <Button :disabled="!picked || form.processing" @click="submit">Create display</Button>
             </div>
         </div>
     </template>

@@ -6,7 +6,6 @@ import { useOnboarding } from '../../Composables/useOnboarding';
 import CalendarStep from './Steps/CalendarStep.vue';
 import RoomStep from './Steps/RoomStep.vue';
 import TabletStep from './Steps/TabletStep.vue';
-import DoneStep from './Steps/DoneStep.vue';
 
 const props = defineProps({
     step: { type: String, required: true },
@@ -26,9 +25,8 @@ const meta = {
     calendar: { name: 'Calendar', tip: null },
     room: { name: 'Room', tip: null },
     tablet: { name: 'Tablet', tip: null },
-    done: { name: 'Done', tip: null },
 };
-const components = { calendar: CalendarStep, room: RoomStep, tablet: TabletStep, done: DoneStep };
+const components = { calendar: CalendarStep, room: RoomStep, tablet: TabletStep };
 
 const current = computed(() => props.steps.indexOf(props.step));
 const stepper = computed(() => props.steps.map((key, i) => ({ key, name: meta[key].name, number: i + 1, done: i < current.value, current: i === current.value, last: i === props.steps.length - 1 })));
@@ -60,7 +58,7 @@ watch(() => props.step, (step) => flow.track(step, 'viewed'), { immediate: true 
             </ol>
         </header>
 
-        <div class="mx-auto flex w-full flex-col gap-6 px-6 py-8 md:px-8 md:py-12" :class="step === 'done' ? 'max-w-[960px]' : 'max-w-[760px]'">
+        <div class="mx-auto flex w-full max-w-[760px] flex-col gap-6 px-6 py-8 md:px-8 md:py-12">
             <component :is="components[step]" v-bind="$props" :eyebrow="eyebrow" :flow="flow" />
             <p v-if="meta[step].tip" class="text-[13px] text-muted"><span class="font-semibold text-ink-2">{{ meta[step].tip[0] }}.</span> {{ meta[step].tip[1] }}</p>
         </div>
