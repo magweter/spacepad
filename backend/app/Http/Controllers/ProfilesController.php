@@ -25,7 +25,7 @@ class ProfilesController extends Controller
     ) {}
 
     /**
-     * The profiles page: the list on the left, the selected profile (?profile=<id>) on the right.
+     * The profiles page: every profile as a card, each opening its edit page.
      * A free workspace sees the page with an upgrade note instead of a hard error, the same way the
      * old dashboard tab showed a teaser.
      */
@@ -44,21 +44,10 @@ class ProfilesController extends Controller
                 ->get()
             : collect();
 
-        $selected = $profiles->firstWhere('id', $request->query('profile')) ?? $profiles->first();
-
         return Inertia::render('Profiles/Index', [
             'shell' => PortalShell::for($request, $workspace, 'profiles'),
             'hasPro' => $hasPro,
-            'profiles' => $profiles->map(fn (DisplayProfile $profile) => [
-                'id' => $profile->id,
-                'name' => $profile->name,
-                'displays' => $profile->displays->count(),
-                'customised' => $profile->displays->filter(fn ($d) => DisplaySettings::deviatesFromProfile($d))->count(),
-                'url' => route('profiles.index', ['profile' => $profile->id]),
-                'selected' => $selected?->id === $profile->id,
-            ])->values()->all(),
-            'selected' => $selected ? $this->selected($user, $selected) : null,
-            'advertisement' => $user->hasAdvertisementFeature(),
+            'profiles' => $profiles->map(fn (DisplayProfile $profile) => $this->listItem($user, $profile))->values()->all(),
             'urls' => [
                 'create' => route('profiles.create'),
                 'displays' => route('displays.index'),
@@ -116,7 +105,7 @@ class ProfilesController extends Controller
 
         $this->applySettings($profile, $request);
 
-        return redirect()->route('profiles.index', ['profile' => $profile->id])
+        return redirect()->route('profiles.edit', $profile)
             ->with('success', 'Profile created.');
     }
 
@@ -153,7 +142,7 @@ class ProfilesController extends Controller
 
         $this->applySettings($profile, $request);
 
-        return redirect()->route('profiles.index', ['profile' => $profile->id])
+        return redirect()->route('profiles.edit', $profile)
             ->with('success', 'Profile saved. Displays that follow it pick up the changes within a minute.');
     }
 
@@ -207,7 +196,7 @@ class ProfilesController extends Controller
             'images' => DisplaySettingsForm::profileImages($profile),
             'options' => DisplaySettingsForm::options(),
             'urls' => [
-                'back' => $profile ? route('profiles.index', ['profile' => $profile->id]) : route('profiles.index'),
+                'back' => route('profiles.index'),
                 'save' => $profile ? route('profiles.update', $profile) : route('profiles.store'),
                 'displays' => route('displays.index'),
             ],
@@ -215,24 +204,26 @@ class ProfilesController extends Controller
     }
 
     /**
-     * The selected profile on the profiles page.
+     * A profile on the overview: what it is used for and what it turns on, enough to pick one.
      *
      * @return array<string, mixed>
      */
-    private function selected(User $user, DisplayProfile $profile): array
+    private function listItem(User $user, DisplayProfile $profile): array
     {
+        $values = DisplaySettingsForm::profileValues($profile);
+
         return [
             'id' => $profile->id,
             'name' => $profile->name,
+            'displays' => $profile->displays->count(),
+            'customised' => $profile->displays->filter(fn ($d) => DisplaySettings::deviatesFromProfile($d))->count(),
             'createdBy' => $profile->user?->name,
             'updated' => $profile->updated_at?->diffForHumans(),
-            'values' => DisplaySettingsForm::profileValues($profile),
-            'images' => DisplaySettingsForm::profileImages($profile),
-            'displays' => $profile->displays->sortBy('name')->map(fn (Display $display) => $this->linkedDisplay($display))->values()->all(),
+            'booking' => (bool) ($values['booking_enabled'] ?? false),
+            'checkIn' => (bool) ($values['check_in_enabled'] ?? false),
+            'font' => $values['font_family'] ?? null,
             'canUpdate' => $user->can('update', $profile),
-            'canDelete' => $user->can('delete', $profile),
             'editUrl' => route('profiles.edit', $profile),
-            'deleteUrl' => route('profiles.destroy', $profile),
         ];
     }
 

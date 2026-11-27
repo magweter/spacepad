@@ -4,7 +4,6 @@
 import { computed, ref } from 'vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import PortalShell from '../../Components/PortalShell.vue';
-import FlashMessage from '../../Components/FlashMessage.vue';
 import Button from '../../DesignSystem/Button.vue';
 import Chip from '../../DesignSystem/Chip.vue';
 import Modal from '../../DesignSystem/Modal.vue';
@@ -90,7 +89,6 @@ const hasErrors = computed(() => Object.keys(form.errors).length > 0);
         </header>
 
         <div class="flex flex-col gap-6 px-6 pt-7 pb-10 md:px-8">
-            <FlashMessage />
             <Notice v-if="hasErrors" tone="danger" title="Some settings need another look">Check the fields marked below.</Notice>
 
             <div class="flex flex-wrap items-start gap-7">

@@ -18,10 +18,11 @@ beforeEach(function () {
     session()->put('selected_workspace_id', $this->workspace->id);
 });
 
-test('the profiles page lists the workspace profiles and selects the first', function () {
+test('the profiles page lists the workspace profiles as cards that open their edit page', function () {
     $first = DisplayProfile::factory()->create(['workspace_id' => $this->workspace->id, 'name' => 'A rooms']);
     DisplayProfile::factory()->create(['workspace_id' => $this->workspace->id, 'name' => 'B rooms']);
     Display::factory()->create(['workspace_id' => $this->workspace->id, 'display_profile_id' => $first->id, 'name' => 'Boardroom']);
+    ProfileSettings::set($first, 'booking_enabled', true, 'boolean');
     // Another workspace's profile never shows.
     DisplayProfile::factory()->create(['workspace_id' => User::factory()->active()->unlimited()->create()->primaryWorkspace()->id]);
 
@@ -30,31 +31,16 @@ test('the profiles page lists the workspace profiles and selects the first', fun
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page->component('Profiles/Index')
             ->where('hasPro', true)
-            ->where('shell.nav.3.active', true)
+            ->where('shell.nav.4.active', true)
             ->has('profiles', 2)
             ->where('profiles.0.name', 'A rooms')
             ->where('profiles.0.displays', 1)
-            ->where('selected.name', 'A rooms')
-            ->where('selected.displays.0.name', 'Boardroom')
-            ->where('selected.displays.0.ownSections', [])
-            ->where('selected.editUrl', route('profiles.edit', $first)));
-});
-
-test('a profile is selected from the query string', function () {
-    DisplayProfile::factory()->create(['workspace_id' => $this->workspace->id, 'name' => 'A rooms']);
-    $second = DisplayProfile::factory()->create(['workspace_id' => $this->workspace->id, 'name' => 'B rooms']);
-    ProfileSettings::set($second, 'booking_enabled', true, 'boolean');
-    ProfileSettings::set($second, 'check_in_minutes', 10, 'integer');
-
-    $this->actingAs($this->user)
-        ->get(route('profiles.index', ['profile' => $second->id]))
-        ->assertInertia(fn (Assert $page) => $page
-            ->where('selected.name', 'B rooms')
-            ->where('selected.values.booking_enabled', true)
-            ->where('selected.values.check_in_minutes', 10)
-            // Keys the profile does not hold get the form's defaults.
-            ->where('selected.values.show_meeting_title', true)
-            ->where('profiles.1.selected', true));
+            ->where('profiles.0.customised', 0)
+            ->where('profiles.0.booking', true)
+            ->where('profiles.1.booking', false)
+            ->where('profiles.0.canUpdate', true)
+            ->where('profiles.0.editUrl', route('profiles.edit', $first))
+            ->missing('selected'));
 });
 
 test('non-pro users see the profiles page with an upgrade note but cannot create one', function () {
@@ -70,8 +56,7 @@ test('non-pro users see the profiles page with an upgrade note but cannot create
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page->component('Profiles/Index')
             ->where('hasPro', false)
-            ->has('profiles', 0)
-            ->where('selected', null));
+            ->has('profiles', 0));
 
     $this->actingAs($free)->get(route('profiles.create'))->assertForbidden();
     $this->actingAs($free)->post(route('profiles.store'), ['name' => 'Nope'])->assertForbidden();
@@ -117,7 +102,7 @@ test('user can create a profile with settings', function () {
     ]);
 
     $profile = DisplayProfile::where('name', 'Meeting rooms NL')->first();
-    $response->assertRedirect(route('profiles.index', ['profile' => $profile->id]));
+    $response->assertRedirect(route('profiles.edit', $profile));
     $this->assertDatabaseHas('display_profiles', [
         'name' => 'Meeting rooms NL',
         'workspace_id' => $this->workspace->id,
@@ -153,7 +138,7 @@ test('updating a profile changes its settings and leaves the links alone', funct
     $this->actingAs($this->user)->put(route('profiles.update', $profile), [
         'name' => 'Renamed',
         'booking_enabled' => '1',
-    ])->assertRedirect(route('profiles.index', ['profile' => $profile->id]));
+    ])->assertRedirect(route('profiles.edit', $profile));
 
     expect($profile->fresh()->name)->toBe('Renamed')
         ->and(ProfileSettings::get($profile->fresh(), 'booking_enabled'))->toBeTrue()
@@ -215,7 +200,7 @@ test('the configuration screen names the followed profile without offering to sw
         ->get(route('displays.configure', $display))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page->component('Configure/Index')
-            ->where('shell.nav.1.active', true)
+            ->where('shell.nav.2.active', true)
             ->where('profile.name', 'Ground floor')
             ->where('profile.editUrl', route('profiles.edit', $profile))
             // Nothing deviates yet, so there is nothing to reset.
