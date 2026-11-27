@@ -37,7 +37,7 @@ const trialTitle = computed(() => {
                 <span class="font-display text-[22px] font-bold tracking-tight">{{ plan }}</span>
                 <span v-if="billing.interval" class="text-xs text-on-navy-2">{{ billing.interval }}</span>
             </span>
-            <span v-if="chip" class="rounded-full bg-amber px-2.5 py-0.5 text-[11px] font-bold tracking-wide text-navy">{{ chip }}</span>
+            <span v-if="chip" class="rounded-md bg-amber px-2.5 py-0.5 text-[11px] font-bold tracking-wide text-navy">{{ chip }}</span>
         </div>
 
         <div class="flex flex-col gap-2 text-[13px]">
@@ -64,9 +64,9 @@ const trialTitle = computed(() => {
             </Button>
             <Button v-else-if="billing.state === 'modal'" variant="accent" @click="$emit('manage')">Manage subscription</Button>
 
-            <button v-if="billing.switch?.to === 'yearly'" type="button" class="rounded-lg border border-navy-600 px-3.5 py-2 text-[13px] font-semibold text-white hover:bg-navy-800" @click="postForm(urls.switchYearly)">Switch to yearly</button>
-            <button v-else-if="billing.switch?.to === 'monthly'" type="button" class="rounded-lg border border-navy-600 px-3.5 py-2 text-[13px] font-semibold text-white hover:bg-navy-800" @click="router.post(urls.switchMonthly)">Switch to monthly</button>
-            <button v-else-if="billing.switch?.to === 'pending-monthly'" type="button" class="rounded-lg border border-navy-600 px-3.5 py-2 text-[13px] font-semibold text-white hover:bg-navy-800" @click="router.delete(urls.keepYearly)">Keep yearly</button>
+            <button v-if="billing.switch?.to === 'yearly'" type="button" class="rounded-md border border-navy-600 px-3.5 py-2 text-[13px] font-semibold text-white hover:bg-navy-800" @click="postForm(urls.switchYearly)">Switch to yearly</button>
+            <button v-else-if="billing.switch?.to === 'monthly'" type="button" class="rounded-md border border-navy-600 px-3.5 py-2 text-[13px] font-semibold text-white hover:bg-navy-800" @click="router.post(urls.switchMonthly)">Switch to monthly</button>
+            <button v-else-if="billing.switch?.to === 'pending-monthly'" type="button" class="rounded-md border border-navy-600 px-3.5 py-2 text-[13px] font-semibold text-white hover:bg-navy-800" @click="router.delete(urls.keepYearly)">Keep yearly</button>
         </div>
 
         <p v-if="billing.switch" class="text-xs text-on-navy-muted">

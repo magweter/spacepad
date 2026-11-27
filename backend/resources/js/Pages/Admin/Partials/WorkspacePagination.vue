@@ -7,7 +7,7 @@ const props = defineProps({ paginator: { type: Object, required: true } });
 
 // Laravel labels the first and last link with HTML entities; the numbers in between are plain.
 const pages = computed(() => props.paginator.links.slice(1, -1));
-const linkClass = 'inline-flex min-w-8 items-center justify-center rounded-lg border px-2.5 py-1.5 text-[13px] font-medium';
+const linkClass = 'inline-flex min-w-8 items-center justify-center rounded-md border px-2.5 py-1.5 text-[13px] font-medium';
 </script>
 
 <template>

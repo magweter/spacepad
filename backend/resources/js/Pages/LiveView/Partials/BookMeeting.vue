@@ -109,7 +109,7 @@ const field = 'block w-full rounded-lg border border-line bg-surface px-3 py-2 t
             <div class="flex flex-wrap items-center gap-1.5">
                 <span class="mr-1 text-xs text-muted">Length</span>
                 <button v-for="m in [15, 30, 60, 90]" :key="m" type="button" @click="setLength(m)"
-                        class="rounded-full border px-2.5 py-0.5 text-xs font-semibold"
+                        class="rounded-md border px-2.5 py-0.5 text-xs font-semibold"
                         :class="minutes === m ? 'border-navy bg-navy text-white' : 'border-line text-ink-3 hover:bg-surface-raised'">{{ m < 60 ? `${m} min` : m === 60 ? '1 h' : '1.5 h' }}</button>
             </div>
             <label class="flex flex-col gap-1.5">

@@ -32,12 +32,12 @@ async function copy() {
 <template>
     <Head :title="creating ? 'New board' : board ? `${board.name}, boards` : 'Boards'" />
 
-    <PortalShell :shell="shell" title="Boards">
-        <div class="flex flex-col gap-6 px-6 pt-7 pb-10 md:px-8">
-            <div class="flex flex-wrap items-center justify-between gap-3">
-                <p class="max-w-[720px] text-[13px] text-muted">Overviews of many rooms at once, for TVs, lobbies and the browser.</p>
-                <Button v-if="canCreate && !creating" :href="urls.create"><template #icon><Icon name="plus" :size="16" :stroke="2.5" /></template>New board</Button>
-            </div>
+    <PortalShell :shell="shell" title="Boards" subtitle="Overviews of many rooms at once, for TVs, lobbies and the browser.">
+        <template #actions>
+            <Button v-if="canCreate && !creating" :href="urls.create"><template #icon><Icon name="plus" :size="16" :stroke="2.5" /></template>New board</Button>
+        </template>
+
+        <div class="flex flex-col gap-6 px-6 pt-6 pb-10 md:px-10">
 
 
             <!-- Free workspace: what boards are and how to get them. -->

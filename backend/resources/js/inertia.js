@@ -14,9 +14,20 @@ router.on('exception', (event) => {
     event.preventDefault();
     toastError('There is no connection to Spacepad. Check your internet and try again.', 'Connection lost');
 });
+// While Vite swaps code during development, components can fail for a moment; that is not an
+// error to show anyone. In development the toast names the error, so it can be traced.
+let hotUpdateAt = 0;
+if (import.meta.hot) {
+    import.meta.hot.on('vite:beforeUpdate', () => { hotUpdateAt = Date.now(); });
+    import.meta.hot.on('vite:afterUpdate', () => { hotUpdateAt = Date.now(); });
+}
+const duringHotUpdate = () => Date.now() - hotUpdateAt < 3000;
+const detail = (error) => (import.meta.env.DEV ? error?.message || String(error) : error?.message) || null;
+
 window.addEventListener('unhandledrejection', (event) => {
     console.error(event.reason);
-    toastError(event.reason?.message || null);
+    if (duringHotUpdate()) return;
+    toastError(detail(event.reason));
 });
 
 // Flash messages from the server ("Switched to workspace", "Display saved") are toasts, not a bar
@@ -44,7 +55,8 @@ createInertiaApp({
         const app = createApp({ render: () => h(App, props) });
         app.config.errorHandler = (error) => {
             console.error(error);
-            toastError(null);
+            if (duringHotUpdate()) return;
+            toastError(import.meta.env.DEV ? detail(error) : null);
         };
         app.use(plugin)
             .mount(el);

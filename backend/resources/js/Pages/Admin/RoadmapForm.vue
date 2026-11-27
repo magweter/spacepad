@@ -23,7 +23,7 @@ const submit = () => (props.item ? form.put(props.urls.submit) : form.post(props
 
 const title = props.item ? 'Edit roadmap item' : 'New roadmap item';
 const labelClass = 'mb-1 block text-[13px] font-semibold';
-const fieldClass = 'block w-full rounded-lg border border-line bg-surface px-3 py-2 text-[13px] text-ink focus:border-navy focus:outline-none';
+const fieldClass = 'block w-full rounded-md border border-line bg-surface px-3 py-2 text-[13px] text-ink focus:border-navy focus:outline-none';
 </script>
 
 <template>
@@ -36,7 +36,7 @@ const fieldClass = 'block w-full rounded-lg border border-line bg-surface px-3 p
             </Link>
         </template>
 
-        <div class="flex max-w-2xl flex-col gap-6 px-6 pt-7 pb-10 md:px-8">
+        <div class="flex max-w-2xl flex-col gap-6 px-6 pt-6 pb-10 md:px-10">
 
             <form class="flex flex-col gap-5" @submit.prevent="submit">
                 <Card>

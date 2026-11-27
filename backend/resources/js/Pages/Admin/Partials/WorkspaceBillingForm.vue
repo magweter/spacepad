@@ -22,7 +22,7 @@ const form = useForm({
 
 const submit = () => form.post(props.url, { preserveScroll: true });
 
-const fieldClass = 'block w-full rounded-lg border border-line bg-surface px-3 py-2 text-[13px] text-ink focus:border-navy focus:outline-none';
+const fieldClass = 'block w-full rounded-md border border-line bg-surface px-3 py-2 text-[13px] text-ink focus:border-navy focus:outline-none';
 </script>
 
 <template>

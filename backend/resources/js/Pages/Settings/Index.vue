@@ -22,8 +22,8 @@ const field = 'rounded-lg border border-line bg-surface px-3 py-2 text-[13px] fo
     <Head title="Settings" />
 
     <PortalShell :shell="shell" title="Settings">
-        <div class="flex max-w-[808px] flex-col gap-4 px-6 pt-7 pb-10 md:px-8">
-            <p class="-mt-2 text-[13px] text-muted">Workspace-wide. Per-display behaviour lives in <a :href="urls.profiles" class="font-semibold text-navy hover:underline">Profiles</a>.</p>
+        <template #subtitle>Settings for this workspace and everyone in it.</template>
+        <div class="flex max-w-[808px] flex-col gap-4 px-6 pt-6 pb-10 md:px-10">
 
 
             <section id="workspace" class="sp-card gap-0 px-[18px] py-1.5">

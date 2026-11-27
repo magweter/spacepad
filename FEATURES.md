@@ -310,25 +310,34 @@ a separate account with its own invisible set of displays.
 
 - **Sign in and create an account** on one page: Microsoft, Google or a magic link by email. Creating an
   account asks only for the email address
-- **Onboarding** — four questions up front (workspace, rooms, tablets and features, start), each step
-  skippable except the last. The workspace name is suggested from the company domain. Without tablets
+- **Onboarding** — four steps up front: workspace (organisation or personal), your organisation (how
+  many rooms, where, what you need it for, which shapes the plan we suggest), your current setup
+  (tablets, and what you use now so we can help you move over) and start; each step
+  skippable except the first (how you use Spacepad) and the last. The workspace name is suggested from the company domain. Without tablets
   you can ask for the hardware guide. It ends with a choice: set up the first display or look around
-- **Display setup** — calendar, room, tablet, done, from the end of onboarding or the portal. Connecting
-  a calendar returns to the setup, the display is created from a room picker, the tablet step updates
-  the moment a tablet pairs, and someone without admin rights can email a request to their IT admin.
-  It ends on a "first display live" screen with the next steps
-- **Overview** — a greeting with how things stand, key figures (displays online, rooms free, bookings
-  today, calendars), only the notices that block the product, quick actions (book a room, see every
-  room live, pair a tablet, display settings, connect a calendar, invite a teammate, create a board)
-  and the setup checklist. The calendars figure is a health check: all connected and reachable, or
-  what needs fixing. Read from the cached events, so it never calls a calendar provider
+- **Display setup** — three steps (calendar, room, tablet), from the end of onboarding or the portal.
+  Connecting a calendar returns to the setup, the display is created from a room picker, and someone
+  without admin rights can email a request to their IT admin. The tablet step is also the end: it
+  updates the moment a tablet pairs ("… is connected") and lists what to do next (add
+  another display, customise it, go to the overview), with or without a tablet
+- **Overview** — a greeting with how things stand, an upgrade banner on a free workspace (what Pro
+  adds, from $8 per display a month), "Needs attention", key figures (displays online, rooms free,
+  bookings today, calendars), a Displays card with the first five displays and the same inline actions
+  as the Displays page, Boards and Profiles cards (Pro), quick actions (book a room, see every room
+  live, pair a tablet, display settings, connect a calendar, invite a teammate, create a board), the
+  pairing code and the setup checklist. The calendars figure is a health check: all connected and
+  reachable, or what needs fixing. Read from the cached events, so it never calls a calendar provider
+- **Display actions** — every display row (Displays page and overview) has Details, Edit (names and
+  location) and Customize (look and behaviour) inline; Pause or resume, troubleshooting and delete sit
+  in the "more" menu. On a free workspace Edit and Customize explain Pro
 - **Live view** — its own page in the sidebar (marked "New"): every room right now as a timeline or
   cards, refreshed every minute, with a coloured bar per room for its status. The timeline is a day
   calendar over the whole day that scrolls sideways; a click on a meeting shows its details (organiser,
   location, online meeting link). Other days are fetched live from the calendars with a loading
   indicator (previous, next, today, pick a date). "Book a room" on the overview opens this page with
   the booking window
-- **Needs attention** — a calendar account that needs signing in again (expired token, changed
+- **Needs attention** — one card with a row per item: a coloured bar, the title with its tag, what
+  to do and one button. A calendar account that needs signing in again (expired token, changed
   permissions) is an "Action required" notice on the overview and the Calendars page, with a button that
   starts the sign-in for that account; rooms whose meetings could not be read for another reason (an
   outage, refused access) are listed in an "Attention" notice and show as "Not loaded" in the timeline
@@ -336,8 +345,11 @@ a separate account with its own invisible set of displays.
   on the overview while it runs, in its "needs attention" list (not on the other pages), for
   every workspace or only for workspaces with a calendar account of that provider. Seven types, each
   with its own label and colour: Info, New, Maintenance, Attention, Service degradation, Action
-  required and Resolved. An alert can also open as a popup, once for every user. Admins create,
-  schedule, edit and end alerts in the "Alerts" tab of the admin panel, with a preview of the row
+  required and Resolved. An alert can carry an image and can open as a popup: the message itself
+  (image, type, title, text) right after signing in, one by one with "Next" when there are several.
+  "Got it" on the popup, or the × on its row, is done with the alert for that user: it no longer
+  shows anywhere in their portal. Admins create, schedule, edit and end alerts (and upload or remove
+  the image) in the "Alerts" tab of the admin panel, with a preview of the row
 - **Error toasts** — server errors, a lost connection and unexpected script errors show as a toast at
   the bottom right instead of an error page or nothing
 - **Confirmation toasts** — short-lived messages (switched workspace, saved, booked) are toasts at the

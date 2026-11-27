@@ -44,13 +44,13 @@ function remove(id) {
         <p v-if="!displays.length" class="text-xs text-muted">No active displays in this workspace yet. A display shows up here once it is set up.</p>
         <p v-else-if="showAll" class="text-xs text-muted">Every active display in this workspace, including the ones you add later.</p>
         <div v-else class="relative flex flex-wrap gap-2">
-            <span v-for="d in known" :key="d.id" class="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface-raised py-[5px] pr-1.5 pl-3 text-xs font-medium">
+            <span v-for="d in known" :key="d.id" class="inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface-raised py-[5px] pr-1.5 pl-3 text-xs font-medium">
                 {{ d.name }}
-                <button type="button" :aria-label="`Remove ${d.name}`" class="inline-flex h-[18px] w-[18px] items-center justify-center rounded-full bg-line text-ink-2 hover:bg-offline-border" @click="remove(d.id)">
+                <button type="button" :aria-label="`Remove ${d.name}`" class="inline-flex h-[18px] w-[18px] items-center justify-center rounded bg-line text-ink-2 hover:bg-offline-border" @click="remove(d.id)">
                     <Icon name="close" :size="10" :stroke="3" />
                 </button>
             </span>
-            <button v-if="remaining.length" type="button" :aria-expanded="adding" class="inline-flex items-center gap-1.5 rounded-full border border-dashed border-offline-border px-3 py-[5px] text-xs font-semibold text-ink-2 hover:border-navy hover:text-navy" @click="adding = !adding">
+            <button v-if="remaining.length" type="button" :aria-expanded="adding" class="inline-flex items-center gap-1.5 rounded-md border border-dashed border-offline-border px-3 py-[5px] text-xs font-semibold text-ink-2 hover:border-navy hover:text-navy" @click="adding = !adding">
                 <Icon name="plus" :size="12" :stroke="2.5" />Add room
             </button>
             <div v-if="adding && remaining.length" class="absolute top-full left-0 z-20 mt-1.5 flex max-h-64 w-64 flex-col overflow-y-auto rounded-[10px] border border-line bg-surface py-1 shadow-lg">

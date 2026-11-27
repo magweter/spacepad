@@ -63,7 +63,7 @@ const trialLabel = computed(() => (upgrade.value?.trial ? 'Start 14-day free tri
         <div class="flex flex-col gap-3">
             <div class="flex flex-wrap gap-1.5" role="tablist" aria-label="Pro features">
                 <button v-for="f in features" :key="f.key" type="button" role="tab" :aria-selected="selected === f.key" @click="selected = f.key"
-                        class="rounded-full border px-3 py-1.5 text-[13px] font-semibold transition-colors"
+                        class="rounded-md border px-3 py-1.5 text-[13px] font-semibold transition-colors"
                         :class="selected === f.key ? 'border-navy bg-navy text-white' : 'border-line bg-surface text-ink-2 hover:border-navy-400'">
                     {{ f.label }}
                 </button>

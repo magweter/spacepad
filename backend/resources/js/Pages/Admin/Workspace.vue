@@ -20,15 +20,14 @@ const termClass = 'text-[13px] font-medium text-muted';
 <template>
     <Head :title="`Workspace - ${workspace.name}`" />
 
-    <PortalShell :shell="shell" :title="workspace.name">
+    <PortalShell :shell="shell" :title="workspace.name" subtitle="Usage, billing and members for this workspace">
         <template #actions>
             <Link :href="urls.index" class="inline-flex items-center gap-1.5 text-[13px] font-semibold text-navy hover:underline">
                 <Icon name="arrowLeft" :size="15" />Back to Workspaces
             </Link>
         </template>
 
-        <div class="flex max-w-4xl flex-col gap-6 px-6 pt-7 pb-10 md:px-8">
-            <p class="text-[13px] text-muted">Usage, billing and members for this workspace</p>
+        <div class="flex max-w-4xl flex-col gap-6 px-6 pt-6 pb-10 md:px-10">
 
 
             <Card>

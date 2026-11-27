@@ -75,7 +75,7 @@ const tabs = [
                                 :class="['-mb-px flex items-center gap-1.5 border-b-2 pb-3 text-[13px] font-semibold transition-colors',
                                          tab === item.key ? 'border-amber text-ink' : 'border-transparent text-muted hover:text-ink-2']">
                             {{ item.label }}
-                            <span v-if="item.key === 'roadmap' && data?.roadmap?.length" class="rounded-full bg-surface-raised px-1.5 text-[11px] font-semibold text-ink-3">{{ data.roadmap.length }}</span>
+                            <span v-if="item.key === 'roadmap' && data?.roadmap?.length" class="rounded-md bg-surface-raised px-1.5 text-[11px] font-semibold text-ink-3">{{ data.roadmap.length }}</span>
                         </button>
                     </nav>
                 </header>

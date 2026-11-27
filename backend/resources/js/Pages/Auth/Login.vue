@@ -133,9 +133,9 @@ function useDifferentEmail() {
                         <!-- Form -->
                         <div v-else class="flex flex-col gap-8">
                             <nav class="inline-flex self-start rounded-[10px] bg-line-soft p-1" aria-label="Sign in or create a workspace">
-                                <Link :href="urls.login" class="rounded-lg px-4 py-[7px] text-[13px] font-semibold" :aria-current="!isRegister ? 'page' : null"
+                                <Link :href="urls.login" class="rounded-md px-4 py-[7px] text-[13px] font-semibold" :aria-current="!isRegister ? 'page' : null"
                                       :class="!isRegister ? 'bg-white text-navy shadow-[0_1px_2px_rgba(15,23,42,0.08)]' : 'text-muted hover:text-navy'">Sign in</Link>
-                                <Link :href="urls.register" class="rounded-lg px-4 py-[7px] text-[13px] font-semibold" :aria-current="isRegister ? 'page' : null"
+                                <Link :href="urls.register" class="rounded-md px-4 py-[7px] text-[13px] font-semibold" :aria-current="isRegister ? 'page' : null"
                                       :class="isRegister ? 'bg-white text-navy shadow-[0_1px_2px_rgba(15,23,42,0.08)]' : 'text-muted hover:text-navy'">Create workspace</Link>
                             </nav>
 

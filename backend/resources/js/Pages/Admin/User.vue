@@ -45,17 +45,13 @@ const heading = 'font-display text-base font-bold tracking-tight';
 <template>
     <Head :title="`User details - ${user.email}`" />
 
-    <PortalShell :shell="shell" title="Admin">
+    <PortalShell :shell="shell" title="User details" :subtitle="user.email">
         <template #actions>
             <Button variant="secondary" :href="urls.back"><template #icon><Icon name="arrowLeft" :size="16" /></template>Back to Admin</Button>
             <Button v-if="!user.isSelf" @click="impersonating = { email: user.email, urls: { impersonate: urls.impersonate } }">Impersonate</Button>
         </template>
 
-        <div class="flex max-w-[1040px] flex-col gap-4 px-6 pt-7 pb-10 md:px-8">
-            <div class="flex flex-col gap-1">
-                <h1 class="font-display text-[22px] font-bold tracking-[-0.02em]">User details</h1>
-                <p class="text-[13px] text-muted">View and manage user account information</p>
-            </div>
+        <div class="flex max-w-[1040px] flex-col gap-4 px-6 pt-6 pb-10 md:px-10">
 
 
             <Card>

@@ -22,7 +22,7 @@ const managing = ref(false);
     <Head title="Billing" />
 
     <PortalShell :shell="shell" title="Billing">
-        <div class="flex flex-col gap-6 px-6 pt-7 pb-10 md:px-8">
+        <div class="flex flex-col gap-6 px-6 pt-6 pb-10 md:px-10">
 
 
             <div class="flex flex-wrap items-start gap-6">

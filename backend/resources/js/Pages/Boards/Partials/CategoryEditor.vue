@@ -78,7 +78,7 @@ function dropBefore(index, before) {
             </div>
             <div class="flex flex-wrap items-center gap-2 p-3">
                 <span v-for="id in category.display_ids" :key="id" draggable="true"
-                      class="inline-flex cursor-move items-center gap-1.5 rounded-full border border-line py-1 pr-1.5 pl-3 text-xs font-medium"
+                      class="inline-flex cursor-move items-center gap-1.5 rounded-lg border border-line py-1 pr-1.5 pl-3 text-xs font-medium"
                       :class="[dragging === id ? 'opacity-50' : '', isOnBoard(id) ? 'bg-surface' : 'bg-surface-raised text-muted']"
                       @dragstart="dragging = id" @dragend="dragging = null" @dragover.prevent @drop.prevent.stop="dropBefore(ci, id)">
                     {{ label(id) }}<span v-if="!isOnBoard(id)" class="text-[11px] italic">not on this board</span>
@@ -97,7 +97,7 @@ function dropBefore(index, before) {
             <div class="border-b border-line-soft px-3 py-2 text-[13px] font-medium text-muted">Other (ungrouped)</div>
             <div class="flex flex-wrap items-center gap-2 p-3">
                 <span v-for="id in ungrouped" :key="id" draggable="true"
-                      class="inline-flex cursor-move items-center gap-1.5 rounded-full border border-line py-1 pr-1.5 pl-3 text-xs font-medium"
+                      class="inline-flex cursor-move items-center gap-1.5 rounded-lg border border-line py-1 pr-1.5 pl-3 text-xs font-medium"
                       :class="[dragging === id ? 'opacity-50' : '', isOnBoard(id) ? 'bg-surface' : 'bg-surface-raised text-muted']"
                       @dragstart="dragging = id" @dragend="dragging = null">
                     {{ label(id) }}<span v-if="!isOnBoard(id)" class="text-[11px] italic">not on this board</span>
@@ -112,7 +112,7 @@ function dropBefore(index, before) {
         </div>
 
         <div class="flex flex-wrap items-center gap-3">
-            <button type="button" class="inline-flex items-center gap-1.5 rounded-full border border-dashed border-offline-border px-3 py-[5px] text-xs font-semibold text-ink-2 hover:border-navy hover:text-navy" @click="add">
+            <button type="button" class="inline-flex items-center gap-1.5 rounded-md border border-dashed border-offline-border px-3 py-[5px] text-xs font-semibold text-ink-2 hover:border-navy hover:text-navy" @click="add">
                 <Icon name="plus" :size="12" :stroke="2.5" />Add category
             </button>
             <span class="text-xs text-muted">A category without a name is dropped when you save. Empty categories are kept but not shown.</span>

@@ -89,3 +89,14 @@ html, body {
 .grecaptcha-badge {
     visibility: hidden;
 }
+
+/* Tailwind v4 dropped the pointer on buttons; everything clickable in the portal shows the hand again. */
+@layer base {
+    button:not(:disabled),
+    [role="button"]:not([aria-disabled="true"]),
+    label[for],
+    select {
+        cursor: pointer;
+    }
+}
+

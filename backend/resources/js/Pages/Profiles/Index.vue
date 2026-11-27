@@ -21,14 +21,12 @@ const changed = (p) => [p.updated && `Changed ${p.updated}`, p.createdBy && `by 
 <template>
     <Head title="Profiles" />
 
-    <PortalShell :shell="shell" title="Profiles">
-        <div class="flex flex-col gap-6 px-6 pt-7 pb-10 md:px-8">
-            <div class="flex flex-wrap items-center justify-between gap-3">
-                <p class="max-w-[720px] text-[13px] text-muted">
-                    Configure many displays at once. A display follows its profile in every section it does not hold its own values for.
-                </p>
-                <Button v-if="hasPro" :href="urls.create"><template #icon><Icon name="plus" :size="16" :stroke="2.5" /></template>New profile</Button>
-            </div>
+    <PortalShell :shell="shell" title="Profiles" subtitle="Configure many displays at once. A display follows its profile in every section it does not hold its own values for.">
+        <template #actions>
+            <Button v-if="hasPro" :href="urls.create"><template #icon><Icon name="plus" :size="16" :stroke="2.5" /></template>New profile</Button>
+        </template>
+
+        <div class="flex flex-col gap-6 px-6 pt-6 pb-10 md:px-10">
 
             <!-- Free workspace: what profiles are and how to get them, as on the Boards page. -->
             <div v-if="!hasPro" class="sp-card flex max-w-2xl flex-col gap-4 px-6 py-6">

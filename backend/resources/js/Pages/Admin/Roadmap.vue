@@ -36,13 +36,12 @@ const smallBtn = 'inline-flex items-center rounded-md border px-2.5 py-1 text-xs
 <template>
     <Head title="Roadmap" />
 
-    <PortalShell :shell="shell" title="Admin">
-        <div class="flex flex-col gap-6 px-6 pt-7 pb-10 md:px-8">
+    <PortalShell :shell="shell" title="Admin" subtitle="Suggestions from customers and the items on the public roadmap.">
+        <template #actions>
+            <Button :href="urls.create"><template #icon><Icon name="plus" :size="16" :stroke="2.5" /></template>New item</Button>
+        </template>
+        <div class="flex flex-col gap-6 px-6 pt-6 pb-10 md:px-10">
             <AdminTabs active="roadmap" :stats="stats" :pending-roadmap="pendingRoadmap" />
-            <div class="flex flex-wrap items-center justify-between gap-3">
-                <p class="max-w-[720px] text-[13px] text-muted">Suggestions from customers and the items on the public roadmap.</p>
-                <Button :href="urls.create"><template #icon><Icon name="plus" :size="16" :stroke="2.5" /></template>New item</Button>
-            </div>
             <Notice v-if="errors.length" tone="danger" title="Something went wrong">
                 <template v-for="(e, i) in errors" :key="i">{{ e }}<br v-if="i < errors.length - 1"></template>
             </Notice>

@@ -75,11 +75,8 @@ onBeforeUnmount(() => { clearInterval(tick); clearInterval(poll); });
 <template>
     <Head title="Live view" />
 
-    <PortalShell :shell="shell" title="Live view">
-        <div class="flex flex-col gap-6 px-6 pt-7 pb-10 md:px-8">
-            <p class="max-w-[720px] text-[13px] text-muted">
-                Every room as it is right now, refreshed every minute. Click a meeting for its details, or an empty spot to book.
-            </p>
+    <PortalShell :shell="shell" title="Live view" subtitle="Every room as it is right now, refreshed every minute.">
+        <div class="flex flex-col gap-6 px-6 pt-6 pb-10 md:px-10">
             <RoomsNow ref="roomsNow" :rooms="timeline.list.value" :hours="timeline.hours.value" :now-left="timeline.nowLeft.value" :now-label="timeline.nowLabel.value"
                       :day="timeline.dayStart.value" :is-today="timeline.isToday.value" :loading="loading" :percent="timeline.percent" :time-at="timeline.timeAt"
                       :now="now" :urls="urls" @day="showDay" @changed="refresh" />

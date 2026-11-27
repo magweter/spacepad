@@ -73,7 +73,7 @@ const hasErrors = computed(() => Object.keys(form.errors).length > 0);
     <Head :title="profile ? `Edit ${profile.name}` : 'New profile'" />
 
     <PortalShell :shell="shell">
-        <header class="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-line bg-surface px-6 py-3 md:px-8">
+        <header class="flex flex-wrap items-center gap-x-4 gap-y-2 px-6 pt-7 md:px-10 md:pt-9">
             <Link :href="urls.back" class="inline-flex items-center gap-2 text-[13px] font-semibold text-ink-3 hover:text-navy">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg>Profiles
             </Link>
@@ -88,7 +88,7 @@ const hasErrors = computed(() => Object.keys(form.errors).length > 0);
             </Button>
         </header>
 
-        <div class="flex flex-col gap-6 px-6 pt-7 pb-10 md:px-8">
+        <div class="flex flex-col gap-6 px-6 pt-6 pb-10 md:px-10">
             <Notice v-if="hasErrors" tone="danger" title="Some settings need another look">Check the fields marked below.</Notice>
 
             <div class="flex flex-wrap items-start gap-7">

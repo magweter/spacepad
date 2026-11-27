@@ -25,7 +25,7 @@ final class PortalRooms
      */
     public static function forWorkspace(string $workspaceId): array
     {
-        $displays = Display::where('workspace_id', $workspaceId)->with('calendar')->orderBy('name')->get();
+        $displays = Display::where('workspace_id', $workspaceId)->with(['calendar', 'profile'])->orderBy('name')->get();
         $devices = Device::where('workspace_id', $workspaceId)->get();
 
         return $displays->map(fn (Display $display) => self::room($display, $devices))->values()->all();
@@ -56,10 +56,27 @@ final class PortalRooms
                 ->filter(fn ($e) => $e->end?->gt(now()->subDay()) && $e->start?->lt(now()->addDay()))
                 ->map(fn ($e) => PortalSchedule::event($e, $grace, auth()->user()))
                 ->sortBy('start')->values()->all(),
+            'location' => $display->location,
+            'calendar' => $display->calendar ? [
+                'name' => $display->calendar->name,
+                'provider' => match (true) {
+                    $display->calendar->outlook_account_id !== null => 'Microsoft 365',
+                    $display->calendar->google_account_id !== null => 'Google Workspace',
+                    $display->calendar->caldav_account_id !== null => 'CalDAV',
+                    default => null,
+                },
+            ] : null,
+            'profile' => $display->profile?->name,
             'url' => route('displays.configure', $display),
             'actions' => PortalSchedule::actions($display, auth()->user()),
             'urls' => [
                 'book' => route('schedule.book', $display),
+                // The display's own actions, as on the Displays page.
+                'configure' => route('displays.configure', $display),
+                'details' => route('displays.index', ['display' => $display->id]),
+                'status' => route('displays.updateStatus', $display),
+                'makeActive' => route('displays.makeActive', $display),
+                'delete' => route('displays.delete', $display),
                 // Base for an event's actions: {events}/{id}/check-in, /extend, and DELETE {events}/{id}.
                 'events' => url("/schedule/{$display->id}/events"),
             ],

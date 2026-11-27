@@ -28,7 +28,7 @@ const figures = computed(() => [
     <Head title="Team" />
 
     <PortalShell :shell="shell" title="Team">
-        <div class="flex max-w-[1040px] flex-col gap-4 px-6 pt-7 pb-10 md:px-8">
+        <div class="flex max-w-[1040px] flex-col gap-4 px-6 pt-6 pb-10 md:px-10">
 
 
             <div class="sp-kpistrip">

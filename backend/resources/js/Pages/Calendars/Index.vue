@@ -1,12 +1,13 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
 import { Head } from '@inertiajs/vue3';
+import AttentionList from '../../Components/Attention/AttentionList.vue';
+import AttentionRow from '../../Components/Attention/AttentionRow.vue';
 import PortalShell from '../../Components/PortalShell.vue';
 import Icon from '../../Components/Icon.vue';
 import Button from '../../DesignSystem/Button.vue';
 import Card from '../../DesignSystem/Card.vue';
 import EmptyState from '../../DesignSystem/EmptyState.vue';
-import Notice from '../../DesignSystem/Notice.vue';
 import SourceCard from './Partials/SourceCard.vue';
 import RoomCalendars from './Partials/RoomCalendars.vue';
 import ConnectModal from './Partials/ConnectModal.vue';
@@ -46,12 +47,12 @@ watch(() => props.adminConsent, (value) => { if (value) modal.value = { type: 'a
     <Head title="Calendars" />
 
     <PortalShell :shell="shell" title="Calendars">
-        <div class="flex flex-col gap-6 px-6 pt-7 pb-10 md:px-8">
+        <div class="flex flex-col gap-6 px-6 pt-6 pb-10 md:px-10">
 
-            <section v-if="notices.length" aria-label="Needs attention" class="flex flex-col gap-2.5">
-                <Notice v-for="(n, i) in notices" :key="i" shape="row" :tone="n.tone ?? 'warning'" :tag="n.tag ?? 'Action required'" :title="n.title" :action="n.cta"
-                        @action="open(n.modal, n.accountId)">{{ n.body }}</Notice>
-            </section>
+            <AttentionList v-if="notices.length">
+                <AttentionRow v-for="(n, i) in notices" :key="i" :tone="n.tone === 'danger' ? 'reserved' : 'amber'" :tag="n.tag ?? 'Action required'" :title="n.title" :body="n.body"
+                              :cta="n.cta" @action="open(n.modal, n.accountId)" />
+            </AttentionList>
 
             <Card v-if="!accounts.length">
                 <EmptyState title="No calendar connected yet">

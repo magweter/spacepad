@@ -1,8 +1,8 @@
 <script setup>
 // The portal shell from the design: a navy sidebar that never changes, the page beside it. Pages
 // that pass a title get the white header bar with their actions on the right.
-import { ref } from 'vue';
-import { Link, router, usePage } from '@inertiajs/vue3';
+import { nextTick, ref } from 'vue';
+import { Link, router, useForm, usePage } from '@inertiajs/vue3';
 import Logo from './Logo.vue';
 import Icon from './Icon.vue';
 import ProBadge from './Upgrade/ProBadge.vue';
@@ -17,12 +17,27 @@ import { openHelp } from './Help/helpPanel.js';
 const props = defineProps({
     shell: { type: Object, required: true },
     title: { type: String, default: null },
-    // The overview shows the alerts in its own "needs attention" list instead.
+    subtitle: { type: String, default: null },
 });
 
 const switching = ref(false);
 const page = usePage();
 const initials = (name) => (name || '?').split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase();
+
+// Creating a workspace from the switcher: a name, then it opens straight away (the server switches to it).
+const creating = ref(false);
+const newName = ref(null);
+const newWorkspace = useForm({ name: '' });
+async function startCreating() {
+    creating.value = true;
+    await nextTick();
+    newName.value?.focus();
+}
+function createWorkspace() {
+    newWorkspace.post(props.shell.createWorkspaceUrl, {
+        onSuccess: () => { newWorkspace.reset(); creating.value = false; switching.value = false; },
+    });
+}
 
 function switchTo(workspace) {
     switching.value = false;
@@ -31,17 +46,18 @@ function switchTo(workspace) {
 </script>
 
 <template>
-    <div class="flex min-h-screen flex-wrap bg-ground text-sm leading-normal text-ink">
-        <aside class="flex flex-[0_0_100%] flex-col gap-6 bg-navy-800 px-3.5 py-5 text-on-navy-2 md:sticky md:top-0 md:h-screen md:w-[248px] md:flex-[0_0_248px] md:overflow-y-auto">
-            <Logo :href="shell.nav[0].href" dark class="px-1.5 pt-0.5 pb-1.5" />
+    <!-- Design 01d: a white sidebar, the page beside it as a light panel with rounded corners. -->
+    <div class="flex min-h-screen flex-wrap bg-surface text-sm leading-normal text-ink">
+        <aside class="flex flex-[0_0_100%] flex-col gap-6 bg-surface px-4 pt-6 pb-5 text-ink-3 md:sticky md:top-0 md:h-screen md:w-[248px] md:flex-[0_0_248px] md:overflow-y-auto">
+            <Logo :href="shell.nav[0].href" class="px-1.5 pb-1.5" />
 
             <div class="relative">
                 <button type="button" aria-label="Switch workspace" :aria-expanded="switching" @click="switching = !switching"
-                        class="flex w-full items-center gap-2.5 rounded-[10px] border border-navy-600 bg-navy-700 px-3 py-2.5 text-left text-white">
+                        class="flex w-full items-center gap-2.5 rounded-[10px] border border-line-soft bg-ground px-3 py-2.5 text-left text-navy hover:border-line">
                     <span class="flex h-8 w-8 flex-none items-center justify-center rounded-md bg-amber text-[15px] font-bold text-navy">{{ initials(shell.workspace) }}</span>
                     <span class="flex min-w-0 flex-1 flex-col">
                         <span class="truncate font-semibold">{{ shell.workspace }}</span>
-                        <span class="text-xs text-on-navy-muted">{{ shell.plan }}</span>
+                        <span class="text-xs text-muted">{{ shell.plan }}</span>
                     </span>
                     <Icon name="chevrons" :size="16" />
                 </button>
@@ -51,17 +67,32 @@ function switchTo(workspace) {
                         <span class="truncate">{{ workspace.name }}</span>
                         <Icon v-if="workspace.current" name="check" :size="14" class="text-available" />
                     </button>
+                    <div class="mt-1 border-t border-line-soft pt-1">
+                        <button v-if="!creating" type="button" class="flex w-full items-center gap-2 px-3 py-2 text-left font-semibold text-navy hover:bg-surface-raised" @click="startCreating">
+                            <Icon name="plus" :size="14" :stroke="2.5" />Create workspace
+                        </button>
+                        <form v-else class="flex flex-col gap-2 px-3 py-2" @submit.prevent="createWorkspace">
+                            <label for="new-workspace-name" class="text-xs font-semibold text-ink-2">Name of the new workspace</label>
+                            <input id="new-workspace-name" ref="newName" v-model="newWorkspace.name" type="text" required maxlength="255" placeholder="Acme HQ"
+                                   class="w-full rounded-md border border-line bg-surface px-2.5 py-1.5 text-[13px] text-ink focus:border-navy focus:outline-none">
+                            <span v-if="newWorkspace.errors.name" class="text-xs text-reserved-text">{{ newWorkspace.errors.name }}</span>
+                            <span class="flex justify-end gap-2">
+                                <button type="button" class="sp-btn sp-btn-ghost sp-btn-sm" @click="creating = false">Cancel</button>
+                                <button type="submit" class="sp-btn sp-btn-primary sp-btn-sm" :disabled="newWorkspace.processing || !newWorkspace.name.trim()">Create</button>
+                            </span>
+                        </form>
+                    </div>
                 </div>
             </div>
 
             <nav aria-label="Main" class="flex flex-col gap-0.5">
                 <template v-for="item in shell.nav" :key="item.key">
-                    <div v-if="item.divider" class="mx-1 my-2.5 h-px bg-navy-600"></div>
+                    <div v-if="item.divider" class="mx-1 my-2.5 h-px bg-line-soft"></div>
                     <!-- Inertia links: switching pages swaps the page, not the whole app, and hovering loads it ahead. -->
                     <Link :href="item.href" prefetch :cache-for="'10s'" :class="['sp-nav', { 'sp-nav-active': item.active }]" :aria-current="item.active ? 'page' : null">
                         <span class="sp-nav-icon"><Icon :name="item.icon" /></span>
                         <span class="sp-nav-label">{{ item.label }}</span>
-                        <span v-if="item.new" class="rounded-full bg-[var(--status-available)] px-2 py-px text-[11px] font-semibold text-white">New</span>
+                        <span v-if="item.new" class="sp-chip sp-chip-available rounded-[5px] px-1.5 py-px text-[11px] leading-none">New</span>
                         <span v-else-if="item.count" class="sp-nav-count">{{ item.count }}</span>
                         <ProBadge v-else-if="item.pro" :feature="item.key" />
                     </Link>
@@ -82,19 +113,23 @@ function switchTo(workspace) {
             </div>
 
             <div class="flex items-center gap-2.5 px-1.5 py-1">
-                <span class="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-on-navy-muted text-[13px] font-semibold text-navy">{{ initials(shell.user) }}</span>
+                <span class="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-navy text-[13px] font-semibold text-white">{{ initials(shell.user) }}</span>
                 <Link :href="shell.account" prefetch class="flex min-w-0 flex-1 flex-col rounded-md hover:opacity-80" :aria-current="shell.accountActive ? 'page' : null" title="Your account">
-                    <span class="truncate text-[13px] font-medium text-white">{{ shell.user }}</span>
-                    <span v-if="shell.role" class="text-xs text-on-navy-muted">{{ shell.role }}</span>
+                    <span class="truncate text-[13px] font-medium text-navy">{{ shell.user }}</span>
+                    <span v-if="shell.role" class="text-xs text-muted">{{ shell.role }}</span>
                 </Link>
-                <button type="button" class="rounded-md px-2 py-1 text-xs font-semibold text-on-navy-2 hover:bg-navy-700 hover:text-white" @click="router.post(shell.logout)">Log out</button>
+                <button type="button" class="rounded-md px-2 py-1 text-xs font-semibold text-muted hover:bg-ground hover:text-navy" @click="router.post(shell.logout)">Log out</button>
             </div>
         </aside>
 
-        <main class="flex min-w-0 flex-[999_1_560px] flex-col">
-            <header v-if="title" class="flex flex-wrap items-center gap-4 border-b border-line bg-surface px-6 py-3.5 md:px-8">
-                <h1 class="flex items-center gap-2 font-display text-[22px] font-bold tracking-tight">{{ title }}</h1>
-                <div class="ml-auto flex flex-wrap items-center gap-3"><slot name="actions" /></div>
+        <main class="flex min-w-0 flex-[999_1_560px] flex-col bg-ground md:my-4 md:mr-4 md:rounded-2xl">
+            <!-- The title with its subtitle right under it; the page's actions on the right, level with both. -->
+            <header v-if="title" class="flex flex-wrap items-center gap-x-6 gap-y-3 px-6 pt-7 md:px-10 md:pt-9">
+                <div class="flex min-w-0 flex-col gap-1">
+                    <h1 class="flex items-center gap-2 font-display text-[28px] leading-tight font-bold tracking-tight text-navy">{{ title }}</h1>
+                    <p v-if="subtitle || $slots.subtitle" class="max-w-[720px] text-[13px] text-muted"><slot name="subtitle">{{ subtitle }}</slot></p>
+                </div>
+                <div v-if="$slots.actions" class="ml-auto flex flex-wrap items-center gap-3"><slot name="actions" /></div>
             </header>
             <slot />
         </main>

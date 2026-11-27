@@ -44,7 +44,7 @@ const filters = computed(() => [{ id: 'all', label: 'All' }, ...props.categories
             </label>
             <div class="flex gap-2 overflow-x-auto pb-0.5" role="group" aria-label="Filter by topic">
                 <button v-for="filter in filters" :key="filter.id" type="button" :aria-pressed="category === filter.id" @click="category = filter.id"
-                        :class="['flex-none rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors',
+                        :class="['flex-none rounded-md border px-3 py-1.5 text-xs font-semibold transition-colors',
                                  category === filter.id ? 'border-navy bg-navy text-on-navy' : 'border-line bg-surface text-ink-2 hover:border-navy-400']">
                     {{ filter.label }}
                 </button>

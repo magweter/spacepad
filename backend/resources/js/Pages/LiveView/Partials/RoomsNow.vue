@@ -107,14 +107,14 @@ function done(message) {
         <div class="flex flex-wrap items-center gap-3">
             <h2 class="font-display text-base font-bold tracking-tight">{{ view === 'timeline' ? heading : 'Right now' }}</h2>
             <div v-if="rooms.length && view === 'timeline'" class="flex items-center gap-1">
-                <button type="button" aria-label="Previous day" class="grid h-7 w-7 place-items-center rounded-lg border border-line bg-surface text-ink-3 hover:bg-surface-raised" @click="step(-1)">
+                <button type="button" aria-label="Previous day" class="grid h-7 w-7 place-items-center rounded-md border border-line bg-surface text-ink-3 hover:bg-surface-raised" @click="step(-1)">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg>
                 </button>
-                <button type="button" :disabled="isToday" class="h-7 rounded-lg border border-line bg-surface px-2.5 text-xs font-semibold text-ink-3 hover:bg-surface-raised disabled:cursor-default disabled:opacity-50" @click="emit('day', null)">Today</button>
-                <button type="button" aria-label="Next day" class="grid h-7 w-7 place-items-center rounded-lg border border-line bg-surface text-ink-3 hover:bg-surface-raised" @click="step(1)">
+                <button type="button" :disabled="isToday" class="h-7 rounded-md border border-line bg-surface px-2.5 text-xs font-semibold text-ink-3 hover:bg-surface-raised disabled:cursor-default disabled:opacity-50" @click="emit('day', null)">Today</button>
+                <button type="button" aria-label="Next day" class="grid h-7 w-7 place-items-center rounded-md border border-line bg-surface text-ink-3 hover:bg-surface-raised" @click="step(1)">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg>
                 </button>
-                <label class="relative grid h-7 w-7 cursor-pointer place-items-center rounded-lg border border-line bg-surface text-ink-3 hover:bg-surface-raised" title="Pick a date">
+                <label class="relative grid h-7 w-7 cursor-pointer place-items-center rounded-md border border-line bg-surface text-ink-3 hover:bg-surface-raised" title="Pick a date">
                     <Icon name="calendars" :size="14" />
                     <input type="date" :value="dayValue" aria-label="Pick a date" class="absolute inset-0 cursor-pointer opacity-0" @change="pickDate" @click="$event.target.showPicker?.()" />
                 </label>
@@ -123,7 +123,7 @@ function done(message) {
                 </span>
             </div>
             <div class="flex-1"></div>
-            <button v-if="bookable.length" type="button" class="inline-flex h-7 items-center gap-1 rounded-lg border border-line bg-surface px-2.5 text-xs font-semibold text-navy hover:bg-surface-raised"
+            <button v-if="bookable.length" type="button" class="inline-flex h-7 items-center gap-1 rounded-md border border-line bg-surface px-2.5 text-xs font-semibold text-navy hover:bg-surface-raised"
                     @click="booking = { roomId: null, start: isToday ? null : new Date(day.getTime() + 9 * 3600000) }"><Icon name="plus" :size="13" :stroke="2.5" />Book a room</button>
             <div v-if="rooms.length" class="inline-flex overflow-hidden rounded-lg border border-line bg-surface">
                 <button v-for="v in ['timeline', 'cards']" :key="v" type="button" :aria-pressed="view === v" @click="view = v"
@@ -197,7 +197,7 @@ function done(message) {
             <a v-for="room in rooms" :key="room.id" :href="room.url" class="sp-card sp-card-pad-md sp-card-interactive sp-card-rule flex flex-col gap-2.5 text-ink" :class="rule[room.state.key]">
                 <span class="flex items-center gap-2">
                     <span class="flex-1 truncate font-semibold">{{ room.name }}</span>
-                    <span class="rounded-full bg-surface-raised px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap text-ink-2">{{ room.state.label }}</span>
+                    <span class="sp-chip sp-chip-neutral">{{ room.state.label }}</span>
                 </span>
                 <span class="min-h-5 truncate text-[13px] text-ink-3">{{ room.state.meeting || ' ' }}</span>
                 <span class="text-xs text-muted">{{ room.state.summary }}</span>

@@ -54,7 +54,7 @@ const heading = 'text-xs font-semibold tracking-[0.04em] text-muted uppercase';
                         <StatusDot :status="display.view.tone" />{{ display.view.label }}{{ display.view.detail ? `, ${display.view.detail}` : '' }}
                     </span>
                 </div>
-                <button type="button" aria-label="Close details" class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-line text-ink-3 hover:text-ink" @click="emit('close')">
+                <button type="button" aria-label="Close details" class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-line text-ink-3 hover:text-ink" @click="emit('close')">
                     <Icon name="close" :size="16" />
                 </button>
             </div>
@@ -62,11 +62,11 @@ const heading = 'text-xs font-semibold tracking-[0.04em] text-muted uppercase';
             <!-- One main action, the others as a quiet group, delete apart on the right. -->
             <div class="flex items-center gap-2 border-b border-line px-6 py-3.5">
                 <a v-if="hasPro" :href="display.urls.configure"
-                   class="inline-flex h-9 flex-1 items-center justify-center gap-2 rounded-lg whitespace-nowrap bg-navy px-3 text-[13px] font-semibold text-white hover:bg-navy-700">
+                   class="inline-flex h-9 flex-1 items-center justify-center gap-2 rounded-md whitespace-nowrap bg-navy px-3 text-[13px] font-semibold text-white hover:bg-navy-700">
                     <Icon name="settings" :size="15" />Configure
                 </a>
                 <button v-else type="button" title="Configuring a display is part of Pro" @click="openUpgrade('configure')"
-                   class="inline-flex h-9 flex-1 items-center justify-center gap-2 rounded-lg whitespace-nowrap border border-line bg-surface px-3 text-[13px] font-semibold text-ink-2 hover:border-navy hover:text-navy">
+                   class="inline-flex h-9 flex-1 items-center justify-center gap-2 rounded-md whitespace-nowrap border border-line bg-surface px-3 text-[13px] font-semibold text-ink-2 hover:border-navy hover:text-navy">
                     <Icon name="settings" :size="15" />Configure
                     <span class="rounded-md border border-info-border bg-info-bg px-1.5 py-px text-[11px] font-semibold text-info">Pro</span>
                 </button>
@@ -87,7 +87,7 @@ const heading = 'text-xs font-semibold tracking-[0.04em] text-muted uppercase';
                 </div>
 
                 <button type="button" :disabled="busy" aria-label="Delete display" title="Delete display"
-                        class="inline-flex h-9 w-9 flex-none items-center justify-center rounded-lg border border-line bg-surface text-muted hover:border-reserved-border hover:bg-reserved-bg hover:text-reserved-text disabled:opacity-50" @click="emit('remove')">
+                        class="inline-flex h-9 w-9 flex-none items-center justify-center rounded-md border border-line bg-surface text-muted hover:border-reserved-border hover:bg-reserved-bg hover:text-reserved-text disabled:opacity-50" @click="emit('remove')">
                     <Icon name="trash" :size="15" />
                 </button>
             </div>

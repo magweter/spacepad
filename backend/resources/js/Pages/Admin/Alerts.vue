@@ -11,7 +11,7 @@ import Chip from '../../DesignSystem/Chip.vue';
 import { toneOf } from '../../Components/alertTones.js';
 import AdminTabs from './Partials/AdminTabs.vue';
 
-defineProps({ shell: Object, stats: Object, pendingRoadmap: Number, alerts: Object, urls: Object });
+defineProps({ shell: Object, stats: Object, pendingRoadmap: Number, adminAlerts: Object, urls: Object });
 
 const ending = ref(null);
 const end = (alert) => {
@@ -38,25 +38,22 @@ const smallBtn = 'inline-flex items-center rounded-md border px-2.5 py-1 text-xs
 <template>
     <Head title="Alerts" />
 
-    <PortalShell :shell="shell" title="Admin">
-        <div class="flex flex-col gap-6 px-6 pt-7 pb-10 md:px-8">
+    <PortalShell :shell="shell" title="Admin" subtitle="An alert shows on the overview while it runs, and can pop up once for every user, for every workspace or only for workspaces with a calendar of one provider.">
+        <template #actions>
+            <Button :href="urls.create"><template #icon><Icon name="plus" :size="16" :stroke="2.5" /></template>New alert</Button>
+        </template>
+        <div class="flex flex-col gap-6 px-6 pt-6 pb-10 md:px-10">
             <AdminTabs active="alerts" :stats="stats" :pending-roadmap="pendingRoadmap" />
 
-            <div class="flex flex-wrap items-center justify-between gap-3">
-                <p class="max-w-[720px] text-[13px] text-muted">
-                    An alert shows on the overview while it runs, and can pop up once for every user, for every workspace or only for workspaces with a calendar of one provider.
-                </p>
-                <Button :href="urls.create"><template #icon><Icon name="plus" :size="16" :stroke="2.5" /></template>New alert</Button>
-            </div>
 
-            <p v-if="!alerts.active.length && !alerts.scheduled.length && !alerts.ended.length" class="sp-card px-6 py-8 text-center text-[13px] text-muted">
+            <p v-if="!adminAlerts.active.length && !adminAlerts.scheduled.length && !adminAlerts.ended.length" class="sp-card px-6 py-8 text-center text-[13px] text-muted">
                 No alerts yet. Create one when something outside Spacepad affects your customers.
             </p>
 
             <template v-else>
-                <section v-for="s in sections" v-show="alerts[s.key].length || s.empty" :key="s.key" :aria-labelledby="`${s.key}-heading`" class="flex flex-col gap-3">
-                    <h2 :id="`${s.key}-heading`" class="font-display text-base font-bold">{{ s.title }} ({{ alerts[s.key].length }})</h2>
-                    <p v-if="!alerts[s.key].length" class="text-[13px] text-muted">{{ s.empty }}</p>
+                <section v-for="s in sections" v-show="adminAlerts[s.key].length || s.empty" :key="s.key" :aria-labelledby="`${s.key}-heading`" class="flex flex-col gap-3">
+                    <h2 :id="`${s.key}-heading`" class="font-display text-base font-bold">{{ s.title }} ({{ adminAlerts[s.key].length }})</h2>
+                    <p v-if="!adminAlerts[s.key].length" class="text-[13px] text-muted">{{ s.empty }}</p>
                     <Card v-else padding="none" class="overflow-x-auto">
                         <table class="w-full min-w-[760px] text-[13px]">
                             <thead>
@@ -69,7 +66,7 @@ const smallBtn = 'inline-flex items-center rounded-md border px-2.5 py-1 text-xs
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr v-for="a in alerts[s.key]" :key="a.id" class="border-b border-line-soft last:border-b-0">
+                                <tr v-for="a in adminAlerts[s.key]" :key="a.id" class="border-b border-line-soft last:border-b-0">
                                     <td class="max-w-[360px] px-4 py-3">
                                         <p class="font-semibold">{{ a.title }}</p>
                                         <p v-if="a.body" class="mt-0.5 truncate text-xs text-muted">{{ a.body }}</p>

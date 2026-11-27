@@ -49,6 +49,7 @@ class PortalShell
             'workspaces' => $user->workspaces()->orderBy('name')->get(['workspaces.id', 'workspaces.name'])
                 ->map(fn ($w) => ['id' => $w->id, 'name' => $w->name, 'current' => $w->id === $workspace->id])->values()->all(),
             'switchUrl' => route('workspaces.switch'),
+            'createWorkspaceUrl' => route('workspaces.store'),
             'logout' => route('logout'),
             'account' => route('profile.show'),
             'accountActive' => $active === 'account',

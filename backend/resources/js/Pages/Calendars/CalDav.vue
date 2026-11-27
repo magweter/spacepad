@@ -23,7 +23,7 @@ const field = 'w-full rounded-[10px] border border-offline-border bg-surface px-
     <Head title="Connect CalDAV" />
 
     <PortalShell :shell="shell" title="Connect CalDAV">
-        <div class="flex flex-col gap-6 px-6 pt-7 pb-10 md:px-8">
+        <div class="flex flex-col gap-6 px-6 pt-6 pb-10 md:px-10">
             <a :href="urls.back" class="inline-flex items-center gap-1.5 self-start text-[13px] font-semibold text-navy hover:underline">
                 <Icon name="arrowLeft" :size="14" />{{ onboarding ? 'Back to the setup' : 'Back to calendars' }}
             </a>

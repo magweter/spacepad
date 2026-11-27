@@ -68,7 +68,7 @@ class OverviewController extends Controller
         abort_unless($workspace !== null, 404);
 
         PortalEvents::reset();
-        $displays = Display::where('workspace_id', $workspace->id)->with('calendar')->orderBy('name')->get();
+        $displays = Display::where('workspace_id', $workspace->id)->with(['calendar', 'profile'])->orderBy('name')->get();
         $devices = Device::where('workspace_id', $workspace->id)->get();
         $accounts = $this->accounts($workspace);
         $hasPro = $workspace->hasPro();
@@ -89,7 +89,6 @@ class OverviewController extends Controller
             // Rooms first: reading them records which calendars failed, which the notices report.
             'rooms' => $displays->map(fn (Display $display) => PortalRooms::room($display, $devices))->values()->all(),
             'notices' => $this->notices($request, $workspace, $displays),
-            'accounts' => $accounts,
             'checklist' => [
                 'calendar' => $accounts !== [],
                 'display' => $displays->isNotEmpty(),
@@ -98,6 +97,9 @@ class OverviewController extends Controller
                 'board' => $workspace->boards()->exists(),
             ],
             'hasPro' => $hasPro,
+            // The Boards and Profiles cards: a few of each, Pro only.
+            'boards' => $hasPro ? $this->boards($workspace) : null,
+            'profiles' => $hasPro ? $this->profiles($workspace) : null,
             'connectCode' => $displays->isNotEmpty() ? $workspace->getConnectCode($user) : null,
             'profileCard' => $askProfile ? [
                 'firstDisplay' => $displays->count() === 1,
@@ -125,9 +127,56 @@ class OverviewController extends Controller
                 'boardsCreate' => route('boards.create'),
                 'pairing' => route('setup.first-display', ['step' => 'tablet']),
                 'live' => route('live.index'),
+                'boards' => route('boards.index'),
+                'profiles' => route('profiles.index'),
+                'profilesCreate' => route('profiles.create'),
+                'billing' => route('billing.index'),
+                'pricing' => 'https://spacepad.io/pricing',
                 'book' => route('live.index', ['book' => 1]),
             ],
         ]);
+    }
+
+    /**
+     * The first boards for the overview card, and how many there are.
+     *
+     * @return array<string, mixed>
+     */
+    private function boards(Workspace $workspace): array
+    {
+        $boards = $workspace->boards()->orderBy('name')->get();
+
+        return [
+            'total' => $boards->count(),
+            'items' => $boards->take(3)->map(fn ($board) => [
+                'id' => $board->id,
+                'name' => $board->name,
+                'meta' => $board->show_all_displays ? 'All displays' : $board->display_count.' '.($board->display_count === 1 ? 'room' : 'rooms'),
+                'public' => (bool) ($board->is_public && $board->public_token),
+                'showUrl' => route('boards.show', $board),
+                'editUrl' => route('boards.edit', $board),
+            ])->values()->all(),
+        ];
+    }
+
+    /**
+     * The first profiles for the overview card, and how many there are.
+     *
+     * @return array<string, mixed>
+     */
+    private function profiles(Workspace $workspace): array
+    {
+        $profiles = $workspace->displayProfiles()->withCount('displays')->orderBy('name')->get();
+
+        return [
+            'total' => $profiles->count(),
+            'items' => $profiles->take(3)->map(fn ($profile) => [
+                'id' => $profile->id,
+                'name' => $profile->name,
+                'displays' => $profile->displays_count,
+                'editUrl' => route('profiles.edit', $profile),
+            ])->values()->all(),
+        ];
     }
 
     /**

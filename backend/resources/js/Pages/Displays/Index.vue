@@ -16,6 +16,7 @@ import BulkBar from './Partials/BulkBar.vue';
 import DisplayPanel from './Partials/DisplayPanel.vue';
 import DiagnosticsModal from './Partials/DiagnosticsModal.vue';
 import RowMenu from './Partials/RowMenu.vue';
+import DisplayActions from './Partials/DisplayActions.vue';
 import DisplayGlyph from '../../Components/DisplayGlyph.vue';
 
 const props = defineProps({
@@ -115,18 +116,15 @@ onMounted(() => {
 });
 onBeforeUnmount(() => { window.removeEventListener('keydown', onKey); clearInterval(tick); clearInterval(poll); });
 
-const fieldClass = 'rounded-lg border border-line bg-surface px-3 py-2 text-[13px] text-ink focus:border-navy focus:outline-none';
+const fieldClass = 'rounded-md border border-line bg-surface px-3 py-2 text-[13px] text-ink focus:border-navy focus:outline-none';
 </script>
 
 <template>
     <Head title="Displays" />
 
-    <PortalShell :shell="shell" title="Displays">
-        <template #actions>
-            <span v-if="subtitle" class="text-[13px] text-muted">{{ subtitle }}</span>
-        </template>
+    <PortalShell :shell="shell" title="Displays" :subtitle="subtitle">
 
-        <div class="flex flex-col gap-4 px-6 pt-7 pb-10 md:px-8">
+        <div class="flex flex-col gap-4 px-6 pt-6 pb-10 md:px-10">
 
             <EmptyState v-if="!displays.length" title="No displays yet">
                 Connect a calendar, pick a room and pair a tablet. It takes a few minutes.
@@ -176,16 +174,16 @@ const fieldClass = 'rounded-lg border border-line bg-surface px-3 py-2 text-[13p
                 <BulkBar v-if="canBulkAssign" v-model:picked="picked" :displays="displays" :profiles="profiles" :show-hint="showBulkHint" :urls="urls" />
 
                 <Card v-if="view === 'table'" padding="none" class="overflow-x-auto">
-                    <div class="min-w-[860px]">
+                    <div class="min-w-[1080px]">
                         <div class="grid items-center gap-3 border-b border-line px-4 py-2.5 text-[11px] font-semibold tracking-[0.04em] text-muted uppercase"
-                             :class="canBulkAssign ? 'grid-cols-[28px_2.2fr_1.3fr_1.6fr_1.2fr_1fr_40px]' : 'grid-cols-[2.2fr_1.3fr_1.6fr_1.2fr_1fr_40px]'">
+                             :class="canBulkAssign ? 'grid-cols-[28px_2fr_1.3fr_1.5fr_1.2fr_1fr_256px]' : 'grid-cols-[2fr_1.3fr_1.5fr_1.2fr_1fr_256px]'">
                             <span v-if="canBulkAssign"><input type="checkbox" aria-label="Select all displays" :checked="allPicked" class="h-4 w-4 accent-navy" @change="toggleAll"></span>
                             <span>Display</span><span>Status</span><span>Calendar</span><span>Tablet</span><span>Profile</span><span><span class="sr-only">Actions</span></span>
                         </div>
                         <div v-for="d in filtered" :key="d.id"
                              class="grid cursor-pointer items-center gap-3 border-b border-line-soft px-4 last:border-b-0 hover:bg-surface-raised"
                              @click="open(d.id)"
-                             :class="[canBulkAssign ? 'grid-cols-[28px_2.2fr_1.3fr_1.6fr_1.2fr_1fr_40px]' : 'grid-cols-[2.2fr_1.3fr_1.6fr_1.2fr_1fr_40px]', openId === d.id ? 'bg-surface-raised' : '']">
+                             :class="[canBulkAssign ? 'grid-cols-[28px_2fr_1.3fr_1.5fr_1.2fr_1fr_256px]' : 'grid-cols-[2fr_1.3fr_1.5fr_1.2fr_1fr_256px]', openId === d.id ? 'bg-surface-raised' : '']">
                             <span v-if="canBulkAssign" class="flex h-14 items-center">
                                 <input v-model="picked" type="checkbox" :value="d.id" :aria-label="`Select ${d.name}`" class="h-4 w-4 accent-navy" @click.stop>
                             </span>
@@ -218,12 +216,16 @@ const fieldClass = 'rounded-lg border border-line bg-surface px-3 py-2 text-[13p
                             <span class="flex min-w-0 flex-col items-start gap-0.5"
                                   :title="d.profile ? (d.profile.deviates ? `Follows ${d.profile.name}, with its own settings in one or more sections` : `Follows ${d.profile.name}`) : null">
                                 <template v-if="d.profile">
-                                    <span class="max-w-full truncate rounded-full bg-line-soft px-2.5 py-0.5 text-xs font-medium text-ink-2">{{ d.profile.name }}</span>
+                                    <span class="sp-chip sp-chip-neutral max-w-full truncate">{{ d.profile.name }}</span>
                                     <span v-if="d.profile.deviates" class="max-w-full truncate text-xs text-checkin-text">Some own settings</span>
                                 </template>
                                 <span v-else class="text-[13px] text-muted">-</span>
                             </span>
-                            <span class="cursor-default" @click.stop><RowMenu :display="d" :has-pro="hasPro" @open="open(d.id)" @toggle="actions.toggle(d)" @make-active="actions.makeActive(d)" @diagnose="actions.diagnose(d)" @remove="actions.remove(d)" /></span>
+                            <span class="cursor-default" @click.stop>
+                                <DisplayActions :configure-url="d.urls.configure" :has-pro="hasPro" @details="open(d.id)">
+                                    <RowMenu :display="d" :has-pro="hasPro" @toggle="actions.toggle(d)" @make-active="actions.makeActive(d)" @diagnose="actions.diagnose(d)" @remove="actions.remove(d)" />
+                                </DisplayActions>
+                            </span>
                         </div>
                         <p v-if="!filtered.length" class="px-4 py-8 text-center text-[13px] text-muted">No display matches this filter.</p>
                     </div>

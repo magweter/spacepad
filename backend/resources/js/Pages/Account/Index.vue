@@ -11,9 +11,9 @@ defineProps({ shell: Object, account: Object, workspaces: Array, urls: Object })
 <template>
     <Head title="Account" />
 
-    <component :is="shell ? PortalShell : 'div'" v-bind="shell ? { shell, title: 'Account' } : { class: 'min-h-screen bg-ground text-sm text-ink' }">
-        <div class="flex max-w-[808px] flex-col gap-4 px-6 pt-7 pb-10 md:px-8">
-            <p class="-mt-2 text-[13px] text-muted">Your personal account. The same whichever workspace you have open.</p>
+    <component :is="shell ? PortalShell : 'div'" v-bind="shell ? { shell, title: 'Account', subtitle: 'Your personal account. The same whichever workspace you have open.' } : { class: 'min-h-screen bg-ground text-sm text-ink' }">
+        <div class="flex max-w-[808px] flex-col gap-4 px-6 pt-6 pb-10 md:px-10">
+            <p v-if="!shell" class="text-[13px] text-muted">Your personal account. The same whichever workspace you have open.</p>
 
 
             <section class="sp-card gap-0 px-[18px] py-1.5">

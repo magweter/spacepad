@@ -121,7 +121,7 @@ const errorBag = computed(() => Object.values(forms).map((f) => f.errors.error).
     <Head :title="`Configure ${display.name}`" />
 
     <PortalShell :shell="shell">
-        <header class="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-line bg-surface px-6 py-3 md:px-8">
+        <header class="flex flex-wrap items-center gap-x-4 gap-y-2 px-6 pt-7 md:px-10 md:pt-9">
             <Link :href="urls.back" class="inline-flex items-center gap-2 text-[13px] font-semibold text-ink-3 hover:text-navy">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg>Displays
             </Link>
@@ -132,7 +132,7 @@ const errorBag = computed(() => Object.values(forms).map((f) => f.errors.error).
             <Button v-if="profile?.deviates" variant="secondary" size="sm" @click="confirmReset = true">Reset to profile</Button>
         </header>
 
-        <div class="flex flex-col gap-6 px-6 pt-7 pb-10 md:px-8">
+        <div class="flex flex-col gap-6 px-6 pt-6 pb-10 md:px-10">
             <Notice v-if="errorBag" tone="danger" :title="errorBag" />
 
             <div class="flex flex-wrap items-start gap-7">

@@ -179,7 +179,7 @@ const glass = 'border-[1.5px] border-white/20 bg-white/10 shadow-[inset_0_1px_0_
 
         <div class="relative z-[1] flex flex-col gap-3">
             <div v-if="usps.length" class="flex flex-wrap gap-2">
-                <span v-for="u in usps" :key="u" class="inline-flex items-center gap-1.5 rounded-full border border-line bg-white px-3 py-1 text-xs font-semibold text-navy">
+                <span v-for="u in usps" :key="u" class="inline-flex items-center gap-1.5 rounded-lg border-[1.5px] border-navy-100 bg-white px-2.5 py-1 text-xs font-semibold text-navy">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5" /></svg>{{ u }}
                 </span>
             </div>

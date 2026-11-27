@@ -18,14 +18,14 @@ const query = ref(props.search ?? '');
 const submit = () => router.get(props.urls.index, query.value ? { search: query.value } : {}, { preserveState: true });
 
 const columns = 'grid-cols-[2fr_2fr_0.8fr_0.8fr_0.8fr_0.7fr_1.3fr_0.9fr_1.1fr_140px]';
-const fieldClass = 'rounded-lg border border-line bg-surface px-3 py-2 text-[13px] text-ink focus:border-navy focus:outline-none';
+const fieldClass = 'rounded-md border border-line bg-surface px-3 py-2 text-[13px] text-ink focus:border-navy focus:outline-none';
 </script>
 
 <template>
     <Head title="Workspaces" />
 
     <PortalShell :shell="shell" title="Admin">
-        <div class="flex flex-col gap-6 px-6 pt-7 pb-10 md:px-8">
+        <div class="flex flex-col gap-6 px-6 pt-6 pb-10 md:px-10">
             <AdminTabs active="workspaces" :stats="stats" :pending-roadmap="pendingRoadmap" />
 
             <form role="search" class="flex" @submit.prevent="submit">
@@ -55,8 +55,8 @@ const fieldClass = 'rounded-lg border border-line bg-surface px-3 py-2 text-[13p
                         <span class="tabular-nums text-ink-3">{{ w.mrr ?? '-' }}</span>
                         <span class="whitespace-nowrap tabular-nums text-ink-3">{{ w.created ?? '-' }}</span>
                         <span class="flex items-center gap-3">
-                            <Link :href="w.url" class="inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-semibold border-navy bg-navy text-white hover:bg-navy-800">View</Link>
-                            <a v-if="w.owner" :href="w.owner.url" class="inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-semibold border-info-border bg-info-bg text-info hover:opacity-80">Owner</a>
+                            <Link :href="w.url" class="sp-btn sp-btn-secondary sp-btn-sm">View</Link>
+                            <a v-if="w.owner" :href="w.owner.url" class="sp-btn sp-btn-sm border-[1.5px] border-info-border bg-info-bg text-info hover:border-info">Owner</a>
                         </span>
                     </div>
                     <p v-if="!workspaces.data.length" class="px-4 py-8 text-center text-[13px] text-muted">

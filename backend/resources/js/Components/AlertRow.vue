@@ -1,25 +1,22 @@
 <script setup>
-// One alert set by an admin, drawn as a "Needs attention" row: the tag at a fixed width, so the
-// text of every row starts on the same line. Used in the portal shell, the overview and the admin preview.
+// One alert set by an admin, drawn as a "Needs attention" row with its type as the tag. Used on the
+// overview, in the one-time popup and in the admin preview.
 import { computed } from 'vue';
 import { toneOf } from './alertTones.js';
+import AttentionRow from './Attention/AttentionRow.vue';
 
 const props = defineProps({
     tone: { type: String, default: 'attention' }, // a key of alertTones
     title: { type: String, default: '' },
     body: { type: String, default: null },
+    standalone: { type: Boolean, default: false },
+    dismissible: { type: Boolean, default: false },
 });
+defineEmits(['dismiss']);
 
 const t = computed(() => toneOf(props.tone));
 </script>
 
 <template>
-    <div class="flex flex-wrap items-center gap-4 rounded-xl border px-4 py-3 text-[13px]" :class="t.row"
-         :role="t.attention && tone !== 'attention' ? 'alert' : 'status'">
-        <span class="flex w-[96px] flex-none items-center justify-center rounded-lg border-[1.5px] border-current bg-surface px-2 py-0.5 text-center text-[11px] leading-tight font-semibold">{{ t.label }}</span>
-        <span class="flex min-w-0 flex-1 flex-col">
-            <span class="font-semibold">{{ title }}</span>
-            <span v-if="body" class="text-xs opacity-85">{{ body }}</span>
-        </span>
-    </div>
+    <AttentionRow :tone="t.chip" :tag="t.label" :title="title || 'Your title'" :body="body" :standalone="standalone" :dismissible="dismissible" @dismiss="$emit('dismiss')" />
 </template>
