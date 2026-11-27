@@ -8,6 +8,7 @@ import Button from '../../DesignSystem/Button.vue';
 import Card from '../../DesignSystem/Card.vue';
 import AdminTabs from './Partials/AdminTabs.vue';
 import MergePreview from './Partials/MergePreview.vue';
+import WorkspacePicker from './Partials/WorkspacePicker.vue';
 
 const props = defineProps({
     shell: Object, stats: Object, pendingRoadmap: Number,
@@ -39,19 +40,16 @@ function submitPreview() {
         .post(props.urls.preview, { preserveUrl: true, preserveState: true, preserveScroll: true });
 }
 
-// The names under the fields: from the preview, or from ?source= and ?target= links.
-const sourceName = computed(() => (shown.value?.source?.id === form.source_workspace_id ? shown.value.source.name : null) ?? (props.source?.id === form.source_workspace_id ? props.source.name : null));
-const targetName = computed(() => (shown.value?.target?.id === form.target_workspace_id ? shown.value.target.name : null) ?? (props.target?.id === form.target_workspace_id ? props.target.name : null));
-
-const fieldClass = 'w-full rounded-lg border bg-surface px-3 py-2 font-mono text-[13px] text-ink focus:outline-none';
-const border = (error) => (error ? 'border-reserved focus:border-reserved' : 'border-line focus:border-navy');
+// What the pickers start with: the workspaces of the last preview, or of ?source= and ?target= links.
+const sourceInitial = computed(() => props.source ?? null);
+const targetInitial = computed(() => props.target ?? null);
 </script>
 
 <template>
     <Head title="Merge workspaces" />
 
     <PortalShell :shell="shell" title="Admin">
-        <div class="flex flex-col gap-6 px-6 pt-7 pb-10 md:px-8">
+        <div class="flex flex-col gap-6 px-6 pt-6 pb-10 md:px-10">
             <AdminTabs active="merge" :stats="stats" :pending-roadmap="pendingRoadmap" />
 
             <div class="flex max-w-[1040px] flex-col gap-4">
@@ -64,20 +62,10 @@ const border = (error) => (error ? 'border-reserved focus:border-reserved' : 'bo
 
                     <form class="mt-5 flex flex-col gap-5" @submit.prevent="submitPreview">
                         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                            <div class="flex flex-col gap-1.5">
-                                <label for="source_workspace_id" class="text-[13px] font-medium text-ink">Source workspace (emptied)</label>
-                                <input id="source_workspace_id" v-model="form.source_workspace_id" type="text" name="source_workspace_id" required placeholder="Workspace ULID"
-                                       :class="[fieldClass, border(form.errors.source_workspace_id)]" :aria-invalid="!!form.errors.source_workspace_id">
-                                <p v-if="sourceName" class="text-xs text-muted">{{ sourceName }}</p>
-                                <p v-if="form.errors.source_workspace_id" class="text-xs text-reserved-text">{{ form.errors.source_workspace_id }}</p>
-                            </div>
-                            <div class="flex flex-col gap-1.5">
-                                <label for="target_workspace_id" class="text-[13px] font-medium text-ink">Target workspace (kept)</label>
-                                <input id="target_workspace_id" v-model="form.target_workspace_id" type="text" name="target_workspace_id" required placeholder="Workspace ULID"
-                                       :class="[fieldClass, border(form.errors.target_workspace_id)]" :aria-invalid="!!form.errors.target_workspace_id">
-                                <p v-if="targetName" class="text-xs text-muted">{{ targetName }}</p>
-                                <p v-if="form.errors.target_workspace_id" class="text-xs text-reserved-text">{{ form.errors.target_workspace_id }}</p>
-                            </div>
+                            <WorkspacePicker id="source_workspace_id" v-model="form.source_workspace_id" label="Source workspace (emptied)" :lookup-url="urls.lookup"
+                                             :initial="sourceInitial" :exclude="form.target_workspace_id" :error="form.errors.source_workspace_id" />
+                            <WorkspacePicker id="target_workspace_id" v-model="form.target_workspace_id" label="Target workspace (kept)" :lookup-url="urls.lookup"
+                                             :initial="targetInitial" :exclude="form.source_workspace_id" :error="form.errors.target_workspace_id" />
                         </div>
 
                         <fieldset class="flex flex-col gap-2.5">

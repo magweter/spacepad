@@ -39,7 +39,7 @@ test('the users overview lists every column the table shows', function () {
                     && array_key_exists('usageType', $row)
                     && $row['displays'] === 0
                     && $row['boards'] === 0
-                    && $row['pro'] === false
+                    && $row['plan'] === ['key' => 'free', 'label' => 'Free']
                     && $row['registered'] === $user->created_at->format('Y-m-d')
                     && $row['urls']['show'] === route('admin.users.show', $user)
                     && $row['urls']['impersonate'] === route('admin.users.impersonate', $user);

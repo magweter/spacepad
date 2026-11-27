@@ -152,6 +152,7 @@ Route::middleware(['auth', 'user.update-last-activity'])->group(function () {
     Route::post('/workspace/profile', [WorkspaceProfileController::class, 'update'])->name('workspace.profile.update');
     Route::post('/workspace/profile/dismiss', [WorkspaceProfileController::class, 'dismiss'])->name('workspace.profile.dismiss');
     Route::post('/alerts/{portalAlert}/dismiss', [PortalAlertController::class, 'dismiss'])->name('alerts.dismiss');
+    Route::get('/alerts/{portalAlert}/image', [PortalAlertController::class, 'image'])->name('alerts.image');
     Route::delete('/displays/{display}', [DisplayController::class, 'delete'])->name('displays.delete');
 
     // Display configuration: one screen, saved per section
@@ -215,6 +216,8 @@ Route::middleware(['auth', 'user.update-last-activity'])->group(function () {
     Route::delete('/admin/users/{user}', [AdminController::class, 'deleteUser'])->name('admin.users.delete');
     // Billing is set on the workspace, which is what holds the subscription and the usage.
     Route::get('/admin/workspaces', [AdminWorkspaceController::class, 'index'])->name('admin.workspaces.index');
+    // Before {workspace}, so 'lookup' is not read as a workspace id.
+    Route::get('/admin/workspaces/lookup', [AdminWorkspaceController::class, 'lookup'])->name('admin.workspaces.lookup');
     Route::get('/admin/workspaces/{workspace}', [AdminWorkspaceController::class, 'show'])->name('admin.workspaces.show');
     Route::post('/admin/workspaces/{workspace}/billing', [AdminWorkspaceController::class, 'updateBilling'])
         ->name('admin.workspaces.billing');

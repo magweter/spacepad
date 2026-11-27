@@ -6,7 +6,7 @@ import PortalShell from '../../Components/PortalShell.vue';
 import Icon from '../../Components/Icon.vue';
 import Button from '../../DesignSystem/Button.vue';
 import Card from '../../DesignSystem/Card.vue';
-import Chip from '../../DesignSystem/Chip.vue';
+import PlanChip from './Partials/PlanChip.vue';
 import AdminTabs from './Partials/AdminTabs.vue';
 import UsersPagination from './Partials/UsersPagination.vue';
 import UsersImpersonateModal from './Partials/UsersImpersonateModal.vue';
@@ -25,15 +25,15 @@ function submit() {
 
 const impersonating = ref(null);
 
-const fieldClass = 'rounded-lg border border-line bg-surface px-3 py-2 text-[13px] text-ink focus:border-navy focus:outline-none';
-const columns = 'grid-cols-[1.4fr_2fr_1.1fr_0.7fr_0.7fr_0.6fr_1fr_1fr_170px]';
+const fieldClass = 'rounded-md border border-line bg-surface px-3 py-2 text-[13px] text-ink focus:border-navy focus:outline-none';
+const columns = 'grid-cols-[1.4fr_1.8fr_1fr_0.6fr_0.6fr_1.1fr_1fr_1fr_170px]';
 </script>
 
 <template>
     <Head title="Admin" />
 
     <PortalShell :shell="shell" title="Admin">
-        <div class="flex flex-col gap-6 px-6 pt-7 pb-10 md:px-8">
+        <div class="flex flex-col gap-6 px-6 pt-6 pb-10 md:px-10">
             <AdminTabs active="users" :stats="stats" :pending-roadmap="pendingRoadmap" />
 
             <div class="flex flex-col gap-4">
@@ -51,7 +51,7 @@ const columns = 'grid-cols-[1.4fr_2fr_1.1fr_0.7fr_0.7fr_0.6fr_1fr_1fr_170px]';
                 <Card padding="none" class="overflow-x-auto">
                     <div class="min-w-[1100px]">
                         <div class="grid items-center gap-3 border-b border-line px-4 py-2.5 text-[11px] font-semibold tracking-[0.04em] text-muted uppercase" :class="columns">
-                            <span>Name</span><span>Email</span><span>Usage type</span><span>Displays</span><span>Boards</span><span>Pro</span><span>Registered</span><span>Last activity</span><span class="text-right">Actions</span>
+                            <span>Name</span><span>Email</span><span>Usage type</span><span>Displays</span><span>Boards</span><span>Plan</span><span>Registered</span><span>Last activity</span><span class="text-right">Actions</span>
                         </div>
                         <div v-for="u in users" :key="u.id" class="grid min-h-14 items-center gap-3 border-b border-line-soft px-4 py-2 text-[13px] last:border-b-0 hover:bg-surface-raised" :class="columns">
                             <Link :href="u.urls.show" class="truncate font-semibold text-ink hover:underline">{{ u.name }}</Link>
@@ -59,12 +59,12 @@ const columns = 'grid-cols-[1.4fr_2fr_1.1fr_0.7fr_0.7fr_0.6fr_1fr_1fr_170px]';
                             <span class="truncate text-ink-3">{{ u.usageType ?? '-' }}</span>
                             <span class="tabular-nums">{{ u.displays }}</span>
                             <span class="tabular-nums">{{ u.boards }}</span>
-                            <span><Chip :tone="u.pro ? 'info' : 'neutral'">{{ u.pro ? 'Yes' : 'No' }}</Chip></span>
+                            <span><PlanChip :plan="u.plan" /></span>
                             <span class="text-ink-3 tabular-nums">{{ u.registered }}</span>
                             <span class="text-ink-3 tabular-nums">{{ u.lastActivity ?? 'Never' }}</span>
                             <span class="flex items-center justify-end gap-3">
-                                <Link :href="u.urls.show" class="inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-semibold border-navy bg-navy text-white hover:bg-navy-800">View</Link>
-                                <button type="button" class="inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-semibold border-amber bg-amber text-navy hover:opacity-90" @click="impersonating = u">Impersonate</button>
+                                <Link :href="u.urls.show" class="sp-btn sp-btn-secondary sp-btn-sm">View</Link>
+                                <button type="button" class="sp-btn sp-btn-sm border-[1.5px] border-amber-300 bg-amber-50 text-checkin-text hover:border-amber" @click="impersonating = u">Impersonate</button>
                             </span>
                         </div>
                         <p v-if="!users.length" class="px-4 py-8 text-center text-[13px] text-muted">

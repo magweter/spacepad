@@ -268,3 +268,26 @@ test('orphaned rows are only adopted when the option is set', function () {
     // Not adopted: the option was off, and it belongs to no workspace.
     expect($orphan->fresh()->workspace_id)->toBeNull();
 });
+
+test('the merge screen finds workspaces by member email, name or ULID, with the owner email', function () {
+    $owner = User::factory()->active()->create(['email' => 'pick-me@acme.test']);
+    $workspace = $owner->primaryWorkspace();
+    $workspace->update(['name' => 'Acme HQ']);
+
+    $find = fn (string $q) => $this->actingAs($this->admin)
+        ->getJson(route('admin.workspaces.lookup', ['q' => $q]))
+        ->assertOk()
+        ->json('workspaces');
+
+    expect(collect($find('pick-me@acme'))->pluck('id')->all())->toContain($workspace->id)
+        ->and(collect($find('Acme HQ'))->firstWhere('id', $workspace->id)['owner'])->toBe('pick-me@acme.test')
+        ->and(collect($find($workspace->id))->pluck('id')->all())->toBe([$workspace->id])
+        // One letter is too little to search on.
+        ->and($find('a'))->toBe([]);
+});
+
+test('only admins can look workspaces up', function () {
+    $this->actingAs(User::factory()->active()->create())
+        ->getJson(route('admin.workspaces.lookup', ['q' => 'acme']))
+        ->assertForbidden();
+});

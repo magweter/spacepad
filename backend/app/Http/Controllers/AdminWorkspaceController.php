@@ -7,6 +7,7 @@ use App\Models\BillingChange;
 use App\Models\User;
 use App\Models\Workspace;
 use App\Support\AdminPage;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -33,6 +34,44 @@ class AdminWorkspaceController extends Controller
     private const ENTERPRISE_DISPLAYS = 25;
 
     use ChecksAdminAccess;
+
+    /**
+     * Find workspaces for a picker (the merge screen): by workspace name, by a member's name or
+     * email, or by its ULID. Each comes with its owner's email, because workspace names alone are
+     * often unclear ("Martijn's Workspace").
+     */
+    public function lookup(Request $request): JsonResponse
+    {
+        $this->checkAdminAccess();
+
+        $q = trim((string) $request->query('q', ''));
+        if (mb_strlen($q) < 2) {
+            return response()->json(['workspaces' => []]);
+        }
+
+        $workspaces = Workspace::query()
+            ->with(['billingOwnerUser', 'members'])
+            ->withCount(['members', 'displays'])
+            ->where(fn ($query) => $query
+                ->where('id', $q)
+                ->orWhere('name', 'like', "%{$q}%")
+                ->orWhereHas('members', fn ($member) => $member
+                    ->where('users.name', 'like', "%{$q}%")
+                    ->orWhere('users.email', 'like', "%{$q}%")))
+            ->orderBy('name')
+            ->limit(15)
+            ->get();
+
+        return response()->json([
+            'workspaces' => $workspaces->map(fn (Workspace $workspace) => [
+                'id' => $workspace->id,
+                'name' => $workspace->name,
+                'owner' => $workspace->billingOwner()?->email,
+                'members' => $workspace->members_count,
+                'displays' => $workspace->displays_count,
+            ])->values()->all(),
+        ]);
+    }
 
     /**
      * Every workspace, with what it costs.

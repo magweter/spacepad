@@ -76,3 +76,19 @@ test('the billing fields are drawn with a visible border', function () {
         ->and($input[0])->toContain(':class="[fieldClass')
         ->and($select[0])->toContain(':class="[fieldClass');
 });
+
+test('the users list names the plan of the workspaces someone owns, manual and unlimited included', function () {
+    $manual = User::factory()->active()->create(['email' => 'manual@example.com']);
+    $manual->primaryWorkspace()->update(['is_manually_billed' => true]);
+    $unlimited = User::factory()->active()->create(['email' => 'unlimited@example.com']);
+    $unlimited->primaryWorkspace()->update(['is_unlimited' => true]);
+    User::factory()->active()->create(['email' => 'free@example.com']);
+
+    $this->actingAs($this->admin)->get(route('admin.index'))
+        ->assertInertia(function (Assert $page) {
+            $plans = collect($page->toArray()['props']['users'])->pluck('plan', 'email');
+            expect($plans['manual@example.com'])->toBe(['key' => 'manual', 'label' => 'Manually billed'])
+                ->and($plans['unlimited@example.com'])->toBe(['key' => 'unlimited', 'label' => 'Unlimited'])
+                ->and($plans['free@example.com'])->toBe(['key' => 'free', 'label' => 'Free']);
+        });
+});

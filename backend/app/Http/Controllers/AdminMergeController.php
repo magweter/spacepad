@@ -155,7 +155,8 @@ class AdminMergeController extends Controller
      */
     private function render(Request $request, array $data): Response
     {
-        $workspace = fn (?Workspace $w) => $w ? ['id' => $w->id, 'name' => $w->name] : null;
+        // With the owner's email, as the workspace picker shows it.
+        $workspace = fn (?Workspace $w) => $w ? ['id' => $w->id, 'name' => $w->name, 'owner' => $w->billingOwner()?->email] : null;
         $preview = $data['preview'];
 
         if ($preview) {
@@ -179,6 +180,7 @@ class AdminMergeController extends Controller
             'urls' => [
                 'preview' => route('admin.merge.preview'),
                 'store' => route('admin.merge.store'),
+                'lookup' => route('admin.workspaces.lookup'),
             ],
         ]);
     }

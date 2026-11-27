@@ -71,7 +71,7 @@ class AdminController extends Controller
                 'usageType' => $user->usage_type?->label(),
                 'displays' => (int) $user->displays_count,
                 'boards' => (int) ($user->boards_count ?? 0),
-                'pro' => $user->ownedWorkspaces->contains(fn ($workspace) => $workspace->hasPro()),
+                'plan' => $this->bestPlan($user),
                 'registered' => $user->created_at->format('Y-m-d'),
                 'lastActivity' => $user->last_activity_at?->format('Y-m-d'),
                 'urls' => [
@@ -363,5 +363,21 @@ class AdminController extends Controller
 
         return redirect()->route('admin.index')
             ->with('success', 'Stopped impersonating user.');
+    }
+
+    /**
+     * The best plan among the workspaces a user owns, as the workspaces list labels it (Manually
+     * billed, Unlimited, Enterprise, Pro, Pro trial or Free), so the users list tells them apart.
+     *
+     * @return array{key: string, label: string}
+     */
+    private function bestPlan(User $user): array
+    {
+        $rank = ['enterprise' => 6, 'unlimited' => 5, 'manual' => 4, 'pro' => 3, 'trial' => 2, 'free' => 0];
+
+        return $user->ownedWorkspaces
+            ->map(fn ($workspace) => AdminWorkspaceController::planBadge($workspace))
+            ->sortByDesc(fn (array $plan) => $rank[$plan['key']] ?? 1)
+            ->first() ?? ['key' => 'free', 'label' => 'Free'];
     }
 }
