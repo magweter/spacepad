@@ -24,6 +24,9 @@ final class AuthPageUrls
             'privacy' => 'https://spacepad.io/privacy-policy',
             'dpa' => 'https://spacepad.io/dpa',
             'website' => 'https://spacepad.io',
+            'docs' => 'https://github.com/magweter/spacepad/tree/main/docs',
+            'github' => 'https://github.com/magweter/spacepad',
+            'help' => 'https://spacepad.io/contact',
         ];
     }
 }
