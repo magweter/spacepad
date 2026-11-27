@@ -3,6 +3,8 @@
 use App\Models\PortalAlert;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
 
 uses(RefreshDatabase::class);
@@ -75,7 +77,7 @@ test('times sent with an offset are stored as that moment and listed as ISO', fu
         ->and($alert->ends_at->utc()->format('Y-m-d H:i'))->toBe('2030-12-01 11:00');
 
     $this->actingAs($this->admin)->get(route('admin.alerts.index'))
-        ->assertInertia(fn (Assert $page) => $page->where('alerts.scheduled.0.startsAt', '2030-12-01T09:00:00+00:00'));
+        ->assertInertia(fn (Assert $page) => $page->where('adminAlerts.scheduled.0.startsAt', '2030-12-01T09:00:00+00:00'));
 });
 
 test('an ended alert can be saved again', function () {
@@ -115,9 +117,50 @@ test('the list groups alerts by status', function () {
         ->get(route('admin.alerts.index'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page->component('Admin/Alerts')
-            ->has('alerts.active', 1)
-            ->has('alerts.scheduled', 1)
-            ->has('alerts.ended', 1));
+            ->has('adminAlerts.active', 1)
+            ->has('adminAlerts.scheduled', 1)
+            ->has('adminAlerts.ended', 1));
+});
+
+test('the alerts page keeps the shared running alerts a list the portal shell can read', function () {
+    PortalAlert::factory()->create(['title' => 'Outage']);
+
+    // The page's own alerts are grouped by status under another name; reusing 'alerts' broke the
+    // popup in the shell, which reads the shared running alerts on every page.
+    $this->actingAs($this->admin)
+        ->get(route('admin.alerts.index'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('alerts', fn ($alerts) => array_is_list(collect($alerts)->all()))
+            ->has('adminAlerts.active', 1));
+});
+
+test('an alert can carry an image, which can be replaced and removed', function () {
+    Storage::fake();
+
+    $this->actingAs($this->admin)
+        ->post(route('admin.alerts.store'), ['title' => 'New dashboard', 'tone' => 'new', 'popup' => true, 'image' => UploadedFile::fake()->image('screen.png', 800, 400)])
+        ->assertRedirect(route('admin.alerts.index'));
+
+    $alert = PortalAlert::where('title', 'New dashboard')->firstOrFail();
+    expect($alert->image_path)->not->toBeNull();
+    Storage::assertExists($alert->image_path);
+    $first = $alert->image_path;
+
+    // A new upload replaces the old file.
+    $this->actingAs($this->admin)
+        ->put(route('admin.alerts.update', $alert), ['title' => 'New dashboard', 'tone' => 'new', 'image' => UploadedFile::fake()->image('other.png')]);
+    Storage::assertMissing($first);
+    Storage::assertExists($alert->fresh()->image_path);
+
+    $this->actingAs($this->admin)
+        ->put(route('admin.alerts.update', $alert), ['title' => 'New dashboard', 'tone' => 'new', 'remove_image' => true]);
+    expect($alert->fresh()->image_path)->toBeNull();
+});
+
+test('only an image is accepted', function () {
+    $this->actingAs($this->admin)
+        ->post(route('admin.alerts.store'), ['title' => 'Outage', 'tone' => 'attention', 'image' => UploadedFile::fake()->create('notes.pdf', 10, 'application/pdf')])
+        ->assertSessionHasErrors('image');
 });
 
 test('the create and edit forms render', function () {

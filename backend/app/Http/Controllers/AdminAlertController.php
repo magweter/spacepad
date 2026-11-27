@@ -8,6 +8,7 @@ use App\Support\AdminPage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -35,7 +36,8 @@ class AdminAlertController extends Controller
 
         return Inertia::render('Admin/Alerts', [
             ...AdminPage::props($request),
-            'alerts' => [
+            // Not 'alerts': that is the shared prop with the running alerts, which the portal shell reads.
+            'adminAlerts' => [
                 'active' => ($alerts['active'] ?? collect())->map(fn ($a) => $this->row($a))->values()->all(),
                 'scheduled' => ($alerts['scheduled'] ?? collect())->sortBy('starts_at')->map(fn ($a) => $this->row($a))->values()->all(),
                 'ended' => ($alerts['ended'] ?? collect())->sortByDesc('ends_at')->take(20)->map(fn ($a) => $this->row($a))->values()->all(),
@@ -51,7 +53,8 @@ class AdminAlertController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        PortalAlert::create([...$this->validated($request, creating: true), 'created_by' => $request->user()->id]);
+        $alert = PortalAlert::create([...$this->validated($request, creating: true), 'created_by' => $request->user()->id]);
+        $this->applyImage($request, $alert);
         PortalAlert::forgetCache();
 
         return redirect()->route('admin.alerts.index')->with('success', 'Alert saved.');
@@ -65,6 +68,7 @@ class AdminAlertController extends Controller
     public function update(Request $request, PortalAlert $portalAlert): RedirectResponse
     {
         $portalAlert->update($this->validated($request));
+        $this->applyImage($request, $portalAlert);
         PortalAlert::forgetCache();
 
         return redirect()->route('admin.alerts.index')->with('success', 'Alert saved.');
@@ -106,11 +110,16 @@ class AdminAlertController extends Controller
             'popup' => ['nullable', 'boolean'],
             'starts_at' => ['nullable', 'date'],
             'ends_at' => $endRules,
+            // Checked here, stored by applyImage(); neither is a column.
+            'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp,gif', 'max:4096'],
+            'remove_image' => ['nullable', 'boolean'],
         ], [
             'ends_at.after' => $request->filled('starts_at') && ! $this->isPast((string) $request->input('ends_at'))
                 ? 'The end has to be after the start.'
                 : 'The end has to be in the future.',
         ]);
+
+        unset($data['image'], $data['remove_image']);
 
         return [
             ...$data,
@@ -162,11 +171,30 @@ class AdminAlertController extends Controller
                 'popup' => $alert->popup,
                 'starts_at' => $alert->starts_at?->toIso8601String() ?? '',
                 'ends_at' => $alert->ends_at?->toIso8601String() ?? '',
+                'image' => $alert->imageUrl(),
             ] : null,
             'urls' => [
                 'index' => route('admin.alerts.index'),
                 'submit' => $alert ? route('admin.alerts.update', $alert) : route('admin.alerts.store'),
             ],
+        ]);
+    }
+
+    /**
+     * Store a newly uploaded image (replacing the old one), or remove it when asked to.
+     */
+    private function applyImage(Request $request, PortalAlert $alert): void
+    {
+        if (! $request->hasFile('image') && ! $request->boolean('remove_image')) {
+            return;
+        }
+
+        if ($alert->image_path) {
+            Storage::delete($alert->image_path);
+        }
+
+        $alert->update([
+            'image_path' => $request->hasFile('image') ? $request->file('image')->store('portal-alerts') : null,
         ]);
     }
 }

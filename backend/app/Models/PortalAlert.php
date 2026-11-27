@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -28,7 +29,7 @@ class PortalAlert extends Model
 
     public const PROVIDERS = ['microsoft', 'google', 'caldav'];
 
-    protected $fillable = ['title', 'body', 'tone', 'provider', 'popup', 'starts_at', 'ends_at', 'created_by'];
+    protected $fillable = ['title', 'body', 'image_path', 'tone', 'provider', 'popup', 'starts_at', 'ends_at', 'created_by'];
 
     protected $casts = [
         'starts_at' => 'datetime',
@@ -95,6 +96,9 @@ class PortalAlert extends Model
                 'title' => $alert->title,
                 'body' => $alert->body,
                 'popup' => $alert->popup,
+                'image' => $alert->imageUrl(),
+                // When it started showing: its start, or when it was made if it started straight away.
+                'since' => ($alert->starts_at ?? $alert->created_at)?->toIso8601String(),
             ])
             ->values()
             ->all();
@@ -109,23 +113,45 @@ class PortalAlert extends Model
     public static function forUser(User $user): array
     {
         $alerts = self::forWorkspace($user->getSelectedWorkspace());
+        if ($alerts === []) {
+            return [];
+        }
 
-        $popups = array_column(array_filter($alerts, fn (array $alert) => $alert['popup']), 'id');
-        $dismissed = $popups === [] ? [] : DB::table('portal_alert_dismissals')
+        // Only what started after the account was made: an announcement older than the account
+        // ("Live view is here") is news to nobody new, and confusing during the first steps.
+        $alerts = array_filter($alerts, fn (array $alert) => $alert['since'] === null
+            || $user->created_at === null
+            || Carbon::parse($alert['since'])->gte($user->created_at));
+        if ($alerts === []) {
+            return [];
+        }
+
+        // "Got it" on the popup, or closing the row, is done with the alert for this user: it no
+        // longer shows anywhere in their portal.
+        $dismissed = DB::table('portal_alert_dismissals')
             ->where('user_id', $user->id)
-            ->whereIn('portal_alert_id', $popups)
+            ->whereIn('portal_alert_id', array_column($alerts, 'id'))
             ->pluck('portal_alert_id')
             ->all();
 
-        return array_map(fn (array $alert) => [
+        return array_values(array_map(fn (array $alert) => [
             ...$alert,
-            'popup' => $alert['popup'] && ! in_array($alert['id'], $dismissed, true),
             'dismissUrl' => route('alerts.dismiss', $alert['id']),
-        ], $alerts);
+        ], array_filter($alerts, fn (array $alert) => ! in_array($alert['id'], $dismissed, true))));
     }
 
     /**
-     * The user closed the popup; it stays a row in the portal while the alert runs.
+     * Where the portal loads the alert's image, with the last change in it so a new upload shows.
+     */
+    public function imageUrl(): ?string
+    {
+        return $this->image_path
+            ? route('alerts.image', ['portalAlert' => $this->id, 'v' => $this->updated_at?->getTimestamp()])
+            : null;
+    }
+
+    /**
+     * The user is done with the alert (closed its popup or its row); it no longer shows for them.
      */
     public function dismissFor(User $user): void
     {

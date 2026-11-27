@@ -1,5 +1,6 @@
 <script setup>
 // Create or edit an alert, with a preview of the row the portal will show.
+import { computed, onBeforeUnmount, ref } from 'vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import PortalShell from '../../Components/PortalShell.vue';
 import Icon from '../../Components/Icon.vue';
@@ -27,7 +28,27 @@ const form = useForm({
     popup: props.alert?.popup ?? false,
     starts_at: toLocalInput(props.alert?.starts_at),
     ends_at: toLocalInput(props.alert?.ends_at),
+    image: null,
+    remove_image: false,
 });
+
+// The image on top of the popup: a new file previews at once; the saved one can be removed.
+const localPreview = ref(null);
+function pickImage(e) {
+    const file = e.target.files?.[0] ?? null;
+    form.image = file;
+    form.remove_image = false;
+    if (localPreview.value) URL.revokeObjectURL(localPreview.value);
+    localPreview.value = file ? URL.createObjectURL(file) : null;
+}
+function removeImage() {
+    form.image = null;
+    form.remove_image = true;
+    if (localPreview.value) URL.revokeObjectURL(localPreview.value);
+    localPreview.value = null;
+}
+const imagePreview = computed(() => localPreview.value ?? (form.remove_image ? null : props.alert?.image ?? null));
+onBeforeUnmount(() => { if (localPreview.value) URL.revokeObjectURL(localPreview.value); });
 
 // Empty fields go out as null: no provider means every workspace, no start means now.
 const payload = (data) => ({
@@ -35,11 +56,14 @@ const payload = (data) => ({
     starts_at: toIso(data.starts_at),
     ends_at: toIso(data.ends_at),
 });
-const submit = () => form.transform(payload)[props.alert ? 'put' : 'post'](props.urls.submit);
+// Sent as multipart, so the image comes along; an edit says PUT through _method.
+const submit = () => form
+    .transform((data) => ({ ...payload(data), remove_image: data.remove_image ? 1 : 0, ...(props.alert ? { _method: 'put' } : {}) }))
+    .post(props.urls.submit, { forceFormData: true });
 
 const title = props.alert ? 'Edit alert' : 'New alert';
 const labelClass = 'mb-1 block text-[13px] font-semibold';
-const fieldClass = 'block w-full rounded-lg border border-line bg-surface px-3 py-2 text-[13px] text-ink focus:border-navy focus:outline-none';
+const fieldClass = 'block w-full rounded-md border border-line bg-surface px-3 py-2 text-[13px] text-ink focus:border-navy focus:outline-none';
 </script>
 
 <template>
@@ -52,11 +76,11 @@ const fieldClass = 'block w-full rounded-lg border border-line bg-surface px-3 p
             </Link>
         </template>
 
-        <div class="flex max-w-2xl flex-col gap-6 px-6 pt-7 pb-10 md:px-8">
+        <div class="flex max-w-2xl flex-col gap-6 px-6 pt-6 pb-10 md:px-10">
 
             <section aria-label="Preview" class="flex flex-col gap-2">
                 <span class="text-xs font-semibold tracking-wide text-muted uppercase">Preview</span>
-                <AlertRow :tone="form.tone" :title="form.title || 'Your title'" :body="form.body || null" />
+                <AlertRow :tone="form.tone" :title="form.title || 'Your title'" :body="form.body || null" standalone />
             </section>
 
             <form class="flex flex-col gap-5" @submit.prevent="submit">
@@ -73,6 +97,17 @@ const fieldClass = 'block w-full rounded-lg border border-line bg-surface px-3 p
                             <textarea id="body" v-model="form.body" rows="3" maxlength="500"
                                       placeholder="e.g. Meetings may load slowly or not at all. Nothing is wrong with your setup." :class="[fieldClass, 'resize-none']"></textarea>
                             <span v-if="form.errors.body" class="mt-1 block text-xs text-reserved-text">{{ form.errors.body }}</span>
+                        </div>
+
+                        <div>
+                            <label for="image" :class="labelClass">Image</label>
+                            <div v-if="imagePreview" class="mb-2 flex items-start gap-3">
+                                <img :src="imagePreview" alt="Image preview" class="max-h-36 rounded-md border border-line-soft object-cover">
+                                <button type="button" class="sp-btn sp-btn-secondary sp-btn-sm" @click="removeImage">Remove image</button>
+                            </div>
+                            <input id="image" type="file" accept="image/png,image/jpeg,image/webp,image/gif" class="block text-[13px] text-ink-2 file:mr-3 file:rounded-md file:border file:border-line file:bg-surface file:px-3 file:py-1.5 file:text-[13px] file:font-semibold file:text-navy" @change="pickImage">
+                            <p class="mt-1 text-xs text-muted">Optional. Shown on top of the popup, for example a screenshot of something new. JPG, PNG, WebP or GIF, up to 4 MB.</p>
+                            <span v-if="form.errors.image" class="mt-1 block text-xs text-reserved-text">{{ form.errors.image }}</span>
                         </div>
 
                         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
