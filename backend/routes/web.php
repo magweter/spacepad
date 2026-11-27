@@ -12,7 +12,6 @@ use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\BillingController;
 use App\Http\Controllers\BoardController;
 use App\Http\Controllers\CalDAVAccountsController;
-use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\DisplayController;
 use App\Http\Controllers\DisplayDiagnosticsController;
 use App\Http\Controllers\DisplaySettingsController;
@@ -32,7 +31,6 @@ use App\Http\Controllers\PortalScheduleController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProfilesController;
 use App\Http\Controllers\RoadmapController;
-use App\Http\Controllers\RoomController;
 use App\Http\Controllers\SupportController;
 use App\Http\Controllers\WorkspaceController;
 use App\Http\Controllers\WorkspaceInvitationController;
@@ -143,8 +141,6 @@ Route::middleware(['auth', 'user.update-last-activity'])->group(function () {
     Route::post('/caldav-accounts', [CalDAVAccountsController::class, 'store'])->name('caldav-accounts.store');
     Route::delete('/caldav-accounts/{caldavAccount}', [CalDAVAccountsController::class, 'delete'])->name('caldav-accounts.delete');
 
-    Route::get('/displays/create', [DisplayController::class, 'create'])
-        ->name('displays.create');
     Route::post('/displays', [DisplayController::class, 'store'])->name('displays.store');
     Route::put('/displays/{display}', [DisplayController::class, 'update'])->name('displays.update');
     Route::patch('/displays/{display}/status', [DisplayController::class, 'updateStatus'])
@@ -177,17 +173,6 @@ Route::middleware(['auth', 'user.update-last-activity'])->group(function () {
         ->name('displays.settings.index');
     Route::get('/displays/{display}/customization', fn (string $display) => redirect()->route('displays.configure', $display))
         ->name('displays.customization');
-
-    Route::get('/calendars/outlook/{id}', [CalendarController::class, 'outlook'])
-        ->name('calendars.outlook');
-    Route::get('/calendars/google/{id}', [CalendarController::class, 'google'])
-        ->name('calendars.google');
-    Route::get('/calendars/caldav/{id}', [CalendarController::class, 'caldav'])
-        ->name('calendars.caldav');
-    Route::get('/rooms/outlook/{id}', [RoomController::class, 'outlook'])
-        ->name('rooms.outlook');
-    Route::get('/rooms/google/{id}', [RoomController::class, 'google'])
-        ->name('rooms.google');
 
     Route::post('/license/validate', [LicenseController::class, 'validateLicense'])->name('license.validate');
 

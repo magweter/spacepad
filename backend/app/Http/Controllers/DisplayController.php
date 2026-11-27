@@ -20,7 +20,6 @@ use App\Services\GoogleService;
 use App\Services\OutlookService;
 use App\Services\RoomDetailsService;
 use Exception;
-use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -33,33 +32,6 @@ class DisplayController extends Controller
         protected CalDAVService $caldavService,
         protected FreePlanDisplayLimit $freePlan
     ) {}
-
-    public function create(): View
-    {
-        $user = auth()->user();
-        $workspaces = $user->workspaces()->withPivot('role')->get();
-        $selectedWorkspace = $user->getSelectedWorkspace();
-
-        // Filter accounts to show all accounts for the selected workspace (from any workspace member)
-        if ($selectedWorkspace) {
-            $outlookAccounts = OutlookAccount::where('workspace_id', $selectedWorkspace->id)->get();
-            $googleAccounts = GoogleAccount::where('workspace_id', $selectedWorkspace->id)->get();
-            $caldavAccounts = CalDAVAccount::where('workspace_id', $selectedWorkspace->id)->get();
-        } else {
-            // Fallback to user's own accounts if no workspace selected
-            $outlookAccounts = $user->outlookAccounts;
-            $googleAccounts = $user->googleAccounts;
-            $caldavAccounts = $user->caldavAccounts;
-        }
-
-        return view('pages.displays.create', [
-            'outlookAccounts' => $outlookAccounts,
-            'googleAccounts' => $googleAccounts,
-            'caldavAccounts' => $caldavAccounts,
-            'workspaces' => $workspaces,
-            'defaultWorkspace' => $selectedWorkspace ?? $user->primaryWorkspace(),
-        ]);
-    }
 
     /**
      * @throws Exception

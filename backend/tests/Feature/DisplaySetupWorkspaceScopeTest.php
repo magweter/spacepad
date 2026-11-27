@@ -11,14 +11,13 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 uses(RefreshDatabase::class);
 
 /**
- * The calendar and room pickers used to resolve accounts with
- * auth()->user()->outlookAccounts()->findOrFail($id), while the display-creation form
- * offered every account in the *workspace*. A colleague could therefore pick an account
- * from the dropdown and get a 404 on the next step — the core "co-manage devices" flow.
+ * The display setup lists an account's rooms and calendars for everyone in the workspace,
+ * not only for the colleague who connected it: co-managing devices is the core flow. Anyone
+ * outside the workspace is refused.
  *
  * These tests assert the authorization boundary only. They do not reach the external
- * provider: fetching happens after the authorize() call, and a failure there renders the
- * picker with an error message rather than a 403/404.
+ * provider: fetching happens after the authorize() call, and a failure there still answers
+ * with an empty list rather than a 403/404.
  */
 
 /**
@@ -39,7 +38,7 @@ function workspaceWithOwnerAndMember(): array
     return [$owner, $member, $workspace];
 }
 
-test('a member is not denied access to a colleagues outlook account', function () {
+test('a member can list the rooms and calendars of a colleagues account', function () {
     [$owner, $member, $workspace] = workspaceWithOwnerAndMember();
 
     $account = OutlookAccount::factory()->create([
@@ -47,26 +46,13 @@ test('a member is not denied access to a colleagues outlook account', function (
         'workspace_id' => $workspace->id,
     ]);
 
-    $response = $this->actingAs($member)->get("/calendars/outlook/{$account->id}");
+    $response = $this->actingAs($member)->getJson(route('setup.first-display.resources', ['provider' => 'outlook', 'account' => $account->id]));
 
     // Previously this was a 404 because the account was not the member's own.
     $response->assertOk();
 });
 
-test('a member is not denied access to a colleagues outlook rooms', function () {
-    [$owner, $member, $workspace] = workspaceWithOwnerAndMember();
-
-    $account = OutlookAccount::factory()->create([
-        'user_id' => $owner->id,
-        'workspace_id' => $workspace->id,
-    ]);
-
-    $this->actingAs($member)
-        ->get("/rooms/outlook/{$account->id}")
-        ->assertOk();
-});
-
-test('an outsider cannot reach an accounts calendars', function () {
+test('an outsider cannot list a microsoft accounts rooms and calendars', function () {
     [$owner, , $workspace] = workspaceWithOwnerAndMember();
 
     $account = OutlookAccount::factory()->create([
@@ -77,11 +63,11 @@ test('an outsider cannot reach an accounts calendars', function () {
     $outsider = User::factory()->active()->create();
 
     $this->actingAs($outsider)
-        ->get("/calendars/outlook/{$account->id}")
+        ->getJson(route('setup.first-display.resources', ['provider' => 'outlook', 'account' => $account->id]))
         ->assertForbidden();
 });
 
-test('an outsider cannot reach an accounts rooms', function () {
+test('an outsider cannot list a google accounts rooms and calendars', function () {
     [$owner, , $workspace] = workspaceWithOwnerAndMember();
 
     $account = GoogleAccount::factory()->create([
@@ -92,7 +78,7 @@ test('an outsider cannot reach an accounts rooms', function () {
     $outsider = User::factory()->active()->create();
 
     $this->actingAs($outsider)
-        ->get("/rooms/google/{$account->id}")
+        ->getJson(route('setup.first-display.resources', ['provider' => 'google', 'account' => $account->id]))
         ->assertForbidden();
 });
 
@@ -100,6 +86,6 @@ test('an unknown account id is a 404 rather than a 403', function () {
     $user = User::factory()->active()->create();
 
     $this->actingAs($user)
-        ->get('/calendars/outlook/01JZZZZZZZZZZZZZZZZZZZZZZZ')
+        ->getJson(route('setup.first-display.resources', ['provider' => 'outlook', 'account' => '01JZZZZZZZZZZZZZZZZZZZZZZZ']))
         ->assertNotFound();
 });

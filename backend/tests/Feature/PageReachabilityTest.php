@@ -16,7 +16,7 @@ test('it redirects to login page when visiting dashboard unauthenticated', funct
 });
 
 test('it redirects to login page when visiting displays unauthenticated', function () {
-    $response = $this->get(route('displays.create'));
+    $response = $this->get(route('displays.index'));
 
     $response->assertStatus(302);
     $response->assertRedirect(route('login'));
@@ -50,10 +50,10 @@ test('it loads displays page when authenticated', function () {
     $user = User::factory()->active()->create();
 
     $response = $this->actingAs($user)
-        ->get(route('displays.create'));
+        ->get(route('displays.index'));
 
     $response->assertStatus(200);
-    $response->assertViewIs('pages.displays.create');
+    $response->assertInertia(fn (Assert $page) => $page->component('Displays/Index'));
 });
 
 test('it redirects to dashboard when visiting login while authenticated', function () {

@@ -128,32 +128,6 @@ test('a value someone typed is never replaced', function () {
         ->assertInertia(fn (Assert $page) => $page->where('display.location', 'Wing B')->where('display.roomSuggestion', null));
 });
 
-test('a new display on a room gets the floor and seats from the room picker list', function () {
-    // The room picker fetched the list; creating the display reads it from there.
-    Http::fake(['graph.microsoft.com/*' => Http::response(['value' => [
-        graphRoom('boardroom@example.com', ['floorLabel' => '3', 'capacity' => 6]),
-    ]])]);
-
-    $this->actingAs($this->user)->get(route('rooms.outlook', $this->account->id))->assertOk();
-
-    $this->actingAs($this->user)
-        ->post(route('displays.store'), [
-            'name' => 'Boardroom tablet',
-            'displayName' => 'Boardroom',
-            'provider' => 'outlook',
-            'account' => $this->account->id,
-            'room' => 'boardroom@example.com,Boardroom',
-        ])
-        ->assertRedirect();
-
-    $display = Display::where('name', 'Boardroom tablet')->firstOrFail();
-    expect($display->location)->toBe('Floor 3')
-        ->and($display->capacity)->toBe(6);
-
-    // The places list once, for the picker. Creating the display sends other calls of its own.
-    expect(Http::recorded(fn ($request) => str_contains($request->url(), '/places/'))->count())->toBe(1);
-});
-
 test('a display created in the setup wizard gets the floor and seats from its room list', function () {
     Http::fake(['graph.microsoft.com/v1.0/places/*' => Http::response(['value' => [
         graphRoom('boardroom@example.com', ['floorLabel' => 'Ground floor', 'capacity' => 8]),
