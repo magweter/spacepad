@@ -41,7 +41,7 @@ test('owners and admins can rename, members only see the name', function () {
         settingsPageAs($workspace, $users[$role])
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page->component('Settings/Index')
-                ->where('shell.nav.7.active', true)
+                ->where('shell.nav.8.active', true)
                 ->where('workspace.name', 'Playup')
                 ->where('workspace.members', 3)
                 ->where('can.rename', true)

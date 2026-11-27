@@ -2,7 +2,6 @@
 import { computed, watch } from 'vue';
 import { Head } from '@inertiajs/vue3';
 import PortalShell from '../../Components/PortalShell.vue';
-import FlashMessage from '../../Components/FlashMessage.vue';
 import { useOnboarding } from '../../Composables/useOnboarding';
 import CalendarStep from './Steps/CalendarStep.vue';
 import RoomStep from './Steps/RoomStep.vue';
@@ -62,7 +61,6 @@ watch(() => props.step, (step) => flow.track(step, 'viewed'), { immediate: true 
         </header>
 
         <div class="mx-auto flex w-full flex-col gap-6 px-6 py-8 md:px-8 md:py-12" :class="step === 'done' ? 'max-w-[960px]' : 'max-w-[760px]'">
-            <FlashMessage />
             <component :is="components[step]" v-bind="$props" :eyebrow="eyebrow" :flow="flow" />
             <p v-if="meta[step].tip" class="text-[13px] text-muted"><span class="font-semibold text-ink-2">{{ meta[step].tip[0] }}.</span> {{ meta[step].tip[1] }}</p>
         </div>

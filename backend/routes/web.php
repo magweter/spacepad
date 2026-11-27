@@ -93,6 +93,7 @@ Route::get('/outlook-accounts/callback', [OutlookAccountsController::class, 'cal
 Route::middleware(['auth', 'user.update-last-activity'])->group(function () {
     Route::get('/', OverviewController::class)->name('dashboard')->middleware('user.active');
     Route::middleware('user.active')->group(function () {
+        Route::get('/live', [Portal\LiveViewController::class, 'index'])->name('live.index');
         Route::get('/displays', [Portal\DisplaysPageController::class, 'index'])->name('displays.index');
         Route::get('/boards', [Portal\BoardsPageController::class, 'index'])->name('boards.index');
         Route::get('/calendars', [Portal\CalendarsPageController::class, 'index'])->name('calendars.index');

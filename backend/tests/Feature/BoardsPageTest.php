@@ -60,7 +60,7 @@ test('the overview shows each board as a card, settings opens the editor', funct
             ->component('Boards/Index')
             ->where('hasPro', true)
             ->where('canCreate', true)
-            ->where('shell.nav.2.active', true)
+            ->where('shell.nav.3.active', true)
             ->has('boards', 2)
             ->where('boards.0.name', 'A lobby')
             ->where('boards.0.viewMode', 'table')

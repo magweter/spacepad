@@ -4,7 +4,6 @@
 import { computed, ref, watch } from 'vue';
 import { Head, useForm } from '@inertiajs/vue3';
 import PortalShell from '../../Components/PortalShell.vue';
-import FlashMessage from '../../Components/FlashMessage.vue';
 import Button from '../../DesignSystem/Button.vue';
 import Card from '../../DesignSystem/Card.vue';
 import AdminTabs from './Partials/AdminTabs.vue';
@@ -54,7 +53,6 @@ const border = (error) => (error ? 'border-reserved focus:border-reserved' : 'bo
     <PortalShell :shell="shell" title="Admin">
         <div class="flex flex-col gap-6 px-6 pt-7 pb-10 md:px-8">
             <AdminTabs active="merge" :stats="stats" :pending-roadmap="pendingRoadmap" />
-            <FlashMessage />
 
             <div class="flex max-w-[1040px] flex-col gap-4">
                 <Card>

@@ -4,7 +4,6 @@
 import { ref } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import PortalShell from '../../Components/PortalShell.vue';
-import FlashMessage from '../../Components/FlashMessage.vue';
 import Icon from '../../Components/Icon.vue';
 import Button from '../../DesignSystem/Button.vue';
 import Card from '../../DesignSystem/Card.vue';
@@ -40,17 +39,15 @@ const smallBtn = 'inline-flex items-center rounded-md border px-2.5 py-1 text-xs
     <Head title="Alerts" />
 
     <PortalShell :shell="shell" title="Admin">
-        <template #actions>
-            <Button :href="urls.create"><template #icon><Icon name="plus" :size="16" :stroke="2.5" /></template>New alert</Button>
-        </template>
-
         <div class="flex flex-col gap-6 px-6 pt-7 pb-10 md:px-8">
             <AdminTabs active="alerts" :stats="stats" :pending-roadmap="pendingRoadmap" />
-            <FlashMessage />
 
-            <p class="max-w-[720px] text-[13px] text-muted">
-                An alert shows at the top of every portal page while it runs, for every workspace or only for workspaces with a calendar of one provider.
-            </p>
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <p class="max-w-[720px] text-[13px] text-muted">
+                    An alert shows on the overview while it runs, and can pop up once for every user, for every workspace or only for workspaces with a calendar of one provider.
+                </p>
+                <Button :href="urls.create"><template #icon><Icon name="plus" :size="16" :stroke="2.5" /></template>New alert</Button>
+            </div>
 
             <p v-if="!alerts.active.length && !alerts.scheduled.length && !alerts.ended.length" class="sp-card px-6 py-8 text-center text-[13px] text-muted">
                 No alerts yet. Create one when something outside Spacepad affects your customers.

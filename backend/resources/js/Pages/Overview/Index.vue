@@ -3,12 +3,10 @@ import { computed, onBeforeUnmount, onMounted, ref, toRef } from 'vue';
 import { Head, router, usePage } from '@inertiajs/vue3';
 import { openUpgrade } from '../../Components/Upgrade/upgrade';
 import PortalShell from '../../Components/PortalShell.vue';
-import FlashMessage from '../../Components/FlashMessage.vue';
 import Icon from '../../Components/Icon.vue';
 import Button from '../../DesignSystem/Button.vue';
+import EmptyState from '../../DesignSystem/EmptyState.vue';
 import { useRoomDay } from '../../Composables/useRoomDay';
-import { requestJson } from '../../Composables/http';
-import RoomsNow from './Partials/RoomsNow.vue';
 import KeyFigures from './Partials/KeyFigures.vue';
 import QuickActions from './Partials/QuickActions.vue';
 import FinishSetup from './Partials/FinishSetup.vue';
@@ -23,59 +21,12 @@ const props = defineProps({
 });
 
 const page = usePage();
-const roomsNow = ref(null);
 const now = ref(new Date());
-// Today's figures come from the page; the timeline can show any other day.
+// Today's figures come from the page, reloaded every minute.
 const { figures } = useRoomDay(toRef(props, 'rooms'), now);
 
-// The day on the timeline: null is today (from the page, reloaded every minute), any other day
-// is fetched from the calendars on request.
-const day = ref(null);
-const dayRooms = ref(null);
-const loading = ref(false);
-let request = 0;
-const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-
-async function loadDay() {
-    const ticket = ++request;
-    loading.value = true;
-    try {
-        const data = await requestJson('GET', props.urls.day, { params: { date: iso(day.value), offset: -day.value.getTimezoneOffset() } });
-        if (ticket === request) dayRooms.value = data.rooms;
-    } catch {
-        if (ticket === request) dayRooms.value = props.rooms.map((r) => ({ id: r.id, events: [], error: 'The day could not be loaded. Try again.' }));
-    } finally {
-        if (ticket === request) loading.value = false;
-    }
-}
-function showDay(date) {
-    const d = date ? new Date(date) : null;
-    d?.setHours(0, 0, 0, 0);
-    const today = new Date(); today.setHours(0, 0, 0, 0);
-    if (!d || d.getTime() === today.getTime()) {
-        request++;
-        day.value = null; dayRooms.value = null; loading.value = false;
-        return;
-    }
-    day.value = d;
-    loadDay();
-}
-// After booking or changing a meeting: fetch the day shown again.
-function refresh() {
-    if (day.value) return loadDay();
-    loading.value = true;
-    router.reload({ only: ['rooms', 'notices', 'alerts'], onSuccess: () => { now.value = new Date(); }, onFinish: () => { loading.value = false; } });
-}
-
-const timelineRooms = computed(() => {
-    if (!day.value || !dayRooms.value) return day.value ? props.rooms.map((r) => ({ ...r, events: [] })) : props.rooms;
-    const byId = Object.fromEntries(dayRooms.value.map((r) => [r.id, r]));
-    return props.rooms.map((r) => {
-        const d = byId[r.id];
-        return { ...r, events: d?.events ?? [], error: d?.error ?? null, hasData: !!d && d.events !== null && !d.error };
-    });
-});
-const timeline = useRoomDay(timelineRooms, now, { day, fullDay: true });
+// Rooms a meeting can be booked in from the portal; the booking itself happens on Live view.
+const canBook = computed(() => props.rooms.some((r) => r.actions?.book));
 
 const firstName = computed(() => (props.shell.user || '').split(/[\s.@]+/)[0]);
 const greeting = computed(() => {
@@ -114,19 +65,17 @@ onBeforeUnmount(() => { clearInterval(tick); clearInterval(poll); });
 <template>
     <Head title="Overview" />
 
-    <PortalShell :shell="shell" title="Overview" inline-alerts>
-        <template #actions>
-            <Button v-if="page.props.upgrade?.mustUpgradeForDisplay" @click="openUpgrade('displays')"><template #icon><Icon name="plus" :size="16" :stroke="2.5" /></template>New display</Button>
-            <Button v-else :href="urls.newDisplay"><template #icon><Icon name="plus" :size="16" :stroke="2.5" /></template>New display</Button>
-        </template>
-
+    <PortalShell :shell="shell" title="Overview">
         <div class="flex flex-col gap-6 px-6 pt-7 pb-10 md:px-8">
-            <div class="flex flex-col gap-1">
-                <h2 class="font-display text-[26px] leading-tight font-bold tracking-tight">{{ greeting }}</h2>
-                <p class="text-muted">{{ summary }}</p>
+            <div class="flex flex-wrap items-end justify-between gap-3">
+                <div class="flex flex-col gap-1">
+                    <h2 class="font-display text-[26px] leading-tight font-bold tracking-tight">{{ greeting }}</h2>
+                    <p class="text-muted">{{ summary }}</p>
+                </div>
+                <Button v-if="page.props.upgrade?.mustUpgradeForDisplay" @click="openUpgrade('displays')"><template #icon><Icon name="plus" :size="16" :stroke="2.5" /></template>New display</Button>
+                <Button v-else :href="urls.newDisplay"><template #icon><Icon name="plus" :size="16" :stroke="2.5" /></template>New display</Button>
             </div>
 
-            <FlashMessage />
 
             <section v-if="notices.length || alerts.length" aria-label="Needs attention" class="flex flex-col gap-2.5">
                 <AlertRow v-for="a in alerts" :key="a.id" :tone="a.tone" :title="a.title" :body="a.body" />
@@ -142,15 +91,15 @@ onBeforeUnmount(() => { clearInterval(tick); clearInterval(poll); });
             <div class="flex flex-wrap items-start gap-6">
                 <div class="flex min-w-0 flex-[999_1_560px] flex-col gap-4">
                     <KeyFigures v-if="rooms.length" :figures="figures" :accounts="accounts" />
-                    <RoomsNow ref="roomsNow" :rooms="timeline.list.value" :hours="timeline.hours.value" :now-left="timeline.nowLeft.value" :now-label="timeline.nowLabel.value"
-                              :day="timeline.dayStart.value" :is-today="timeline.isToday.value" :loading="loading" :percent="timeline.percent" :time-at="timeline.timeAt"
-                              :now="now" :urls="urls" @day="showDay" @changed="refresh" />
+                    <EmptyState v-else title="No displays yet" class="sp-card">Set up a display and its room shows up here and on Live view.
+                        <template #actions><Button :href="urls.newDisplay">Set up a display</Button></template>
+                    </EmptyState>
                 </div>
 
                 <aside aria-label="Setup" class="flex max-w-full min-w-0 flex-[1_1_320px] flex-col gap-4 lg:max-w-[380px]">
                     <CancellationCard v-if="cancellation" :card="cancellation" />
                     <ProfileCard v-if="profileCard" :card="profileCard" />
-                    <QuickActions v-if="rooms.length" :has-pro="hasPro" :can-book="!!roomsNow?.canBook" :urls="urls" @book="roomsNow?.book()" />
+                    <QuickActions v-if="rooms.length" :has-pro="hasPro" :can-book="canBook" :urls="urls" />
                     <FinishSetup :checklist="checklist" :has-pro="hasPro" :urls="urls" />
 
                     <div v-if="code" class="sp-card flex flex-col gap-2 px-5 py-[18px]">

@@ -6,7 +6,6 @@
 import { computed, reactive, ref } from 'vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import PortalShell from '../../Components/PortalShell.vue';
-import FlashMessage from '../../Components/FlashMessage.vue';
 import Button from '../../DesignSystem/Button.vue';
 import Chip from '../../DesignSystem/Chip.vue';
 import Modal from '../../DesignSystem/Modal.vue';
@@ -134,7 +133,6 @@ const errorBag = computed(() => Object.values(forms).map((f) => f.errors.error).
         </header>
 
         <div class="flex flex-col gap-6 px-6 pt-7 pb-10 md:px-8">
-            <FlashMessage />
             <Notice v-if="errorBag" tone="danger" :title="errorBag" />
 
             <div class="flex flex-wrap items-start gap-7">

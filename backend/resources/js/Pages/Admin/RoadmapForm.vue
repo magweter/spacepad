@@ -2,7 +2,6 @@
 // Create or edit a roadmap item. Items created here are approved straight away.
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import PortalShell from '../../Components/PortalShell.vue';
-import FlashMessage from '../../Components/FlashMessage.vue';
 import Icon from '../../Components/Icon.vue';
 import Button from '../../DesignSystem/Button.vue';
 import Card from '../../DesignSystem/Card.vue';
@@ -38,7 +37,6 @@ const fieldClass = 'block w-full rounded-lg border border-line bg-surface px-3 p
         </template>
 
         <div class="flex max-w-2xl flex-col gap-6 px-6 pt-7 pb-10 md:px-8">
-            <FlashMessage />
 
             <form class="flex flex-col gap-5" @submit.prevent="submit">
                 <Card>

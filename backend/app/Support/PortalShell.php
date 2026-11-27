@@ -23,6 +23,8 @@ class PortalShell
 
         $nav = [
             ['key' => 'overview', 'label' => 'Overview', 'icon' => 'overview', 'href' => route('dashboard')],
+            // 'new' shows a green label in the sidebar while the page is new.
+            ['key' => 'live', 'label' => 'Live view', 'icon' => 'live', 'href' => route('live.index'), 'new' => true],
             ['key' => 'displays', 'label' => 'Displays', 'icon' => 'displays', 'href' => route('displays.index'), 'count' => $workspace->displays()->count()],
             ['key' => 'boards', 'label' => 'Boards', 'icon' => 'boards', 'href' => route('boards.index'), 'pro' => ! $hasPro],
             ['key' => 'profiles', 'label' => 'Profiles', 'icon' => 'profiles', 'href' => route('profiles.index'), 'pro' => ! $hasPro],

@@ -3,7 +3,6 @@ import { computed } from 'vue';
 import { Head } from '@inertiajs/vue3';
 import PortalShell from '../../Components/PortalShell.vue';
 import { openUpgrade } from '../../Components/Upgrade/upgrade';
-import FlashMessage from '../../Components/FlashMessage.vue';
 import Notice from '../../DesignSystem/Notice.vue';
 import InviteCard from './Partials/InviteCard.vue';
 import MembersTable from './Partials/MembersTable.vue';
@@ -31,7 +30,6 @@ const figures = computed(() => [
     <PortalShell :shell="shell" title="Team">
         <div class="flex max-w-[1040px] flex-col gap-4 px-6 pt-7 pb-10 md:px-8">
 
-            <FlashMessage />
 
             <div class="sp-kpistrip">
                 <div v-for="f in figures" :key="f.label" class="sp-kpistrip-item">

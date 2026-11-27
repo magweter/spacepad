@@ -41,7 +41,7 @@ test('the page lists the workspace displays with their calendar, tablets and boo
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('Displays/Index')
-            ->where('shell.nav.1.active', true)
+            ->where('shell.nav.2.active', true)
             ->has('displays', 1)
             ->where('displays.0.name', 'Boardroom')
             ->where('displays.0.status', 'active')

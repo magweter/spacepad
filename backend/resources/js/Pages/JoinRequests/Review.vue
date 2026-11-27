@@ -1,7 +1,6 @@
 <script setup>
 import { Head, router } from '@inertiajs/vue3';
 import Logo from '../../Components/Logo.vue';
-import FlashMessage from '../../Components/FlashMessage.vue';
 import Button from '../../DesignSystem/Button.vue';
 import Card from '../../DesignSystem/Card.vue';
 import Notice from '../../DesignSystem/Notice.vue';
@@ -17,7 +16,6 @@ defineProps({ request: Object, workspace: Object, canDecide: Boolean, needsPro: 
 
         <main class="flex flex-1 items-start justify-center px-4 pt-6 pb-16 md:pt-14">
             <div class="flex w-full max-w-[520px] flex-col gap-6">
-                <FlashMessage />
 
                 <div class="flex flex-col gap-1.5">
                     <span class="text-xs font-semibold tracking-[0.06em] text-muted uppercase">{{ workspace.name }}</span>

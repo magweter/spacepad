@@ -7,10 +7,10 @@ import ProBadge from '../../../Components/Upgrade/ProBadge.vue';
 import { openUpgrade } from '../../../Components/Upgrade/upgrade';
 
 const props = defineProps({ hasPro: Boolean, canBook: Boolean, urls: Object });
-const emit = defineEmits(['book']);
 
 const actions = computed(() => [
-    props.canBook && { label: 'Book a room', icon: 'plus', click: () => emit('book') },
+    props.canBook && { label: 'Book a room', icon: 'plus', href: props.urls.book },
+    { label: 'See every room live', icon: 'live', href: props.urls.live },
     { label: 'Pair a tablet', icon: 'tablet', href: props.urls.pairing },
     { label: 'Change display settings', icon: 'settings', href: props.urls.displays },
     { label: 'Connect a calendar', icon: 'calendars', href: props.urls.calendars },
@@ -25,7 +25,7 @@ const item = 'flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left 
     <nav aria-label="Quick actions" class="sp-card flex flex-col gap-1.5 px-3 py-3.5">
         <h2 class="px-2.5 pb-1 font-display text-base font-bold tracking-tight">Quick actions</h2>
         <template v-for="a in actions" :key="a.label">
-            <button v-if="a.click || a.pro" type="button" :class="item" @click="a.pro ? openUpgrade(a.feature) : a.click()">
+            <button v-if="a.pro" type="button" :class="item" @click="openUpgrade(a.feature)">
                 <span class="grid h-7 w-7 flex-none place-items-center rounded-lg bg-navy-50 text-navy"><Icon :name="a.icon" :size="15" /></span>
                 {{ a.label }}
                 <ProBadge v-if="a.pro" :feature="a.feature" class="ml-auto" />

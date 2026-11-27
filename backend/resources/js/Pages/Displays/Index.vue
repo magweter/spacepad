@@ -4,7 +4,6 @@ import { computed, onBeforeUnmount, onMounted, ref, toRef, watch } from 'vue';
 import { Head, router } from '@inertiajs/vue3';
 import PortalShell from '../../Components/PortalShell.vue';
 import { openUpgrade } from '../../Components/Upgrade/upgrade';
-import FlashMessage from '../../Components/FlashMessage.vue';
 import Icon from '../../Components/Icon.vue';
 import Button from '../../DesignSystem/Button.vue';
 import Card from '../../DesignSystem/Card.vue';
@@ -125,16 +124,9 @@ const fieldClass = 'rounded-lg border border-line bg-surface px-3 py-2 text-[13p
     <PortalShell :shell="shell" title="Displays">
         <template #actions>
             <span v-if="subtitle" class="text-[13px] text-muted">{{ subtitle }}</span>
-            <Button v-if="hasPro" variant="secondary" :href="urls.profiles" external>Manage profiles</Button>
-            <template v-if="canCreate">
-                <!-- On the free plan with its display in use, the button explains Pro instead of a dead end. -->
-                <Button v-if="mustUpgrade" @click="openUpgrade('displays')"><template #icon><Icon name="plus" :size="16" :stroke="2.5" /></template>New display</Button>
-                <Button v-else :href="urls.newDisplay" external><template #icon><Icon name="plus" :size="16" :stroke="2.5" /></template>New display</Button>
-            </template>
         </template>
 
         <div class="flex flex-col gap-4 px-6 pt-7 pb-10 md:px-8">
-            <FlashMessage />
 
             <EmptyState v-if="!displays.length" title="No displays yet">
                 Connect a calendar, pick a room and pair a tablet. It takes a few minutes.
@@ -144,9 +136,9 @@ const fieldClass = 'rounded-lg border border-line bg-surface px-3 py-2 text-[13p
             <template v-else>
                 <div class="flex flex-wrap items-center gap-2.5">
                     <label for="display-filter" class="sr-only">Filter displays</label>
-                    <span class="relative flex max-w-[360px] min-w-[220px] flex-[1_1_260px] items-center">
+                    <span class="relative flex max-w-[320px] min-w-[180px] flex-[1_1_200px] items-center">
                         <Icon name="search" :size="15" class="pointer-events-none absolute left-3 text-muted" />
-                        <input id="display-filter" v-model="query" type="search" placeholder="Filter by name, room or tablet" :class="[fieldClass, 'w-full pl-9']">
+                        <input id="display-filter" v-model="query" type="search" placeholder="Filter displays" :class="[fieldClass, 'w-full pl-9']">
                     </span>
                     <label class="inline-flex items-center gap-1.5 text-xs font-medium text-ink-3">
                         Status
@@ -173,6 +165,12 @@ const fieldClass = 'rounded-lg border border-line bg-surface px-3 py-2 text-[13p
                             <Icon name="boards" :size="15" />
                         </button>
                     </div>
+                    <Button v-if="hasPro" variant="secondary" :href="urls.profiles" external>Manage profiles</Button>
+                    <template v-if="canCreate">
+                        <!-- On the free plan with its display in use, the button explains Pro instead of a dead end. -->
+                        <Button v-if="mustUpgrade" @click="openUpgrade('displays')"><template #icon><Icon name="plus" :size="16" :stroke="2.5" /></template>New display</Button>
+                        <Button v-else :href="urls.newDisplay" external><template #icon><Icon name="plus" :size="16" :stroke="2.5" /></template>New display</Button>
+                    </template>
                 </div>
 
                 <BulkBar v-if="canBulkAssign" v-model:picked="picked" :displays="displays" :profiles="profiles" :show-hint="showBulkHint" :urls="urls" />

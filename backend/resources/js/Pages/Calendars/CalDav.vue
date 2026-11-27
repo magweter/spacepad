@@ -3,7 +3,6 @@
 // Spacepad checks the connection before it saves anything.
 import { Head, useForm } from '@inertiajs/vue3';
 import PortalShell from '../../Components/PortalShell.vue';
-import FlashMessage from '../../Components/FlashMessage.vue';
 import Icon from '../../Components/Icon.vue';
 import Button from '../../DesignSystem/Button.vue';
 import Card from '../../DesignSystem/Card.vue';
@@ -29,7 +28,6 @@ const field = 'w-full rounded-[10px] border border-offline-border bg-surface px-
                 <Icon name="arrowLeft" :size="14" />{{ onboarding ? 'Back to the setup' : 'Back to calendars' }}
             </a>
 
-            <FlashMessage />
 
             <Card padding="lg" class="max-w-[560px]">
                 <form class="flex flex-col gap-5" @submit.prevent="submit">

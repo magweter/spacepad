@@ -201,6 +201,9 @@ instead of one by one.
   individual display: Behavior, Display, State texts, Branding and Advertisement — **including the
   images** (logo, background, advertisement image), so one upload covers every room that follows the
   profile. A display can still upload its own, which overrides the profile for that display only.
+- The **Profiles** page is an overview of cards, like Boards: per profile how many displays follow it,
+  whether booking and check-in are on, and when it last changed. A card opens the profile's edit page,
+  which also lists its displays and holds Delete. Creating or saving a profile stays on that page
 - **Assigning** happens from the Displays tab: select displays with checkboxes and assign a profile in
   bulk, or unlink them. Assigning clears the selected displays' own settings so they genuinely follow
   the profile; a warning first states how many displays that affects. Unlinking keeps their values.
@@ -315,25 +318,30 @@ a separate account with its own invisible set of displays.
   the moment a tablet pairs, and someone without admin rights can email a request to their IT admin.
   It ends on a "first display live" screen with the next steps
 - **Overview** — a greeting with how things stand, key figures (displays online, rooms free, bookings
-  today, calendars), only the notices that block the product, the rooms right now as a timeline or
-  cards ("Room overview"), quick actions (book a room, pair a tablet, display settings, connect a
-  calendar, invite a teammate, create a board) and the setup checklist. The calendars figure is a health
-  check: all connected and reachable, or what needs fixing. Read from the cached events, so it never calls a
-  calendar provider. The timeline is a day calendar over the whole day that scrolls sideways; a click on
-  a meeting shows its details (organiser, location, online meeting link). Other days are fetched live
-  from the calendars with a loading indicator (previous, next, today, pick a date)
+  today, calendars), only the notices that block the product, quick actions (book a room, see every
+  room live, pair a tablet, display settings, connect a calendar, invite a teammate, create a board)
+  and the setup checklist. The calendars figure is a health check: all connected and reachable, or
+  what needs fixing. Read from the cached events, so it never calls a calendar provider
+- **Live view** — its own page in the sidebar (marked "New"): every room right now as a timeline or
+  cards, refreshed every minute, with a coloured bar per room for its status. The timeline is a day
+  calendar over the whole day that scrolls sideways; a click on a meeting shows its details (organiser,
+  location, online meeting link). Other days are fetched live from the calendars with a loading
+  indicator (previous, next, today, pick a date). "Book a room" on the overview opens this page with
+  the booking window
 - **Needs attention** — a calendar account that needs signing in again (expired token, changed
   permissions) is an "Action required" notice on the overview and the Calendars page, with a button that
   starts the sign-in for that account; rooms whose meetings could not be read for another reason (an
   outage, refused access) are listed in an "Attention" notice and show as "Not loaded" in the timeline
 - **Alerts from Spacepad** — an alert an admin sets by hand (for example a Microsoft 365 outage) shows
-  at the top of every portal page while it runs (on the overview, in its "needs attention" list), for
+  on the overview while it runs, in its "needs attention" list (not on the other pages), for
   every workspace or only for workspaces with a calendar account of that provider. Seven types, each
   with its own label and colour: Info, New, Maintenance, Attention, Service degradation, Action
   required and Resolved. An alert can also open as a popup, once for every user. Admins create,
   schedule, edit and end alerts in the "Alerts" tab of the admin panel, with a preview of the row
 - **Error toasts** — server errors, a lost connection and unexpected script errors show as a toast at
   the bottom right instead of an error page or nothing
+- **Confirmation toasts** — short-lived messages (switched workspace, saved, booked) are toasts at the
+  bottom right as well, never a bar across the page. The sign-in page keeps its errors next to the form
 - **Managing meetings from the portal** — every workspace member can book a room (click an empty spot
   on the timeline or "Book a room") with a title, description and attendees to invite, check in, extend by 15 or 30 minutes, end a running meeting or
   cancel one that has not started, under the same rules as the tablet: Pro, a display that is not

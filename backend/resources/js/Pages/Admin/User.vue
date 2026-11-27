@@ -3,7 +3,6 @@
 import { ref } from 'vue';
 import { Head, Link } from '@inertiajs/vue3';
 import PortalShell from '../../Components/PortalShell.vue';
-import FlashMessage from '../../Components/FlashMessage.vue';
 import Icon from '../../Components/Icon.vue';
 import Button from '../../DesignSystem/Button.vue';
 import Card from '../../DesignSystem/Card.vue';
@@ -58,7 +57,6 @@ const heading = 'font-display text-base font-bold tracking-tight';
                 <p class="text-[13px] text-muted">View and manage user account information</p>
             </div>
 
-            <FlashMessage />
 
             <Card>
                 <h2 :class="heading">Account information</h2>

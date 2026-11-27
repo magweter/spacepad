@@ -2,7 +2,6 @@
 // Create or edit an alert, with a preview of the row the portal will show.
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import PortalShell from '../../Components/PortalShell.vue';
-import FlashMessage from '../../Components/FlashMessage.vue';
 import Icon from '../../Components/Icon.vue';
 import AlertRow from '../../Components/AlertRow.vue';
 import { alertTones } from '../../Components/alertTones.js';
@@ -54,7 +53,6 @@ const fieldClass = 'block w-full rounded-lg border border-line bg-surface px-3 p
         </template>
 
         <div class="flex max-w-2xl flex-col gap-6 px-6 pt-7 pb-10 md:px-8">
-            <FlashMessage />
 
             <section aria-label="Preview" class="flex flex-col gap-2">
                 <span class="text-xs font-semibold tracking-wide text-muted uppercase">Preview</span>

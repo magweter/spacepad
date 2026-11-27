@@ -2,7 +2,6 @@
 import { computed, watch } from 'vue';
 import { Head } from '@inertiajs/vue3';
 import OnboardingLayout from '../../Components/OnboardingLayout.vue';
-import FlashMessage from '../../Components/FlashMessage.vue';
 import { useOnboarding } from '../../Composables/useOnboarding';
 import WorkspaceStep from './Steps/WorkspaceStep.vue';
 import RoomsStep from './Steps/RoomsStep.vue';
@@ -42,7 +41,6 @@ watch(() => props.step, (step) => onboarding.track(step, 'viewed'), { immediate:
 
     <OnboardingLayout title="Four steps to get you set up" subtitle="Setting up will only take 1 minute and help us provide the best experience."
                       :items="rail" :user="user" :logout-url="urls.logout">
-        <FlashMessage />
         <component :is="components[step]" v-bind="$props" :eyebrow="eyebrow" :onboarding="onboarding" />
     </OnboardingLayout>
 </template>

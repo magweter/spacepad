@@ -1,7 +1,6 @@
 <script setup>
 import { Head } from '@inertiajs/vue3';
 import PortalShell from '../../Components/PortalShell.vue';
-import FlashMessage from '../../Components/FlashMessage.vue';
 import Chip from '../../DesignSystem/Chip.vue';
 import SettingRow from '../../DesignSystem/SettingRow.vue';
 import DeleteAccount from './Partials/DeleteAccount.vue';
@@ -16,7 +15,6 @@ defineProps({ shell: Object, account: Object, workspaces: Array, urls: Object })
         <div class="flex max-w-[808px] flex-col gap-4 px-6 pt-7 pb-10 md:px-8">
             <p class="-mt-2 text-[13px] text-muted">Your personal account. The same whichever workspace you have open.</p>
 
-            <FlashMessage />
 
             <section class="sp-card gap-0 px-[18px] py-1.5">
                 <div class="flex flex-col gap-0.5 border-b border-line pt-3 pb-1.5">

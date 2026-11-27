@@ -2,7 +2,6 @@
 import { ref } from 'vue';
 import { Head, useForm } from '@inertiajs/vue3';
 import PortalShell from '../../Components/PortalShell.vue';
-import FlashMessage from '../../Components/FlashMessage.vue';
 import Button from '../../DesignSystem/Button.vue';
 import SettingRow from '../../DesignSystem/SettingRow.vue';
 import DangerZone from './Partials/DangerZone.vue';
@@ -26,7 +25,6 @@ const field = 'rounded-lg border border-line bg-surface px-3 py-2 text-[13px] fo
         <div class="flex max-w-[808px] flex-col gap-4 px-6 pt-7 pb-10 md:px-8">
             <p class="-mt-2 text-[13px] text-muted">Workspace-wide. Per-display behaviour lives in <a :href="urls.profiles" class="font-semibold text-navy hover:underline">Profiles</a>.</p>
 
-            <FlashMessage />
 
             <section id="workspace" class="sp-card gap-0 px-[18px] py-1.5">
                 <div class="flex flex-col gap-0.5 border-b border-line pt-3 pb-1.5">

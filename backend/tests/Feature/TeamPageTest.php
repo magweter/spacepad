@@ -49,7 +49,7 @@ test('the owner sees the team, pending invitations and every action', function (
     teamPageAs($workspace, $users['owner'])
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page->component('Team/Index')
-            ->where('shell.nav.5.active', true)
+            ->where('shell.nav.6.active', true)
             ->has('members', 3)
             ->has('invitations', 1)
             ->where('invitations.0.email', 'new@playup.sk')

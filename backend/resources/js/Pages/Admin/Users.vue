@@ -3,7 +3,6 @@
 import { ref } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import PortalShell from '../../Components/PortalShell.vue';
-import FlashMessage from '../../Components/FlashMessage.vue';
 import Icon from '../../Components/Icon.vue';
 import Button from '../../DesignSystem/Button.vue';
 import Card from '../../DesignSystem/Card.vue';
@@ -36,7 +35,6 @@ const columns = 'grid-cols-[1.4fr_2fr_1.1fr_0.7fr_0.7fr_0.6fr_1fr_1fr_170px]';
     <PortalShell :shell="shell" title="Admin">
         <div class="flex flex-col gap-6 px-6 pt-7 pb-10 md:px-8">
             <AdminTabs active="users" :stats="stats" :pending-roadmap="pendingRoadmap" />
-            <FlashMessage />
 
             <div class="flex flex-col gap-4">
                 <form class="flex flex-wrap items-center gap-2.5" role="search" @submit.prevent="submit">

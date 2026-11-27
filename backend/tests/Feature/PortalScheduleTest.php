@@ -195,15 +195,33 @@ test('a refusal from the calendar side comes back as a readable message', functi
         ->assertStatus(422)->assertJsonPath('message', 'Only events booked via this tablet can be cancelled');
 });
 
-test('the overview tells the timeline what each room allows', function () {
+test('live view tells the timeline what each room allows', function () {
     [$user, $display] = scheduleRoom();
 
-    $this->actingAs($user)->get(route('dashboard'))
+    $this->actingAs($user)->get(route('live.index'))
+        ->assertOk()
         ->assertInertia(fn ($page) => $page
+            ->component('LiveView/Index')
+            ->where('shell.nav.1.key', 'live')
+            ->where('shell.nav.1.active', true)
+            ->where('shell.nav.1.new', true)
+            ->where('book', false)
             ->where('rooms.0.actions.book', true)
             ->where('rooms.0.actions.bookAhead', true)
             ->where('rooms.0.actions.extend', true)
             ->where('rooms.0.actions.cancel', 'all')
             ->where('rooms.0.urls.book', route('schedule.book', $display))
             ->where('urls.day', route('schedule.day')));
+});
+
+test('the overview sends "Book a room" to live view, which opens the booking window', function () {
+    [$user] = scheduleRoom();
+
+    $this->actingAs($user)->get(route('dashboard'))
+        ->assertInertia(fn ($page) => $page
+            ->where('rooms.0.actions.book', true)
+            ->where('urls.book', route('live.index', ['book' => 1])));
+
+    $this->actingAs($user)->get(route('live.index', ['book' => 1]))
+        ->assertInertia(fn ($page) => $page->where('book', true));
 });

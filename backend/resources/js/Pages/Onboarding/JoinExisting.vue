@@ -2,7 +2,6 @@
 import { Head, router } from '@inertiajs/vue3';
 import OnboardingLayout from '../../Components/OnboardingLayout.vue';
 import StepHeading from '../../Components/StepHeading.vue';
-import FlashMessage from '../../Components/FlashMessage.vue';
 import Button from '../../DesignSystem/Button.vue';
 import Card from '../../DesignSystem/Card.vue';
 import Notice from '../../DesignSystem/Notice.vue';
@@ -33,7 +32,6 @@ const summary = [
 
     <OnboardingLayout title="Your team is already here" subtitle="Join your colleagues, or set up a workspace of your own in four steps."
                       :items="rail" :user="user" :logout-url="urls.logout">
-        <FlashMessage />
 
         <StepHeading eyebrow="Your team is on Spacepad" :title="sent ? 'Your request is on its way' : `Join ${workspace.name}?`">
             <template v-if="sent">We asked the admins of {{ workspace.name }} to let you in. You get an email at {{ user.email }} once they approve.</template>

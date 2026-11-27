@@ -3,7 +3,6 @@
 import { ref } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import PortalShell from '../../Components/PortalShell.vue';
-import FlashMessage from '../../Components/FlashMessage.vue';
 import Icon from '../../Components/Icon.vue';
 import Card from '../../DesignSystem/Card.vue';
 import PlanChip from './Partials/PlanChip.vue';
@@ -28,7 +27,6 @@ const fieldClass = 'rounded-lg border border-line bg-surface px-3 py-2 text-[13p
     <PortalShell :shell="shell" title="Admin">
         <div class="flex flex-col gap-6 px-6 pt-7 pb-10 md:px-8">
             <AdminTabs active="workspaces" :stats="stats" :pending-roadmap="pendingRoadmap" />
-            <FlashMessage />
 
             <form role="search" class="flex" @submit.prevent="submit">
                 <label for="workspace-search" class="sr-only">Search workspaces</label>

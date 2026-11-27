@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useRememberedRef } from '../../../Composables/useRememberedRef';
 import MeetingDetails from './MeetingDetails.vue';
 import BookMeeting from './BookMeeting.vue';
@@ -7,6 +7,7 @@ import Icon from '../../../Components/Icon.vue';
 import Card from '../../../DesignSystem/Card.vue';
 import EmptyState from '../../../DesignSystem/EmptyState.vue';
 import Button from '../../../DesignSystem/Button.vue';
+import { toast } from '../../../Components/Toasts/toasts';
 
 const props = defineProps({
     rooms: Array, hours: Array, nowLeft: { type: Number, default: null }, nowLabel: String, urls: Object,
@@ -15,10 +16,8 @@ const props = defineProps({
 const emit = defineEmits(['day', 'changed']);
 
 const view = useRememberedRef('overview.rooms.view', 'timeline', ['timeline', 'cards']);
-const rail = { free: 'border-l-available', busy: 'border-l-reserved', checkin: 'border-l-checkin', offline: 'border-l-offline' };
-const dot = { free: 'bg-available', busy: 'bg-reserved', checkin: 'bg-checkin', offline: 'bg-offline' };
-const text = { free: 'text-available-text', busy: 'text-reserved-text', checkin: 'text-checkin-text', offline: 'text-muted' };
-const badge = { free: 'bg-available-bg text-available-text', busy: 'bg-reserved-bg text-reserved-text', checkin: 'bg-checkin-bg text-checkin-text', offline: 'bg-offline-bg text-muted' };
+const rail = { free: 'bg-available', busy: 'bg-reserved', checkin: 'bg-checkin', offline: 'bg-offline' };
+const rule = { free: 'sp-card-rule-available', busy: 'sp-card-rule-reserved', checkin: 'sp-card-rule-checkin', offline: 'sp-card-rule-offline' };
 // Calendar blocks: a light fill with a coloured edge, so the title stays readable in every state.
 const block = {
     past: 'border-offline bg-surface-raised text-muted',
@@ -28,8 +27,6 @@ const block = {
 };
 const open = ref(null);
 const booking = ref(null);
-const toast = ref(null);
-let toastTimer;
 
 // The whole day scrolls sideways. It opens on the current time (now about a third in), and on
 // another day at 08:00.
@@ -47,13 +44,12 @@ async function scrollToStart() {
 onMounted(scrollToStart);
 watch(view, (v) => { if (v === 'timeline') scrollToStart(); });
 watch(() => props.day?.getTime(), scrollToStart);
-onBeforeUnmount(() => clearTimeout(toastTimer));
 
 // Moving between days.
 const pad = (n) => String(n).padStart(2, '0');
 const dayValue = computed(() => (props.day ? `${props.day.getFullYear()}-${pad(props.day.getMonth() + 1)}-${pad(props.day.getDate())}` : ''));
 const heading = computed(() => {
-    if (props.isToday) return 'Room overview';
+    if (props.isToday) return 'Today';
     const today = new Date(props.now); today.setHours(0, 0, 0, 0);
     const diff = Math.round((props.day - today) / 86400000);
     if (diff === 1) return 'Tomorrow';
@@ -101,9 +97,7 @@ function onPick(room, e) {
 function done(message) {
     open.value = null;
     booking.value = null;
-    toast.value = message;
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => { toast.value = null; }, 6000);
+    if (message) toast({ title: message, tone: 'success' });
     emit('changed');
 }
 </script>
@@ -111,7 +105,7 @@ function done(message) {
 <template>
     <section aria-label="Live room status" class="flex flex-col gap-3.5">
         <div class="flex flex-wrap items-center gap-3">
-            <h2 class="font-display text-base font-bold tracking-tight">{{ view === 'timeline' ? heading : 'Room overview' }}</h2>
+            <h2 class="font-display text-base font-bold tracking-tight">{{ view === 'timeline' ? heading : 'Right now' }}</h2>
             <div v-if="rooms.length && view === 'timeline'" class="flex items-center gap-1">
                 <button type="button" aria-label="Previous day" class="grid h-7 w-7 place-items-center rounded-lg border border-line bg-surface text-ink-3 hover:bg-surface-raised" @click="step(-1)">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg>
@@ -137,10 +131,6 @@ function done(message) {
             </div>
         </div>
 
-        <div v-if="toast" role="status" class="flex items-center gap-2 rounded-lg border border-available-border bg-available-bg px-3.5 py-2 text-[13px] font-medium text-available-text">
-            <Icon name="check" :size="14" :stroke="2.5" />{{ toast }}
-        </div>
-
         <EmptyState v-if="!rooms.length" title="No displays yet">Set up a display and its room shows up here, live.
             <template #actions><Button :href="urls.newDisplay" external>Set up a display</Button></template>
         </EmptyState>
@@ -160,10 +150,12 @@ function done(message) {
                     </div>
                 </div>
 
-                <div v-for="room in rooms" :key="room.id" class="grid grid-cols-[170px_1fr] border-b border-l-[3px] border-b-line-soft sm:grid-cols-[190px_1fr]" :class="rail[room.state.key]">
-                    <a :href="room.url" class="sticky left-0 z-30 flex min-w-0 flex-col justify-center border-r border-line-soft bg-surface py-3 pr-3 pl-[17px] text-ink hover:bg-surface-raised">
+                <div v-for="room in rooms" :key="room.id" class="grid grid-cols-[170px_1fr] border-b border-b-line-soft sm:grid-cols-[190px_1fr]">
+                    <!-- The status bar lives in the sticky room cell, so it stays in view while the day scrolls. -->
+                    <a :href="room.url" class="sticky left-0 z-30 flex min-w-0 flex-col justify-center border-r border-line-soft bg-surface py-3 pr-3 pl-5 text-ink hover:bg-surface-raised">
+                        <span class="absolute inset-y-0 left-0 w-1" :class="rail[room.state.key]" aria-hidden="true"></span>
                         <span class="truncate text-[13px] font-semibold">{{ room.name }}</span>
-                        <span class="truncate text-[11px] font-medium" :class="text[room.state.key]">{{ room.state.summary }}</span>
+                        <span class="truncate text-[11px] font-medium text-ink-3">{{ room.state.summary }}</span>
                     </a>
                     <div class="relative mr-5 h-[60px]" :class="room.actions?.book ? 'cursor-pointer' : ''"
                          @mousemove="onMove(room, $event)" @mouseleave="hover = null" @click="onPick(room, $event)">
@@ -202,11 +194,10 @@ function done(message) {
         </Card>
 
         <div v-else class="grid gap-3.5 sm:grid-cols-2 xl:grid-cols-3">
-            <a v-for="room in rooms" :key="room.id" :href="room.url" class="sp-card sp-card-pad-md sp-card-interactive flex flex-col gap-2.5 text-ink">
+            <a v-for="room in rooms" :key="room.id" :href="room.url" class="sp-card sp-card-pad-md sp-card-interactive sp-card-rule flex flex-col gap-2.5 text-ink" :class="rule[room.state.key]">
                 <span class="flex items-center gap-2">
-                    <span class="h-2.5 w-2.5 flex-none rounded-full" :class="dot[room.state.key]"></span>
                     <span class="flex-1 truncate font-semibold">{{ room.name }}</span>
-                    <span class="rounded-full px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap" :class="badge[room.state.key]">{{ room.state.label }}</span>
+                    <span class="rounded-full bg-surface-raised px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap text-ink-2">{{ room.state.label }}</span>
                 </span>
                 <span class="min-h-5 truncate text-[13px] text-ink-3">{{ room.state.meeting || ' ' }}</span>
                 <span class="text-xs text-muted">{{ room.state.summary }}</span>

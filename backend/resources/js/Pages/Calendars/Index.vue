@@ -2,7 +2,6 @@
 import { computed, ref, watch } from 'vue';
 import { Head } from '@inertiajs/vue3';
 import PortalShell from '../../Components/PortalShell.vue';
-import FlashMessage from '../../Components/FlashMessage.vue';
 import Icon from '../../Components/Icon.vue';
 import Button from '../../DesignSystem/Button.vue';
 import Card from '../../DesignSystem/Card.vue';
@@ -47,12 +46,7 @@ watch(() => props.adminConsent, (value) => { if (value) modal.value = { type: 'a
     <Head title="Calendars" />
 
     <PortalShell :shell="shell" title="Calendars">
-        <template #actions>
-            <Button @click="connect()"><template #icon><Icon name="plus" :size="16" :stroke="2.5" /></template>Connect source</Button>
-        </template>
-
         <div class="flex flex-col gap-6 px-6 pt-7 pb-10 md:px-8">
-            <FlashMessage />
 
             <section v-if="notices.length" aria-label="Needs attention" class="flex flex-col gap-2.5">
                 <Notice v-for="(n, i) in notices" :key="i" shape="row" :tone="n.tone ?? 'warning'" :tag="n.tag ?? 'Action required'" :title="n.title" :action="n.cta"
@@ -69,7 +63,11 @@ watch(() => props.adminConsent, (value) => { if (value) modal.value = { type: 'a
             </Card>
 
             <template v-else>
-                <section aria-label="Connected sources" class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    <h2 class="font-display text-base font-bold">Connected sources</h2>
+                    <Button @click="connect()"><template #icon><Icon name="plus" :size="16" :stroke="2.5" /></template>Connect source</Button>
+                </div>
+                <section aria-label="Connected sources" class="-mt-2 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                     <SourceCard v-for="a in accounts" :key="`${a.provider}-${a.id}`" :account="a"
                                 @booking-method="open(a.provider === 'google' ? 'google-booking-method' : 'microsoft-booking-method', a.id)"
                                 @service-account="open('service-account', a.id)"

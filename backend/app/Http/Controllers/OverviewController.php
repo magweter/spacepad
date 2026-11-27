@@ -20,7 +20,7 @@ use App\Models\Workspace;
 use App\Services\Funnel;
 use App\Services\FunnelTracking;
 use App\Support\PortalEvents;
-use App\Support\PortalSchedule;
+use App\Support\PortalRooms;
 use App\Support\PortalShell;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -40,9 +40,6 @@ use Inertia\Response;
  */
 class OverviewController extends Controller
 {
-    /** A tablet that has not been heard from in this many minutes counts as offline. */
-    private const ONLINE_MINUTES = 10;
-
     /** Flashes that open a modal on the calendars page. */
     private const CLASSIC_FLASHES = [
         'open-service-account-modal',
@@ -90,7 +87,7 @@ class OverviewController extends Controller
         return Inertia::render('Overview/Index', [
             'shell' => PortalShell::for($request, $workspace, 'overview'),
             // Rooms first: reading them records which calendars failed, which the notices report.
-            'rooms' => $displays->map(fn (Display $display) => $this->room($display, $devices))->values()->all(),
+            'rooms' => $displays->map(fn (Display $display) => PortalRooms::room($display, $devices))->values()->all(),
             'notices' => $this->notices($request, $workspace, $displays),
             'accounts' => $accounts,
             'checklist' => [
@@ -127,7 +124,8 @@ class OverviewController extends Controller
                 'team' => route('workspaces.members'),
                 'boardsCreate' => route('boards.create'),
                 'pairing' => route('setup.first-display', ['step' => 'tablet']),
-                'day' => route('schedule.day'),
+                'live' => route('live.index'),
+                'book' => route('live.index', ['book' => 1]),
             ],
         ]);
     }
@@ -228,41 +226,6 @@ class OverviewController extends Controller
         }
 
         return $notices;
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function room(Display $display, Collection $devices): array
-    {
-        $device = $devices->filter(fn (Device $d) => $d->display_id === $display->id)->sortByDesc('last_activity_at')->first();
-        $cached = PortalEvents::for($display);
-        $grace = $cached !== null && $display->isCheckInEnabled() ? $display->getCheckInGracePeriod() : null;
-
-        return [
-            'id' => $display->id,
-            'name' => $display->display_name ?: $display->name,
-            'status' => $display->status?->value,
-            'device' => $device ? [
-                'name' => $device->name,
-                'online' => $device->last_activity_at?->gt(now()->subMinutes(self::ONLINE_MINUTES)) ?? false,
-                'lastSeen' => $device->last_activity_at?->diffForHumans(),
-            ] : null,
-            'hasData' => $cached !== null,
-            'error' => $cached === null && PortalEvents::failed($display) ? 'the calendar could not be read' : null,
-            // Sent in UTC: the browser places them on its own day.
-            'events' => collect($cached ?? [])
-                ->filter(fn ($e) => $e->end?->gt(now()->subDay()) && $e->start?->lt(now()->addDay()))
-                ->map(fn ($e) => PortalSchedule::event($e, $grace, auth()->user()))
-                ->sortBy('start')->values()->all(),
-            'url' => route('displays.configure', $display),
-            'actions' => PortalSchedule::actions($display, auth()->user()),
-            'urls' => [
-                'book' => route('schedule.book', $display),
-                // Base for an event's actions: {events}/{id}/check-in, /extend, and DELETE {events}/{id}.
-                'events' => url("/schedule/{$display->id}/events"),
-            ],
-        ];
     }
 
     /**

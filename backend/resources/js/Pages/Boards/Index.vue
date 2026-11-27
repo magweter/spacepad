@@ -3,7 +3,6 @@ import { computed, ref } from 'vue';
 import { Head } from '@inertiajs/vue3';
 import PortalShell from '../../Components/PortalShell.vue';
 import { openUpgrade } from '../../Components/Upgrade/upgrade';
-import FlashMessage from '../../Components/FlashMessage.vue';
 import Icon from '../../Components/Icon.vue';
 import Button from '../../DesignSystem/Button.vue';
 import EmptyState from '../../DesignSystem/EmptyState.vue';
@@ -34,14 +33,12 @@ async function copy() {
     <Head :title="creating ? 'New board' : board ? `${board.name}, boards` : 'Boards'" />
 
     <PortalShell :shell="shell" title="Boards">
-        <template #actions>
-            <Button v-if="canCreate && !creating" :href="urls.create"><template #icon><Icon name="plus" :size="16" :stroke="2.5" /></template>New board</Button>
-        </template>
-
         <div class="flex flex-col gap-6 px-6 pt-7 pb-10 md:px-8">
-            <p class="max-w-[720px] text-[13px] text-muted">Overviews of many rooms at once, for TVs, lobbies and the browser.</p>
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <p class="max-w-[720px] text-[13px] text-muted">Overviews of many rooms at once, for TVs, lobbies and the browser.</p>
+                <Button v-if="canCreate && !creating" :href="urls.create"><template #icon><Icon name="plus" :size="16" :stroke="2.5" /></template>New board</Button>
+            </div>
 
-            <FlashMessage />
 
             <!-- Free workspace: what boards are and how to get them. -->
             <div v-if="!hasPro" class="sp-card flex max-w-2xl flex-col gap-4 px-6 py-6">

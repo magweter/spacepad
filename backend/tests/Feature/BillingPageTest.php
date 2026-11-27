@@ -41,7 +41,7 @@ test('an owner of a free cloud workspace is offered the checkout, without callin
     billingPageAs($workspace, $owner)
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page->component('Billing/Index')
-            ->where('shell.nav.6.active', true)
+            ->where('shell.nav.7.active', true)
             ->where('billing.canManage', true)
             ->where('billing.hasPro', false)
             ->where('billing.state', 'checkout')

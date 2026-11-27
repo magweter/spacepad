@@ -1,6 +1,6 @@
 import { createApp, h } from 'vue';
 import { createInertiaApp, router } from '@inertiajs/vue3';
-import { toastError } from './Components/Toasts/toasts';
+import { toast, toastError } from './Components/Toasts/toasts';
 
 // Errors nobody else handles end up as a toast instead of Inertia's full-screen error page or
 // nothing at all: a server error, a lost connection, a script that throws.
@@ -19,6 +19,18 @@ window.addEventListener('unhandledrejection', (event) => {
     toastError(event.reason?.message || null);
 });
 
+// Flash messages from the server ("Switched to workspace", "Display saved") are toasts, not a bar
+// at the top of the page. Only on responses from the server: going back in history replays the
+// old page and must not show its message again. The sign-in page keeps its error next to the form.
+function flashToasts(page) {
+    const flash = page?.props?.flash || {};
+    if (page?.component === 'Auth/Login') return;
+    if (flash.error) toast({ title: flash.error, tone: 'danger' });
+    if (flash.info) toast({ title: flash.info });
+    if (flash.success) toast({ title: flash.success, tone: 'success' });
+}
+router.on('success', (event) => flashToasts(event.detail.page));
+
 createInertiaApp({
     title: (title) => (title ? `${title} - Spacepad` : 'Spacepad'),
     // Each page is its own chunk, loaded when it is first opened, so the first visit does not
@@ -28,6 +40,7 @@ createInertiaApp({
         return pages[`./Pages/${name}.vue`]();
     },
     setup({ el, App, props, plugin }) {
+        flashToasts(props.initialPage);
         const app = createApp({ render: () => h(App, props) });
         app.config.errorHandler = (error) => {
             console.error(error);

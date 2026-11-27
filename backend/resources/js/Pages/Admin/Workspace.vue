@@ -4,7 +4,6 @@
 import PlanChip from './Partials/PlanChip.vue';
 import { Head, Link } from '@inertiajs/vue3';
 import PortalShell from '../../Components/PortalShell.vue';
-import FlashMessage from '../../Components/FlashMessage.vue';
 import Icon from '../../Components/Icon.vue';
 import Card from '../../DesignSystem/Card.vue';
 import WorkspaceBillingForm from './Partials/WorkspaceBillingForm.vue';
@@ -31,7 +30,6 @@ const termClass = 'text-[13px] font-medium text-muted';
         <div class="flex max-w-4xl flex-col gap-6 px-6 pt-7 pb-10 md:px-8">
             <p class="text-[13px] text-muted">Usage, billing and members for this workspace</p>
 
-            <FlashMessage />
 
             <Card>
                 <h2 class="mb-4 font-display text-base font-bold">Workspace</h2>

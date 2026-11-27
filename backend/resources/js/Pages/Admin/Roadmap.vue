@@ -3,7 +3,6 @@
 import { computed, ref } from 'vue';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import PortalShell from '../../Components/PortalShell.vue';
-import FlashMessage from '../../Components/FlashMessage.vue';
 import Icon from '../../Components/Icon.vue';
 import Button from '../../DesignSystem/Button.vue';
 import Card from '../../DesignSystem/Card.vue';
@@ -38,13 +37,12 @@ const smallBtn = 'inline-flex items-center rounded-md border px-2.5 py-1 text-xs
     <Head title="Roadmap" />
 
     <PortalShell :shell="shell" title="Admin">
-        <template #actions>
-            <Button :href="urls.create"><template #icon><Icon name="plus" :size="16" :stroke="2.5" /></template>New item</Button>
-        </template>
-
         <div class="flex flex-col gap-6 px-6 pt-7 pb-10 md:px-8">
             <AdminTabs active="roadmap" :stats="stats" :pending-roadmap="pendingRoadmap" />
-            <FlashMessage />
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <p class="max-w-[720px] text-[13px] text-muted">Suggestions from customers and the items on the public roadmap.</p>
+                <Button :href="urls.create"><template #icon><Icon name="plus" :size="16" :stroke="2.5" /></template>New item</Button>
+            </div>
             <Notice v-if="errors.length" tone="danger" title="Something went wrong">
                 <template v-for="(e, i) in errors" :key="i">{{ e }}<br v-if="i < errors.length - 1"></template>
             </Notice>

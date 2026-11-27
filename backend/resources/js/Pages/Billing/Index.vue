@@ -2,7 +2,6 @@
 import { ref } from 'vue';
 import { Head } from '@inertiajs/vue3';
 import PortalShell from '../../Components/PortalShell.vue';
-import FlashMessage from '../../Components/FlashMessage.vue';
 import PlanCard from './Partials/PlanCard.vue';
 import SubscriptionCard from './Partials/SubscriptionCard.vue';
 import LicenseCard from './Partials/LicenseCard.vue';
@@ -25,7 +24,6 @@ const managing = ref(false);
     <PortalShell :shell="shell" title="Billing">
         <div class="flex flex-col gap-6 px-6 pt-7 pb-10 md:px-8">
 
-            <FlashMessage />
 
             <div class="flex flex-wrap items-start gap-6">
                 <section aria-label="Plan" class="flex max-w-full min-w-0 flex-[1_1_380px] flex-col gap-4 lg:max-w-[480px]">
