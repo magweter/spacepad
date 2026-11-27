@@ -1,16 +1,10 @@
 @extends('layouts.error')
 
-@section('title', 'Page Expired')
+@section('code', '419')
+@section('title', 'Page expired')
+@section('message', 'You were on this page for a while, so it expired for your security. Reload it and try again.')
 
-@section('content')
-    <div class="mt-6 text-center">
-        <h1 class="text-6xl font-bold text-oxford">419</h1>
-        <h2 class="mt-4 text-2xl font-semibold text-gray-900">Page Expired</h2>
-        <p class="mt-2 text-gray-600">Your session has expired. Please refresh the page and try again.</p>
-        <div class="mt-6">
-            <a href="{{ route('dashboard') }}" class="inline-flex items-center rounded-md bg-oxford px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">
-                Go back to dashboard
-            </a>
-        </div>
-    </div>
-@endsection 
+@section('actions')
+    <a href="{{ url()->previous() }}" class="sp-btn sp-btn-md sp-btn-primary">Reload the page</a>
+    <a href="{{ url('/') }}" class="sp-btn sp-btn-md sp-btn-secondary">Back to overview</a>
+@endsection

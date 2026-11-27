@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\FunnelStep;
 use App\Models\Workspace;
 use Illuminate\Support\Str;
 use Spatie\GoogleTagManager\GoogleTagManagerFacade as GoogleTagManager;
@@ -85,6 +86,8 @@ final class FunnelTracking
             return;
         }
 
+        Funnel::recordOnce(FunnelStep::CALENDAR_CONNECTED, $workspace, auth()->user());
+
         GoogleTagManager::flashPush(['event' => 'calendar_connected']);
     }
 
@@ -96,6 +99,8 @@ final class FunnelTracking
         if (! $workspace || $workspace->displays()->count() > 1) {
             return;
         }
+
+        Funnel::recordOnce(FunnelStep::DISPLAY_CREATED, $workspace, auth()->user());
 
         GoogleTagManager::flashPush(['event' => 'display_created']);
     }

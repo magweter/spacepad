@@ -29,6 +29,15 @@ class OutlookService
 
     protected mixed $tenantId;
 
+    /**
+     * Seconds a call a tablet waits on (its events, a token refresh, booking, ending or extending
+     * a meeting) may take. Without it a slow Graph answer held the request for the default 30
+     * seconds; a tablet then shows an error after 10 instead.
+     */
+    private const REQUEST_TIMEOUT = 10;
+
+    private const CONNECT_TIMEOUT = 5;
+
     public function __construct()
     {
         $this->clientId = config('services.azure_ad.client_id');
@@ -219,7 +228,7 @@ class OutlookService
 
         $scopes = $outlookAccount->permission_type === PermissionType::WRITE ? self::OAUTH_SCOPES_WRITE : self::OAUTH_SCOPES_READ;
 
-        $response = Http::asForm()->post($oauthTokenEndpoint, [
+        $response = Http::asForm()->timeout(self::REQUEST_TIMEOUT)->connectTimeout(self::CONNECT_TIMEOUT)->post($oauthTokenEndpoint, [
             'client_id' => $this->clientId,
             'scope' => $scopes,
             'refresh_token' => $outlookAccount->refresh_token,
@@ -299,7 +308,7 @@ class OutlookService
             '$top' => 100,
         ];
 
-        $response = Http::withToken($token)
+        $response = Http::withToken($token)->timeout(self::REQUEST_TIMEOUT)->connectTimeout(self::CONNECT_TIMEOUT)
             ->withHeaders(['Prefer' => 'outlook.timezone="UTC"'])
             ->get("https://graph.microsoft.com/v1.0/users/$emailAddress/calendarview", $params);
 
@@ -340,7 +349,7 @@ class OutlookService
             '$top' => 100,
         ];
 
-        $response = Http::withToken($outlookAccount->token)
+        $response = Http::withToken($outlookAccount->token)->timeout(self::REQUEST_TIMEOUT)->connectTimeout(self::CONNECT_TIMEOUT)
             ->withHeaders(['Prefer' => 'outlook.timezone="UTC"'])
             ->get("https://graph.microsoft.com/v1.0/me/calendars/$calendarId/calendarview", $params);
 
@@ -461,7 +470,7 @@ class OutlookService
             $endpoint = "https://graph.microsoft.com/v1.0/me/calendars/{$calendar->calendar_id}/events";
         }
 
-        $response = Http::acceptJson()
+        $response = Http::acceptJson()->timeout(self::REQUEST_TIMEOUT)->connectTimeout(self::CONNECT_TIMEOUT)
             ->withHeaders(['Authorization' => 'Bearer '.$token])
             ->post($endpoint, $eventData);
 
@@ -517,7 +526,7 @@ class OutlookService
             $endpoint = "https://graph.microsoft.com/v1.0/me/calendars/{$calendar->calendar_id}/events/{$eventId}";
         }
 
-        $response = Http::acceptJson()
+        $response = Http::acceptJson()->timeout(self::REQUEST_TIMEOUT)->connectTimeout(self::CONNECT_TIMEOUT)
             ->withHeaders([
                 'Authorization' => 'Bearer '.$token,
             ])
@@ -555,7 +564,7 @@ class OutlookService
             $endpoint = "https://graph.microsoft.com/v1.0/me/calendars/{$calendar->calendar_id}/events/{$eventId}";
         }
 
-        $response = Http::acceptJson()
+        $response = Http::acceptJson()->timeout(self::REQUEST_TIMEOUT)->connectTimeout(self::CONNECT_TIMEOUT)
             ->withHeaders(['Authorization' => 'Bearer '.$token])
             ->patch($endpoint, [
                 'end' => [

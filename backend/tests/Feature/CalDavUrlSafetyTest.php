@@ -73,7 +73,7 @@ describe('self-hosted', function () {
             $mock->shouldReceive('checkConnection')->once()->andReturn(['success' => true, 'message' => 'ok']);
         });
 
-        connectCalDav('http://192.168.1.20/remote.php/dav')->assertRedirect(route('dashboard'));
+        connectCalDav('http://192.168.1.20/remote.php/dav')->assertRedirect(route('calendars.index'));
         expect(CalDAVAccount::count())->toBe(1);
     });
 });

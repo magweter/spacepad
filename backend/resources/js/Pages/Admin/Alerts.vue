@@ -1,0 +1,93 @@
+<script setup>
+// Admin: alerts shown at the top of the portal, such as a calendar provider outage. Active ones
+// first, then scheduled, then the last twenty that ended.
+import { ref } from 'vue';
+import { Head, Link, router } from '@inertiajs/vue3';
+import PortalShell from '../../Components/PortalShell.vue';
+import Icon from '../../Components/Icon.vue';
+import Button from '../../DesignSystem/Button.vue';
+import Card from '../../DesignSystem/Card.vue';
+import Chip from '../../DesignSystem/Chip.vue';
+import { toneOf } from '../../Components/alertTones.js';
+import AdminTabs from './Partials/AdminTabs.vue';
+
+defineProps({ shell: Object, stats: Object, pendingRoadmap: Number, adminAlerts: Object, urls: Object });
+
+const ending = ref(null);
+const end = (alert) => {
+    ending.value = alert.id;
+    router.post(alert.endUrl, {}, { preserveScroll: true, onFinish: () => { ending.value = null; } });
+};
+
+const sections = [
+    { key: 'active', title: 'Active', empty: 'Nothing is shown in the portal right now.' },
+    { key: 'scheduled', title: 'Scheduled', empty: null },
+    { key: 'ended', title: 'Ended', empty: null },
+];
+const providers = { microsoft: 'Microsoft 365', google: 'Google', caldav: 'CalDAV' };
+
+// Times come as ISO 8601 and are shown in the admin's own time zone.
+const pad = (n) => String(n).padStart(2, '0');
+const local = (iso) => { const d = new Date(iso); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+const when = (a) => [`From ${local(a.startsAt)}`, a.endsAt ? `until ${local(a.endsAt)}` : 'until ended'].join(' ');
+
+const headClass = 'border-b border-line px-4 py-2.5 text-left text-[11px] font-semibold tracking-[0.04em] text-muted uppercase';
+const smallBtn = 'inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-semibold';
+</script>
+
+<template>
+    <Head title="Alerts" />
+
+    <PortalShell :shell="shell" title="Admin" subtitle="An alert shows on the overview while it runs, and can pop up once for every user, for every workspace or only for workspaces with a calendar of one provider.">
+        <template #actions>
+            <Button :href="urls.create"><template #icon><Icon name="plus" :size="16" :stroke="2.5" /></template>New alert</Button>
+        </template>
+        <div class="flex flex-col gap-6 px-6 pt-6 pb-10 md:px-10">
+            <AdminTabs active="alerts" :stats="stats" :pending-roadmap="pendingRoadmap" />
+
+
+            <p v-if="!adminAlerts.active.length && !adminAlerts.scheduled.length && !adminAlerts.ended.length" class="sp-card px-6 py-8 text-center text-[13px] text-muted">
+                No alerts yet. Create one when something outside Spacepad affects your customers.
+            </p>
+
+            <template v-else>
+                <section v-for="s in sections" v-show="adminAlerts[s.key].length || s.empty" :key="s.key" :aria-labelledby="`${s.key}-heading`" class="flex flex-col gap-3">
+                    <h2 :id="`${s.key}-heading`" class="font-display text-base font-bold">{{ s.title }} ({{ adminAlerts[s.key].length }})</h2>
+                    <p v-if="!adminAlerts[s.key].length" class="text-[13px] text-muted">{{ s.empty }}</p>
+                    <Card v-else padding="none" class="overflow-x-auto">
+                        <table class="w-full min-w-[760px] text-[13px]">
+                            <thead>
+                                <tr>
+                                    <th :class="headClass">Alert</th>
+                                    <th :class="headClass">Type</th>
+                                    <th :class="headClass">For</th>
+                                    <th :class="headClass">When</th>
+                                    <th :class="[headClass, 'text-right']">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="a in adminAlerts[s.key]" :key="a.id" class="border-b border-line-soft last:border-b-0">
+                                    <td class="max-w-[360px] px-4 py-3">
+                                        <p class="font-semibold">{{ a.title }}</p>
+                                        <p v-if="a.body" class="mt-0.5 truncate text-xs text-muted">{{ a.body }}</p>
+                                    </td>
+                                    <td class="px-4 py-3"><span class="flex flex-wrap items-center gap-1.5"><Chip :tone="toneOf(a.tone).chip">{{ toneOf(a.tone).label }}</Chip><Chip v-if="a.popup" tone="navy">Popup</Chip></span></td>
+                                    <td class="px-4 py-3 whitespace-nowrap text-ink-3">{{ a.provider ? `${providers[a.provider]} workspaces` : 'All workspaces' }}</td>
+                                    <td class="px-4 py-3 whitespace-nowrap text-ink-3 tabular-nums">{{ when(a) }}</td>
+                                    <td class="px-4 py-3">
+                                        <span class="flex items-center justify-end gap-2">
+                                            <Link :href="a.editUrl" :class="[smallBtn, 'border-line bg-surface text-ink hover:bg-surface-raised']">Edit</Link>
+                                            <button v-if="a.status !== 'ended'" type="button" :disabled="ending === a.id"
+                                                    :class="[smallBtn, 'border-reserved-border bg-surface text-reserved-text hover:bg-reserved-bg disabled:opacity-50']"
+                                                    @click="end(a)">{{ a.status === 'scheduled' ? 'Cancel' : 'End now' }}</button>
+                                        </span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </Card>
+                </section>
+            </template>
+        </div>
+    </PortalShell>
+</template>

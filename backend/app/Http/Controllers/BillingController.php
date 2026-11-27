@@ -2,8 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\CancellationReason;
+use App\Models\SubscriptionCancellation;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Spatie\GoogleTagManager\GoogleTagManagerFacade;
 use Throwable;
 
@@ -29,7 +32,7 @@ class BillingController extends Controller
         // counts as subscribed, so this also covers the window in which someone is trialling
         // and follows a stale tab or an old link back to the checkout.
         if ($workspace->subscribed()) {
-            return redirect()->route('workspaces.members')
+            return redirect()->route('billing.index')
                 ->with('info', 'This workspace already has a subscription.');
         }
 
@@ -63,7 +66,7 @@ class BillingController extends Controller
             // explanation, not on an error screen.
             report($e);
 
-            return redirect()->route('workspaces.members')
+            return redirect()->route('billing.index')
                 ->with('error', 'We could not open the billing portal just now. Please try again, or email support@spacepad.io.');
         }
     }
@@ -85,7 +88,7 @@ class BillingController extends Controller
         $this->authorize('manageBilling', $workspace);
 
         if (! $workspace->canSwitchToYearly()) {
-            return redirect()->route('workspaces.members')
+            return redirect()->route('billing.index')
                 ->with('error', 'This workspace cannot switch to a yearly subscription right now. Email support@spacepad.io if you think it should.');
         }
 
@@ -94,7 +97,7 @@ class BillingController extends Controller
         } catch (Throwable $e) {
             report($e);
 
-            return redirect()->route('workspaces.members')
+            return redirect()->route('billing.index')
                 ->with('error', 'We could not open the checkout just now. Please try again, or email support@spacepad.io.');
         }
     }
@@ -113,13 +116,13 @@ class BillingController extends Controller
         $this->authorize('manageBilling', $workspace);
 
         if (! $workspace->canSwitchToMonthly()) {
-            return redirect()->route('workspaces.members')
+            return redirect()->route('billing.index')
                 ->with('error', 'This workspace cannot switch to a monthly subscription right now. Email support@spacepad.io if you think it should.');
         }
 
         $workspace->forceFill(['switch_to_monthly_requested_at' => now()])->save();
 
-        return redirect()->route('workspaces.members')
+        return redirect()->route('billing.index')
             ->with('success', 'Your subscription switches to monthly on the last day of your paid year.');
     }
 
@@ -132,8 +135,101 @@ class BillingController extends Controller
 
         $workspace->forceFill(['switch_to_monthly_requested_at' => null])->save();
 
-        return redirect()->route('workspaces.members')
+        return redirect()->route('billing.index')
             ->with('success', 'Your subscription stays yearly.');
+    }
+
+    /**
+     * Cancel the workspace's subscription from the app, with the reason why.
+     *
+     * Lemon Squeezy cancels at the end of the paid period, so Pro stays until then. The
+     * reason is only stored once the cancellation went through: a reason without a
+     * cancellation behind it would say something that did not happen.
+     */
+    public function cancel(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+        $workspace = $user->getSelectedWorkspace();
+
+        abort_unless($workspace !== null, 404, 'No workspace found');
+        $this->authorize('manageBilling', $workspace);
+
+        $data = $this->validateReason($request);
+
+        $subscription = $workspace->cancellableSubscription();
+
+        if (! $subscription) {
+            return redirect()->route('billing.index')
+                ->with('info', 'This subscription is already cancelled.');
+        }
+
+        try {
+            $subscription->cancel();
+        } catch (Throwable $e) {
+            report($e);
+
+            return redirect()->route('billing.index')
+                ->with('error', 'We could not cancel your subscription just now. Please try again, or email support@spacepad.io.');
+        }
+
+        SubscriptionCancellation::create([
+            'workspace_id' => $workspace->id,
+            'user_id' => $user->id,
+            'lemon_squeezy_subscription_id' => $subscription->lemon_squeezy_id,
+            'reason' => $data['reason'],
+            'details' => $data['details'] ?? null,
+            'source' => SubscriptionCancellation::SOURCE_IN_APP,
+            'answered_at' => now(),
+        ]);
+
+        $endsAt = $subscription->fresh()?->ends_at;
+
+        return redirect()->route('billing.index')
+            ->with('success', $endsAt
+                ? 'Your subscription is cancelled. Pro stays active until '.$endsAt->format('j F Y').'.'
+                : 'Your subscription is cancelled.');
+    }
+
+    /**
+     * The reason for a cancellation that was made outside the app.
+     */
+    public function feedback(Request $request, SubscriptionCancellation $cancellation): RedirectResponse
+    {
+        $this->authorize('manageBilling', $cancellation->workspace);
+
+        $data = $this->validateReason($request);
+
+        $cancellation->update([
+            'user_id' => $cancellation->user_id ?? $request->user()->id,
+            'reason' => $data['reason'],
+            'details' => $data['details'] ?? null,
+            'answered_at' => now(),
+        ]);
+
+        return back()->with('success', 'Thanks for letting us know.');
+    }
+
+    public function dismissFeedback(SubscriptionCancellation $cancellation): RedirectResponse
+    {
+        $this->authorize('manageBilling', $cancellation->workspace);
+
+        $cancellation->update(['dismissed_at' => now()]);
+
+        return back();
+    }
+
+    /**
+     * @return array{reason: string, details?: string|null}
+     */
+    private function validateReason(Request $request): array
+    {
+        return $request->validate([
+            'reason' => ['required', Rule::enum(CancellationReason::class)],
+            'details' => ['nullable', 'required_if:reason,other', 'string', 'max:2000'],
+        ], [
+            'reason.required' => 'Pick the reason that fits best.',
+            'details.required_if' => 'Tell us a little more.',
+        ]);
     }
 
     public function thanks(Request $request): RedirectResponse

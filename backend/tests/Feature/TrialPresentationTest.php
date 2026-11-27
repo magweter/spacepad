@@ -9,6 +9,7 @@ use App\Models\WorkspaceMember;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Inertia\Testing\AssertableInertia as Assert;
 
 uses(RefreshDatabase::class);
 
@@ -91,13 +92,14 @@ test('the workspace page shows the trial countdown and what it will cost', funct
     $this->actingAs($owner);
     session()->put('selected_workspace_id', $workspace->id);
 
-    $response = $this->get(route('workspaces.members'));
+    $response = $this->get(route('billing.index'));
 
     // 2 displays = 2 units, at 6 per unit.
     $response->assertOk()
-        ->assertSee('9 days left of your trial')
-        ->assertSee('Your subscription starts automatically on')
-        ->assertSee('12.00');
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('billing.trial.daysLeft', 9)
+            ->where('billing.trial.endsOn', now()->addDays(9)->format('j F Y'))
+            ->where('billing.monthlyCost', 12));
 });
 
 test('the cost estimate is left out when no unit price is configured', function () {
@@ -108,10 +110,11 @@ test('the cost estimate is left out when no unit price is configured', function 
     $this->actingAs($owner);
     session()->put('selected_workspace_id', $workspace->id);
 
-    $this->get(route('workspaces.members'))
+    $this->get(route('billing.index'))
         ->assertOk()
-        ->assertSee('days left of your trial')
-        ->assertDontSee('per month');
+        ->assertInertia(fn (Assert $page) => $page
+            ->whereNot('billing.trial', null)
+            ->where('billing.monthlyCost', null));
 });
 
 test('a workspace that already subscribes cannot start a second checkout', function () {
@@ -123,7 +126,7 @@ test('a workspace that already subscribes cannot start a second checkout', funct
     session()->put('selected_workspace_id', $workspace->id);
 
     $this->post(route('billing.checkout'))
-        ->assertRedirect(route('workspaces.members'));
+        ->assertRedirect(route('billing.index'));
 
     // The guard has to bite before the vendor asks Lemon Squeezy to mint a checkout.
     Http::assertNothingSent();

@@ -6,10 +6,17 @@ use App\Helpers\DisplaySettings;
 use App\Helpers\DisplaySettingSections;
 use App\Helpers\ProfileSettings;
 use App\Http\Requests\DisplayProfileRequest;
+use App\Models\Display;
 use App\Models\DisplayProfile;
+use App\Models\User;
+use App\Models\Workspace;
 use App\Services\ImageService;
-use Illuminate\Contracts\View\View;
+use App\Support\DisplaySettingsForm;
+use App\Support\PortalShell;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class ProfilesController extends Controller
 {
@@ -18,24 +25,43 @@ class ProfilesController extends Controller
     ) {}
 
     /**
-     * The profile list lives in the dashboard as a tab, next to Displays and Boards, so this only
-     * keeps the /profiles URL working.
+     * The profiles page: every profile as a card, each opening its edit page.
+     * A free workspace sees the page with an upgrade note instead of a hard error, the same way the
+     * old dashboard tab showed a teaser.
      */
-    public function index(): RedirectResponse
+    public function index(Request $request): Response
     {
-        if (! auth()->user()->hasProForCurrentWorkspace()) {
-            abort(403, 'Profiles is a Pro feature. Please upgrade to access this feature.');
-        }
+        $user = $request->user();
+        $workspace = $user->getSelectedWorkspace();
+        abort_unless($workspace !== null, 404);
 
-        return redirect()->route('dashboard', ['tab' => 'profiles']);
+        $hasPro = $user->hasProForCurrentWorkspace();
+
+        $profiles = $hasPro
+            ? DisplayProfile::where('workspace_id', $workspace->id)
+                ->with(['user', 'settings', 'displays.settings'])
+                ->orderBy('name')
+                ->get()
+            : collect();
+
+        return Inertia::render('Profiles/Index', [
+            'shell' => PortalShell::for($request, $workspace, 'profiles'),
+            'hasPro' => $hasPro,
+            'profiles' => $profiles->map(fn (DisplayProfile $profile) => $this->listItem($user, $profile))->values()->all(),
+            'urls' => [
+                'create' => route('profiles.create'),
+                'displays' => route('displays.index'),
+                'upgrade' => route('billing.index'),
+            ],
+        ]);
     }
 
     /**
      * Show the form for creating a new profile.
      */
-    public function create(): View
+    public function create(Request $request): Response
     {
-        $user = auth()->user();
+        $user = $request->user();
 
         if (! $user->hasProForCurrentWorkspace()) {
             abort(403, 'Profiles is a Pro feature. Please upgrade to access this feature.');
@@ -49,12 +75,7 @@ class ProfilesController extends Controller
             abort(404, 'No workspace found');
         }
 
-        return view('pages.profiles.form', [
-            'profile' => null,
-            'linkedDisplays' => collect(),
-            'settings' => [],
-            'workspace' => $workspace,
-        ]);
+        return $this->form($request, $workspace, null);
     }
 
     /**
@@ -84,16 +105,16 @@ class ProfilesController extends Controller
 
         $this->applySettings($profile, $request);
 
-        return redirect()->route('profiles.index')
-            ->with('success', 'Profile created successfully.');
+        return redirect()->route('profiles.edit', $profile)
+            ->with('success', 'Profile created.');
     }
 
     /**
      * Show the form for editing the specified profile.
      */
-    public function edit(DisplayProfile $profile): View
+    public function edit(Request $request, DisplayProfile $profile): Response
     {
-        $user = auth()->user();
+        $user = $request->user();
 
         if (! $user->hasProForCurrentWorkspace()) {
             abort(403, 'Profiles is a Pro feature. Please upgrade to access this feature.');
@@ -101,12 +122,7 @@ class ProfilesController extends Controller
 
         $this->authorize('update', $profile);
 
-        return view('pages.profiles.form', [
-            'profile' => $profile,
-            'linkedDisplays' => $profile->displays()->orderBy('name')->get(),
-            'settings' => ProfileSettings::all($profile),
-            'workspace' => $profile->workspace,
-        ]);
+        return $this->form($request, $profile->workspace, $profile);
     }
 
     /**
@@ -126,8 +142,8 @@ class ProfilesController extends Controller
 
         $this->applySettings($profile, $request);
 
-        return redirect()->route('profiles.index')
-            ->with('success', 'Profile updated successfully.');
+        return redirect()->route('profiles.edit', $profile)
+            ->with('success', 'Profile saved. Displays that follow it pick up the changes within a minute.');
     }
 
     /**
@@ -153,6 +169,85 @@ class ProfilesController extends Controller
 
         return redirect()->route('profiles.index')
             ->with('success', 'Profile deleted. Linked displays kept its settings as their own.');
+    }
+
+    /**
+     * The profile editor, shared by create and edit.
+     */
+    private function form(Request $request, Workspace $workspace, ?DisplayProfile $profile): Response
+    {
+        $user = $request->user();
+        $advertisement = $user->hasAdvertisementFeature();
+        $linked = $profile ? $profile->displays()->with('settings')->orderBy('name')->get() : collect();
+
+        return Inertia::render('Profiles/Edit', [
+            'shell' => PortalShell::for($request, $workspace, 'profiles'),
+            'profile' => $profile ? [
+                'id' => $profile->id,
+                'name' => $profile->name,
+                'canDelete' => $user->can('delete', $profile),
+                'deleteUrl' => route('profiles.destroy', $profile),
+            ] : null,
+            'displays' => $linked->map(fn (Display $display) => $this->linkedDisplay($display))->values()->all(),
+            'sections' => collect(DisplaySettingsForm::sections())
+                ->reject(fn ($s, $key) => $key === DisplaySettingSections::ADVERTISEMENT && ! $advertisement)
+                ->all(),
+            'values' => DisplaySettingsForm::profileValues($profile),
+            'images' => DisplaySettingsForm::profileImages($profile),
+            'options' => DisplaySettingsForm::options(),
+            'urls' => [
+                'back' => route('profiles.index'),
+                'save' => $profile ? route('profiles.update', $profile) : route('profiles.store'),
+                'displays' => route('displays.index'),
+            ],
+        ]);
+    }
+
+    /**
+     * A profile on the overview: what it is used for and what it turns on, enough to pick one.
+     *
+     * @return array<string, mixed>
+     */
+    private function listItem(User $user, DisplayProfile $profile): array
+    {
+        $values = DisplaySettingsForm::profileValues($profile);
+
+        return [
+            'id' => $profile->id,
+            'name' => $profile->name,
+            'displays' => $profile->displays->count(),
+            'customised' => $profile->displays->filter(fn ($d) => DisplaySettings::deviatesFromProfile($d))->count(),
+            'createdBy' => $profile->user?->name,
+            'updated' => $profile->updated_at?->diffForHumans(),
+            'booking' => (bool) ($values['booking_enabled'] ?? false),
+            'checkIn' => (bool) ($values['check_in_enabled'] ?? false),
+            'font' => $values['font_family'] ?? null,
+            'canUpdate' => $user->can('update', $profile),
+            'editUrl' => route('profiles.edit', $profile),
+        ];
+    }
+
+    /**
+     * A display that follows a profile, with the sections it holds its own values for.
+     *
+     * @return array<string, mixed>
+     */
+    private function linkedDisplay(Display $display): array
+    {
+        $own = collect(DisplaySettingSections::all())
+            ->filter(fn ($s, $key) => ! DisplaySettings::sectionFollowsProfile($display, $key))
+            ->map(fn ($s) => $s['label'])
+            ->values()->all();
+
+        return [
+            'id' => $display->id,
+            'name' => $display->name ?: $display->display_name,
+            'roomName' => $display->display_name,
+            'status' => $display->status?->value,
+            'statusLabel' => $display->status?->label(),
+            'ownSections' => $own,
+            'url' => route('displays.configure', $display),
+        ];
     }
 
     /**
@@ -265,6 +360,7 @@ class ProfilesController extends Controller
         ProfileSettings::set($profile, 'timeline_widget_mode', $request->input('timeline_widget_mode', 'none'), 'string');
         ProfileSettings::set($profile, 'cancel_permission', $request->input('cancel_permission', 'all'), 'string');
         ProfileSettings::set($profile, 'border_thickness', $request->input('border_thickness', 'medium'), 'string');
+        ProfileSettings::set($profile, 'theme', $request->input('theme') ?: 'classic', 'string');
         ProfileSettings::set($profile, 'font_family', $request->input('font_family', 'Inter'), 'string');
         foreach (array_keys(DisplaySettings::FONT_SIZE_ELEMENTS) as $element) {
             ProfileSettings::set($profile, "font_size_{$element}", $request->input("font_size_{$element}") ?: 'normal', 'string');

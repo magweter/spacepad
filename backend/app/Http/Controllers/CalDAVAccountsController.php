@@ -7,17 +7,34 @@ use App\Models\CalDAVAccount;
 use App\Rules\SafeCalDavUrl;
 use App\Services\CalDAVService;
 use App\Services\FunnelTracking;
+use App\Support\OnboardingReturn;
+use App\Support\PortalShell;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\View\View;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class CalDAVAccountsController extends Controller
 {
     public function __construct(protected CalDAVService $caldavService) {}
 
-    public function create(): View
+    public function create(Request $request): Response
     {
-        return view('pages.caldav-accounts.create');
+        OnboardingReturn::remember($request);
+
+        $workspace = $request->user()->getSelectedWorkspace();
+        abort_unless($workspace !== null, 404);
+
+        $onboarding = $request->boolean('onboarding');
+
+        return Inertia::render('Calendars/CalDav', [
+            'shell' => PortalShell::for($request, $workspace, 'calendars'),
+            'onboarding' => $onboarding,
+            'urls' => [
+                'store' => route('caldav-accounts.store'),
+                'back' => $onboarding ? route('setup.first-display', ['step' => 'calendar']) : route('calendars.index'),
+            ],
+        ]);
     }
 
     public function store(Request $request): RedirectResponse
@@ -64,9 +81,9 @@ class CalDAVAccountsController extends Controller
 
         FunnelTracking::calendarConnected($selectedWorkspace, $account->wasRecentlyCreated);
 
-        return redirect()
-            ->route('dashboard')
-            ->with('status', 'CalDAV account has been connected successfully.');
+        return OnboardingReturn::redirect('room', 'calendars.index')
+            ->with('status', 'CalDAV account has been connected successfully.')
+            ->with('success', 'CalDAV account has been connected successfully.');
     }
 
     public function delete(CalDAVAccount $caldavAccount): RedirectResponse
@@ -76,7 +93,7 @@ class CalDAVAccountsController extends Controller
         $caldavAccount->delete();
 
         return redirect()
-            ->route('dashboard')
+            ->route('calendars.index')
             ->with('status', 'CalDAV account has been removed successfully.');
     }
 }

@@ -1,0 +1,102 @@
+/*
+ * The new portal (sign-in, onboarding and, over time, the rest). Built on the Spacepad Design
+ * System: tokens.css and components.css are copied verbatim from it, and the Tailwind theme below
+ * only points at those tokens, so a value is never typed twice.
+ */
+@import 'tailwindcss';
+@import '@fontsource/inter/400.css';
+@import '@fontsource/inter/500.css';
+@import '@fontsource/inter/600.css';
+@import '@fontsource/inter/700.css';
+@import '@fontsource/space-grotesk/700.css';
+@import '@fontsource/ibm-plex-mono/500.css';
+@import '@fontsource/ibm-plex-mono/600.css';
+@import './design-system/tokens.css';
+/* In the components layer, so a Tailwind utility on a design system element (sp-card flex-row) wins. */
+@import './design-system/components.css' layer(components);
+@source "../js";
+/* Error pages are Blade but use this stylesheet. */
+@source "../views/errors";
+@source "../views/layouts/error.blade.php";
+
+/*
+ * Fonts and radii share their names with the design system tokens. The token values win (they
+ * are unlayered), so Tailwind's rounded-lg is the design system's 12px and font-sans is Inter.
+ * Declared here only so Tailwind generates font-display.
+ */
+@theme {
+    --font-sans: Inter, system-ui, -apple-system, sans-serif;
+    --font-display: 'Space Grotesk', Inter, system-ui, sans-serif;
+    --font-mono: 'IBM Plex Mono', Menlo, monospace;
+}
+
+@theme inline {
+
+    --color-navy: var(--brand-navy);
+    --color-navy-800: var(--brand-navy-800);
+    --color-navy-700: var(--brand-navy-700);
+    --color-navy-600: var(--brand-navy-600);
+    --color-navy-400: var(--brand-navy-400);
+    --color-navy-100: var(--brand-navy-100);
+    --color-navy-50: var(--brand-navy-50);
+    --color-on-navy: var(--on-navy);
+    --color-on-navy-2: var(--on-navy-2);
+    --color-on-navy-muted: var(--on-navy-muted);
+
+    --color-amber: var(--brand-amber);
+    --color-amber-text: var(--brand-amber-text);
+    --color-amber-100: var(--brand-amber-100);
+    --color-amber-50: var(--brand-amber-50);
+    --color-amber-300: var(--brand-amber-300);
+
+    --color-ground: var(--ground);
+    --color-surface: var(--surface);
+    --color-surface-raised: var(--surface-raised);
+    --color-line: var(--border);
+    --color-line-soft: var(--border-soft);
+
+    --color-ink: var(--text);
+    --color-ink-2: var(--text-2);
+    --color-ink-3: var(--text-3);
+    --color-muted: var(--text-muted);
+
+    --color-available: var(--status-available);
+    --color-available-bg: var(--status-available-bg);
+    --color-available-text: var(--status-available-text);
+    --color-available-border: var(--status-available-border);
+    --color-reserved: var(--status-reserved);
+    --color-reserved-bg: var(--status-reserved-bg);
+    --color-reserved-text: var(--status-reserved-text);
+    --color-reserved-border: var(--status-reserved-border);
+    --color-checkin: var(--status-checkin);
+    --color-checkin-bg: var(--status-checkin-bg);
+    --color-checkin-text: var(--status-checkin-text);
+    --color-offline: var(--status-offline);
+    --color-offline-bg: var(--status-offline-bg);
+    --color-offline-border: var(--status-offline-border);
+    --color-info: var(--info);
+    --color-info-bg: var(--info-bg);
+    --color-info-border: var(--info-border);
+    --color-console-ground: var(--console-ground);
+}
+
+html, body {
+    background: var(--surface);
+    color: var(--text);
+    font-family: var(--font-sans);
+}
+
+.grecaptcha-badge {
+    visibility: hidden;
+}
+
+/* Tailwind v4 dropped the pointer on buttons; everything clickable in the portal shows the hand again. */
+@layer base {
+    button:not(:disabled),
+    [role="button"]:not([aria-disabled="true"]),
+    label[for],
+    select {
+        cursor: pointer;
+    }
+}
+

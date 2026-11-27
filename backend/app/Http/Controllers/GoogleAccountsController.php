@@ -8,6 +8,7 @@ use App\Http\Controllers\Concerns\VerifiesOAuthState;
 use App\Models\GoogleAccount;
 use App\Services\FunnelTracking;
 use App\Services\GoogleService;
+use App\Support\OnboardingReturn;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
@@ -44,12 +45,12 @@ class GoogleAccountsController extends Controller
 
         // If service account method selected, redirect to upload service account file
         if ($request->booking_method === 'service_account') {
-            return redirect()->route('dashboard')
+            return redirect()->route('calendars.index')
                 ->with('open-service-account-modal', $googleAccount->id)
                 ->with('success', 'Booking method set. Please upload your service account file.');
         }
 
-        return redirect()->route('dashboard')->with('success', 'Booking method has been set successfully.');
+        return redirect()->route('calendars.index')->with('success', 'Booking method has been set successfully.');
     }
 
     public function auth(Request $request): RedirectResponse
@@ -62,6 +63,7 @@ class GoogleAccountsController extends Controller
 
         // Store permission type in session
         session(['google_permission_type' => $request->permission_type]);
+        OnboardingReturn::remember($request);
 
         // Bind the flow to this session. The callback only exchanges a code that comes back
         // with the same state, so a code captured by someone else cannot be planted here.
@@ -108,7 +110,7 @@ class GoogleAccountsController extends Controller
 
         // Ensure it's a workspace account
         if (! $googleAccount->isBusiness()) {
-            return redirect()->route('dashboard')->with('error', 'Service account is only required for Google Workspace accounts.');
+            return redirect()->route('calendars.index')->with('error', 'Service account is only required for Google Workspace accounts.');
         }
 
         // Store the file per workspace, so a colleague re-uploading it lands in the same
@@ -129,7 +131,7 @@ class GoogleAccountsController extends Controller
 
         // Store encrypted file - explicitly construct path to ensure correct value is stored
         if (! Storage::put($filePath, $encryptedContent)) {
-            return redirect()->route('dashboard')->with('error', 'Failed to save service account file. Please try again.');
+            return redirect()->route('calendars.index')->with('error', 'Failed to save service account file. Please try again.');
         }
 
         // Update account with file path and upgrade to WRITE permission
@@ -138,7 +140,7 @@ class GoogleAccountsController extends Controller
             'permission_type' => PermissionType::WRITE,
         ]);
 
-        return redirect()->route('dashboard')->with('success', 'Service account file uploaded successfully. Your account has been upgraded to Read & Write. You can now book rooms directly.');
+        return redirect()->route('calendars.index')->with('success', 'Service account file uploaded successfully. Your account has been upgraded to Read & Write. You can now book rooms directly.');
     }
 
     /**
@@ -147,14 +149,14 @@ class GoogleAccountsController extends Controller
     public function callback(): RedirectResponse
     {
         if (request()->has('error')) {
-            return redirect()->route('dashboard')->with('error', 'Failed to connect to Google. Please try again.');
+            return OnboardingReturn::redirect('calendar', 'calendars.index')->with('error', 'Failed to connect to Google. Please try again.');
         }
 
         if (! $this->stateMatchesSession('google_oauth_state')) {
             session()->forget('google_permission_type');
             session()->forget('google_booking_method');
 
-            return redirect()->route('dashboard')->with('error', 'The Google sign-in could not be verified. Please try connecting again.');
+            return redirect()->route('calendars.index')->with('error', 'The Google sign-in could not be verified. Please try connecting again.');
         }
 
         $authCode = request('code');
@@ -187,17 +189,17 @@ class GoogleAccountsController extends Controller
                     'booking_method' => GoogleBookingMethod::USER_ACCOUNT,
                 ]);
 
-                return redirect()->route('dashboard')
+                return OnboardingReturn::redirect('room', 'calendars.index')
                     ->with('success', 'Google account "'.$googleAccount->email.'" has been connected successfully.');
             }
 
             // If workspace account, show booking method selection modal
-            return redirect()->route('dashboard')
+            return redirect()->route('calendars.index')
                 ->with('success', 'Google account "'.$googleAccount->email.'" has been connected successfully.')
                 ->with('open-google-booking-method-modal', $googleAccount->id);
         }
 
-        return redirect()->route('dashboard')->with('success', 'Google account "'.$googleAccount->email.'" has been connected successfully.');
+        return OnboardingReturn::redirect('room', 'calendars.index')->with('success', 'Google account "'.$googleAccount->email.'" has been connected successfully.');
     }
 
     public function delete(GoogleAccount $googleAccount): RedirectResponse
@@ -205,7 +207,7 @@ class GoogleAccountsController extends Controller
         $this->authorize('delete', $googleAccount);
 
         if ($googleAccount->calendars()->exists()) {
-            return redirect()->route('dashboard')->with('error', 'Cannot disconnect this account because it is used by one or more displays.');
+            return redirect()->route('calendars.index')->with('error', 'Cannot disconnect this account because it is used by one or more displays.');
         }
 
         // Delete service account file if it exists
@@ -215,6 +217,6 @@ class GoogleAccountsController extends Controller
 
         $googleAccount->delete();
 
-        return redirect()->route('dashboard')->with('status', 'Google account has been removed successfully.');
+        return redirect()->route('calendars.index')->with('status', 'Google account has been removed successfully.');
     }
 }

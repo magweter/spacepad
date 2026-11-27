@@ -3,8 +3,8 @@
 <div class="flex min-h-screen flex-col justify-center px-6 py-12">
     <div class="mx-auto w-full max-w-md">
         <div class="flex items-center justify-center mb-8">
-            <img class="h-8 w-8 me-3" src="/images/logo-black.svg" alt="Logo">
-            <span class="text-xl font-semibold text-black">Spacepad</span>
+            <img class="h-9 w-9 me-2.5" src="/images/spacepad-logo.svg" alt="">
+            <span class="text-lg leading-none font-bold tracking-tight text-oxford">Spacepad</span>
         </div>
 
         <div class="bg-white shadow-sm rounded-lg border border-gray-200 px-6 py-8">

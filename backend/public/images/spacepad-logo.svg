@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="Spacepad logo">
+  <rect width="512" height="512" rx="120" fill="#14213D"></rect>
+  
+  <rect x="104" y="130" width="304" height="252" rx="44" fill="#FDA312"></rect>
+  <rect x="136" y="162" width="240" height="188" rx="16" fill="#FFFFFF"></rect>
+  <circle cx="176" cy="256" r="18" fill="#FDA312"></circle>
+</svg>

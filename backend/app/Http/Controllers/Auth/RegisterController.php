@@ -6,12 +6,15 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\RegisterRequest;
 use App\Models\User;
 use App\Notifications\MagicLoginNotification;
+use App\Support\AuthPageUrls;
 use App\Support\MagicLoginLink;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
-use Illuminate\View\View;
+use Inertia\Inertia;
+use Inertia\Response;
 use Spatie\GoogleTagManager\GoogleTagManagerFacade as GoogleTagManager;
 
 class RegisterController extends Controller
@@ -19,9 +22,13 @@ class RegisterController extends Controller
     /**
      * Display the login view.
      */
-    public function create(): View
+    public function create(): Response
     {
-        return view('auth.register');
+        return Inertia::render('Auth/Login', [
+            'mode' => 'register',
+            'sentTo' => session('registered') ? session('registered_email') : null,
+            'urls' => AuthPageUrls::all(),
+        ]);
     }
 
     /**
@@ -45,7 +52,9 @@ class RegisterController extends Controller
         $user = User::where('email', $data['email'])->first();
         if (! $user) {
             $user = User::factory()->unverified()->create([
-                'name' => $data['name'],
+                // The name is asked in the first onboarding step; until then the part before
+                // the @ stands in, as it does for a login that creates an account.
+                'name' => $data['name'] ?? Str::before($data['email'], '@'),
                 'email' => $data['email'],
                 'terms_accepted_at' => ! config('settings.is_self_hosted') ? now() : null,
                 'dpa_accepted_at' => ! config('settings.is_self_hosted') ? now() : null,

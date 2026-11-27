@@ -8,6 +8,7 @@ use App\Models\Display;
 use App\Models\DisplayProfile;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia as Assert;
 
 uses(RefreshDatabase::class);
 
@@ -17,59 +18,79 @@ beforeEach(function () {
     session()->put('selected_workspace_id', $this->workspace->id);
 });
 
-test('the profiles url redirects to the dashboard tab', function () {
-    DisplayProfile::factory()->create(['workspace_id' => $this->workspace->id]);
+test('the profiles page lists the workspace profiles as cards that open their edit page', function () {
+    $first = DisplayProfile::factory()->create(['workspace_id' => $this->workspace->id, 'name' => 'A rooms']);
+    DisplayProfile::factory()->create(['workspace_id' => $this->workspace->id, 'name' => 'B rooms']);
+    Display::factory()->create(['workspace_id' => $this->workspace->id, 'display_profile_id' => $first->id, 'name' => 'Boardroom']);
+    ProfileSettings::set($first, 'booking_enabled', true, 'boolean');
+    // Another workspace's profile never shows.
+    DisplayProfile::factory()->create(['workspace_id' => User::factory()->active()->unlimited()->create()->primaryWorkspace()->id]);
 
     $this->actingAs($this->user)
         ->get(route('profiles.index'))
-        ->assertRedirect(route('dashboard', ['tab' => 'profiles']));
-});
-
-test('the profiles tab lists the workspace profiles', function () {
-    DisplayProfile::factory()->create(['workspace_id' => $this->workspace->id, 'name' => 'Ground floor']);
-
-    $this->actingAs($this->user)
-        ->get(route('dashboard', ['tab' => 'profiles']))
         ->assertOk()
-        ->assertSee('Ground floor');
+        ->assertInertia(fn (Assert $page) => $page->component('Profiles/Index')
+            ->where('hasPro', true)
+            ->where('shell.nav.4.active', true)
+            ->has('profiles', 2)
+            ->where('profiles.0.name', 'A rooms')
+            ->where('profiles.0.displays', 1)
+            ->where('profiles.0.customised', 0)
+            ->where('profiles.0.booking', true)
+            ->where('profiles.1.booking', false)
+            ->where('profiles.0.canUpdate', true)
+            ->where('profiles.0.editUrl', route('profiles.edit', $first))
+            ->missing('selected'));
 });
 
-test('non-pro users cannot access profiles', function () {
+test('non-pro users see the profiles page with an upgrade note but cannot create one', function () {
     // Business user without a license/subscription is non-Pro in both cloud and self-hosted modes.
     $free = User::factory()->active()->create([
         'usage_type' => UsageType::BUSINESS,
     ]);
     session()->put('selected_workspace_id', $free->primaryWorkspace()->id);
+    DisplayProfile::factory()->create(['workspace_id' => $free->primaryWorkspace()->id]);
 
     $this->actingAs($free)
         ->get(route('profiles.index'))
-        ->assertForbidden();
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->component('Profiles/Index')
+            ->where('hasPro', false)
+            ->has('profiles', 0));
+
+    $this->actingAs($free)->get(route('profiles.create'))->assertForbidden();
+    $this->actingAs($free)->post(route('profiles.store'), ['name' => 'Nope'])->assertForbidden();
 });
 
-test('a non-pro user gets the same tab teaser for profiles as for boards', function () {
-    $free = User::factory()->active()->create([
-        'usage_type' => UsageType::BUSINESS,
-    ]);
-    session()->put('selected_workspace_id', $free->primaryWorkspace()->id);
+test('the profile editor gets the profile values, images and linked displays', function () {
+    $profile = DisplayProfile::factory()->create(['workspace_id' => $this->workspace->id, 'name' => 'Ground floor']);
+    ProfileSettings::set($profile, 'font_family', 'Lato');
+    ProfileSettings::set($profile, 'background_image', 'default_3');
+    $display = Display::factory()->create(['workspace_id' => $this->workspace->id, 'display_profile_id' => $profile->id]);
+    DisplaySettings::setSetting($display, 'text_available', 'Eigen tekst');
 
-    $response = $this->actingAs($free)->get(route('dashboard'))->assertOk();
-
-    // The tab stays visible and explains itself instead of quietly not being there.
-    $response->assertSee('Profiles (Pro Feature)');
-    $response->assertSee('Boards (Pro Feature)');
-    $response->assertSee('id="tab-profiles"', false);
-
-    // But it cannot be opened, and none of its content is rendered.
-    $response->assertDontSee('id="tab-content-profiles"', false);
-    $response->assertDontSee("switchTab('profiles')", false);
+    $this->actingAs($this->user)
+        ->get(route('profiles.edit', $profile))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->component('Profiles/Edit')
+            ->where('profile.name', 'Ground floor')
+            ->where('values.font_family', 'Lato')
+            ->where('images.background.default', 'default_3')
+            ->where('images.logo.url', null)
+            ->where('displays.0.ownSections', ['State texts'])
+            ->where('urls.save', route('profiles.update', $profile))
+            ->has('options.backgrounds', 8));
 });
 
-test('a pro user gets a working profiles tab instead of the teaser', function () {
-    $response = $this->actingAs($this->user)->get(route('dashboard'))->assertOk();
-
-    $response->assertSee("switchTab('profiles')", false);
-    $response->assertSee('id="tab-content-profiles"', false);
-    $response->assertDontSee('Profiles (Pro Feature)');
+test('the create page starts from the defaults', function () {
+    $this->actingAs($this->user)
+        ->get(route('profiles.create'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->component('Profiles/Edit')
+            ->where('profile', null)
+            ->where('values.font_family', 'Inter')
+            ->where('values.cancel_permission', 'all')
+            ->where('urls.save', route('profiles.store')));
 });
 
 test('user can create a profile with settings', function () {
@@ -80,7 +101,8 @@ test('user can create a profile with settings', function () {
         'text_available' => 'Vrij',
     ]);
 
-    $response->assertRedirect(route('profiles.index'));
+    $profile = DisplayProfile::where('name', 'Meeting rooms NL')->first();
+    $response->assertRedirect(route('profiles.edit', $profile));
     $this->assertDatabaseHas('display_profiles', [
         'name' => 'Meeting rooms NL',
         'workspace_id' => $this->workspace->id,
@@ -116,7 +138,7 @@ test('updating a profile changes its settings and leaves the links alone', funct
     $this->actingAs($this->user)->put(route('profiles.update', $profile), [
         'name' => 'Renamed',
         'booking_enabled' => '1',
-    ])->assertRedirect(route('profiles.index'));
+    ])->assertRedirect(route('profiles.edit', $profile));
 
     expect($profile->fresh()->name)->toBe('Renamed')
         ->and(ProfileSettings::get($profile->fresh(), 'booking_enabled'))->toBeTrue()
@@ -174,17 +196,17 @@ test('the configuration screen names the followed profile without offering to sw
         'display_profile_id' => $profile->id,
     ]);
 
-    $response = $this->actingAs($this->user)
+    $this->actingAs($this->user)
         ->get(route('displays.configure', $display))
         ->assertOk()
-        ->assertSee('Ground floor')
-        ->assertSee('This display follows');
-
-    // Linking and unlinking belong to the Displays tab, which can do it in bulk.
-    $response->assertDontSee('name="display_profile_id"', false);
-
-    // Nothing deviates yet, so there is nothing to reset.
-    $response->assertDontSee('Reset all sections to profile');
+        ->assertInertia(fn (Assert $page) => $page->component('Configure/Index')
+            ->where('shell.nav.2.active', true)
+            ->where('profile.name', 'Ground floor')
+            ->where('profile.editUrl', route('profiles.edit', $profile))
+            // Nothing deviates yet, so there is nothing to reset.
+            ->where('profile.deviates', false)
+            // Linking and unlinking belong to the Displays page, which can do it in bulk.
+            ->missing('profiles'));
 });
 
 test('the reset action appears only once a section has its own values', function () {
@@ -197,13 +219,15 @@ test('the reset action appears only once a section has its own values', function
 
     $this->actingAs($this->user)
         ->get(route('displays.configure', $display))
-        ->assertDontSee('Reset all sections to profile');
+        ->assertInertia(fn (Assert $page) => $page->where('profile.deviates', false));
 
     DisplaySettings::setSetting($display, 'text_available', 'Override');
 
     $this->actingAs($this->user)
         ->get(route('displays.configure', $display))
-        ->assertSee('Reset all sections to profile');
+        ->assertInertia(fn (Assert $page) => $page->where('profile.deviates', true)
+            ->where('sections.texts.follows', false)
+            ->where('values.text_available', 'Override'));
 });
 
 test('a display without a profile is told so instead of being offered a picker', function () {
@@ -216,8 +240,9 @@ test('a display without a profile is told so instead of being offered a picker',
     $this->actingAs($this->user)
         ->get(route('displays.configure', $display))
         ->assertOk()
-        ->assertSee('not linked to a profile')
-        ->assertDontSee('name="display_profile_id"', false);
+        ->assertInertia(fn (Assert $page) => $page->component('Configure/Index')
+            ->where('profile', null)
+            ->missing('profiles'));
 });
 
 test('resetting a display to its profile removes its own settings', function () {

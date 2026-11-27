@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\DisplayStatus;
+use App\Enums\FunnelStep;
 use App\Events\UserOnboarded;
 use App\Http\Requests\CreateDisplayRequest;
 use App\Models\CalDAVAccount;
@@ -12,11 +13,13 @@ use App\Models\GoogleAccount;
 use App\Models\OutlookAccount;
 use App\Models\Room;
 use App\Services\CalDAVService;
+use App\Services\FreePlanDisplayLimit;
+use App\Services\Funnel;
 use App\Services\FunnelTracking;
 use App\Services\GoogleService;
 use App\Services\OutlookService;
+use App\Services\RoomDetailsService;
 use Exception;
-use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -26,35 +29,9 @@ class DisplayController extends Controller
     public function __construct(
         protected OutlookService $outlookService,
         protected GoogleService $googleService,
-        protected CalDAVService $caldavService
+        protected CalDAVService $caldavService,
+        protected FreePlanDisplayLimit $freePlan
     ) {}
-
-    public function create(): View
-    {
-        $user = auth()->user();
-        $workspaces = $user->workspaces()->withPivot('role')->get();
-        $selectedWorkspace = $user->getSelectedWorkspace();
-
-        // Filter accounts to show all accounts for the selected workspace (from any workspace member)
-        if ($selectedWorkspace) {
-            $outlookAccounts = OutlookAccount::where('workspace_id', $selectedWorkspace->id)->get();
-            $googleAccounts = GoogleAccount::where('workspace_id', $selectedWorkspace->id)->get();
-            $caldavAccounts = CalDAVAccount::where('workspace_id', $selectedWorkspace->id)->get();
-        } else {
-            // Fallback to user's own accounts if no workspace selected
-            $outlookAccounts = $user->outlookAccounts;
-            $googleAccounts = $user->googleAccounts;
-            $caldavAccounts = $user->caldavAccounts;
-        }
-
-        return view('pages.displays.create', [
-            'outlookAccounts' => $outlookAccounts,
-            'googleAccounts' => $googleAccounts,
-            'caldavAccounts' => $caldavAccounts,
-            'workspaces' => $workspaces,
-            'defaultWorkspace' => $selectedWorkspace ?? $user->primaryWorkspace(),
-        ]);
-    }
 
     /**
      * @throws Exception
@@ -126,18 +103,30 @@ class DisplayController extends Controller
         });
 
         if ($display) {
+            // The floor and seats the provider keeps for the room, from the list the room picker
+            // just fetched. Never a fresh call here: creating a display must not wait on it.
+            app(RoomDetailsService::class)->fillMissing($display, fetch: false);
+
             event(new UserOnboarded($request->user(), $display));
             FunnelTracking::displayCreated($workspace);
         }
 
-        return redirect()->route('dashboard')->with($display ? 'success' : 'error', $display ?
+        // Created from the display setup: carry on with pairing the tablet.
+        if ($display && $request->boolean('from_onboarding')) {
+            Funnel::record(FunnelStep::ONBOARDING_STEP_COMPLETED, $workspace, $request->user(), ['step' => 'room']);
+
+            return redirect()->route('setup.first-display', ['step' => 'tablet', 'display' => $display->id]);
+        }
+
+        return redirect()->route('displays.index', $display ? ['display' => $display->id] : [])->with($display ? 'success' : 'error', $display ?
             'Display created! Now enter the connect code in the app on your tablet to connect it to the display.' :
             'Display could not be created. Please try again later.'
         );
     }
 
     /**
-     * Rename a display: the dashboard-only device name and the room name on the tablet.
+     * Rename a display: the dashboard-only device name, the room name on the tablet and the location
+     * and seat count printed under it.
      *
      * Both were only settable while creating the display, so a room that was renamed, moved or
      * mistyped had to be deleted and set up again — including reconnecting the tablet.
@@ -149,9 +138,12 @@ class DisplayController extends Controller
         $data = $request->validate([
             'name' => 'required|string|max:255',
             'display_name' => 'required|string|max:255',
+            'location' => 'nullable|string|max:64',
+            'capacity' => 'nullable|integer|min:1|max:999',
         ]);
 
-        $display->update($data);
+        // An emptied field clears the value instead of keeping the old one.
+        $display->update([...$data, 'location' => $data['location'] ?? null, 'capacity' => $data['capacity'] ?? null]);
 
         // Bust the kiosk cache so the tablet picks up a new room name without waiting for its
         // next settings poll to happen to land after the write.
@@ -159,7 +151,7 @@ class DisplayController extends Controller
 
         return redirect()
             ->route('displays.configure', $display)
-            ->with('success', 'Display names updated. Changes may take up to 1 minute to appear on your display.');
+            ->with('success', 'Display information updated. Changes may take up to 1 minute to appear on your display.');
     }
 
     public function updateStatus(Request $request, Display $display): RedirectResponse
@@ -170,11 +162,31 @@ class DisplayController extends Controller
             'status' => 'required|in:active,deactivated',
         ]);
 
+        if ($data['status'] === DisplayStatus::ACTIVE->value && $this->freePlan->hasOtherLiveDisplay($display)) {
+            return redirect()
+                ->route('displays.index', ['display' => $display->id])
+                ->with('error', 'The free plan has one active display. Upgrade to Pro to use more.');
+        }
+
         $display->update(['status' => $data['status']]);
 
         return redirect()
-            ->route('dashboard')
+            ->route('displays.index', ['display' => $display->id])
             ->with('status', 'Display status has been changed.');
+    }
+
+    /**
+     * On the free plan, pick which display is the active one. The current one waits for Pro.
+     */
+    public function makeActive(Display $display): RedirectResponse
+    {
+        $this->authorize('update', $display);
+
+        $this->freePlan->makeActive($display);
+
+        return redirect()
+            ->route('displays.index', ['display' => $display->id])
+            ->with('success', 'This display is now the active one.');
     }
 
     public function delete(Display $display): RedirectResponse
@@ -194,7 +206,7 @@ class DisplayController extends Controller
         }
 
         return redirect()
-            ->route('dashboard')
+            ->route('displays.index')
             ->with('status', 'Display has successfully been deleted.');
     }
 

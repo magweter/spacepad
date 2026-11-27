@@ -99,7 +99,7 @@ test('a workspace member can create a display on an account connected by another
     $this->actingAs($member)
         ->withSession(['selected_workspace_id' => $workspace->id])
         ->post(route('displays.store'), displayPayload('outlook', $account->id))
-        ->assertRedirect(route('dashboard'));
+        ->assertRedirect(route('displays.index', ['display' => Display::where('workspace_id', $workspace->id)->value('id')]));
 
     expect(Display::where('workspace_id', $workspace->id)->count())->toBe(1);
     expect(Calendar::where('outlook_account_id', $account->id)->count())->toBe(1);

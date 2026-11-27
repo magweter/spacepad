@@ -2,6 +2,7 @@
 
 use App\Console\Commands\CheckMarketingTriggers;
 use App\Console\Commands\CleanupExpiredEvents;
+use App\Console\Commands\FreePlanDisplays;
 use App\Console\Commands\ProcessYearlySubscriptions;
 use App\Console\Commands\ReconcileWorkspaceUsage;
 use App\Console\Commands\RefreshAnalytics;
@@ -9,6 +10,7 @@ use App\Console\Commands\RenewEventSubscriptions;
 use App\Console\Commands\SendHeartbeat;
 use App\Console\Commands\UpdateLemonSqueezySubscriptions;
 use App\Console\Commands\ValidateLicense;
+use App\Console\Commands\WarmEventCaches;
 use App\Services\InstanceService;
 use Illuminate\Support\Facades\Schedule;
 
@@ -29,6 +31,12 @@ Schedule::command(ValidateLicense::class)
     ->when(fn () => config('settings.is_self_hosted') && InstanceService::hasLicense())
     ->hourlyAt($validateMinute)
     ->withoutOverlapping(10); // Release lock after 10 minutes
+
+// Pages and boards only read the event cache; this keeps it filled for every display in use.
+Schedule::command(WarmEventCaches::class)
+    ->everyMinute()
+    ->withoutOverlapping(5)
+    ->runInBackground();
 
 Schedule::command(CleanupExpiredEvents::class)
     ->hourly()
@@ -60,6 +68,13 @@ Schedule::command(CheckMarketingTriggers::class)
 // backstop that catches whatever those cannot see: a manual SQL fix, a restored backup.
 Schedule::command(ReconcileWorkspaceUsage::class, ['--fix'])
     ->dailyAt('03:20')
+    ->withoutOverlapping(30);
+
+// Catches plan changes whose webhook never arrived: displays come back after an upgrade, and
+// a subscription that definitively ended puts its workspace on the free plan.
+Schedule::command(FreePlanDisplays::class, ['--sync'])
+    ->when(fn () => ! config('settings.is_self_hosted'))
+    ->hourly()
     ->withoutOverlapping(30);
 
 Schedule::command(RefreshAnalytics::class)

@@ -6,10 +6,11 @@ use App\Models\Board;
 use App\Models\Display;
 use App\Models\Event as EventModel;
 use App\Models\PersonalAccessToken;
+use App\Models\Workspace;
 use App\Observers\BoardObserver;
 use App\Observers\DisplayObserver;
 use App\Observers\EventObserver;
-use App\Services\AdminStatsService;
+use App\Observers\WorkspaceObserver;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Foundation\Events\DiagnosingHealth;
 use Illuminate\Http\Request;
@@ -17,7 +18,6 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Sanctum\Sanctum;
 use LemonSqueezy\Laravel\LemonSqueezy;
@@ -77,10 +77,16 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(10)->by($request->ip());
         });
 
-        // Every admin screen shows the same tiles, so they are filled here rather than by
-        // each admin controller remembering to pass them.
-        View::composer('components.admin.stats', function ($view) {
-            $view->with('stats', app(AdminStatsService::class)->figures());
+        // The portal's timeline reads every room's calendar live for another day and changes
+        // meetings at the provider. The tablets share those Graph and Google quotas, so bound it
+        // per person and per workspace. Switching days by hand stays far below these numbers.
+        RateLimiter::for('portal_schedule', function (Request $request) {
+            $user = $request->user();
+
+            return [
+                Limit::perMinute(30)->by('schedule:user:'.($user?->id ?: $request->ip())),
+                Limit::perMinute(120)->by('schedule:workspace:'.($user?->getSelectedWorkspace()?->id ?: $request->ip())),
+            ];
         });
 
         EventModel::observe(EventObserver::class);
@@ -88,6 +94,7 @@ class AppServiceProvider extends ServiceProvider
         // Billable usage is a column on the workspace, not a count. These two keep it true.
         Display::observe(DisplayObserver::class);
         Board::observe(BoardObserver::class);
+        Workspace::observe(WorkspaceObserver::class);
 
         Event::listen(DiagnosingHealth::class, function () {
             DB::connection()->getPdo();

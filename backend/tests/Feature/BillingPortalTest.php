@@ -7,6 +7,7 @@ use App\Models\WorkspaceMember;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Inertia\Testing\AssertableInertia as Assert;
 
 uses(RefreshDatabase::class);
 
@@ -135,10 +136,9 @@ test('a manually billed workspace has no portal and keeps its support copy', fun
 
     // We invoice these workspaces ourselves, so the page still points at support rather
     // than at a portal that would show them nothing.
-    $this->get(route('workspaces.members'))
+    $this->get(route('billing.index'))
         ->assertOk()
-        ->assertSee('We invoice this workspace directly')
-        ->assertDontSee(route('billing.portal'), false);
+        ->assertInertia(fn (Assert $page) => $page->component('Billing/Index')->where('billing.state', 'manual'));
 
     Http::assertNothingSent();
 });
@@ -153,10 +153,9 @@ test('a Pro workspace without a customer record falls back to the modal', functi
 
     $this->post(route('billing.portal'))->assertNotFound();
 
-    $this->get(route('workspaces.members'))
+    $this->get(route('billing.index'))
         ->assertOk()
-        ->assertSee('Manage subscription')
-        ->assertDontSee(route('billing.portal'), false);
+        ->assertInertia(fn (Assert $page) => $page->where('billing.state', 'modal'));
 
     Http::assertNothingSent();
 });
@@ -185,11 +184,11 @@ test('the workspace page shows the portal button without calling the API', funct
     $this->actingAs($owner);
     session()->put('selected_workspace_id', $workspace->id);
 
-    $this->get(route('workspaces.members'))
+    $this->get(route('billing.index'))
         ->assertOk()
-        ->assertSee('Open billing portal')
-        ->assertSee(route('billing.portal'), false)
-        ->assertSee('target="_blank"', false);
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('billing.state', 'portal')
+            ->where('urls.portal', route('billing.portal')));
 
     // The portal url is fetched behind the POST route for exactly this reason.
     Http::assertNothingSent();
@@ -207,6 +206,6 @@ test('a failure at Lemon Squeezy leaves the owner on the workspace page', functi
     session()->put('selected_workspace_id', $workspace->id);
 
     $this->post(route('billing.portal'))
-        ->assertRedirect(route('workspaces.members'))
+        ->assertRedirect(route('billing.index'))
         ->assertSessionHas('error');
 });
